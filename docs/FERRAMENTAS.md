@@ -89,17 +89,11 @@ Dados escritos à mão: `tools/strings_nw.json` (textos nossos pt/en), `tools/se
 | `import_ui.py` | texturas e fontes das telas |
 | `import_audio.py` | música e ambiente em loop |
 
-## Cliente original contra servidor local (`tools/oc/`, plano paralelo)
+## Cliente original contra servidor local (plano B)
 
-Testes do caminho "cliente original + servidor emulado" (Discord OpenWorld), sem tocar nos servidores oficiais.
-
-| Arquivo | Para quê |
-|---|---|
-| `netjail.sh` | roda o jogo sem internet (namespace de rede só com loopback), usado nas opções de inicialização da Steam |
-| `bridge.py` | ponte das portas locais do cliente Steam para dentro do namespace |
-| `listen.py` | ouvinte passivo do gateway (TCP 6000) e do REP/GridMate (UDP 33435); só registra |
-| `channel_server.py` | serviço de canais local (definição de canal do login) |
-| `ClientOverride.json` | override do cliente: gateway `stubbed` em 127.0.0.1:6000 |
+Esse caminho (rodar o `NewWorld.exe` oficial contra um servidor local) foi separado para o repo
+**[cliente original (fora deste repositório)](https://github.com/paulorsouza/cliente original (fora deste repositório))** (privado): `tools/oc/`, a doc completa
+e a RE do login no Ghidra. A RE usa o Ghidra compartilhado — ver [docs/ghidra.md](ghidra.md).
 
 ## Skills do Claude Code
 
