@@ -9,7 +9,7 @@ Port do New World para Unreal 5.8.3 para o clã jogar num servidor próprio. Ass
 en-US. Escopo atual: o território de Guardaventos inteiro (região `r_+04_+01`), uma região por vez.
 
 Decisões fechadas: Unreal é o plano principal; o cliente original com servidor emulado (Discord OpenWorld) é um
-plano paralelo do dono; Lumberyard/O3DE descartado. Tema jurídico encerrado.
+plano paralelo do dono (estado e regras em `docs/plano-b-cliente-original.md`); Lumberyard/O3DE descartado. Tema jurídico encerrado.
 
 ## Funciona
 
