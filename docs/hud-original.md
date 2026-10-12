@@ -79,6 +79,10 @@ Os nomes na tela vêm de `ui_movefoward`, `ui_runtoggle`, `ui_walk`, `ui_rolldod
   `equipmentbg` com ícone do tipo quando vazio.
 - `hud2024/actionbar/encumbrance`: aviso de sobrecarga na HUD.
 - Peso dos itens: `Weight` das itemdefinitions, em décimos de kg; limite base 1000.
+- Bolsas: itens `BagAT1`–`BagAT5`, `BagBT2`–`BagBT5`, `BagAT52` (`ItemClass` Bag, ItemType Armor, em
+  `itemdefinitions_master_crafting`); capacidade em `javelindata_itemdefinitions_armor` (`Encumbrance`, décimos:
+  AT1 +50, AT2 +100, AT3 +150, AT4 +225, AT5 +300; BT2 +125 … ) e `EncumbrancePerGS` (2–6). Ficam em espaços
+  próprios do inventário. O port ainda não tem bolsas: no jogo vêm de criação (Armoraria), que não existe aqui.
 
 ## Status
 
