@@ -16,6 +16,18 @@ enum class ENWAttribute : uint8
 	Num UMETA(Hidden),
 };
 
+/** Ofícios de coleta do jogo (CategoricalProgressionId). */
+namespace NWTradeskill
+{
+	constexpr int32 Num = 4;
+	/** Mining, Logging, Harvesting, Skinning -> 0..3; outro -> INDEX_NONE. */
+	NWPORT_API int32 Index(FName Tradeskill);
+	NWPORT_API FName Name(int32 Index);
+	/** Chave do texto do jogo (ui_mining...) e ícone (icons/tradeskills/icon_tradeskill_<ofício>). */
+	NWPORT_API FString TextKey(int32 Index);
+	NWPORT_API FString Icon(int32 Index);
+}
+
 /**
  * Nível do personagem, XP e atributos, com as tabelas do jogo (Data/Progression/progression.json,
  * tools/make_progression.py): XP total por nível (javelindata_xpamountsbylevel), pontos de atributo ganhos a cada
@@ -35,6 +47,19 @@ public:
 	UPROPERTY(Replicated) int64 Xp = 0;
 	/** Pontos distribuídos por atributo (além da base 5). */
 	UPROPERTY(Replicated) TArray<int32> Spent;
+	/** XP total de cada ofício de coleta (NWTradeskill). */
+	UPROPERTY(Replicated) TArray<int32> TradeXp;
+
+	/** Nível do ofício pela tabela do jogo (javelindata_tradeskill<ofício>, InfluenceCost acumulado). */
+	int32 TradeLevel(int32 Skill) const;
+	int32 TradeMaxLevel(int32 Skill) const;
+	/** 0..1 do nível do ofício até o próximo. */
+	float TradeProgress(int32 Skill) const;
+	/** Bônus de velocidade de coleta do nível (GatheringEfficiency: 0,05 por nível no começo). */
+	float TradeEfficiency(int32 Skill) const;
+	/** Servidor: XP de ofício da coleta (CategoricalProgressionReward do evento do coletável). */
+	void AddTradeXp(FName Tradeskill, int32 Amount);
+	UFUNCTION(Client, Reliable) void ClientTradeXpGained(uint8 Skill, int32 Amount, int32 NewLevel);
 
 	int32 MaxLevel() const;
 	/** XP total para chegar ao nível (1 = 0). */

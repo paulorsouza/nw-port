@@ -157,6 +157,9 @@ bool ANWGatherField::Load(const FString& File)
 		V.Restriction = FName(O->GetStringField(TEXT("restriction")));
 		V.Loot = FName(O->GetStringField(TEXT("loot")));
 		V.Time = O->GetNumberField(TEXT("time"));
+		double Num = 0.0;
+		V.RequiredLevel = O->TryGetNumberField(TEXT("required_level"), Num) ? int32(Num) : 0;
+		V.TradeXp = O->TryGetNumberField(TEXT("trade_xp"), Num) ? int32(Num) : 0;
 		const TArray<TSharedPtr<FJsonValue>>& R = O->GetArrayField(TEXT("respawn"));
 		V.RespawnMin = R.Num() > 0 ? R[0]->AsNumber() : 300.f;
 		V.RespawnMax = R.Num() > 1 ? R[1]->AsNumber() : V.RespawnMin;

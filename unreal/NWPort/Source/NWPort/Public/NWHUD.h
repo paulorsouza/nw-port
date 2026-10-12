@@ -50,6 +50,8 @@ public:
 	bool IsDeathScreen() const { return bDeathScreen; }
 	/** Saque recebido (UNWInventoryComponent::ClientLoot): uma linha por item, à direita, por 6 s. */
 	void ShowLoot(const TArray<struct FNWItem>& Gained, int64 Coins);
+	/** XP de ofício da coleta: linha de progresso no aviso de saque (ícone do ofício, "+N", nome e barra do nível). */
+	void ShowTradeXp(uint8 Skill, int32 Amount);
 	/** XP ganho (UNWProgressionComponent::ClientXpGained): "+N XP" ao lado do nível por 2,5 s. */
 	void ShowXp(int64 Amount);
 	// Depois de trocar o idioma (NWText::SetLang): recarrega as telas.
@@ -103,7 +105,8 @@ private:
 	/** Coleta: "[E] Minerar Filão de Ferro" perto de um coletável e a barra durante a coleta. */
 	void DrawGather(const APawn* Me);
 	// Linha do aviso de saque (hud2024/lootticker): item (ícone, raridade, tier, quantidade) ou moedas.
-	struct FLootLine { FName ItemId; int32 Quantity = 0; uint8 Rarity = 0; int64 Coins = 0; double Time = 0.0; };
+	// Linha do aviso: item, moedas ou XP de ofício (Trade = NWTradeskill, Quantity = XP).
+	struct FLootLine { FName ItemId; int32 Quantity = 0; uint8 Rarity = 0; int64 Coins = 0; double Time = 0.0; int32 Trade = -1; };
 	TArray<FLootLine> LootLines;
 	// Membros do grupo à esquerda, com a barra de membro do jogo (Data/UI/group_layout.json).
 	void DrawGroup(const APawn* Me);

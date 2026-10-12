@@ -46,7 +46,8 @@ GAME_KEYS = ["ui_play", "ui_enter", "ui_cancel", "ui_back", "ui_characters", "ui
              "ui_ability1", "ui_ability2", "ui_ability3", "ui_weapon1", "ui_weapon2", "ui_consumable1", "ui_interact",
              "ui_inventory", "ui_mastery", "ui_map", "ui_level_up",
              "ui_options_damage_numbers_display_mode", "ui_options_damage_numbers_display_mode_floating",
-             "ui_options_damage_numbers_display_mode_stacked"]
+             "ui_options_damage_numbers_display_mode_stacked",
+             "ui_mining", "ui_logging", "ui_harvesting", "ui_skinning"]
 GATHERABLES = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "guardaventos_gatherables.json")
 
 

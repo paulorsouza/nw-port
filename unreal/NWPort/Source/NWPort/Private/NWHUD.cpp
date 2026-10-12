@@ -771,6 +771,19 @@ void ANWHUD::ShowLoot(const TArray<FNWItem>& Gained, int64 Coins)
 	}
 }
 
+void ANWHUD::ShowTradeXp(uint8 Skill, int32 Amount)
+{
+	FLootLine L;
+	L.Quantity = Amount;
+	L.Trade = Skill;
+	L.Time = FPlatformTime::Seconds();
+	LootLines.Add(L);
+	while (LootLines.Num() > 5)
+	{
+		LootLines.RemoveAt(0);
+	}
+}
+
 void ANWHUD::DrawLootTicker()
 {
 	const double Now = FPlatformTime::Seconds();
@@ -810,6 +823,27 @@ void ANWHUD::DrawLootTicker()
 		const float Alpha = FMath::Clamp(float(6.0 - (Now - L.Time)) / 1.5f, 0.f, 1.f);
 		const FVector2D Row = O + FVector2D(0.f, 12.f + i * 58.f) * S;
 		Tex(TEXT("lyshineui/images/lootticker/progressiontickeritembg.dds"), Row + FVector2D(2.f, -12.f) * S, FVector2D(385.f, 68.f) * S, Alpha);
+		if (L.Trade >= 0)
+		{
+			// Progresso de ofício (progressiontickeritembg do jogo): ícone, "+N", nome e o nível com a barra.
+			const ANWCharacter* Me = Cast<ANWCharacter>(GetOwningPawn());
+			const UNWProgressionComponent* P = Me ? Me->Progression.Get() : nullptr;
+			Tex(NWTradeskill::Icon(L.Trade), Row + FVector2D(52.f, 8.f) * S, FVector2D(42.f) * S, Alpha);
+			Text(FString::Printf(TEXT("+%d"), L.Quantity), Row.X + 107.f * S, Row.Y + 8.f * S, 19.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
+			Text(NWText::Get(NWTradeskill::TextKey(L.Trade)), Row.X + 175.f * S, Row.Y + 8.f * S, 18.f, Tan, Alpha);
+			if (P)
+			{
+				Text(FString::FromInt(P->TradeLevel(L.Trade)), Row.X + 107.f * S, Row.Y + 30.f * S, 15.f, Tan, Alpha);
+				const FVector2D Bar = Row + FVector2D(175.f, 38.f) * S;
+				FCanvasTileItem Back(Bar, FVector2D(190.f, 4.f) * S, FLinearColor(1.f, 1.f, 1.f, 0.15f * Alpha));
+				Back.BlendMode = SE_BLEND_Translucent;
+				Canvas->DrawItem(Back);
+				FCanvasTileItem Fill(Bar, FVector2D(190.f * P->TradeProgress(L.Trade), 4.f) * S, FLinearColor(0.93f, 0.78f, 0.24f, Alpha));
+				Fill.BlendMode = SE_BLEND_Translucent;
+				Canvas->DrawItem(Fill);
+			}
+			continue;
+		}
 		if (L.Coins > 0)
 		{
 			Tex(TEXT("lyshineui/images/icons/objectives/reward_coin_cover.dds"), Row + FVector2D(52.f, 8.f) * S, FVector2D(42.f) * S, Alpha);

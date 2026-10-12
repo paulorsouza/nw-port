@@ -93,6 +93,8 @@ def main():
         for r in json.load(open(f))["rows"]:
             variants.setdefault(r["VariantID"], (kind, r))
     gatherables = {r["GatherableID"]: r for r in rows("gatherables")}
+    # Evento de jogo de cada coletável (GameEventID, só em parte das linhas): XP de ofício e XP universal.
+    events = {r["EventID"]: r for r in rows("gameevents")}
 
     by_lower = {k.lower(): k for k in variants}
     points = []  # (variante, x, y, z, quat do mundo (x, y, z, w), escala)
@@ -143,6 +145,10 @@ def main():
                 "loot": str(g.get("FinalLootTable") or ""),
                 "respawn": [float(g.get("MinRespawnRate") or 0), float(g.get("MaxRespawnRate") or 0)],
                 "compass_icon": str(r.get("CompassIcon") or "").replace("\\", "/").lower(),
+                "required_level": int(g.get("RequiredTradeskillLevel") or 0),
+                "event": str(g.get("GameEventID") or ""),
+                "trade_xp": float(events.get(g.get("GameEventID"), {}).get("CategoricalProgressionReward") or 0),
+                "universal_xp": float(events.get(g.get("GameEventID"), {}).get("UniversalExpAmount") or 0),
             }
         # Compacto (100 mil pontos): [variante, x, y, z, qx, qy, qz, qw, escala] em cm no referencial do mapa.
         instances.append([order[v], round(-lx * 100, 1), round(ly * 100, 1), round(lz * 100, 1),

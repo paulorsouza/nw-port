@@ -105,7 +105,10 @@ Feitas com o PC sozinho (sem abrir o editor nem rodar o jogo): compilam, falta c
 - Conferir: tooltip (Tab, mouse num item), aviso de saque (coletar), mapa (M: arrastar, roda, botões, POIs),
   bússola com POIs, barra de XP e banner (F10 > Ganhar 1 nível), atributos e "+" no painel de status,
   aba Atalhos (trocar tecla, Esc cancela, Restaurar Padrões) e corrida automática (=).
-- Progressão: XP não vem de coleta nem de abate (as tabelas não dizem a fórmula; ver `docs/hud-original.md`);
+- Ofícios: exigir `RequiredTradeskillLevel` (hoje qualquer nível coleta tudo; ligar só quando o nível for salvo,
+  senão cada sessão começa do 0 e trava árvores grandes), `RollBonus` no saque (só tabelas com
+  `RollBonusSetting` = AddToRoll), tela de ofícios do jogo, salvar no nw-core.
+- Progressão: XP de personagem não vem de coleta nem de abate (as tabelas não dizem a fórmula; ver `docs/hud-original.md`);
   nível/XP/atributos não são salvos no nw-core (precisa migration + `backend/src/routes/internal.rs`);
   atributos ainda não mudam dano nem vida.
 - Mapa: faltam coletáveis rastreados, NPCs, outros jogadores do grupo; névoa de áreas não descobertas.

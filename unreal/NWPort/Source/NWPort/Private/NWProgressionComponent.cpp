@@ -18,6 +18,8 @@ namespace
 		TArray<int64> LevelXp;      // [n] = XP total para chegar ao nível n+1
 		TArray<int32> LevelPoints;  // [n] = pontos ganhos ao chegar ao nível n+1
 		TMap<int32, float> ConstitutionHealth;
+		struct FTrade { TArray<int32> Xp; TArray<float> Eff; };
+		FTrade Trade[NWTradeskill::Num];
 
 		static const FProgressionData& Get()
 		{
@@ -46,6 +48,22 @@ namespace
 						D.ConstitutionHealth.Add(FCString::Atoi(*Pair.Key), Pair.Value->AsObject()->GetNumberField(TEXT("health")));
 					}
 				}
+				const TSharedPtr<FJsonObject>* Trades = nullptr;
+				if (Root->TryGetObjectField(TEXT("tradeskills"), Trades))
+				{
+					for (int32 t = 0; t < NWTradeskill::Num; ++t)
+					{
+						const TArray<TSharedPtr<FJsonValue>>* Rows = nullptr;
+						if ((*Trades)->TryGetArrayField(NWTradeskill::Name(t).ToString(), Rows))
+						{
+							for (const TSharedPtr<FJsonValue>& R : *Rows)
+							{
+								D.Trade[t].Xp.Add(int32(R->AsObject()->GetNumberField(TEXT("xp"))));
+								D.Trade[t].Eff.Add(float(R->AsObject()->GetNumberField(TEXT("eff"))));
+							}
+						}
+					}
+				}
 				return D;
 			}();
 			return Data;
@@ -53,10 +71,96 @@ namespace
 	};
 }
 
+namespace NWTradeskill
+{
+	static const TCHAR* Names[Num] = {TEXT("Mining"), TEXT("Logging"), TEXT("Harvesting"), TEXT("Skinning")};
+
+	int32 Index(FName Tradeskill)
+	{
+		for (int32 i = 0; i < Num; ++i)
+		{
+			if (Tradeskill == Names[i])
+			{
+				return i;
+			}
+		}
+		return INDEX_NONE;
+	}
+
+	FName Name(int32 I) { return I >= 0 && I < Num ? FName(Names[I]) : NAME_None; }
+	FString TextKey(int32 I) { return I >= 0 && I < Num ? TEXT("ui_") + FString(Names[I]).ToLower() : FString(); }
+	FString Icon(int32 I)
+	{
+		return I >= 0 && I < Num ? FString::Printf(TEXT("lyshineui/images/icons/tradeskills/icon_tradeskill_%s.dds"), *FString(Names[I]).ToLower()) : FString();
+	}
+}
+
 UNWProgressionComponent::UNWProgressionComponent()
 {
 	SetIsReplicatedByDefault(true);
 	Spent.Init(0, int32(ENWAttribute::Num));
+	TradeXp.Init(0, NWTradeskill::Num);
+}
+
+int32 UNWProgressionComponent::TradeMaxLevel(int32 Skill) const
+{
+	return Skill >= 0 && Skill < NWTradeskill::Num ? FMath::Max(0, FProgressionData::Get().Trade[Skill].Xp.Num() - 1) : 0;
+}
+
+int32 UNWProgressionComponent::TradeLevel(int32 Skill) const
+{
+	if (Skill < 0 || Skill >= NWTradeskill::Num || !TradeXp.IsValidIndex(Skill))
+	{
+		return 0;
+	}
+	const TArray<int32>& T = FProgressionData::Get().Trade[Skill].Xp;
+	int32 L = 0;
+	while (L + 1 < T.Num() && TradeXp[Skill] >= T[L + 1])
+	{
+		++L;
+	}
+	return L;
+}
+
+float UNWProgressionComponent::TradeProgress(int32 Skill) const
+{
+	const int32 L = TradeLevel(Skill);
+	if (L >= TradeMaxLevel(Skill) || !TradeXp.IsValidIndex(Skill))
+	{
+		return 1.f;
+	}
+	const TArray<int32>& T = FProgressionData::Get().Trade[Skill].Xp;
+	return FMath::Clamp(float(TradeXp[Skill] - T[L]) / float(FMath::Max(1, T[L + 1] - T[L])), 0.f, 1.f);
+}
+
+float UNWProgressionComponent::TradeEfficiency(int32 Skill) const
+{
+	const int32 L = TradeLevel(Skill);
+	const TArray<float>& E = Skill >= 0 && Skill < NWTradeskill::Num ? FProgressionData::Get().Trade[Skill].Eff : TArray<float>();
+	return E.IsValidIndex(L) ? E[L] : 0.f;
+}
+
+void UNWProgressionComponent::AddTradeXp(FName Tradeskill, int32 Amount)
+{
+	const int32 Skill = NWTradeskill::Index(Tradeskill);
+	if (Skill == INDEX_NONE || Amount <= 0 || GetOwnerRole() != ROLE_Authority)
+	{
+		return;
+	}
+	const int32 Cap = FProgressionData::Get().Trade[Skill].Xp.Num() ? FProgressionData::Get().Trade[Skill].Xp.Last() : 0;
+	TradeXp[Skill] = FMath::Min(TradeXp[Skill] + Amount, Cap);
+	GetOwner()->ForceNetUpdate();
+	ClientTradeXpGained(uint8(Skill), Amount, TradeLevel(Skill));
+}
+
+void UNWProgressionComponent::ClientTradeXpGained_Implementation(uint8 Skill, int32 Amount, int32 NewLevel)
+{
+	const APawn* Pawn = Cast<APawn>(GetOwner());
+	const APlayerController* PC = Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
+	if (ANWHUD* Hud = PC ? Cast<ANWHUD>(PC->GetHUD()) : nullptr)
+	{
+		Hud->ShowTradeXp(Skill, Amount);
+	}
 }
 
 void UNWProgressionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -65,6 +169,7 @@ void UNWProgressionComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Level, COND_None);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Xp, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Spent, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UNWProgressionComponent, TradeXp, COND_OwnerOnly);
 }
 
 int32 UNWProgressionComponent::MaxLevel() const

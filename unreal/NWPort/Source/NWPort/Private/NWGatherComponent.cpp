@@ -15,6 +15,7 @@
 #include "NWInventoryComponent.h"
 #include "NWItems.h"
 #include "NWPlayerController.h"
+#include "NWProgressionComponent.h"
 #include "NWText.h"
 
 static const TCHAR* GatherAnims = TEXT("/Game/NW/sword_shield/Anims/");
@@ -150,8 +151,9 @@ void UNWGatherComponent::ServerGather_Implementation(int32 Index)
 			return;
 		}
 	}
-	// Tempo do jogo: BaseGatherTime ÷ eficiência da ferramenta (à mão = tempo base).
-	const float Time = FMath::Max(1.f, V.Time / FMath::Max(0.1f, ToolDef ? ToolDef->Efficiency : 1.f));
+	// Tempo do jogo: BaseGatherTime ÷ (eficiência da ferramenta + bônus do nível do ofício); à mão = tempo base.
+	const float SkillBonus = Me->Progression ? Me->Progression->TradeEfficiency(NWTradeskill::Index(V.Tradeskill)) : 0.f;
+	const float Time = FMath::Max(1.f, V.Time / FMath::Max(0.1f, (ToolDef ? ToolDef->Efficiency : 1.f) + SkillBonus));
 	GatherIndex = Index;
 	GatherAction = V.Action;
 	GatherStart = ServerNow();
@@ -187,10 +189,15 @@ void UNWGatherComponent::Finish(bool bComplete)
 	}
 	TArray<FNWItem> Gained;
 	FNWItemCatalog::Get().RollGame(Field->VariantOf(Index).Loot, Gained);
+	const ANWGatherField::FVariant& V = Field->VariantOf(Index);
 	Field->Deplete(Index);
 	if (Me->Inventory)
 	{
 		Me->Inventory->Grant(Gained, 0);
+	}
+	if (Me->Progression)
+	{
+		Me->Progression->AddTradeXp(V.Tradeskill, V.TradeXp);
 	}
 }
 

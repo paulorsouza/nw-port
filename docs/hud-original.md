@@ -100,9 +100,15 @@ Os nomes na tela vêm de `ui_movefoward`, `ui_runtoggle`, `ui_walk`, `ui_rolldod
   (6 = 40, 14 = 360, 54 = 1908, 500 = 13769). Cada atributo começa em 5.
 - `javelindata_gameevents`: recompensas por evento. Coleta: `Gather_<Mining|Logging|Harvesting|Skinning>T<n>` com
   `UniversalExpAmount` (3,35 a 23,45) e XP de profissão (`CategoricalProgressionReward`). Abate: `KillEvent` com
-  `UniversalExpAmount` 1. Não está nas tabelas como o servidor chega ao XP final de um abate (o valor parece ser
-  multiplicado por algo do nível da criatura) nem qual `T<n>` cada coletável usa. Por isso o port ainda não dá XP
-  por coleta ou abate: só o comando de dev "Ganhar 1 nível".
+  `UniversalExpAmount` 1. Cada coletável aponta para o seu evento na coluna `GameEventID` de `javelindata_gatherables`
+  (só em 454 das 1779 linhas, por isso não aparece na primeira linha da tabela). Não está nas tabelas a escala do
+  `UniversalExpAmount` (no abate vale 1, então é multiplicado por algo do nível da criatura): o port ainda não dá XP
+  de personagem por coleta ou abate, só o comando de dev "Ganhar 1 nível".
+- Ofícios de coleta (`javelindata_categoricalprogression`: Mining, Logging, Harvesting, Skinning, nível máximo 200,
+  250 com a expansão): curva em `javelindata_tradeskill<ofício>` (`InfluenceCost` = XP do nível anterior até este;
+  Mineração 250 = 678 254 XP), `GatheringEfficiency` (+0,05 por nível no começo, 2,2 no 250) e `RollBonus` (+10 por
+  nível no dado do saque). XP por coleta = `CategoricalProgressionReward` do evento (ex.: pedregulho pequeno 64,
+  pinheiro grande 199). `RequiredTradeskillLevel` exige nível (pinheiro grande 50, planta da morte 30).
 
 ## O que o port já tem e o que foi feito agora
 
@@ -127,5 +133,6 @@ Ver a tabela de estado no fim deste arquivo, atualizada a cada etapa.
 | Barra de XP | feita: tela `hud2024/xp` do jogo na HUD (nível, preenchimento do nível atual, ponta que acompanha, "+N XP" por 2,5 s). Nível e XP no `UNWProgressionComponent` com a curva do jogo; sem XP descansado nem multiplicador |
 | Banner de nível | feito: ao subir de nível, a parte de XP do `bannerlevelup` do jogo (runa `bannerleveluprune_xp` com a `_x` girando, faixa `banner_light_blue2`, linha `notification_showline`, "Subiu de Nível" e o número) por 4,5 s (`ANWHUD::DrawLevelUp`) |
 | Atributos | feitos no painel de status: Nível com XP do nível, Força/Destreza/Inteligência/Foco/Constituição (base 5), pontos livres e "+" para distribuir (servidor confere). Ainda não mudam dano nem vida |
+| Ofícios de coleta | feitos: XP de Mineração/Extração de Madeira/Colheita/Esfolamento por coleta com os valores do jogo, nível pela curva do jogo, bônus de velocidade de coleta do nível somado à eficiência da ferramenta, linha de progresso no aviso de saque (ícone do ofício, "+N", nome, nível e barra). Ainda sem exigir `RequiredTradeskillLevel`, sem `RollBonus` no saque, sem tela de ofícios |
 | Pendências de progressão | origem do XP (coleta e abate, ver acima); salvar nível/XP/atributos no nw-core (migration); efeitos dos atributos no combate |
 | Durabilidade, efeitos | dependem de sistemas que o port ainda não tem |
