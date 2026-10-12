@@ -20,6 +20,9 @@ public:
 	ANWSpawnField();
 	static FString DataFileFor(const UWorld* World);
 	virtual void BeginPlay() override;
+	static ANWSpawnField* Get(const UWorld* World);
+	/** Spawner com conjunto mais perto de From, a mais de MinDist (menu de dev: ir até uma criatura). */
+	bool NearestSpawn(const FVector& From, float MinDist, FVector& Out) const;
 
 	UPROPERTY(EditAnywhere, Category = "NW|Spawn") float SpawnRadius = 6000.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Spawn") float DespawnRadius = 9000.f;

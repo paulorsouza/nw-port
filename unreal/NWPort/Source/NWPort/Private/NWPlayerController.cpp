@@ -2,6 +2,7 @@
 #include "TimerManager.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "NWProgressionComponent.h"
+#include "NWSpawnField.h"
 #include "NWText.h"
 
 #include "Engine/Engine.h"
@@ -599,6 +600,18 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		break;
 	case ENWDevCommand::GiveTools:
 		if (Me && Me->Inventory) Me->Inventory->GiveTools();
+		break;
+	case ENWDevCommand::GoToCreature:
+		// Spawner de criatura mais perto (a mais de 30 m): para ver javalis e lobos sem procurar.
+		if (const ANWSpawnField* Spawns = ANWSpawnField::Get(World); Spawns && Me)
+		{
+			FVector At;
+			if (Spawns->NearestSpawn(Me->GetActorLocation(), 3000.f, At))
+			{
+				const FVector Dir = (Me->GetActorLocation() - At).GetSafeNormal2D();
+				Me->TeleportTo(At + Dir * 2500.f + FVector(0.f, 0.f, 300.f), FRotator(0.f, (-Dir).Rotation().Yaw, 0.f));
+			}
+		}
 		break;
 	case ENWDevCommand::GiveTradeLevels:
 		if (Me && Me->Progression)

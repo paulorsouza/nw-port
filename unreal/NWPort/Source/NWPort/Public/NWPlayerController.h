@@ -31,6 +31,7 @@ enum class ENWDevCommand : uint8
 	ToggleFastRun,
 	GiveLevel,
 	GiveTradeLevels,
+	GoToCreature,
 };
 
 /** Canais do chat (nomes do jogo: ui_chat_name_local / _group, ui_error_systemname). */

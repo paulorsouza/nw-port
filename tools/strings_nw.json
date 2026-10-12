@@ -398,5 +398,9 @@
   "nw.gather.skin": {
     "pt-br": "Esfolar",
     "en-us": "Skin"
+  },
+  "nw.dev.go_creature": {
+    "pt-br": "Ir para criatura",
+    "en-us": "Go to creature"
   }
 }

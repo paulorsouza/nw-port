@@ -104,6 +104,7 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.give_level")), nullptr, Dev(ENWDevCommand::GiveLevel)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_trade_levels")), nullptr, Dev(ENWDevCommand::GiveTradeLevels)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_ore")), nullptr, Dev(ENWDevCommand::GoToOre)));
+	Add(Button(NWText::Get(TEXT("nw.dev.go_creature")), nullptr, Dev(ENWDevCommand::GoToCreature)));
 	Add(Header(NWText::Get(TEXT("nw.dev.enemies"))), 12.f);
 	Add(Button(NWText::Get(TEXT("nw.dev.spawn_lost")), nullptr, Dev(ENWDevCommand::SpawnLost)));
 	Add(Button(NWText::Get(TEXT("nw.dev.spawn_dummy")), nullptr, Dev(ENWDevCommand::SpawnDummy)));

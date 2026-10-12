@@ -41,7 +41,7 @@ classe NWAnimInstance) e montar o AnimGraph:
 `Blend Space Player` → `Slot 'DefaultSlot'` → `Output Pose`. No Blend Space Player, expor o pino *Blend Space* e
 ligar à variável **Locomotion**; eixo X = **TurnRate**, eixo Y = **Speed**. Compilar e salvar.
 
-16. **Nascem perto de você.** Sair da cidade (F10 > corrida rápida ajuda). Javalis e lobos aparecem nos POIs a até
+16. **Nascem perto de você.** F10 > Ir para criatura (põe você a 25 m de um spawner de javali ou lobo). Javalis e lobos aparecem nos POIs a até
     60 m e somem quando você se afasta 90 m. Andam pelos waypoints e param nas tarefas (pastar...).
 17. **Combate.** Chegar perto: perseguem e atacam (javali: chifrada e investida; lobo: mordidas e bote). Indicador de
     golpe, números de dano. Fugir para longe (40 m da casa deles): desistem e voltam.

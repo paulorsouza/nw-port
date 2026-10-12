@@ -25,6 +25,31 @@ FString ANWSpawnField::DataFileFor(const UWorld* World)
 	return FString();
 }
 
+ANWSpawnField* ANWSpawnField::Get(const UWorld* World)
+{
+	if (!World)
+	{
+		return nullptr;
+	}
+	TActorIterator<ANWSpawnField> It(const_cast<UWorld*>(World));
+	return It ? *It : nullptr;
+}
+
+bool ANWSpawnField::NearestSpawn(const FVector& From, float MinDist, FVector& Out) const
+{
+	float Best = TNumericLimits<float>::Max();
+	for (const FSpawn& S : Spawns)
+	{
+		const float D = FVector::Dist2D(S.Location, From);
+		if (D > MinDist && D < Best)
+		{
+			Best = D;
+			Out = S.Location;
+		}
+	}
+	return Best < TNumericLimits<float>::Max();
+}
+
 bool ANWSpawnField::Load(const FString& File)
 {
 	FNWCreatureCatalog::Get().Load(File);
