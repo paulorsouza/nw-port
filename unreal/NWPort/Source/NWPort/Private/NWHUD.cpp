@@ -384,6 +384,7 @@ void ANWHUD::DrawGameHUD()
 			bDown = PC->IsInputKeyDown(EKeys::LeftMouseButton);
 		}
 		WorldMap.Draw(Canvas, FVector2D(MX, MY), bDown, Me);
+		DrawNavbar(2, FVector2D(MX, MY));
 		return;
 	}
 	if (Inventory.IsOpen())
@@ -395,6 +396,7 @@ void ANWHUD::DrawGameHUD()
 		}
 		Inventory.Draw(Canvas, FVector2D(MX, MY));
 		DrawLootTicker();
+		DrawNavbar(0, FVector2D(MX, MY));
 		return;
 	}
 	if (Mastery.IsOpen())
@@ -407,6 +409,7 @@ void ANWHUD::DrawGameHUD()
 		}
 		Mastery.Draw(Canvas, FVector2D(MX, MY));
 		FNWTradeskillMenu::DrawTabs(Canvas, FVector2D(MX, MY), 0);
+		DrawNavbar(1, FVector2D(MX, MY));
 		return;
 	}
 	if (Tradeskills.IsOpen())
@@ -417,6 +420,7 @@ void ANWHUD::DrawGameHUD()
 			PC->GetMousePosition(MX, MY);
 		}
 		Tradeskills.Draw(Canvas, FVector2D(MX, MY));
+		DrawNavbar(1, FVector2D(MX, MY));
 		return;
 	}
 	if (Layout.IsLoaded())
@@ -1296,4 +1300,68 @@ void ANWHUD::DrawWarning()
 		Canvas->DrawItem(Item);
 	}
 	DrawText(WarningText, FLinearColor(1.f, 0.87f, 0.33f, Alpha), Pos.X + (BW - W) * 0.5f, Pos.Y + (BH - H) * 0.5f, Font, Scale);
+}
+
+void ANWHUD::DrawNavbar(int32 Active, const FVector2D& Mouse)
+{
+	UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
+	if (!Canvas || !Font)
+	{
+		return;
+	}
+	const float S = Canvas->ClipY / 1080.f;
+	auto Tex = [&](const TCHAR* Path, FVector2D Pos, FVector2D Size, FLinearColor Tint = FLinearColor::White)
+	{
+		if (UTexture2D* T = FNWUILayout::GameTexture(Path))
+		{
+			FCanvasTileItem Item(Pos, T->GetResource(), Size, Tint);
+			Item.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(Item);
+		}
+	};
+	// Fundo navbar_bg_2023 (1920 x 104 na tela de referência) esticado na largura.
+	Tex(TEXT("lyshineui/images/navbar/navbar_bg_2023.dds"), FVector2D::ZeroVector, FVector2D(Canvas->ClipX, 70.f * S));
+	static const TCHAR* Icons[3] = {TEXT("lyshineui/images/inventory/icon_inventory.dds"), TEXT("lyshineui/images/navbar/navbar_icon_character.dds"),
+		TEXT("lyshineui/images/navbar/navbar_icon_map.dds")};
+	static const TCHAR* Labels[3] = {TEXT("ui_inventory"), TEXT("ui_skills"), TEXT("ui_map")};
+	const float Scale = 20.f * S / FMath::Max(1, Font->LegacyFontSize);
+	float X = 30.f * S;
+	const ANWCharacter* Me = Cast<ANWCharacter>(GetOwningPawn());
+	for (int32 i = 0; i < 3; ++i)
+	{
+		const FString Text = NWText::Get(Labels[i]);
+		float W = 0.f, H = 0.f;
+		Canvas->TextSize(Font, Text, W, H, Scale, Scale);
+		const float TabW = W + 70.f * S;
+		NavTabs[i] = FBox2f(FVector2f(X, 8.f * S), FVector2f(X + TabW, 60.f * S));
+		const bool bHover = NavTabs[i].IsInside(FVector2f(Mouse));
+		if (i == Active || bHover)
+		{
+			// highlight do jogo (392 x 88) atrás da aba ativa/sob o mouse.
+			Tex(TEXT("lyshineui/images/navbar/highlight.dds"), FVector2D(NavTabs[i].Min), FVector2D(NavTabs[i].GetSize()),
+				FLinearColor(1.f, 1.f, 1.f, i == Active ? 1.f : 0.5f));
+		}
+		const float IconSz = 24.f * S;
+		Tex(Icons[i], FVector2D(X + 14.f * S, 22.f * S), FVector2D(IconSz), i == Active ? FLinearColor(FColor(0xED, 0xC6, 0x3E)) : FLinearColor::White);
+		DrawText(Text, i == Active ? FLinearColor(FColor(0xED, 0xC6, 0x3E)) : FLinearColor(FColor(0xEB, 0xE3, 0xD6)),
+			X + 46.f * S, 34.f * S - H * 0.5f, Font, Scale);
+		// Pontos de atributo livres: o selo unspentpoints do jogo na aba Personagem.
+		if (i == 1 && Me && Me->Progression && Me->Progression->UnspentPoints() > 0)
+		{
+			Tex(TEXT("lyshineui/images/navbar/unspentpoints.dds"), FVector2D(NavTabs[i].Max.X - 22.f * S, 6.f * S), FVector2D(26.f * S));
+		}
+		X += TabW + 10.f * S;
+	}
+}
+
+int32 ANWHUD::NavTabAt(const FVector2D& Mouse) const
+{
+	for (int32 i = 0; i < 3; ++i)
+	{
+		if (NavTabs[i].bIsValid && NavTabs[i].IsInside(FVector2f(Mouse)))
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
 }

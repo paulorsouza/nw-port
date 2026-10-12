@@ -36,7 +36,8 @@ print(f"tooltip: {len(TOOLTIP)} texturas")
 # Banner de subir de nível (lyshineui/banner/bannerlevelup.dynamicslice): só a parte de XP; ícones dos ofícios.
 LEVELUP = ["icons/tradeskills/icon_tradeskill_mining.dds", "icons/tradeskills/icon_tradeskill_logging.dds",
            "icons/tradeskills/icon_tradeskill_harvesting.dds", "icons/tradeskills/icon_tradeskill_skinning.dds",
-           "warningbar/background_warningbar.dds", "hitindicator/hitdirection.dds", "hitindicator/hiteffect_light_b.dds", "hitindicator/hiteffect_medium_b.dds",
+           "navbar/navbar_bg_2023.dds", "navbar/highlight.dds", "navbar/navbar_icon_character.dds",
+           "navbar/navbar_icon_map.dds", "navbar/unspentpoints.dds", "warningbar/background_warningbar.dds", "hitindicator/hitdirection.dds", "hitindicator/hiteffect_light_b.dds", "hitindicator/hiteffect_medium_b.dds",
            "banner/bannerleveluprune_xp.dds", "banner/bannerleveluprune_x.dds", "banner/banner_light_blue2.dds",
            "banner/banner_fog.dds", "notifications/notification_showline.dds"]
 open(os.path.join(UI, "levelup_textures.txt"), "w").write("\n".join("lyshineui/images/" + t for t in LEVELUP))

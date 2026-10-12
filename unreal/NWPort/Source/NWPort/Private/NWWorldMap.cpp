@@ -297,7 +297,6 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 		Buttons[i] = FBox2f(FVector2f(BX, BY + i * 60.f * S), FVector2f(BX + B, BY + i * 60.f * S + B));
 		DrawButton(Canvas, Buttons[i], Labels[i], Mouse);
 	}
-	DrawText(Canvas, NWText::Get(TEXT("ui_map")), 60.f * S, 40.f * S, 36.f, MapTan, 1);
 }
 
 void FNWWorldMap::Click(const FVector2D& Mouse)

@@ -50,7 +50,7 @@ GAME_KEYS = ["ui_play", "ui_enter", "ui_cancel", "ui_back", "ui_characters", "ui
              "ui_mining", "ui_logging", "ui_harvesting", "ui_skinning",
              "ui_escapemenu_unstuck", "ui_unstuck_request_denied_on_cooldown", "ui_unstuck_request_denied_player_dead",
              "ui_unstuck_request_denied_request_already_active", "ui_unstuck_request_denied_no_breadcrumbs",
-             "ui_unstuck_request_denied_teleport_failed", "ui_unstuck_request_accepted", "ui_weapon_mastery", "ui_trade_skills", "ui_interact_required_level"]
+             "ui_unstuck_request_denied_teleport_failed", "ui_unstuck_request_accepted", "ui_weapon_mastery", "ui_trade_skills", "ui_interact_required_level", "ui_skills"]
 GATHERABLES = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "guardaventos_gatherables.json")
 
 

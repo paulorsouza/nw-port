@@ -414,6 +414,17 @@ void ANWPlayerController::OnMenuClick()
 		}
 		return;
 	}
+	// Barra de navegação do topo (inventário, personagem, mapa): troca de tela.
+	if (HUD && (HUD->Inventory.IsOpen() || HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->WorldMap.IsOpen()))
+	{
+		const int32 Tab = HUD->NavTabAt(FVector2D(X, Y));
+		const int32 Current = HUD->Inventory.IsOpen() ? 0 : HUD->WorldMap.IsOpen() ? 2 : 1;
+		if (Tab != INDEX_NONE && Tab != Current)
+		{
+			Tab == 0 ? ToggleInventory() : Tab == 1 ? ToggleSkillMenu() : ToggleMap();
+			return;
+		}
+	}
 	if (HUD && HUD->Inventory.IsOpen())
 	{
 		HUD->Inventory.Click(FVector2D(X, Y), false);

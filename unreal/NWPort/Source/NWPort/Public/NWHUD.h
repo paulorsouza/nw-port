@@ -95,6 +95,15 @@ private:
 	void DrawDamageNumbers();
 	void DrawHitIndicators();
 	void DrawWarning();
+public:
+	/**
+	 * Barra de navegação do jogo (lyshineui/navbar, 2023) no alto das telas cheias: Inventário, Personagem e
+	 * Mapa, com o selo de pontos livres em Personagem. Active = 0, 1, 2. NavTabAt devolve a aba sob o mouse.
+	 */
+	void DrawNavbar(int32 Active, const FVector2D& Mouse);
+	int32 NavTabAt(const FVector2D& Mouse) const;
+private:
+	FBox2f NavTabs[3] = {FBox2f(ForceInit), FBox2f(ForceInit), FBox2f(ForceInit)};
 	FString WarningText;
 	double WarningAt = -100.0;
 	struct FHitIndicator { FVector From; float Fraction = 0.f; double Time = 0.0; };
