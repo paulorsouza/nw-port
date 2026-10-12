@@ -860,7 +860,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 	}
 	if (IsInvulnerable())
 	{
-		MulticastShowHit(0.f, ENWHitResult::Dodged);
+		MulticastShowHit(0.f, ENWHitResult::Dodged, Attacker->GetOwner()->GetActorLocation());
 		OnHitTaken.Broadcast(0.f, ENWHitResult::Dodged, Attacker->GetOwner());
 		return ENWHitResult::Dodged;
 	}
@@ -874,7 +874,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		if (Stamina <= 0.f)
 		{
 			PlayReaction(TEXT("BlockBreak"), 1.0f);
-			MulticastShowHit(0.f, ENWHitResult::BlockBroken);
+			MulticastShowHit(0.f, ENWHitResult::BlockBroken, Attacker->GetOwner()->GetActorLocation());
 			OnHitTaken.Broadcast(0.f, ENWHitResult::BlockBroken, Attacker->GetOwner());
 			return ENWHitResult::BlockBroken;
 		}
@@ -884,7 +884,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 			CurrentMontage = Row->Montage.LoadSynchronous();
 			MulticastPlayMontage(CurrentMontage, 1.f, 0);
 		}
-		MulticastShowHit(0.f, ENWHitResult::Blocked);
+		MulticastShowHit(0.f, ENWHitResult::Blocked, Attacker->GetOwner()->GetActorLocation());
 		OnHitTaken.Broadcast(0.f, ENWHitResult::Blocked, Attacker->GetOwner());
 		return ENWHitResult::Blocked;
 	}
@@ -904,7 +904,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		OutDamage = 0.f;
 	}
 	Health = FMath::Max(0.f, Health - OutDamage);
-	MulticastShowHit(OutDamage, ENWHitResult::Hit);
+	MulticastShowHit(OutDamage, ENWHitResult::Hit, Attacker->GetOwner()->GetActorLocation());
 	OnHitTaken.Broadcast(OutDamage, ENWHitResult::Hit, Attacker->GetOwner());
 	if (Health <= 0.f)
 	{
@@ -978,7 +978,7 @@ FName UNWCombatComponent::DirectionalAction(const TCHAR* Prefix, const FVector& 
 	return FName(FString(Prefix) + Side);
 }
 
-void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitResult Result)
+void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitResult Result, FVector_NetQuantize From)
 {
 	// Número de dano na HUD do jogador local (como o damagenumbers do jogo); servidor dedicado não desenha.
 	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
@@ -990,6 +990,10 @@ void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitRes
 	const FVector At = GetOwner()->GetActorLocation() + FVector(0, 0, 110);
 	// Dano em mim: vermelho; dano que eu ou outros causam: claro; bloqueio e esquiva: texto do port.
 	const bool bMe = GetOwner() == PC->GetPawn();
+	if (bMe && (Result == ENWHitResult::Hit || Result == ENWHitResult::BlockBroken))
+	{
+		HUD->AddHitIndicator(From, MaxHealth > 0.f ? Damage / MaxHealth : 0.f);
+	}
 	switch (Result)
 	{
 	case ENWHitResult::Hit:

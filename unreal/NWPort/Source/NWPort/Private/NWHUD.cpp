@@ -444,6 +444,7 @@ void ANWHUD::DrawGameHUD()
 	}
 	DrawCompass();
 	DrawLevelUp();
+	DrawHitIndicators();
 	DrawDamageNumbers();
 	DrawEncumbrance(Me);
 	DrawNameplates(Me);
@@ -1212,4 +1213,61 @@ void ANWHUD::DrawLevelUp()
 	};
 	Centered(NWText::Get(TEXT("ui_level_up")), 186.f, 24.f);
 	Centered(FString::FromInt(LevelUpValue), 208.f, 54.f);
+}
+
+void ANWHUD::AddHitIndicator(const FVector& From, float Fraction)
+{
+	// Até 5 ao mesmo tempo, como o HitIndicatorManager do jogo (EdgeIndicator1–5 / ArrowIndicator1–5).
+	HitIndicators.Add({From, Fraction, FPlatformTime::Seconds()});
+	if (HitIndicators.Num() > 5)
+	{
+		HitIndicators.RemoveAt(0);
+	}
+}
+
+void ANWHUD::DrawHitIndicators()
+{
+	const double Now = FPlatformTime::Seconds();
+	HitIndicators.RemoveAll([Now](const FHitIndicator& H) { return Now - H.Time > 1.0; });
+	const APlayerController* PC = GetOwningPlayerController();
+	const APawn* Me = PC ? PC->GetPawn() : nullptr;
+	if (!Me || !Canvas || HitIndicators.Num() == 0)
+	{
+		return;
+	}
+	const float S = Canvas->ClipY / 1080.f;
+	const FVector2D C(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
+	auto Tex = [&](const TCHAR* Path, FVector2D Center, FVector2D Size, float Angle, float Alpha)
+	{
+		if (UTexture2D* T = FNWUILayout::GameTexture(Path))
+		{
+			FCanvasTileItem Item(Center - Size * 0.5, T->GetResource(), Size, FLinearColor(1.f, 1.f, 1.f, Alpha));
+			Item.BlendMode = SE_BLEND_Translucent;
+			Item.Rotation = FRotator(0.f, Angle, 0.f);
+			Item.PivotPoint = FVector2D(0.5, 0.5);
+			Canvas->DrawItem(Item);
+		}
+	};
+	for (const FHitIndicator& H : HitIndicators)
+	{
+		const float Alpha = FMath::Clamp(float(1.0 - (Now - H.Time)) / 0.6f, 0.f, 1.f);
+		// Ângulo do atacante em relação à câmera: 0 = à frente (em cima), positivo = à direita.
+		const FVector To = H.From - Me->GetActorLocation();
+		const float Angle = FRotator::NormalizeAxis(FMath::RadiansToDegrees(FMath::Atan2(To.Y, To.X)) - PC->GetControlRotation().Yaw);
+		const float Rad = FMath::DegreesToRadians(Angle);
+		// Seta (Arrow, 172 x 46 a 204 px do centro na tela 1080p).
+		Tex(TEXT("lyshineui/images/hitindicator/hitdirection.dds"), C + FVector2D(FMath::Sin(Rad), -FMath::Cos(Rad)) * 204.f * S,
+			FVector2D(172.f, 46.f) * S, Angle, Alpha);
+		// Brilho na borda mais perto da direção (EdgeImage): leve até 15% da vida, médio acima.
+		const float Side = FMath::RoundToFloat(Angle / 90.f) * 90.f;
+		const bool bVertical = FMath::Abs(FMath::Fmod(FMath::Abs(Side), 180.f)) > 1.f;
+		const float Len = (bVertical ? Canvas->ClipY : Canvas->ClipX) * 0.7f;
+		const float Thick = (bVertical ? Canvas->ClipX : Canvas->ClipY) * 0.3f;
+		const float SideRad = FMath::DegreesToRadians(Side);
+		const FVector2D Dir(FMath::Sin(SideRad), -FMath::Cos(SideRad));
+		const FVector2D Half(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
+		const FVector2D EdgeCenter = C + FVector2D(Dir.X * (Half.X - Thick * 0.5f), Dir.Y * (Half.Y - Thick * 0.5f));
+		Tex(H.Fraction > 0.15f ? TEXT("lyshineui/images/hitindicator/hiteffect_medium_b.dds") : TEXT("lyshineui/images/hitindicator/hiteffect_light_b.dds"),
+			EdgeCenter, FVector2D(Len, Thick), Side, Alpha * 0.8f);
+	}
 }

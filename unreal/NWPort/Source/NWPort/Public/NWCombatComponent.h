@@ -134,7 +134,8 @@ protected:
 	// Montagem em loop (seção ligada nela mesma), ex.: guarda levantada enquanto o botão está pressionado.
 	UFUNCTION(NetMulticast, Reliable) void MulticastPlayLoop(UAnimMontage* Montage);
 	UFUNCTION(NetMulticast, Reliable) void MulticastStopMontages(float BlendOut);
-	UFUNCTION(NetMulticast, Unreliable) void MulticastShowHit(float Damage, ENWHitResult Result);
+	/** Número de dano e, no alvo local, o indicador de direção do golpe (From = posição do atacante). */
+	UFUNCTION(NetMulticast, Unreliable) void MulticastShowHit(float Damage, ENWHitResult Result, FVector_NetQuantize From);
 	UFUNCTION(NetMulticast, Unreliable) void MulticastHitStop(AActor* Other, float Seconds);
 
 	UFUNCTION() void HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted);

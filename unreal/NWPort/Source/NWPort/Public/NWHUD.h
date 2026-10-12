@@ -47,6 +47,8 @@ public:
 	FNWTradeskillMenu Tradeskills;
 	/** Números de dano (lyshineui/hud/damagenumbers): sobem e somem sobre o alvo em 1,2 s. */
 	void AddDamageNumber(const FVector& World, const FString& Text, const FLinearColor& Color, bool bBig);
+	/** Golpe recebido (lyshineui/hitindicator): seta em volta da mira e brilho vermelho na borda do lado do atacante. */
+	void AddHitIndicator(const FVector& From, float Fraction);
 	// Menu do Esc e configurações (desenhado por cima de tudo).
 	FNWGameMenu GameMenu;
 	bool IsDeathScreen() const { return bDeathScreen; }
@@ -89,6 +91,9 @@ private:
 	 */
 	void DrawCompass();
 	void DrawDamageNumbers();
+	void DrawHitIndicators();
+	struct FHitIndicator { FVector From; float Fraction = 0.f; double Time = 0.0; };
+	TArray<FHitIndicator> HitIndicators;
 	/** Bolsa na barra de ações (hud2024/actionbar/encumbrance): % do peso; sobrecarregado fica vermelho com o aviso do jogo. */
 	void DrawEncumbrance(const APawn* Me);
 	struct FDamageNumber
