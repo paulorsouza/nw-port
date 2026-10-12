@@ -68,6 +68,10 @@ def main():
     worldmap = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "worldmap.json")
     if os.path.exists(worldmap):
         keys += sorted({p["name"] for p in json.load(open(worldmap)).get("pois", [])})
+    spawns = os.path.join(os.path.dirname(GATHERABLES), "guardaventos_spawns.json")
+    if os.path.exists(spawns):  # nomes das criaturas e das carcaças (tools/make_spawns.py)
+        cs = json.load(open(spawns))["creatures"].values()
+        keys += sorted({c["name_key"] for c in cs if c["name_key"]} | {c["skin"]["name_key"] for c in cs if c.get("skin")})
     if os.path.exists(GATHERABLES):  # nomes dos coletáveis (tools/make_gatherables.py)
         keys += sorted({v["name_key"].lstrip("@").lower() for v in json.load(open(GATHERABLES))["variants"].values()
                         if v["name_key"]})

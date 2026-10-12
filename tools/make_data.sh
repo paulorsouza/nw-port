@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 step() { echo "== $*"; python3 "$@"; }
 # Ordem importa: o catálogo de itens lê os coletáveis (saque); os textos leem os coletáveis; o inventário lê os itens.
 step tools/make_gatherables.py
+step tools/make_spawns.py
 step tools/make_items.py
 step tools/make_abilities.py
 step tools/make_progression.py

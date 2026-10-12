@@ -4,34 +4,102 @@
   "anim_root": "animations/gameplay/character/npc/natural/predator/boar/",
   "character": "objects/characters/npc/natural/boar_wild/boar.cdf",
   "weapons": {},
-  "_comment": "Javali (slices/characters/boar: boar.cdf, npc_boar_anims.adb, javelindata_damagetable_boar). G3.",
+  "_comment": "Javali (slices/characters/boar: boar.cdf, npc_boar_anims.adb, javelindata_damagetable_boar). G3. A investida do jogo é início + laço + fim; o port usa o laço (onde está a janela de dano) como AM_Heavy.",
   "blendspaces": {
-    "BS_Walk": ["boar_movement_blend"]
+    "BS_Walk": [
+      "boar_movement_blend"
+    ]
   },
   "loops": {
-    "Idle": ["boar_combat_idle"],
-    "AmbientIdle": ["boar_ambient_idle"],
-    "Walk": ["boar_walk"],
-    "Run": ["boar_run"],
-    "Graze": ["boar_grazing_loop"],
-    "Wallow": ["boar_wallow_loop"],
-    "LayDown": ["boar_lay_down_on_side_loop"]
+    "Idle": [
+      "boar_combat_idle"
+    ],
+    "AmbientIdle": [
+      "boar_ambient_idle"
+    ],
+    "Walk": [
+      "boar_walk"
+    ],
+    "Run": [
+      "boar_run"
+    ],
+    "Graze": [
+      "boar_grazing_loop"
+    ],
+    "Wallow": [
+      "boar_wallow_loop"
+    ],
+    "LayDown": [
+      "boar_lay_down_on_side_loop"
+    ]
   },
   "montages": {
-    "AM_Attack1": [["boar_gore"]],
-    "AM_Heavy": [["boar_charge_start"], ["boar_charge_loop"], ["boar_charge_end"]],
-    "AM_Aggro": [["boar_alert"]],
-    "AM_Growl": [["boar_combat_growl"]],
-    "AM_Hit_F": [["boar_r_r2_f"]],
-    "AM_Hit_B": [["boar_r_r2_b"]],
-    "AM_Hit_L": [["boar_r_r2_l"]],
-    "AM_Hit_R": [["boar_r_r2_r"]],
-    "AM_Death": [["boar_death"]]
+    "AM_Attack1": [
+      [
+        "boar_gore"
+      ]
+    ],
+    "AM_Heavy": [
+      [
+        "boar_charge_loop"
+      ]
+    ],
+    "AM_Aggro": [
+      [
+        "boar_alert"
+      ]
+    ],
+    "AM_Growl": [
+      [
+        "boar_combat_growl"
+      ]
+    ],
+    "AM_Hit_F": [
+      [
+        "boar_r_r2_f"
+      ]
+    ],
+    "AM_Hit_B": [
+      [
+        "boar_r_r2_b"
+      ]
+    ],
+    "AM_Hit_L": [
+      [
+        "boar_r_r2_l"
+      ]
+    ],
+    "AM_Hit_R": [
+      [
+        "boar_r_r2_r"
+      ]
+    ],
+    "AM_Death": [
+      [
+        "boar_death"
+      ]
+    ],
+    "AM_ChargeStart": [
+      [
+        "boar_charge_start"
+      ]
+    ],
+    "AM_ChargeEnd": [
+      [
+        "boar_charge_end"
+      ]
+    ]
   },
-  "window_adbs": ["npc_boar_anims.adb"],
+  "window_adbs": [
+    "npc_boar_anims.adb"
+  ],
   "window_tags": "",
   "fragments": {
-    "AM_Attack1": ["Attack_Gore"],
-    "AM_Heavy": ["Attack_Charge_Start", "Attack_Charge", "Attack_Charge_End"]
+    "AM_Attack1": [
+      "Attack_Gore"
+    ],
+    "AM_Heavy": [
+      "Attack_Charge"
+    ]
   }
 }

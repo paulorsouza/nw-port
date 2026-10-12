@@ -9,8 +9,18 @@ nwbt --x-objects json, tools/build_all.sh 12). Da slice saem:
 Das tabelas: basevitals_common (família, tipo, HealthMod, DamageMod, saque, escala, nome) e levelvariantvitals_common
 (nível). Posições no referencial do mapa (UE = (-x, y, z) × 100 em volta da cidade, como os coletáveis).
 
+Escala do port (mesmo número de golpes do jogo): o golpe leve do jogador (WeaponBaseDamage 100) vale o BaseDamage do
+nível da criatura em javelindata_vitalsleveldata e a vida do jogador (1000) vale o BaseMaxHealth desse nível. Então
+  health = BaseMaxHealth · HealthMod · 100 / BaseDamage      damage = BaseDamage · DamageMod · 1000 / BaseMaxHealth
+(o DmgCoef de cada ataque vem da tabela de dano da criatura, no DT de ações).
+
+Conjunto (tools/sets/<set>.json) pela categoria: Boar → boar, Wolf → wolf (as outras ficam sem conjunto: não nascem).
+Carcaça: o personagem do jogo vira o coletável de mesmo nome da família (GatherableControllerComponent "Boar",
+"Wolf"): esfolar com a faca, saque e XP de ofício da linha de javelindata_gatherables.
+
 Saída: {"creatures": {vitals_id: {...}}, "spawns": [[criatura, x, y, z, yaw, [[x, y, z, tarefa, min, max], ...]], ...]}
 """
+SETS = {"Boar": ("boar", "Boar"), "Wolf": ("wolf", "Wolf")}   # categoria -> (conjunto, coletável da carcaça)
 import collections
 import glob
 import json
@@ -80,6 +90,9 @@ def main():
 
     base = {r["VitalsID"]: r for r in rows(os.path.join(DATA, "vitalstables", "javelindata_basevitals_common.datasheet.json"))}
     level = {r["VitalsID"]: r for r in rows(os.path.join(DATA, "vitalstables", "javelindata_levelvariantvitals_common.datasheet.json"))}
+    by_level = {int(r["Level"]): r for r in rows(os.path.join(DATA, "javelindata_vitalsleveldata.datasheet.json"))}
+    gatherables = {r["GatherableID"]: r for r in rows(os.path.join(DATA, "javelindata_gatherables.datasheet.json"))}
+    events = {r["EventID"]: r for r in rows(os.path.join(DATA, "javelindata_gameevents.datasheet.json"))}
 
     cache, creatures, spawns, missing = {}, {}, [], collections.Counter()
     for f in sorted(glob.glob(os.path.join(REGION, "06sw0*_ai", "*.capitals.json"))):
@@ -100,11 +113,25 @@ def main():
                 continue
             if vid not in creatures:
                 lv = level.get(vid, {})
+                n = int(lv.get("Level") or lvl or 1)
+                L = by_level.get(n) or by_level[min(by_level, key=lambda k: abs(k - n))]
+                cats = (b.get("VitalsCategories") or "").split(",")
+                kind = next((k for k in SETS if k in cats), None)
+                corpse = gatherables.get(SETS[kind][1], {}) if kind else {}
+                ev = events.get(corpse.get("GameEventID"), {})
                 creatures[vid] = {
+                    "set": SETS[kind][0] if kind else "",
+                    "health": round(L["BaseMaxHealth"] * float(b.get("HealthMod") or 1) * 100 / L["BaseDamage"]),
+                    "damage": round(L["BaseDamage"] * float(b.get("DamageMod") or 1) * 1000 / L["BaseMaxHealth"], 1),
+                    "hostile": "Hostile" in cats,
+                    "skin": {"loot": corpse.get("FinalLootTable") or "", "time": float(corpse.get("BaseGatherTime") or 0),
+                             "tradeskill": corpse.get("Tradeskill") or "", "trade_xp": float(ev.get("CategoricalProgressionReward") or 0),
+                             "action": corpse.get("GatheringAction") or "", "name_key": str(corpse.get("DisplayName") or "").lstrip("@").lower()}
+                    if corpse else None,
                     "name_key": str(b.get("DisplayName") or "").lstrip("@").lower(),
                     "family": b.get("Family") or "", "type": b.get("CreatureType") or "",
                     "categories": b.get("VitalsCategories") or "", "category": cat,
-                    "level": int(lv.get("Level") or lvl or 1),
+                    "level": n,
                     "health_mod": float(b.get("HealthMod") or 1), "damage_mod": float(b.get("DamageMod") or 1),
                     "mitigation": float(b.get("PhysicalMitigation") or 0),
                     "loot": b.get("LootTableId") or "", "loot_tags": b.get("LootTags") or "",
@@ -122,6 +149,8 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump({"creatures": creatures, "spawns": spawns}, open(OUT, "w"), separators=(",", ":"))
     fam = collections.Counter(creatures[s[0]]["family"] for s in spawns)
+    with_set = collections.Counter(creatures[s[0]]["set"] for s in spawns if creatures[s[0]]["set"])
+    print(f"com conjunto: {dict(with_set)}")
     print(f"{len(spawns)} spawns, {len(creatures)} criaturas {dict(fam)}; sem variante: {sum(missing.values())} {dict(missing)}")
 
 

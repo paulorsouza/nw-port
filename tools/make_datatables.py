@@ -64,6 +64,30 @@ LOST_ACTIONS = {
     "Hit_R": ("AM_Hit_R", "", "", ""),
     "Death": ("AM_Death", "", "", ""),
 }
+# Criaturas (G3): DamageID do jogo da tabela da criatura com prefixo (as tabelas repetem nomes: Attack_Gore, Fall...).
+BOAR_ACTIONS = {
+    "Attack1": ("AM_Attack1", "Boar_Attack_Gore", "", ""),
+    "Heavy": ("AM_Heavy", "Boar_Attack_Charge", "", ""),
+    "Aggro": ("AM_Aggro", "", "", ""),
+    "Growl": ("AM_Growl", "", "", ""),
+    "Hit_F": ("AM_Hit_F", "", "", ""), "Hit_B": ("AM_Hit_B", "", "", ""),
+    "Hit_L": ("AM_Hit_L", "", "", ""), "Hit_R": ("AM_Hit_R", "", "", ""),
+    "Death": ("AM_Death", "", "", ""),
+}
+WOLF_ACTIONS = {
+    "Attack1": ("AM_Attack1", "Wolf_Attack_01_Bite", "", ""),
+    "Attack2": ("AM_Attack2", "Wolf_Attack_03_Bite_Combo", "", ""),
+    "Heavy": ("AM_Heavy", "Wolf_Attack_02_Lunge", "", ""),
+    "Leap": ("AM_Leap", "Wolf_Attack_02_Lunge", "", ""),
+    "Aggro": ("AM_Aggro", "", "", ""),
+    "Hit_F": ("AM_Hit_F", "", "", ""), "Hit_B": ("AM_Hit_B", "", "", ""),
+    "Hit_L": ("AM_Hit_L", "", "", ""), "Hit_R": ("AM_Hit_R", "", "", ""),
+    "Death": ("AM_Death", "", "", ""),
+}
+CREATURE_SHAPES = {"Heavy": ("Front", 260, 70), "Leap": ("Front", 300, 60), "Attack1": ("Front", 200, 90), "Attack2": ("Front", 200, 90)}
+# Tabelas de dano das criaturas: (arquivo, prefixo).
+CREATURE_DAMAGE = [("javelindata_damagetable_boar", "Boar_"),
+                   ("charactertables/wolf_datatables/javelindata_damagetable_wolf", "Wolf_")]
 # Formato do acerto (padrão: lâmina). Alcance em cm, ângulo = abertura total do cone. Valores iniciais, a calibrar com nw.DebugHits.
 HIT_SHAPES = {
     "Heavy": ("Front", 230, 50),
@@ -134,7 +158,9 @@ HATCHET_ABILITY_IDS = {a: f"Ability_Hatchet_{a}" for a in
 HATCHET_EFFECTS = {"Berserk": {"BuffSeconds": 5.0, "BuffDamageBonus": 0.2}}
 SETS = {"sword_shield": [("DT_NWActions", ACTIONS, HIT_SHAPES, ABILITY_IDS, None),
                          ("DT_HatchetActions", HATCHET_ACTIONS, HATCHET_SHAPES, HATCHET_ABILITY_IDS, HATCHET_EFFECTS)],
-        "lost_sword": [("DT_LostActions", LOST_ACTIONS, HIT_SHAPES, {}, {})]}
+        "lost_sword": [("DT_LostActions", LOST_ACTIONS, HIT_SHAPES, {}, {})],
+        "boar": [("DT_BoarActions", BOAR_ACTIONS, CREATURE_SHAPES, {}, {})],
+        "wolf": [("DT_WolfActions", WOLF_ACTIONS, CREATURE_SHAPES, {}, {})]}
 
 
 def rows(name):
@@ -152,19 +178,22 @@ def main():
         montages |= {name} if len(secs) == 1 else {f"{name}_{i + 1}" for i in range(len(secs))}
 
     damage = {r["DamageID"]: r for r in rows("javelindata_damagetable")}
+    for table, prefix in CREATURE_DAMAGE:
+        if os.path.exists(os.path.join(DT, table + ".datasheet.json")):
+            damage.update({prefix + r["DamageID"]: r for r in rows(table)})
     stamina = {r["CostID"]: r["StaminaCost"] for r in rows("javelindata_staminacosts_player")}
 
     tables = SETS[manifest["name"]]
     # Tabela de dano única para todos os conjuntos: todas as linhas de espada e escudo.
-    used = sorted(d for d in damage if d.startswith(("1H_Sword", "OH_Shield", "Hatchet_")))
+    used = sorted(d for d in damage if d.startswith(("1H_Sword", "OH_Shield", "Hatchet_", *(p for _, p in CREATURE_DAMAGE))))
     with open(os.path.join(out, "DT_NWDamage.csv"), "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["Name", "WeaponCategory", "DamageType", "DmgCoef", "HitStun", "BlockHitStun",
                     "PowerLevel", "BlockPowerLevel", "ImpactDistance", "Unblockable"])
         for did in used:
             r = damage[did]
-            w.writerow([did, r["WeaponCategory"], r["DamageType"], r["DmgCoef"], r["HitStun"], r["BlockHitStun"],
-                        r["PowerLevel"], r["BlockPowerLevel"], r["ImpactDistanceY"], str(bool(r["Unblockable"]))])
+            w.writerow([did, r.get("WeaponCategory", ""), r.get("DamageType", ""), r.get("DmgCoef", 0), r.get("HitStun", 0), r.get("BlockHitStun", 0),
+                        r.get("PowerLevel", 0), r.get("BlockPowerLevel", 0), r.get("ImpactDistanceY", 0), str(bool(r.get("Unblockable")))])
 
     cooldown = {r["AbilityID"]: r["Time"] for r in rows("javelindata_cooldowns_player")}
     missing = []

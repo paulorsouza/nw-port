@@ -156,7 +156,10 @@ def main():
             print("material ausente:", rid)
 
     gv = json.load(open(GATHERABLES))["variants"] if os.path.exists(GATHERABLES) else {}
-    game_loot, loot_items = loot_tables(items, sorted({v["loot"] for v in gv.values() if v["loot"]}))
+    # Saque das carcaças das criaturas (esfolar; tools/make_spawns.py).
+    spawns = os.path.join(os.path.dirname(GATHERABLES), "guardaventos_spawns.json")
+    skins = {c["skin"]["loot"] for c in json.load(open(spawns))["creatures"].values() if c.get("skin")} if os.path.exists(spawns) else set()
+    game_loot, loot_items = loot_tables(items, sorted({v["loot"] for v in gv.values() if v["loot"]} | skins))
     have = {r["ItemID"] for r, _ in chosen}
     for iid in sorted(loot_items - have):
         chosen.append((items[iid], ""))
