@@ -133,6 +133,16 @@ float UNWProgressionComponent::TradeProgress(int32 Skill) const
 	return FMath::Clamp(float(TradeXp[Skill] - T[L]) / float(FMath::Max(1, T[L + 1] - T[L])), 0.f, 1.f);
 }
 
+int32 UNWProgressionComponent::MissingTradeLevel(FName Tradeskill, int32 Required) const
+{
+	const int32 Skill = NWTradeskill::Index(Tradeskill);
+	if (!bFromBackend || Skill == INDEX_NONE || Required <= 0)
+	{
+		return 0;
+	}
+	return TradeLevel(Skill) >= Required ? 0 : Required;
+}
+
 int32 UNWProgressionComponent::TradeXpToNext(int32 Skill) const
 {
 	const int32 L = TradeLevel(Skill);
@@ -177,6 +187,7 @@ void UNWProgressionComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Xp, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Spent, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, TradeXp, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UNWProgressionComponent, bFromBackend, COND_OwnerOnly);
 }
 
 int32 UNWProgressionComponent::MaxLevel() const
@@ -233,6 +244,7 @@ void UNWProgressionComponent::Load(const TSharedPtr<FJsonObject>& Json)
 	{
 		return;
 	}
+	bFromBackend = true;
 	double Num = 0.0;
 	if (Json->TryGetNumberField(TEXT("xp"), Num))
 	{

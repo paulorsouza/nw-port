@@ -108,6 +108,15 @@ void UNWGatherComponent::UpdateFocus()
 		FocusText = FString::Printf(TEXT("%s  ·  %s"), *Name, *NWText::Get(TEXT("ui_notoolitem")).Replace(TEXT("{itemName}"), *NWText::Get(ToolGroupKey(V.Action))));
 		return;
 	}
+	// Nível mínimo do ofício (RequiredTradeskillLevel): "Requer o Nível 50" com o nome do ofício.
+	if (const int32 Need = Me->Progression ? Me->Progression->MissingTradeLevel(V.Tradeskill, V.RequiredLevel) : 0)
+	{
+		bFocusBlocked = true;
+		FocusText = FString::Printf(TEXT("%s  ·  %s (%s)"), *Name,
+			*NWText::Get(TEXT("ui_interact_required_level")).Replace(TEXT("{level}"), *FString::FromInt(Need)),
+			*NWText::Get(NWTradeskill::TextKey(NWTradeskill::Index(V.Tradeskill))));
+		return;
+	}
 	const TCHAR* Verb = V.Action == TEXT("Mining") ? TEXT("ui_mine") : V.Action == TEXT("Chopping") ? TEXT("ui_log") : TEXT("ui_harvest");
 	FocusText = FString::Printf(TEXT("%s %s"), *NWText::Get(Verb), *Name);
 }
@@ -136,7 +145,8 @@ void UNWGatherComponent::ServerGather_Implementation(int32 Index)
 	const ANWGatherField::FVariant& V = Field->VariantOf(Index);
 	const FName Tool = ToolType(V.Action);
 	const FNWItemDef* ToolDef = Tool.IsNone() || !Me->Inventory ? nullptr : Me->Inventory->ToolFor(Tool);
-	if (V.Restriction == TEXT("ToolRequired") && !Tool.IsNone() && !ToolDef)
+	if ((V.Restriction == TEXT("ToolRequired") && !Tool.IsNone() && !ToolDef)
+		|| (Me->Progression && Me->Progression->MissingTradeLevel(V.Tradeskill, V.RequiredLevel) > 0))
 	{
 		return;
 	}

@@ -50,6 +50,13 @@ public:
 	UPROPERTY(Replicated) TArray<int32> Spent;
 	/** XP total de cada ofício de coleta (NWTradeskill). */
 	UPROPERTY(Replicated) TArray<int32> TradeXp;
+	/**
+	 * Progressão veio do nw-core (personagem salvo): vale o nível mínimo de ofício dos coletáveis
+	 * (RequiredTradeskillLevel). No Play do editor, sem backend, fica livre para testar.
+	 */
+	UPROPERTY(Replicated) bool bFromBackend = false;
+	/** Nível de ofício que falta para coletar (0 = pode). */
+	int32 MissingTradeLevel(FName Tradeskill, int32 Required) const;
 
 	/** Nível do ofício pela tabela do jogo (javelindata_tradeskill<ofício>, InfluenceCost acumulado). */
 	int32 TradeLevel(int32 Skill) const;
