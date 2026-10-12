@@ -104,7 +104,11 @@ def loot_tables(items, roots):
                 e["item"] = v
                 used.add(v)
             entries.append(e)
-        out[t] = {"and": r.get("AND/OR") == "AND", "max": int(float(p.get("MaxRoll") or 0)), "e": entries} if entries else {}
+        # RollBonusSetting: AddToRoll soma o bônus (sorte, nível do ofício) ao dado; ClampMax soma até o MaxRoll;
+        # IgnoreBonus/None não usam.
+        bonus = {"AddToRoll": "add", "ClampMax": "clamp"}.get(str(r.get("RollBonusSetting")), "")
+        out[t] = {"and": r.get("AND/OR") == "AND", "max": int(float(p.get("MaxRoll") or 0)), "e": entries,
+                  **({"bonus": bonus} if bonus else {})} if entries else {}
         return bool(entries)
 
     for t in roots:

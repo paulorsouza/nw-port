@@ -118,6 +118,8 @@ void FNWItemCatalog::Load()
 			FGameTable Table;
 			Table.bAnd = T->GetBoolField(TEXT("and"));
 			Table.MaxRoll = T->GetIntegerField(TEXT("max"));
+			FString Bonus;
+			Table.BonusMode = T->TryGetStringField(TEXT("bonus"), Bonus) ? (Bonus == TEXT("add") ? 1 : Bonus == TEXT("clamp") ? 2 : 0) : 0;
 			for (const TSharedPtr<FJsonValue>& EV : T->GetArrayField(TEXT("e")))
 			{
 				const TSharedPtr<FJsonObject> E = EV->AsObject();
@@ -142,9 +144,9 @@ void FNWItemCatalog::Load()
 	}
 }
 
-void FNWItemCatalog::RollGame(FName Table, TArray<FNWItem>& OutItems) const
+void FNWItemCatalog::RollGame(FName Table, TArray<FNWItem>& OutItems, int32 RollBonus) const
 {
-	RollGameRec(Table, OutItems, 0);
+	RollGameRec(Table, OutItems, 0, RollBonus);
 	// Junta repetidos (a mesma gema pode sair em duas rolagens).
 	for (int32 i = 0; i < OutItems.Num(); ++i)
 	{
@@ -159,14 +161,22 @@ void FNWItemCatalog::RollGame(FName Table, TArray<FNWItem>& OutItems) const
 	}
 }
 
-void FNWItemCatalog::RollGameRec(FName Table, TArray<FNWItem>& OutItems, int32 Depth) const
+void FNWItemCatalog::RollGameRec(FName Table, TArray<FNWItem>& OutItems, int32 Depth, int32 RollBonus) const
 {
 	const FGameTable* T = GameTables.Find(Table);
 	if (!T || Depth > 8)
 	{
 		return;
 	}
-	const int32 Roll = T->MaxRoll > 0 ? FMath::RandRange(0, T->MaxRoll) : 0;
+	int32 Roll = T->MaxRoll > 0 ? FMath::RandRange(0, T->MaxRoll) : 0;
+	if (T->BonusMode == 1)
+	{
+		Roll += RollBonus;
+	}
+	else if (T->BonusMode == 2)
+	{
+		Roll = FMath::Min(Roll + RollBonus, T->MaxRoll);
+	}
 	TArray<const FGameEntry*, TInlineAllocator<16>> Hits;
 	for (const FGameEntry& E : T->Entries)
 	{
@@ -194,7 +204,7 @@ void FNWItemCatalog::RollGameRec(FName Table, TArray<FNWItem>& OutItems, int32 D
 		{
 			for (int32 i = 0; i < Qty; ++i)
 			{
-				RollGameRec(E->Table, OutItems, Depth + 1);
+				RollGameRec(E->Table, OutItems, Depth + 1, RollBonus);
 			}
 		}
 		else if (Qty > 0 && Find(E->Item))

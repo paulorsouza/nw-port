@@ -65,6 +65,8 @@ public:
 	float TradeProgress(int32 Skill) const;
 	/** Bônus de velocidade de coleta do nível (GatheringEfficiency: 0,05 por nível no começo). */
 	float TradeEfficiency(int32 Skill) const;
+	/** Bônus no dado do saque do nível (RollBonus: +10 por nível). */
+	int32 TradeRollBonus(int32 Skill) const;
 	/** Servidor: XP de ofício da coleta (CategoricalProgressionReward do evento do coletável). */
 	void AddTradeXp(FName Tradeskill, int32 Amount);
 	/** XP que falta para o próximo nível do ofício (menu de dev). */

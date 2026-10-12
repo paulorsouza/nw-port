@@ -198,7 +198,9 @@ void UNWGatherComponent::Finish(bool bComplete)
 		return;
 	}
 	TArray<FNWItem> Gained;
-	FNWItemCatalog::Get().RollGame(Field->VariantOf(Index).Loot, Gained);
+	// Nível do ofício soma no dado do saque (RollBonus) nas tabelas que aceitam (RollBonusSetting).
+	const int32 Bonus = Me->Progression ? Me->Progression->TradeRollBonus(NWTradeskill::Index(Field->VariantOf(Index).Tradeskill)) : 0;
+	FNWItemCatalog::Get().RollGame(Field->VariantOf(Index).Loot, Gained, Bonus);
 	const ANWGatherField::FVariant& V = Field->VariantOf(Index);
 	Field->Deplete(Index);
 	if (Me->Inventory)

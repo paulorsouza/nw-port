@@ -18,7 +18,7 @@ namespace
 		TArray<int64> LevelXp;      // [n] = XP total para chegar ao nível n+1
 		TArray<int32> LevelPoints;  // [n] = pontos ganhos ao chegar ao nível n+1
 		TMap<int32, float> ConstitutionHealth;
-		struct FTrade { TArray<int32> Xp; TArray<float> Eff; };
+		struct FTrade { TArray<int32> Xp; TArray<float> Eff; TArray<int32> Roll; };
 		FTrade Trade[NWTradeskill::Num];
 
 		static const FProgressionData& Get()
@@ -60,6 +60,7 @@ namespace
 							{
 								D.Trade[t].Xp.Add(int32(R->AsObject()->GetNumberField(TEXT("xp"))));
 								D.Trade[t].Eff.Add(float(R->AsObject()->GetNumberField(TEXT("eff"))));
+								D.Trade[t].Roll.Add(int32(R->AsObject()->GetNumberField(TEXT("roll"))));
 							}
 						}
 					}
@@ -148,6 +149,13 @@ int32 UNWProgressionComponent::TradeXpToNext(int32 Skill) const
 	const int32 L = TradeLevel(Skill);
 	const TArray<int32>& T = Skill >= 0 && Skill < NWTradeskill::Num ? FProgressionData::Get().Trade[Skill].Xp : TArray<int32>();
 	return T.IsValidIndex(L + 1) && TradeXp.IsValidIndex(Skill) ? T[L + 1] - TradeXp[Skill] : 0;
+}
+
+int32 UNWProgressionComponent::TradeRollBonus(int32 Skill) const
+{
+	const int32 L = TradeLevel(Skill);
+	const TArray<int32>& R = Skill >= 0 && Skill < NWTradeskill::Num ? FProgressionData::Get().Trade[Skill].Roll : TArray<int32>();
+	return R.IsValidIndex(L) ? R[L] : 0;
 }
 
 float UNWProgressionComponent::TradeEfficiency(int32 Skill) const

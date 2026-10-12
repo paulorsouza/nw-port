@@ -109,7 +109,7 @@ Feitas com o PC sozinho (sem abrir o editor nem rodar o jogo): compilam, falta c
   ofício no aviso de saque ao coletar e a aba Hab. Mercantes na janela K (nível e anel).
 - Importar também `levelup`, `tradeskills` (listas novas do `tools/ue/import_ui.py`).
 - Ofícios: `RequiredTradeskillLevel` vale só para personagem do servidor (progressão do nw-core); no Play do
-  editor tudo é coletável. Falta `RollBonus` no saque (só tabelas com `RollBonusSetting` = AddToRoll).
+  editor tudo é coletável. `RollBonus` do nível entra no dado do saque (AddToRoll soma, ClampMax limita ao máximo).
 - Progressão: XP de personagem não vem de coleta nem de abate (as tabelas não dizem a fórmula; ver `docs/hud-original.md`);
   nível/XP/atributos/ofícios agora são salvos no nw-core (migration 0003, coluna `progression`); o compose de
   teste precisa da imagem nova do nw-core (`deploy/build_images.sh`) para aplicar a migration;

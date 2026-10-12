@@ -89,7 +89,7 @@ public:
 	 * Sorteia uma tabela do jogo (Data/Items/loottables.json): dado 0..max; "and" dá todo item com limiar <= dado,
 	 * "or" sorteia um entre eles. Entradas com tabela rolam a subtabela (quantidade = número de rolagens).
 	 */
-	void RollGame(FName Table, TArray<FNWItem>& OutItems) const;
+	void RollGame(FName Table, TArray<FNWItem>& OutItems, int32 RollBonus = 0) const;
 	/** Sorteia uma tabela: itens (com gear score e raridade) e moedas. */
 	void RollLoot(FName Table, TArray<FNWItem>& OutItems, int64& OutCoins) const;
 	/** Gear score e raridade de um item novo (sorteados na faixa do catálogo). */
@@ -111,10 +111,11 @@ private:
 	{
 		bool bAnd = true;
 		int32 MaxRoll = 0;
+		uint8 BonusMode = 0;   // RollBonusSetting: 0 ignora, 1 AddToRoll, 2 ClampMax
 		TArray<FGameEntry> Entries;
 	};
 	TMap<FName, FGameTable> GameTables;
-	void RollGameRec(FName Table, TArray<FNWItem>& OutItems, int32 Depth) const;
+	void RollGameRec(FName Table, TArray<FNWItem>& OutItems, int32 Depth, int32 RollBonus) const;
 	bool bLoaded = false;
 };
 
