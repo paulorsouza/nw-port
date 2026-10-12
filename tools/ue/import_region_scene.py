@@ -2,7 +2,8 @@
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_region_scene.py <cenario.glb> <Nome>"
 
-- Assets em /Game/NW/Region/<Nome>; atores na pasta "Regiao/<Nome>" do Outliner (removidos e recriados a cada vez).
+- Assets em /Game/NW/Region/<Nome>; um ator "Instancias_<Nome>" na pasta "Regiao/<Nome>" do Outliner, com um
+  componente instanciado por malha (removido e recriado a cada vez).
 - Mundo → referencial do mapa (o da cidade, tools/make_terrain.py): u = Rz(giro) · (u_mundo − u_cidade), em cm.
 - Colisão por triângulo e Nanite nas malhas; materiais prontos para Nanite/instâncias com fix_nanite_materials.py.
 """
@@ -48,6 +49,12 @@ for a in new:
     a.set_actor_transform(a.get_actor_transform() * to_map, False, False)
     a.set_folder_path(FOLDER)
 unreal.log_warning(f"REGIAO import_scene={ok} atores={len(new)} giro={ang:.1f} em {time.time() - t0:.0f}s")
+# Um ator por camada, com componentes instanciados (dezenas de milhares de atores esgotam a memória do editor).
+world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+merged = unreal.NWEditorTools.merge_folder_to_instances(world, FOLDER)
+# Nós vazios da hierarquia do glb (atores sem malha): só pesam. Luzes ficam.
+eas.destroy_actors([a for a in eas.get_all_level_actors() if str(a.get_folder_path()) == FOLDER
+                    and type(a) is unreal.Actor and not a.get_actor_label().startswith("Instancias_")])
 
 meshes = [eal.load_asset(p) for p in eal.list_assets(CONTENT, recursive=True)]
 meshes = [m for m in meshes if isinstance(m, unreal.StaticMesh)]
@@ -62,4 +69,4 @@ for p in eal.list_assets(CONTENT, recursive=True):
     eal.save_asset(p, only_if_is_dirty=True)
 if not les.save_current_level():
     raise RuntimeError("não consegui salvar o mapa")
-unreal.log_warning(f"REGIAO pronta: {len(meshes)} malhas, {len(new)} atores em {time.time() - t0:.0f}s")
+unreal.log_warning(f"REGIAO pronta: {len(meshes)} malhas, {len(new)} peças juntadas ({merged}) em {time.time() - t0:.0f}s")

@@ -23,4 +23,10 @@ public:
 	// Devolve triângulos + segmentos da triangulação; 0 = falhou (detalhe no log, LogTemp "NW BlendSpace").
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
 	static int32 RebuildBlendSpace(UBlendSpace* BlendSpace);
+
+	// Junta os StaticMeshActor de uma pasta do Outliner (e subpastas) num ator só, com um componente instanciado
+	// por malha + materiais, e apaga os originais. O cenário da região tinha 190 mil atores e o editor esgotava a
+	// memória ao abrir o mapa. Devolve quantos atores foram juntados.
+	UFUNCTION(BlueprintCallable, Category = "NW|Editor", meta = (WorldContext = "WorldContext"))
+	static int32 MergeFolderToInstances(UObject* WorldContext, const FString& Folder);
 };
