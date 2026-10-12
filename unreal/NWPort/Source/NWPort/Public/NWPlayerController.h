@@ -51,6 +51,9 @@ class NWPORT_API ANWPlayerController : public APlayerController
 
 public:
 	ANWPlayerController();
+	virtual void BeginPlay() override;
+	/** Esc: fecha o menu aberto; sem menu, abre o menu do jogo (Continuar, Configurações, Sair). */
+	void OnEscape();
 
 	// Música e ambiente de Guardaventos (só no jogador local).
 	UPROPERTY(VisibleAnywhere, Category = "NW") TObjectPtr<class UNWAmbienceComponent> Ambience;

@@ -14,6 +14,7 @@
 #include "NWHUD.h"
 #include "NWAmbienceComponent.h"
 #include "NWGatherComponent.h"
+#include "NWOptions.h"
 #include "NWGatherField.h"
 #include "NWInventoryComponent.h"
 #include "NWGameMode.h"
@@ -43,10 +44,40 @@ ANWPlayerController::ANWPlayerController()
 	Ambience = CreateDefaultSubobject<UNWAmbienceComponent>(TEXT("Ambience"));
 }
 
+void ANWPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+	if (IsLocalController())
+	{
+		FNWOptions::Get().Apply(GetWorld());
+	}
+}
+
+void ANWPlayerController::OnEscape()
+{
+	ANWHUD* HUD = GetNWHUD();
+	if (!HUD || HUD->Login.IsActive() || HUD->Chat.IsOpen())
+	{
+		return;
+	}
+	if (IsMenuOpen())
+	{
+		CloseMenus();
+		return;
+	}
+	HUD->GameMenu.Open();
+	FInputModeGameAndUI Mode;
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	Mode.SetHideCursorDuringCapture(false);
+	SetInputMode(Mode);
+	EnterMenuInput();
+}
+
 bool ANWPlayerController::IsMenuOpen() const
 {
 	const ANWHUD* HUD = GetNWHUD();
-	return OpenMenu.IsValid() || (HUD && (HUD->Mastery.IsOpen() || HUD->Login.IsActive() || HUD->Chat.IsOpen() || HUD->Inventory.IsOpen()));
+	return OpenMenu.IsValid() || (HUD && (HUD->Mastery.IsOpen() || HUD->Login.IsActive() || HUD->Chat.IsOpen() || HUD->Inventory.IsOpen()
+		|| HUD->GameMenu.IsOpen()));
 }
 
 void ANWPlayerController::EnterMenuInput()
@@ -100,6 +131,7 @@ void ANWPlayerController::CloseMenus()
 	{
 		HUD->Mastery.Close();
 		HUD->Inventory.Close();
+		HUD->GameMenu.Close();
 	}
 	if (bWasOpen)
 	{
@@ -187,7 +219,7 @@ void ANWPlayerController::SetupInputComponent()
 	Super::SetupInputComponent();
 	// Sem consumir: com o menu fechado o clique segue para o ataque do personagem.
 	InputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &ANWPlayerController::OnMenuClick).bConsumeInput = false;
-	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ANWPlayerController::CloseMenus).bConsumeInput = false;
+	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ANWPlayerController::OnEscape).bConsumeInput = false;
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ANWPlayerController::OpenChat).bConsumeInput = false;
 	InputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &ANWPlayerController::OnMenuRightClick).bConsumeInput = false;
 }
@@ -200,6 +232,23 @@ void ANWPlayerController::OnMenuClick()
 	if (HUD && HUD->Login.IsActive())
 	{
 		HUD->Login.Click(FVector2D(X, Y));
+		return;
+	}
+	if (HUD && HUD->GameMenu.IsOpen())
+	{
+		const FString LangBefore = NWText::Lang();
+		switch (HUD->GameMenu.Click(FVector2D(X, Y)))
+		{
+		case FNWGameMenu::EAction::Resume: CloseMenus(); break;
+		case FNWGameMenu::EAction::ExitToMenu: CloseMenus(); ConsoleCommand(TEXT("disconnect")); break;
+		case FNWGameMenu::EAction::ExitToDesktop: ConsoleCommand(TEXT("quit")); break;
+		default: break;
+		}
+		FNWOptions::Get().Apply(GetWorld());
+		if (NWText::Lang() != LangBefore)
+		{
+			HUD->ReloadLanguage();
+		}
 		return;
 	}
 	if (HUD && HUD->Inventory.IsOpen())

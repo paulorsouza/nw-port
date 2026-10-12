@@ -22,7 +22,17 @@ GAME_KEYS = ["ui_play", "ui_enter", "ui_cancel", "ui_back", "ui_characters", "ui
              "ui_chat_placeholder",
              # Coleta (F4): ações, ferramenta exigida e nomes das ferramentas.
              "ui_mine", "ui_harvest", "ui_log", "ui_notoolitem", "2hpick_groupname", "sickle_groupname", "2haxe_groupname",
-             "1hskinningknife_groupname"]
+             "1hskinningknife_groupname",
+             # Menu do Esc e configurações (docs/hud-original.md).
+             "ui_escapemenu_game", "ui_escapemenu_leave_game", "ui_navmenu_settings", "ui_escapemenu_exit_to_main_menu",
+             "ui_escapemenu_exit_to_desktop", "ui_resume", "ui_back", "ui_on", "ui_off", "ui_options_visuals",
+             "ui_options_audio", "ui_options_gameplay", "ui_graphics_settings", "ui_options_graphics_low",
+             "ui_options_graphics_medium", "ui_options_graphics_high", "ui_options_graphics_vhigh", "ui_window_mode",
+             "ui_fullscreen", "ui_windowed", "ui_windowed_fullscreen", "ui_max_fps", "ui_options_graphics_30fps",
+             "ui_options_graphics_60fps", "ui_options_graphics_120fps", "ui_options_graphics_144fps",
+             "ui_options_graphics_240fps", "ui_options_graphics_uncappedfps", "ui_enable_vsync", "ui_options_fov",
+             "ui_enable_motionblur", "ui_show_fps", "ui_mastervolume", "ui_musicvolume", "ui_sfxvolume", "ui_ambvolume",
+             "ui_language", "ui_looksensitivityhorizontal", "ui_looksensitivityvertical", "ui_invertlook"]
 GATHERABLES = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "guardaventos_gatherables.json")
 
 

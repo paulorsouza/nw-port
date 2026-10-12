@@ -26,6 +26,7 @@
 #include "NWTraversalComponent.h"
 #include "NWGatherComponent.h"
 #include "NWInventoryComponent.h"
+#include "NWOptions.h"
 #include "NWPlayerController.h"
 #include "Misc/ConfigCacheIni.h"
 #include "NWAnimInstance.h"
@@ -400,15 +401,17 @@ void ANWCharacter::UpdateCamera(float DeltaSeconds)
 		GEngine->GameViewport->GetViewportSize(Viewport);
 	}
 	const float Aspect = Viewport.Y > 0.f ? Viewport.X / Viewport.Y : 16.f / 9.f;
-	const float Vertical = bInventory ? 50.f : CameraFovVertical;
+	// Campo de visão da opção do jogador; no inventário o jogo ignora a opção (UseUserDefinedFov = false).
+	const float Vertical = bInventory ? CameraFovVertical : FNWOptions::Get().FovVertical;
 	Camera->SetFieldOfView(FMath::RadiansToDegrees(2.f * FMath::Atan(FMath::Tan(FMath::DegreesToRadians(Vertical) * 0.5f) * Aspect)));
 }
 
 void ANWCharacter::Look(const FInputActionValue& Value)
 {
 	const FVector2D V = Value.Get<FVector2D>();
-	AddControllerYawInput(V.X);
-	AddControllerPitchInput(-V.Y);
+	const FNWOptions& O = FNWOptions::Get();
+	AddControllerYawInput(V.X * O.SensitivityX);
+	AddControllerPitchInput(-V.Y * O.SensitivityY * (O.bInvertY ? -1.f : 1.f));
 }
 
 void ANWCharacter::AttackPressed()

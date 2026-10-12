@@ -67,8 +67,8 @@ Ver a tabela de estado no fim deste arquivo, atualizada a cada etapa.
 |---|---|
 | HUD de combate (vida, vigor, habilidades, armas, consumíveis) | feita antes (hud2024) |
 | Inventário + equipamento + peso + moedas | feita (layout do jogo, peças originais) |
-| Câmera com os valores do jogo | em andamento |
-| Menu do Esc | em andamento |
-| Configurações (vídeo, áudio, jogo) | em andamento |
+| Câmera com os valores do jogo | feita: estados normal/sprint/inventário, zoom na roda (0,2–6 m), FOV 50° vertical, personagem vira de frente no inventário (`ANWCharacter::UpdateCamera`) |
+| Menu do Esc | feito: Continuar, Configurações, Sair para o Menu Principal, Sair para a Área de Trabalho (`FNWGameMenu`) |
+| Configurações | feitas, textos do jogo: Vídeo (qualidade, modo de janela, FPS máximo, VSync, campo de visão, desfoque, exibir FPS), Áudio (geral, música, efeitos, ambiente), Jogo (idioma, sensibilidade H/V, inverter eixo). Salvas em GameUserSettings.ini [NW.Options] (`FNWOptions`) |
 | Aviso de sobrecarga | a fazer |
 | Barra de XP, durabilidade, efeitos | depende de sistemas que o port ainda não tem |

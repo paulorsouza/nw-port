@@ -5,6 +5,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "NWGatherField.h"
+#include "NWOptions.h"
 #include "Sound/SoundBase.h"
 
 namespace
@@ -79,9 +80,20 @@ void UNWAmbienceComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 	const int32 Now = Pawn->GetActorLocation().Size2D() < SettlementRadius ? 1 : 0;
 	if (Now == Zone)
 	{
+		// Volume mudado nas configurações vale na hora.
+		const FNWOptions& O = FNWOptions::Get();
+		if (Music)
+		{
+			Music->SetVolumeMultiplier(MusicVolume * O.MusicVolume);
+		}
+		if (Ambience)
+		{
+			Ambience->SetVolumeMultiplier(AmbienceVolume * O.AmbienceVolume);
+		}
 		return;
 	}
 	Zone = Now;
-	Play(Music, (Zone ? SettlementMusic : TerritoryMusic).LoadSynchronous(), MusicVolume);
-	Play(Ambience, (Zone ? SettlementAmbience : WildlifeAmbience).LoadSynchronous(), AmbienceVolume);
+	const FNWOptions& O = FNWOptions::Get();
+	Play(Music, (Zone ? SettlementMusic : TerritoryMusic).LoadSynchronous(), MusicVolume * O.MusicVolume);
+	Play(Ambience, (Zone ? SettlementAmbience : WildlifeAmbience).LoadSynchronous(), AmbienceVolume * O.AmbienceVolume);
 }

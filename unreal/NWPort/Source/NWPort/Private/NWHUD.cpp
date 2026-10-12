@@ -4,6 +4,7 @@
 #include "NWBackend.h"
 #include "NWItems.h"
 #include "NWGatherComponent.h"
+#include "NWOptions.h"
 #include "NWInventoryComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "NWPlayerState.h"
@@ -238,6 +239,30 @@ void ANWHUD::EndPlay(const EEndPlayReason::Type Reason)
 }
 
 void ANWHUD::DrawHUD()
+{
+	DrawGameHUD();
+	if (Canvas && FNWOptions::Get().bShowFps)
+	{
+		// FPS no canto superior direito (opção @ui_show_fps).
+		const float Fps = 1.f / FMath::Max(GetWorld()->GetDeltaSeconds(), 0.001f);
+		if (UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr)
+		{
+			const float Scale = 18.f * Canvas->ClipY / 1080.f / FMath::Max(1, Font->LegacyFontSize);
+			DrawText(FString::Printf(TEXT("%.0f FPS"), Fps), FLinearColor(0.92f, 0.89f, 0.84f), Canvas->ClipX - 120.f * Canvas->ClipY / 1080.f, 12.f, Font, Scale);
+		}
+	}
+	if (Canvas && GameMenu.IsOpen())
+	{
+		float MX = 0.f, MY = 0.f;
+		if (APlayerController* PC = GetOwningPlayerController())
+		{
+			PC->GetMousePosition(MX, MY);
+		}
+		GameMenu.Draw(Canvas, FVector2D(MX, MY));
+	}
+}
+
+void ANWHUD::DrawGameHUD()
 {
 	Super::DrawHUD();
 	const ANWCharacter* Me = Cast<ANWCharacter>(GetOwningPawn());

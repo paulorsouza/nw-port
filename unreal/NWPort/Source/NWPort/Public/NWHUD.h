@@ -8,6 +8,7 @@
 #include "NWRespawnScreen.h"
 #include "NWChat.h"
 #include "NWInventoryMenu.h"
+#include "NWGameMenu.h"
 #include "NWHUD.generated.h"
 
 class UFont;
@@ -40,6 +41,8 @@ public:
 	FNWRespawnScreen Respawn;
 	FNWChat Chat;
 	FNWInventoryMenu Inventory;
+	// Menu do Esc e configurações (desenhado por cima de tudo).
+	FNWGameMenu GameMenu;
 	bool IsDeathScreen() const { return bDeathScreen; }
 	/** Saque recebido (UNWInventoryComponent::ClientLoot): uma linha por item, à direita, por 6 s. */
 	void ShowLoot(const TArray<struct FNWItem>& Gained, int64 Coins);
@@ -61,6 +64,8 @@ private:
 	void DrawNameplates(const APawn* Me);
 	void UpdateConsumables(const class ANWCharacter* Me);
 	void DrawLootTicker();
+	/** HUD do jogo (tudo menos o menu do Esc, que o DrawHUD desenha por cima). */
+	void DrawGameHUD();
 	/** Coleta: "[E] Minerar Filão de Ferro" perto de um coletável e a barra durante a coleta. */
 	void DrawGather(const APawn* Me);
 	struct FLootLine { FString Icon; FString Text; FLinearColor Color; double Time; };
