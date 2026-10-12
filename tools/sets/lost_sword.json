@@ -1,0 +1,37 @@
+{
+  "name": "lost_sword",
+  "mesh_name": "SK_lost",
+  "anim_root": "animations/gameplay/character/npc/supernatural/damned/",
+  "character": "objects/characters/npc/supernatural/damned/male/hard/male_damnedhard.cdf",
+  "weapons": {
+    "sword": {"file": "objects/weapons/melee/swords/1h/cutlassa/wep_me1h_sw_cutlassa_t2.cgf", "socket": "right_hand_attach"}
+  },
+  "_comment": "Lost (damned) de espada. Clipes escolhidos à mão: os fragmentos do npc_damned_anims.adb tocam sequências dentro da mesma camada.",
+  "blendspaces": {
+    "BS_Walk": ["mc_melee1h_damned_combat_walk_blend"]
+  },
+  "loops": {
+    "Idle": ["mc_melee1h_damned_combat_idle"],
+    "Run": ["unarmed_damned_run"]
+  },
+  "montages": {
+    "AM_Attack1": [["mc_melee1h_damned_swipel_01"]],
+    "AM_Attack2": [["mc_melee1h_damned_swiper_01"]],
+    "AM_Heavy": [["mc_melee1h_damned_stab_03"]],
+    "AM_Leap": [["mc_melee1h_damned_heavyleap_01"]],
+    "AM_Aggro": [["unarmed_damned_alert_shout"]],
+    "AM_Hit_F": [["damned_r2_f"]],
+    "AM_Hit_B": [["damned_r2_b"]],
+    "AM_Hit_L": [["damned_r2_l"]],
+    "AM_Hit_R": [["damned_r2_r"]],
+    "AM_Death": [["damned_death_f"]]
+  },
+  "window_adbs": ["npc_damned_anims.adb"],
+  "window_tags": "1H_Melee,Sword",
+  "fragments": {
+    "AM_Attack1": ["Attack_Close_1H_Sword_01"],
+    "AM_Attack2": ["Attack_Close_1H_Sword_02"],
+    "AM_Heavy": ["Attack_Heavy_Attack"],
+    "AM_Leap": ["Attack_Mid_1H_Sword_01"]
+  }
+}

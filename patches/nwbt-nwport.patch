@@ -1,0 +1,969 @@
+diff --git a/tools/nwbt/commands/models/cmd.go b/tools/nwbt/commands/models/cmd.go
+index 82e7ab7b..bc4ed55e 100644
+--- a/tools/nwbt/commands/models/cmd.go
++++ b/tools/nwbt/commands/models/cmd.go
+@@ -89,6 +89,7 @@ func init() {
+ 	Cmd.Flags().StringVar(&flg.CrcFile, "crc-file", "nwt-crc.json", "file with crc hashes. Only used for object-stream conversion")
+ 	Cmd.Flags().StringVar(&flg.UuidFile, "uuid-file", "nwt-types.json", "file with uuid hashes. Only used for object-stream conversion")
+ 	Cmd.AddCommand(
++		cmdCollectSlices,
+ 		cmdCollectAppearances,
+ 		cmdCollectCapitals,
+ 		cmdCollectCostumes,
+diff --git a/tools/nwbt/commands/models/collect_capitals.go b/tools/nwbt/commands/models/collect_capitals.go
+index bf1445b4..703838b5 100644
+--- a/tools/nwbt/commands/models/collect_capitals.go
++++ b/tools/nwbt/commands/models/collect_capitals.go
+@@ -5,6 +5,7 @@ import (
+ 	"nw-buddy/tools/formats/capitals"
+ 	"nw-buddy/tools/formats/gltf/importer"
+ 	"nw-buddy/tools/game"
++	"nw-buddy/tools/nwfs"
+ 	"nw-buddy/tools/rtti/nwt"
+ 	"nw-buddy/tools/utils"
+ 	"nw-buddy/tools/utils/logging"
+@@ -82,236 +83,242 @@ func (c *Collector) CollectCapitals(glob string) {
+ 				slog.Error("file not found", "slice", cap.SliceName)
+ 				continue
+ 			}
+-			c.WalkSlice(file, func(node *game.SliceNode) {
+-				for _, component := range node.Components {
+-					switch v := component.(type) {
+-					case nwt.LightComponent:
+-						config := v.LightConfiguration
+-						if !config.Visible {
+-							break
+-						}
+-						switch config.LightType {
+-						case 0:
+-							group.Lights = append(group.Lights, importer.LightAsset{
+-								Type:      0,
+-								Color:     [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
+-								Intensity: float32(config.DiffuseMultiplier),
+-								Range:     float32(config.PointMaxDistance),
+-								Entity: importer.Entity{
+-									Name:      string(node.Entity.Name),
+-									Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
+-								},
+-							})
+-						case 1: // area
+-							group.Lights = append(group.Lights, importer.LightAsset{
+-								Type:      0,
+-								Color:     [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
+-								Intensity: float32(config.DiffuseMultiplier),
+-								Range:     float32(config.PointMaxDistance),
+-								Entity: importer.Entity{
+-									Name:      string(node.Entity.Name),
+-									Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
+-								},
+-							})
+-						case 2: // projector
+-							group.Lights = append(group.Lights, importer.LightAsset{
+-								Type:           0,
+-								Color:          [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
+-								Intensity:      float32(config.DiffuseMultiplier),
+-								Range:          float32(config.PointMaxDistance),
+-								OuterConeAngle: float32(config.ProjectorFOV/2.0) * DEG_TO_RAD,
+-								Entity: importer.Entity{
+-									Name:      string(node.Entity.Name),
+-									Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
+-								},
+-							})
+-						case 3: // probe
+-						}
+-					case nwt.InstancedMeshComponent:
+-						meshNode := v.Instanced_Mesh_Render_Node.BaseClass1
+-						if game.ShouldIgnoreMeshNode(meshNode) {
+-							continue
+-						}
+-						modelAsset := meshNode.Static_Mesh
+-						modelFile, err := c.LookupFileByAsset(modelAsset)
+-						if err != nil {
+-							slog.Warn("skip missing model", "err", err)
+-							continue
+-						}
+-						if modelFile == nil {
+-							continue
+-						}
+-						model := modelFile.Path()
++			c.collectSliceInto(&group, file, rootTransform)
++		}
++		if !merge && len(group.Geometries) > 0 {
++			group.TargetFile = c.outputPath(utils.ReplaceExt(file.Path(), ""))
++			c.models.Store(group.TargetFile, group)
++		}
++	}
+ 
+-						materialAsset := meshNode.Material_Override_Asset
+-						materialFile, err := c.LookupFileByAsset(materialAsset)
+-						if err != nil {
+-							slog.Warn("ignore model material", "err", err)
+-						}
+-						material := ""
+-						if materialFile != nil {
+-							material = materialFile.Path()
+-						}
+-						model, material = c.ResolveCgfAndMtl(model, material)
+-						for _, instance := range v.Instanced_Mesh_Render_Node.Instance_Transforms.Element {
+-							transform := mat4.FromAzTransform(instance)
+-							transform = mat4.Multiply(node.Transform, transform)
+-							group.Geometries = append(group.Geometries, importer.GeometryAsset{
+-								GeometryFile: model,
+-								MaterialFile: material,
+-								Entity: importer.Entity{
+-									Name:      string(node.Entity.Name),
+-									Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, transform)),
+-								},
+-							})
+-						}
+-					case nwt.MeshComponent:
+-						meshNode := v.Static_Mesh_Render_Node
+-						if game.ShouldIgnoreMeshNode(meshNode) {
+-							continue
+-						}
+-						modelAsset := v.Static_Mesh_Render_Node.Static_Mesh
+-						modelFile, err := c.LookupFileByAsset(modelAsset)
+-						if err != nil {
+-							slog.Warn("skip missing model", "err", err)
+-							continue
+-						}
+-						if modelFile == nil {
+-							continue
+-						}
+-						model := modelFile.Path()
++	if merge && len(group.Geometries) > 0 {
++		group.TargetFile = c.outputPath(utils.ReplaceExt(flgOutFile, ""))
++		c.models.Store(group.TargetFile, group)
++	}
++}
+ 
+-						materialAsset := v.Static_Mesh_Render_Node.Material_Override_Asset
+-						materialFile, err := c.LookupFileByAsset(materialAsset)
+-						if err != nil {
+-							slog.Warn("ignore model material", "err", err)
+-						}
+-						material := ""
+-						if materialFile != nil {
+-							material = materialFile.Path()
+-						}
+-						model, material = c.ResolveCgfAndMtl(model, material)
+ 
++// collectSliceInto percorre uma dynamicslice (e as que ela spawna) e junta malhas e luzes no grupo.
++func (c *Collector) collectSliceInto(group *importer.AssetGroup, file nwfs.File, rootTransform mat4.Data) {
++	c.WalkSlice(file, func(node *game.SliceNode) {
++		for _, component := range node.Components {
++			switch v := component.(type) {
++			case nwt.LightComponent:
++				config := v.LightConfiguration
++				if !config.Visible {
++					break
++				}
++				switch config.LightType {
++				case 0:
++					group.Lights = append(group.Lights, importer.LightAsset{
++						Type:      0,
++						Color:     [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
++						Intensity: float32(config.DiffuseMultiplier),
++						Range:     float32(config.PointMaxDistance),
++						Entity: importer.Entity{
++							Name:      string(node.Entity.Name),
++							Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
++						},
++					})
++				case 1: // area
++					group.Lights = append(group.Lights, importer.LightAsset{
++						Type:      0,
++						Color:     [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
++						Intensity: float32(config.DiffuseMultiplier),
++						Range:     float32(config.PointMaxDistance),
++						Entity: importer.Entity{
++							Name:      string(node.Entity.Name),
++							Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
++						},
++					})
++				case 2: // projector
++					group.Lights = append(group.Lights, importer.LightAsset{
++						Type:           0,
++						Color:          [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
++						Intensity:      float32(config.DiffuseMultiplier),
++						Range:          float32(config.PointMaxDistance),
++						OuterConeAngle: float32(config.ProjectorFOV/2.0) * DEG_TO_RAD,
++						Entity: importer.Entity{
++							Name:      string(node.Entity.Name),
++							Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
++						},
++					})
++				case 3: // probe
++				}
++			case nwt.InstancedMeshComponent:
++				meshNode := v.Instanced_Mesh_Render_Node.BaseClass1
++				if game.ShouldIgnoreMeshNode(meshNode) {
++					continue
++				}
++				modelAsset := meshNode.Static_Mesh
++				modelFile, err := c.LookupFileByAsset(modelAsset)
++				if err != nil {
++					slog.Warn("skip missing model", "err", err)
++					continue
++				}
++				if modelFile == nil {
++					continue
++				}
++				model := modelFile.Path()
++
++				materialAsset := meshNode.Material_Override_Asset
++				materialFile, err := c.LookupFileByAsset(materialAsset)
++				if err != nil {
++					slog.Warn("ignore model material", "err", err)
++				}
++				material := ""
++				if materialFile != nil {
++					material = materialFile.Path()
++				}
++				model, material = c.ResolveCgfAndMtl(model, material)
++				for _, instance := range v.Instanced_Mesh_Render_Node.Instance_Transforms.Element {
++					transform := mat4.FromAzTransform(instance)
++					transform = mat4.Multiply(node.Transform, transform)
++					group.Geometries = append(group.Geometries, importer.GeometryAsset{
++						GeometryFile: model,
++						MaterialFile: material,
++						Entity: importer.Entity{
++							Name:      string(node.Entity.Name),
++							Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, transform)),
++						},
++					})
++				}
++			case nwt.MeshComponent:
++				meshNode := v.Static_Mesh_Render_Node
++				if game.ShouldIgnoreMeshNode(meshNode) {
++					continue
++				}
++				modelAsset := v.Static_Mesh_Render_Node.Static_Mesh
++				modelFile, err := c.LookupFileByAsset(modelAsset)
++				if err != nil {
++					slog.Warn("skip missing model", "err", err)
++					continue
++				}
++				if modelFile == nil {
++					continue
++				}
++				model := modelFile.Path()
++
++				materialAsset := v.Static_Mesh_Render_Node.Material_Override_Asset
++				materialFile, err := c.LookupFileByAsset(materialAsset)
++				if err != nil {
++					slog.Warn("ignore model material", "err", err)
++				}
++				material := ""
++				if materialFile != nil {
++					material = materialFile.Path()
++				}
++				model, material = c.ResolveCgfAndMtl(model, material)
++
++				group.Geometries = append(group.Geometries, importer.GeometryAsset{
++					GeometryFile: model,
++					MaterialFile: material,
++					Entity: importer.Entity{
++						Name:      string(node.Entity.Name),
++						Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
++					},
++				})
++			case nwt.SkinnedMeshComponent:
++				if !v.Skinned_Mesh_Render_Node.Visible {
++					continue
++				}
++				modelAsset := v.Skinned_Mesh_Render_Node.Skinned_Mesh
++				modelFile, err := c.LookupFileByAsset(modelAsset)
++				if err != nil {
++					slog.Warn("skip missing model", "err", err)
++					continue
++				}
++				if modelFile == nil {
++					continue
++				}
++				model := modelFile.Path()
++
++				materialAsset := v.Skinned_Mesh_Render_Node.Material_Override_Asset
++				materialFile, err := c.LookupFileByAsset(materialAsset)
++				if err != nil {
++					slog.Warn("ignore model material", "err", err)
++				}
++				material := ""
++				if materialFile != nil {
++					material = materialFile.Path()
++				}
++				cdf, err := c.LoadCdf(model)
++				if err != nil {
++					slog.Warn("skip unresolved cdf file", "err", err)
++					continue
++				}
++
++				for _, attachment := range cdf.SkinAndClothAttachments() {
++					if model, mtl := c.ResolveCgfAndMtl(attachment.Binding, attachment.Material, material); model != "" {
+ 						group.Geometries = append(group.Geometries, importer.GeometryAsset{
+-							GeometryFile: model,
+-							MaterialFile: material,
+ 							Entity: importer.Entity{
+-								Name:      string(node.Entity.Name),
++								Name:      attachment.AName,
+ 								Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
+ 							},
++							GeometryFile: model,
++							MaterialFile: mtl,
++							SkipSkin:     true,
+ 						})
+-					case nwt.SkinnedMeshComponent:
+-						if !v.Skinned_Mesh_Render_Node.Visible {
+-							continue
+-						}
+-						modelAsset := v.Skinned_Mesh_Render_Node.Skinned_Mesh
+-						modelFile, err := c.LookupFileByAsset(modelAsset)
+-						if err != nil {
+-							slog.Warn("skip missing model", "err", err)
+-							continue
+-						}
+-						if modelFile == nil {
+-							continue
+-						}
+-						model := modelFile.Path()
+-
+-						materialAsset := v.Skinned_Mesh_Render_Node.Material_Override_Asset
+-						materialFile, err := c.LookupFileByAsset(materialAsset)
+-						if err != nil {
+-							slog.Warn("ignore model material", "err", err)
+-						}
+-						material := ""
+-						if materialFile != nil {
+-							material = materialFile.Path()
+-						}
+-						cdf, err := c.LoadCdf(model)
+-						if err != nil {
+-							slog.Warn("skip unresolved cdf file", "err", err)
+-							continue
+-						}
+-
+-						for _, attachment := range cdf.SkinAndClothAttachments() {
+-							if model, mtl := c.ResolveCgfAndMtl(attachment.Binding, attachment.Material, material); model != "" {
+-								group.Geometries = append(group.Geometries, importer.GeometryAsset{
+-									Entity: importer.Entity{
+-										Name:      attachment.AName,
+-										Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
+-									},
+-									GeometryFile: model,
+-									MaterialFile: mtl,
+-									SkipSkin:     true,
+-								})
+-							}
+-						}
+-					case nwt.SpawnerComponent:
+-						facet, ok := v.BaseClass1.M_serverFacetPtr.(nwt.SpawnerComponentServerFacet)
+-						if !ok {
+-							break
+-						}
+-						if !node.WalkAsset(facet.M_aliasAsset) {
+-							node.WalkAsset(facet.M_sliceAsset)
+-						}
+-					case nwt.PrefabSpawnerComponent:
+-						if !node.WalkAsset(v.M_aliasAsset) {
+-							node.WalkAsset(v.M_sliceAsset)
+-						}
+-					case nwt.PointSpawnerComponent:
+-						if !node.WalkAsset(v.BaseClass1.M_aliasAsset) {
+-							node.WalkAsset(v.BaseClass1.M_sliceAsset)
+-						}
+-					case nwt.EncounterComponent:
+-						nodeTranform := node.Transform
+-						for _, timeline := range v.M_spawnTimeline.Element {
+-							if len(timeline.M_spawnLocations.Element) == 0 && timeline.M_count > 0 {
+-								if !node.WalkAsset(timeline.M_aliasAsset) {
+-									node.WalkAsset(timeline.M_sliceAsset)
+-								}
+-							} else {
+-								for _, location := range timeline.M_spawnLocations.Element {
+-									entity := game.FindEntityById(node.Slice, location.EntityId.Id)
+-									if entity == nil {
+-										continue
+-									}
+-									node.Transform = mat4.Multiply(nodeTranform, game.FindEntityTransformMat4(entity))
+-									if !node.WalkAsset(timeline.M_aliasAsset) {
+-										node.WalkAsset(timeline.M_sliceAsset)
+-									}
+-								}
+-							}
+-						}
+-						node.Transform = nodeTranform
+-					case nwt.AreaSpawnerComponent:
+-						facet, ok := v.BaseClass1.M_serverFacetPtr.(nwt.AreaSpawnerComponentServerFacet)
+-						if !ok {
+-							break
++					}
++				}
++			case nwt.SpawnerComponent:
++				facet, ok := v.BaseClass1.M_serverFacetPtr.(nwt.SpawnerComponentServerFacet)
++				if !ok {
++					break
++				}
++				if !node.WalkAsset(facet.M_aliasAsset) {
++					node.WalkAsset(facet.M_sliceAsset)
++				}
++			case nwt.PrefabSpawnerComponent:
++				if !node.WalkAsset(v.M_aliasAsset) {
++					node.WalkAsset(v.M_sliceAsset)
++				}
++			case nwt.PointSpawnerComponent:
++				if !node.WalkAsset(v.BaseClass1.M_aliasAsset) {
++					node.WalkAsset(v.BaseClass1.M_sliceAsset)
++				}
++			case nwt.EncounterComponent:
++				nodeTranform := node.Transform
++				for _, timeline := range v.M_spawnTimeline.Element {
++					if len(timeline.M_spawnLocations.Element) == 0 && timeline.M_count > 0 {
++						if !node.WalkAsset(timeline.M_aliasAsset) {
++							node.WalkAsset(timeline.M_sliceAsset)
+ 						}
+-						nodeTransform := node.Transform
+-						for _, location := range facet.M_locations.Element {
++					} else {
++						for _, location := range timeline.M_spawnLocations.Element {
+ 							entity := game.FindEntityById(node.Slice, location.EntityId.Id)
+ 							if entity == nil {
+ 								continue
+ 							}
+-							node.Transform = mat4.Multiply(nodeTransform, game.FindEntityTransformMat4(entity))
+-							if !node.WalkAsset(facet.M_aliasAsset) {
+-								node.WalkAsset(facet.M_sliceAsset)
++							node.Transform = mat4.Multiply(nodeTranform, game.FindEntityTransformMat4(entity))
++							if !node.WalkAsset(timeline.M_aliasAsset) {
++								node.WalkAsset(timeline.M_sliceAsset)
+ 							}
+ 						}
+-						node.Transform = nodeTransform
+-					default:
+-						break
+ 					}
+ 				}
+-
+-			})
+-		}
+-		if !merge && len(group.Geometries) > 0 {
+-			group.TargetFile = c.outputPath(utils.ReplaceExt(file.Path(), ""))
+-			c.models.Store(group.TargetFile, group)
++				node.Transform = nodeTranform
++			case nwt.AreaSpawnerComponent:
++				facet, ok := v.BaseClass1.M_serverFacetPtr.(nwt.AreaSpawnerComponentServerFacet)
++				if !ok {
++					break
++				}
++				nodeTransform := node.Transform
++				for _, location := range facet.M_locations.Element {
++					entity := game.FindEntityById(node.Slice, location.EntityId.Id)
++					if entity == nil {
++						continue
++					}
++					node.Transform = mat4.Multiply(nodeTransform, game.FindEntityTransformMat4(entity))
++					if !node.WalkAsset(facet.M_aliasAsset) {
++						node.WalkAsset(facet.M_sliceAsset)
++					}
++				}
++				node.Transform = nodeTransform
++			default:
++				break
++			}
+ 		}
+-	}
+ 
+-	if merge && len(group.Geometries) > 0 {
+-		group.TargetFile = c.outputPath(utils.ReplaceExt(flgOutFile, ""))
+-		c.models.Store(group.TargetFile, group)
+-	}
+-}
++	})
++}
+\ No newline at end of file
+diff --git a/tools/nwbt/commands/models/collect_character.go b/tools/nwbt/commands/models/collect_character.go
+index 9037a39f..6c70440d 100644
+--- a/tools/nwbt/commands/models/collect_character.go
++++ b/tools/nwbt/commands/models/collect_character.go
+@@ -69,6 +69,7 @@ func (c *Collector) CollectCdf(cdf *cdf.Document, material string, targetFile st
+ 			})
+ 		}
+ 	}
++	group.Animations = append(group.Animations, flgExtraAnims...)
+ 	if len(group.Geometries) > 0 {
+ 		group.TargetFile = targetFile
+ 		c.models.Store(group.TargetFile, group)
+diff --git a/tools/nwbt/commands/models/collect_chunks.go b/tools/nwbt/commands/models/collect_chunks.go
+new file mode 100644
+index 00000000..47f5ca84
+--- /dev/null
++++ b/tools/nwbt/commands/models/collect_chunks.go
+@@ -0,0 +1,95 @@
++package models
++
++import (
++	"log/slog"
++	"nw-buddy/tools/formats/gltf/importer"
++	"nw-buddy/tools/game"
++	"nw-buddy/tools/rtti/nwt"
++	"nw-buddy/tools/utils"
++	"nw-buddy/tools/utils/logging"
++	"nw-buddy/tools/utils/math/mat4"
++	"nw-buddy/tools/utils/progress"
++	"path"
++	"strings"
++
++	"github.com/spf13/cobra"
++)
++
++// nw-port: os <PLOT> das camadas de capitals têm o conteúdo pré-gerado (penhascos, rochas, detalhes, água) nos
++// arquivos .chunks ao lado do .capitals.json. Cada chunk aponta para um slice numa posição do mundo.
++var cmdCollectChunks = &cobra.Command{
++	Use:   "chunks",
++	Short: "Converts the .chunks files of capitals layers (pre-generated plot content) to gltf",
++	Run:   runCollectChunks,
++	Example: strings.Trim(`
++  nwbt models chunks --level newworld_vitaeeterna --region r_+04_+01 --name 06swindsward_capitals -f out.glb`, "\n"),
++}
++
++func init() {
++	cmdCollectChunks.Flags().AddFlagSet(Cmd.Flags())
++	cmdCollectChunks.Flags().StringVar(&flgLevel, "level", "ftue_v2", "The LEVEL_NAME in the coatlicue directory. Can be a glob expression.")
++	cmdCollectChunks.Flags().StringVar(&flgRegion, "region", "**", "The REGION_NAME in the coatlicue directory. Can be a glob expression.")
++	cmdCollectChunks.Flags().StringVar(&flgName, "name", "*", "The capitals layer to process. Can be a glob expression.")
++	cmdCollectChunks.Flags().StringVarP(&flgOutFile, "file", "f", "", "If set, all chunks are merged into a single file.")
++	Cmd.AddCommand(cmdCollectChunks)
++}
++
++func runCollectChunks(ccmd *cobra.Command, args []string) {
++	glob := path.Join("**", "coatlicue", flgLevel, "regions", flgRegion, "capitals", flgName, "*.chunks")
++	slog.SetDefault(logging.DefaultFileHandler())
++	c := utils.Must(initCollector())
++	c.CollectChunks(glob)
++	c.Process()
++	slog.SetDefault(logging.DefaultTerminalHandler())
++}
++
++func (c *Collector) CollectChunks(glob string) {
++	merge := flgOutFile != ""
++	files, _ := c.Archive.Glob(glob)
++	bar := progress.Bar(len(files), "chunks")
++	defer func() {
++		bar.Detail("")
++		bar.Close()
++	}()
++
++	group := importer.AssetGroup{}
++	for _, file := range files {
++		bar.Detail(file.Path())
++		bar.Add(1)
++		if !merge {
++			group = importer.AssetGroup{}
++		}
++		obj, err := game.LoadObjectStream(file)
++		if err != nil {
++			slog.Error("chunks not loaded", "file", file.Path(), "error", err)
++			continue
++		}
++		chunks, ok := obj.(nwt.GridGenericAsset_AssetData__)
++		if !ok {
++			slog.Error("unexpected chunks type", "file", file.Path())
++			continue
++		}
++		for _, chunk := range chunks.Chunks.Element {
++			sliceFile, err := c.LookupFileByAssetId(chunk.AssetId)
++			if err != nil || sliceFile == nil {
++				slog.Warn("chunk slice not found", "file", file.Path(), "asset", chunk.AssetId.Guid, "error", err)
++				continue
++			}
++			root := mat4.FromAzTransformData([]nwt.AzFloat32{
++				0, 0, 0, 1,
++				1, 1, 1,
++				chunk.WorldPosition[0], chunk.WorldPosition[1], chunk.WorldPosition[2],
++			})
++			c.collectSliceInto(&group, sliceFile, root)
++		}
++		if !merge && len(group.Geometries) > 0 {
++			group.TargetFile = c.outputPath(utils.ReplaceExt(file.Path(), ""))
++			c.models.Store(group.TargetFile, group)
++		}
++	}
++
++	if merge && len(group.Geometries) > 0 {
++		group.TargetFile = c.outputPath(utils.ReplaceExt(flgOutFile, ""))
++		c.models.Store(group.TargetFile, group)
++	}
++}
+diff --git a/tools/nwbt/commands/models/collect_files.go b/tools/nwbt/commands/models/collect_files.go
+index 848c5982..d6052e70 100644
+--- a/tools/nwbt/commands/models/collect_files.go
++++ b/tools/nwbt/commands/models/collect_files.go
+@@ -12,6 +12,7 @@ import (
+ )
+ 
+ var flgMaterial string
++var flgExtraAnims []importer.AnimationAsset
+ var cmdCollectFiles = &cobra.Command{
+ 	Use:   "files",
+ 	Short: "converts a specific file with an optional material override",
+@@ -50,8 +51,20 @@ func (c *Collector) CollectFiles(patterns []string, mtl string) {
+ 		return
+ 	}
+ 
++	// .caf passados junto com um .cdf entram como animações do mesmo glb.
++	flgExtraAnims = nil
++	for _, file := range files {
++		if path.Ext(file.Path()) == ".caf" {
++			name := strings.TrimSuffix(path.Base(file.Path()), ".caf")
++			flgExtraAnims = append(flgExtraAnims, importer.AnimationAsset{File: file.Path(), Name: name})
++		}
++	}
++
+ 	for _, file := range files {
+ 		model := file.Path()
++		if path.Ext(model) == ".caf" {
++			continue
++		}
+ 		material := mtl
+ 		targetFile := c.outputPath(model)
+ 		if !c.shouldProcess(targetFile) {
+diff --git a/tools/nwbt/commands/models/collect_slices.go b/tools/nwbt/commands/models/collect_slices.go
+new file mode 100644
+index 00000000..fd224c23
+--- /dev/null
++++ b/tools/nwbt/commands/models/collect_slices.go
+@@ -0,0 +1,48 @@
++package models
++
++import (
++	"log/slog"
++	"nw-buddy/tools/formats/gltf/importer"
++	"nw-buddy/tools/utils"
++	"nw-buddy/tools/utils/logging"
++	"nw-buddy/tools/utils/math/mat4"
++	"strings"
++
++	"github.com/spf13/cobra"
++)
++
++// models slices: converte dynamicslices inteiras (ex.: uma cidade "complete") na origem, um glb por slice.
++var cmdCollectSlices = &cobra.Command{
++	Use:   "slices",
++	Short: "converts whole .dynamicslice files (e.g. a complete settlement) to gltf at the origin",
++	Run:   runCollectSlices,
++}
++
++func init() {
++	cmdCollectSlices.Flags().AddFlagSet(Cmd.Flags())
++}
++
++func runCollectSlices(ccmd *cobra.Command, args []string) {
++	slog.SetDefault(logging.DefaultFileHandler())
++	c := utils.Must(initCollector())
++	for i := range args {
++		args[i] = strings.ToLower(args[i])
++	}
++	files, err := c.Archive.Glob(args...)
++	if err != nil || len(files) == 0 {
++		slog.Error("no slices found", "err", err)
++		return
++	}
++	for _, file := range files {
++		group := importer.AssetGroup{}
++		c.collectSliceInto(&group, file, mat4.Identity())
++		if len(group.Geometries) == 0 {
++			slog.Warn("slice without geometry", "file", file.Path())
++			continue
++		}
++		group.TargetFile = c.outputPath(utils.ReplaceExt(file.Path(), ""))
++		c.models.Store(group.TargetFile, group)
++	}
++	c.Process()
++	slog.SetDefault(logging.DefaultTerminalHandler())
++}
+diff --git a/tools/nwbt/commands/models/collect_slicestats.go b/tools/nwbt/commands/models/collect_slicestats.go
+new file mode 100644
+index 00000000..e1ab2f95
+--- /dev/null
++++ b/tools/nwbt/commands/models/collect_slicestats.go
+@@ -0,0 +1,78 @@
++package models
++
++import (
++	"fmt"
++	"nw-buddy/tools/game"
++	"nw-buddy/tools/rtti/nwt"
++	"nw-buddy/tools/utils"
++	"nw-buddy/tools/utils/logging"
++	"log/slog"
++	"sort"
++	"strings"
++
++	"github.com/spf13/cobra"
++)
++
++// models slicestats: diagnóstico de uma dynamicslice — tipos de componente (com slices filhos),
++// slices visitados e spawners cujo asset não resolve.
++var cmdSliceStats = &cobra.Command{
++	Use:   "slicestats",
++	Short: "prints component statistics of a .dynamicslice tree",
++	Run:   runSliceStats,
++}
++
++func init() {
++	cmdSliceStats.Flags().AddFlagSet(Cmd.Flags())
++}
++
++func runSliceStats(ccmd *cobra.Command, args []string) {
++	slog.SetDefault(logging.DefaultFileHandler())
++	c := utils.Must(initCollector())
++	files, err := c.Archive.Glob(strings.ToLower(args[0]))
++	if err != nil || len(files) == 0 {
++		fmt.Println("slice não encontrada")
++		return
++	}
++	types := map[string]int{}
++	slices := map[string]int{}
++	unresolved := map[string]int{}
++	check := func(node *game.SliceNode, asset nwt.AzAsset, alias nwt.AzAsset) {
++		if alias.Guid != "" && alias.Guid != "00000000-0000-0000-0000-000000000000" {
++			if f, _ := c.LookupFileByAsset(alias); f != nil {
++				slices["alias "+f.Path()]++
++				return
++			}
++		}
++		if f, _ := c.LookupFileByAsset(asset); f == nil && asset.Guid != "" {
++			unresolved[asset.Hint]++
++		}
++	}
++	c.WalkSlice(files[0], func(node *game.SliceNode) {
++		if node.File != nil {
++			slices[node.File.Path()]++
++		}
++		for _, component := range node.Components {
++			types[fmt.Sprintf("%T", component)]++
++			switch v := component.(type) {
++			case nwt.PrefabSpawnerComponent:
++				check(node, v.M_sliceAsset, v.M_aliasAsset)
++			case nwt.PointSpawnerComponent:
++				check(node, v.BaseClass1.M_sliceAsset, v.BaseClass1.M_aliasAsset)
++			}
++		}
++	})
++	dump := func(title string, m map[string]int) {
++		keys := make([]string, 0, len(m))
++		for k := range m {
++			keys = append(keys, k)
++		}
++		sort.Slice(keys, func(i, j int) bool { return m[keys[i]] > m[keys[j]] })
++		fmt.Printf("== %s (%d)\n", title, len(keys))
++		for _, k := range keys {
++			fmt.Printf("%6d %s\n", m[k], k)
++		}
++	}
++	dump("componentes", types)
++	dump("slices", slices)
++	dump("spawners sem asset", unresolved)
++}
+diff --git a/tools/nwbt/dbgflags/main.go b/tools/nwbt/dbgflags/main.go
+new file mode 100644
+index 00000000..c9e95d13
+--- /dev/null
++++ b/tools/nwbt/dbgflags/main.go
+@@ -0,0 +1,32 @@
++// go run ./dbgflags <gameDir> <caf>... — imprime AssetFlags e contagem de controllers.
++package main
++
++import (
++	"fmt"
++	"os"
++
++	"nw-buddy/tools/formats/cgf"
++	"nw-buddy/tools/nwfs"
++)
++
++func main() {
++	archive, err := nwfs.NewPackedArchive(os.Args[1])
++	if err != nil {
++		panic(err)
++	}
++	for _, p := range os.Args[2:] {
++		f, ok := archive.Lookup(p)
++		if !ok {
++			fmt.Println("não achei", p)
++			continue
++		}
++		doc, err := cgf.Load(f)
++		if err != nil {
++			fmt.Println(p, err)
++			continue
++		}
++		mp, _ := cgf.SelectChunk[cgf.ChunkMotionParams](doc)
++		ctrls := cgf.SelectChunks[cgf.ChunkController](doc)
++		fmt.Printf("flags=0x%08x ctrls=%3d speed=%.2f dist=%.2f turn=%.2f end=%v %s\n", mp.AssetFlags, len(ctrls), mp.MoveSpeed, mp.Distance, mp.AssetTurn, mp.EndLocation, p)
++	}
++}
+diff --git a/tools/nwbt/dbgheight/main.go b/tools/nwbt/dbgheight/main.go
+new file mode 100644
+index 00000000..8646c21e
+--- /dev/null
++++ b/tools/nwbt/dbgheight/main.go
+@@ -0,0 +1,33 @@
++// dbgheight converte region.heightmap (TIFF do New World) em .r16 cru (uint16 LE, origem no canto superior esquerdo).
++//
++//	go run ./dbgheight <region.heightmap> <saida.r16>
++package main
++
++import (
++	"encoding/binary"
++	"fmt"
++	"os"
++
++	"nw-buddy/tools/formats/heightmap"
++)
++
++func main() {
++	data, err := os.ReadFile(os.Args[1])
++	if err != nil {
++		panic(err)
++	}
++	hm, err := heightmap.ParseTIFF(data)
++	if err != nil {
++		panic(err)
++	}
++	lo, hi := uint16(0xffff), uint16(0)
++	out := make([]byte, len(hm.Samples)*2)
++	for i, v := range hm.Samples {
++		lo, hi = min(lo, v), max(hi, v)
++		binary.LittleEndian.PutUint16(out[i*2:], v)
++	}
++	if err := os.WriteFile(os.Args[2], out, 0o644); err != nil {
++		panic(err)
++	}
++	fmt.Printf("%d %d %d %d\n", hm.Width, hm.Height, lo, hi)
++}
+diff --git a/tools/nwbt/formats/cgf/chunk_controller.go b/tools/nwbt/formats/cgf/chunk_controller.go
+index dd039b42..f60d0682 100644
+--- a/tools/nwbt/formats/cgf/chunk_controller.go
++++ b/tools/nwbt/formats/cgf/chunk_controller.go
+@@ -201,12 +201,13 @@ func smallTree64BitQuat(data [2]uint32) (comp [4]float32, err error) {
+ 	var shift uint
+ 	var sqrsumm float32
+ 
++	// 21 + 21 + 20 bits para os três componentes guardados, 2 bits do índice omitido.
+ 	for i, targetComponentIndex := 0, 0; i < 4; i++ {
+ 		if uint32(i) == index {
+ 			continue
+ 		}
+ 		if targetComponentIndex < 2 {
+-			packed := uint32(value>>shift) & 0xfffff
++			packed := uint32(value>>shift) & 0x1fffff
+ 			comp[i] = float32(packed)/MAX_21BITf - RANGE_21BIT
+ 			sqrsumm += comp[i] * comp[i]
+ 			shift += 21
+@@ -216,6 +217,7 @@ func smallTree64BitQuat(data [2]uint32) (comp [4]float32, err error) {
+ 			sqrsumm += comp[i] * comp[i]
+ 			shift += 20
+ 		}
++		targetComponentIndex++
+ 	}
+ 
+ 	comp[index] = float32(math.Sqrt(1.0 - float64(sqrsumm)))
+diff --git a/tools/nwbt/formats/gltf/import_cgf_hierarchy.go b/tools/nwbt/formats/gltf/import_cgf_hierarchy.go
+index f104c50d..90366dd4 100644
+--- a/tools/nwbt/formats/gltf/import_cgf_hierarchy.go
++++ b/tools/nwbt/formats/gltf/import_cgf_hierarchy.go
+@@ -36,7 +36,10 @@ func (doc *Document) ImportCgfHierarchy(cgfile *cgf.File, handleObject HandleObj
+ 		}
+ 
+ 		if isLod {
+-			lod, _ = strconv.Atoi(lodRegex.FindStringSubmatch(chunk.Name)[1])
++			// alguns nomes trazem "$lod" sem número
++			if m := lodRegex.FindStringSubmatch(chunk.Name); len(m) > 1 {
++				lod, _ = strconv.Atoi(m[1])
++			}
+ 		}
+ 
+ 		node, nodeIndex := nodeMap.lookup(chunk.ChunkHeader.Id)
+diff --git a/tools/nwbt/utils/oodle_linux.go b/tools/nwbt/utils/oodle_linux.go
+new file mode 100644
+index 00000000..05438dd6
+--- /dev/null
++++ b/tools/nwbt/utils/oodle_linux.go
+@@ -0,0 +1,73 @@
++package utils
++
++import (
++	"errors"
++	"os"
++	"path/filepath"
++	"unsafe"
++
++	"github.com/ebitengine/purego"
++)
++
++// Linux: carrega libooz.so (reimplementação open source do Kraken) com a
++// mesma assinatura do OodleLZ_Decompress. Caminho em NWBT_OODLE ou ao lado
++// do executável.
++
++type Oodle interface {
++	Decompress(input []byte, inSize int, output []byte, outSize int) (int, error)
++}
++
++type oodle struct {
++	decompress func(unsafe.Pointer, int, unsafe.Pointer, int, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr) uintptr
++}
++
++var OodleLib = oodle{}
++
++func (it oodle) Check() (string, bool) {
++	candidates := []string{os.Getenv("NWBT_OODLE")}
++	if exe, err := os.Executable(); err == nil {
++		candidates = append(candidates, filepath.Join(filepath.Dir(exe), "libooz.so"))
++	}
++	for _, p := range candidates {
++		if p == "" {
++			continue
++		}
++		if _, err := os.Stat(p); err == nil {
++			return p, true
++		}
++	}
++	return "", false
++}
++
++func (it oodle) Info() string {
++	return "libooz.so (Kraken decompressor), required for unpacking game archives\n" +
++		"set NWBT_OODLE or place libooz.so next to the nwbt binary"
++}
++
++func (it *oodle) Load() error {
++	if it.decompress != nil {
++		return nil
++	}
++	p, ok := it.Check()
++	if !ok {
++		return errors.New("libooz.so not found")
++	}
++	handle, err := purego.Dlopen(p, purego.RTLD_NOW|purego.RTLD_GLOBAL)
++	if err != nil {
++		return err
++	}
++	purego.RegisterLibFunc(&it.decompress, handle, "OodleLZ_Decompress")
++	return nil
++}
++
++func (it *oodle) Decompress(input []byte, inSize int, output []byte, outSize int) (int, error) {
++	if err := it.Load(); err != nil {
++		return 0, err
++	}
++	r1 := it.decompress(unsafe.Pointer(&input[0]), inSize, unsafe.Pointer(&output[0]), outSize, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3)
++	return int(r1), nil
++}
++
++func OodleInstance() Oodle {
++	return &OodleLib
++}
+diff --git a/tools/nwbt/utils/oodle.go b/tools/nwbt/utils/oodle_windows.go
+similarity index 100%
+rename from tools/nwbt/utils/oodle.go
+rename to tools/nwbt/utils/oodle_windows.go

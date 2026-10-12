@@ -1,0 +1,31 @@
+# Nada que venha da instalação do jogo entra no repositório: cada um extrai da própria cópia (docs/SETUP.md).
+extract/
+previews/
+reference/
+.nwbt/
+*.nwbt/
+vendor/
+bin/
+tools/ooz-linux/
+__pycache__/
+*.so
+
+# Unreal: binários, caches e todo o Content (gerado pelos imports a partir dos assets do jogo).
+unreal/NWPort/Binaries/
+unreal/NWPort/Intermediate/
+unreal/NWPort/Saved/
+unreal/NWPort/DerivedDataCache/
+unreal/NWPort/Build/
+unreal/NWPort/Content/**
+!unreal/NWPort/Content/**/
+# Feitos à mão no editor (grafo das Animation Blueprints): não há script que os recrie.
+!unreal/NWPort/Content/NW/sword_shield/ABP_NW.uasset
+!unreal/NWPort/Content/NW/lost_sword/ABP_Lost.uasset
+# Data/ é gerado pelos tools/make_*.py e ui_build_*.py (textos e tabelas do jogo).
+unreal/NWPort/Data/
+
+# Backend e deploy: build e segredos.
+backend/target/
+deploy/build/
+deploy/.env
+*.env.local

@@ -1,0 +1,19 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "",
+	"Category": "",
+	"Description": "Port pessoal do New World (assets da instalação local).",
+	"Modules": [
+		{
+			"Name": "NWPort",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": ["Engine", "EnhancedInput"]
+		}
+	],
+	"Plugins": [
+		{"Name": "EnhancedInput", "Enabled": true},
+		{"Name": "PythonScriptPlugin", "Enabled": true},
+		{"Name": "EditorScriptingUtilities", "Enabled": true}
+	]
+}

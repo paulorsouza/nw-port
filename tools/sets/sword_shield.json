@@ -1,0 +1,748 @@
+{
+  "name": "sword_shield",
+  "character": "objects/characters/player/male/player_male.cdf",
+  "weapons": {
+    "sword": {
+      "file": "objects/weapons/melee/swords/1h/cutlassa/wep_me1h_sw_cutlassa_t5.cgf",
+      "socket": "right_hand_attach"
+    },
+    "shield": {
+      "file": "objects/weapons/shields/a_roundtarges/roundtargea/wep_shld_roundtargea_t5.cgf",
+      "socket": "left_hand_attach"
+    },
+    "hatchet": {
+      "file": "objects/weapons/melee/axes/1h/throwingaxea/wep_axe1h_throwingaxea_t5.cgf",
+      "socket": "right_hand_attach"
+    },
+    "pick": {
+      "file": "objects/weapons/tools/2h/pickaxet1/wep_tl2h_pickaxet1_lookbase.cdf",
+      "socket": "right_hand_attach"
+    },
+    "sickle": {
+      "file": "objects/weapons/tools/1h/sicklet1/wep_tl1h_sicklet1_lookbase.cdf",
+      "socket": "right_hand_attach"
+    },
+    "loggingaxe": {
+      "file": "objects/weapons/tools/2h/loggingaxet1/wep_axe2h_loggingaxet1_lookbase.cdf",
+      "socket": "right_hand_attach"
+    },
+    "knife": {
+      "file": "objects/weapons/melee/knives/1h/skinningknifet1/wep_me1h_skinningknifet1_lookbase.cdf",
+      "socket": "right_hand_attach"
+    }
+  },
+  "_comment": "Camadas da base para cima, como o Mannequin toca: corpo inteiro (tags 1H_Melee+Sword) e por cima o braço do escudo (Shield_OH).",
+  "blendspaces": {
+    "BS_Strafe": [
+      "melee1h_cmbt_nav_strafe_blend",
+      "rswrd_ststrafe_blend",
+      "shield_ststrafe_blend"
+    ],
+    "BS_Sprint": [
+      "unarmed_sprint_veerslope_v2_blend",
+      "rswrd_sprint_veerslope_blend",
+      "shield_sprint_veerslope_blend"
+    ],
+    "BS_Hatchet_Strafe": [
+      "melee1h_cmbt_nav_strafe_blend",
+      "rswrd_ststrafe_blend"
+    ],
+    "BS_Hatchet_Sprint": [
+      "unarmed_sprint_veerslope_v2_blend",
+      "rswrd_sprint_veerslope_blend"
+    ]
+  },
+  "loops": {
+    "Idle": [
+      "cmbt_idle_1h",
+      "shield_idle"
+    ],
+    "BlockIdle": [
+      "rswrd_block_idle",
+      "rswrd_block_idle_shield"
+    ],
+    "BlockWalk": [
+      "rswrd_walk_block",
+      "rswrd_walk_block_shield"
+    ],
+    "FallLoop": [
+      "unarmed_fall_flail_loop",
+      "rswrd_fall_flail_loop",
+      "shield_jump_sprintleap_fall_loop"
+    ],
+    "StunLoop": [
+      "cmbt_idle_r_stun_1h_loop",
+      "shield_r_stun_loop"
+    ],
+    "Hx_Idle": [
+      "cmbt_idle_1h"
+    ]
+  },
+  "montages": {
+    "AM_LightCombo": [
+      [
+        "rswrd_1h_lt_atk_01",
+        "rswrd_shield_1h_lt_atk_01"
+      ],
+      [
+        "rswrd_1h_lt_atk_02",
+        "rswrd_shield_1h_lt_atk_02"
+      ],
+      [
+        "rswrd_1h_lt_atk_03",
+        "rswrd_shield_1h_lt_atk_03"
+      ]
+    ],
+    "AM_Heavy": [
+      [
+        "rswrd_1h_hvy_atk_01",
+        "rswrd_shield_1h_hvy_atk_01"
+      ]
+    ],
+    "AM_SprintAttack": [
+      [
+        "rswrd_sprint_downstrike",
+        "rswrd_shield_sprint_downstrike"
+      ]
+    ],
+    "AM_ShieldBash": [
+      [
+        "shield_round_spc_sword"
+      ]
+    ],
+    "AM_ShieldRush": [
+      [
+        "shield_spc_attack_2"
+      ]
+    ],
+    "AM_SpinAttack": [
+      [
+        "rswrd_spc_attack_2",
+        "rswrd_shield_spc_attack_2"
+      ]
+    ],
+    "AM_SwipeStab": [
+      [
+        "rswrd_spc_verticalsice",
+        "rswrd_shield_spc_verticalsice"
+      ]
+    ],
+    "AM_Shout": [
+      [
+        "shield_berserk"
+      ]
+    ],
+    "AM_Dodge_F": [
+      [
+        "unarmed_dodgeroll_f_light_to_crch",
+        "rswrd_dodgeroll_f_light_to_crch",
+        "rswrd_dodgeroll_f_light_to_crch_shield"
+      ]
+    ],
+    "AM_Dodge_B": [
+      [
+        "unarmed_dodgeroll_b_light_to_crch",
+        "rswrd_dodgeroll_b_light_to_crch",
+        "rswrd_dodgeroll_b_light_to_crch_shield"
+      ]
+    ],
+    "AM_Dodge_L": [
+      [
+        "unarmed_dodgeroll_l_light_to_crch",
+        "rswrd_dodgeroll_l_light_to_crch",
+        "rswrd_dodgeroll_l_light_to_crch_shield"
+      ]
+    ],
+    "AM_Dodge_R": [
+      [
+        "unarmed_dodgeroll_r_light_to_crch",
+        "rswrd_dodgeroll_r_light_to_crch",
+        "rswrd_dodgeroll_r_light_to_crch_shield"
+      ]
+    ],
+    "AM_BlockStart": [
+      [
+        "rswrd_block_start",
+        "rswrd_block_start_shield"
+      ]
+    ],
+    "AM_BlockEnd": [
+      [
+        "rswrd_block_end_shield"
+      ]
+    ],
+    "AM_BlockReact": [
+      [
+        "rswrd_block_react_r1_shield"
+      ]
+    ],
+    "AM_BlockBreak": [
+      [
+        "rswrd_block_break_shield"
+      ]
+    ],
+    "AM_Hit_F": [
+      [
+        "unarmed_r2_f",
+        "rswrd_r2_f",
+        "shield_r2_f"
+      ]
+    ],
+    "AM_Hit_B": [
+      [
+        "cmbt_idle_1h_r2_b",
+        "shield_r2_b"
+      ]
+    ],
+    "AM_Hit_L": [
+      [
+        "unarmed_r2_l",
+        "rswrd_r2_l",
+        "shield_r2_l"
+      ]
+    ],
+    "AM_Hit_R": [
+      [
+        "unarmed_r2_r",
+        "rswrd_r2_r",
+        "shield_r2_r"
+      ]
+    ],
+    "AM_Death": [
+      [
+        "shield_death_gutgrab"
+      ]
+    ],
+    "AM_Draw": [
+      [
+        "rswrd_idle_draw_v1",
+        "shield_idle_draw"
+      ]
+    ],
+    "AM_Jump": [
+      [
+        "unarmed_jump_sprintleap",
+        "rswrd_jump_sprintleap",
+        "shield_jump_sprintleap"
+      ]
+    ],
+    "AM_Land": [
+      [
+        "unarmed_fall_land_to_idle",
+        "rswrd_fall_land_to_idle",
+        "shield_fall_land_to_idle"
+      ]
+    ],
+    "AM_BlockIdle": [
+      [
+        "rswrd_block_idle",
+        "rswrd_block_idle_shield"
+      ]
+    ],
+    "AM_JumpStand": [
+      [
+        "v2_unarmed_jump_inplace",
+        "v2_rswrd_jump_inplace",
+        "v2_shield_jump_inplace"
+      ]
+    ],
+    "AM_Jump_F": [
+      [
+        "v2_unarmed_jump_walk_f",
+        "v2_rswrd_jump_walk_f",
+        "v2_shield_jump_walk_f"
+      ]
+    ],
+    "AM_LandMove_F": [
+      [
+        "v2_unarmed_jump_walk_f_to_land_walk_f",
+        "v2_rswrd_jump_walk_f_to_land_walk_f",
+        "v2_shield_jump_walk_f_to_land_walk_f"
+      ]
+    ],
+    "AM_Jump_B": [
+      [
+        "v2_unarmed_jump_walk_b",
+        "v2_rswrd_jump_walk_b",
+        "v2_shield_jump_walk_b"
+      ]
+    ],
+    "AM_LandMove_B": [
+      [
+        "v2_unarmed_jump_walk_f_to_land_walk_b",
+        "v2_rswrd_jump_walk_f_to_land_walk_b",
+        "v2_shield_jump_walk_f_to_land_walk_b"
+      ]
+    ],
+    "AM_Jump_L": [
+      [
+        "v2_unarmed_jump_walk_l",
+        "v2_rswrd_jump_walk_l",
+        "v2_shield_jump_walk_l"
+      ]
+    ],
+    "AM_LandMove_L": [
+      [
+        "v2_unarmed_jump_walk_f_to_land_walk_l",
+        "v2_rswrd_jump_walk_f_to_land_walk_l",
+        "v2_shield_jump_walk_f_to_land_walk_l"
+      ]
+    ],
+    "AM_Jump_R": [
+      [
+        "v2_unarmed_jump_walk_r",
+        "v2_rswrd_jump_walk_r",
+        "v2_shield_jump_walk_r"
+      ]
+    ],
+    "AM_LandMove_R": [
+      [
+        "v2_unarmed_jump_walk_f_to_land_walk_r",
+        "v2_rswrd_jump_walk_f_to_land_walk_r",
+        "v2_shield_jump_walk_f_to_land_walk_r"
+      ]
+    ],
+    "AM_Jump_FL": [
+      [
+        "v2_unarmed_jump_walk_fl",
+        "v2_rswrd_jump_walk_fl",
+        "v2_shield_jump_walk_fl"
+      ]
+    ],
+    "AM_LandMove_FL": [
+      [
+        "v2_unarmed_jump_walk_f_to_land_walk_fl",
+        "v2_rswrd_jump_walk_f_to_land_walk_fl",
+        "v2_shield_jump_walk_f_to_land_walk_fl"
+      ]
+    ],
+    "AM_Jump_FR": [
+      [
+        "v2_unarmed_jump_walk_fr",
+        "v2_rswrd_jump_walk_fr",
+        "v2_shield_jump_walk_fr"
+      ]
+    ],
+    "AM_LandMove_FR": [
+      [
+        "v2_unarmed_jump_walk_f_to_land_walk_fr",
+        "v2_rswrd_jump_walk_f_to_land_walk_fr",
+        "v2_shield_jump_walk_f_to_land_walk_fr"
+      ]
+    ],
+    "AM_Jump_BL": [
+      [
+        "v2_unarmed_jump_walk_bl",
+        "v2_rswrd_jump_walk_bl",
+        "v2_shield_jump_walk_bl"
+      ]
+    ],
+    "AM_LandMove_BL": [
+      [
+        "v2_unarmed_jump_walk_f_to_land_walk_bl",
+        "v2_rswrd_jump_walk_f_to_land_walk_bl",
+        "v2_shield_jump_walk_f_to_land_walk_bl"
+      ]
+    ],
+    "AM_Jump_BR": [
+      [
+        "v2_unarmed_jump_walk_br",
+        "v2_rswrd_jump_walk_br",
+        "v2_shield_jump_walk_br"
+      ]
+    ],
+    "AM_LandMove_BR": [
+      [
+        "v2_unarmed_jump_walk_f_to_land_walk_br",
+        "v2_rswrd_jump_walk_f_to_land_walk_br",
+        "v2_shield_jump_walk_f_to_land_walk_br"
+      ]
+    ],
+    "AM_Fall": [
+      [
+        "unarmed_jump_sprintleap_fall_loop",
+        "rswrd_jump_sprintleap_fall_loop",
+        "shield_jump_sprintleap_fall_loop"
+      ]
+    ],
+    "AM_FallFlail": [
+      [
+        "unarmed_fall_flail_loop",
+        "rswrd_fall_flail_loop",
+        "shield_jump_sprintleap_fall_loop"
+      ]
+    ],
+    "AM_LandHard": [
+      [
+        "unarmed_fall_hardland_to_idle",
+        "rswrd_fall_hardland_to_idle",
+        "shield_fall_hardland_to_idle"
+      ]
+    ],
+    "AM_MantleHigh": [
+      [
+        "unarmed_mantle_high"
+      ]
+    ],
+    "AM_MantleLow": [
+      [
+        "unarmed_mantle_low"
+      ]
+    ],
+    "AM_Vault": [
+      [
+        "unarmed_vault_lhandplant",
+        "rswrd_vault_lhandplant",
+        "shield_vault_lhandplant"
+      ]
+    ],
+    "AM_VaultLow": [
+      [
+        "unarmed_hurdle_rlegup",
+        "rswrd_hurdle_rlegup",
+        "shield_hurdle_rlegup"
+      ]
+    ],
+    "AM_StepUp": [
+      [
+        "unarmed_stepup",
+        "rswrd_stepup",
+        "shield_stepup"
+      ]
+    ],
+    "AM_StepUpLow": [
+      [
+        "unarmed_stepup_low",
+        "rswrd_stepup_low",
+        "shield_stepup_low"
+      ]
+    ],
+    "AM_HeavyCharge": [
+      [
+        "rswrd_1h_hvy_atk_chrg",
+        "rswrd_shield_1h_hvy_atk_chrg"
+      ]
+    ],
+    "AM_HeavyCharged": [
+      [
+        "rswrd_1h_hvy_atk_01",
+        "rswrd_shield_1h_hvy_atk_01"
+      ]
+    ],
+    "AM_FinalStand": [
+      [
+        "shield_spc_attack_3_start"
+      ]
+    ],
+    "AM_StunLoop": [
+      [
+        "cmbt_idle_r_stun_1h_loop",
+        "shield_r_stun_loop"
+      ]
+    ],
+    "AM_Hx_LightCombo": [
+      [
+        "raxe_prim_c1"
+      ],
+      [
+        "raxe_prim_c2"
+      ],
+      [
+        "raxe_shield_prim_c3"
+      ]
+    ],
+    "AM_Hx_HeavyCharge": [
+      [
+        "raxe_hvy_c1_charge"
+      ]
+    ],
+    "AM_Hx_Heavy": [
+      [
+        "raxe_hvy_c1_uppercut"
+      ]
+    ],
+    "AM_Hx_HeavyCharged": [
+      [
+        "raxe_hvy_c1_uppercut"
+      ]
+    ],
+    "AM_Hx_SprintAttack": [
+      [
+        "raxe_sprint_downstrike_start"
+      ]
+    ],
+    "AM_Hx_Dodge_F": [
+      [
+        "cmbt_1h_quickstep_f"
+      ]
+    ],
+    "AM_Hx_Dodge_B": [
+      [
+        "cmbt_1h_quickstep_b"
+      ]
+    ],
+    "AM_Hx_Dodge_L": [
+      [
+        "cmbt_1h_quickstep_l"
+      ]
+    ],
+    "AM_Hx_Dodge_R": [
+      [
+        "cmbt_1h_quickstep_r"
+      ]
+    ],
+    "AM_Hx_BlockStart": [
+      [
+        "rswrd_block_start"
+      ]
+    ],
+    "AM_Hx_BlockEnd": [
+      [
+        "rswrd_block_end"
+      ]
+    ],
+    "AM_Hx_BlockIdle": [
+      [
+        "rswrd_block_idle"
+      ]
+    ],
+    "AM_Hx_BlockReact": [
+      [
+        "rswrd_block_react_r1"
+      ]
+    ],
+    "AM_Hx_BlockBreak": [
+      [
+        "rswrd_block_break"
+      ]
+    ],
+    "AM_Hx_Draw": [
+      [
+        "raxe_idle_draw_v1"
+      ]
+    ],
+    "AM_Sheath": [
+      [
+        "rswrd_idle_sheath",
+        "shield_idle_sheath"
+      ]
+    ],
+    "AM_Hx_Sheath": [
+      [
+        "raxe_idle_sheath"
+      ]
+    ],
+    "AM_Hx_RagingTorrent": [
+      [
+        "raxe_raging_torrent"
+      ]
+    ],
+    "AM_Hx_SocialDistancing": [
+      [
+        "raxe_spc_attack_6"
+      ]
+    ],
+    "AM_Hx_RendingThrow": [
+      [
+        "raxe_spc_attack_2"
+      ]
+    ],
+    "AM_Hx_Special3": [
+      [
+        "raxe_spc_attack_3"
+      ]
+    ],
+    "AM_Hx_Special4": [
+      [
+        "raxe_spc_attack_4"
+      ]
+    ],
+    "AM_Hx_Special5": [
+      [
+        "raxe_spc_attack_5"
+      ]
+    ],
+    "AM_GatherMine": [
+      [
+        "axe2h_mine_vrt"
+      ]
+    ],
+    "AM_GatherChop": [
+      [
+        "axe2h_chop_hrz"
+      ]
+    ],
+    "AM_GatherCut": [
+      [
+        "raxe_chop_hrz"
+      ]
+    ],
+    "AM_GatherSkin": [
+      [
+        "knife_gathering_loop"
+      ]
+    ],
+    "AM_GatherHand": [
+      [
+        "unarmed_interact02_loop"
+      ]
+    ]
+  },
+  "window_tags": "1H_Melee,Sword",
+  "fragments": {
+    "AM_LightCombo": [
+      "Attack_Primary",
+      "Attack_Primary_Strike2",
+      "Attack_Primary_Strike3"
+    ],
+    "AM_Heavy": [
+      "Attack_Heavy"
+    ],
+    "AM_SprintAttack": [
+      "Attack_Sprint"
+    ],
+    "AM_ShieldBash": [
+      "Ability_Sword_ShieldBash"
+    ],
+    "AM_ShieldRush": [
+      "Ability_Sword_ShieldRush"
+    ],
+    "AM_SpinAttack": [
+      "Ability_Sword_SpinAttack"
+    ],
+    "AM_SwipeStab": [
+      "Ability_Sword_SwipeStabAttack"
+    ],
+    "AM_Shout": [
+      "Ability_Sword_ChargingShout"
+    ],
+    "AM_Dodge_F": [
+      "Dodge_Roll_Fast"
+    ],
+    "AM_Dodge_B": [
+      "Dodge_Roll_Fast"
+    ],
+    "AM_Dodge_L": [
+      "Dodge_Roll_Fast"
+    ],
+    "AM_Dodge_R": [
+      "Dodge_Roll_Fast"
+    ],
+    "AM_BlockStart": [
+      "Block_UpperBody_Raise"
+    ],
+    "AM_BlockEnd": [
+      "Block_UpperBody_Lower"
+    ],
+    "AM_Draw": [
+      "Unsheathe_UpperBody"
+    ],
+    "AM_HeavyCharge": [
+      "Attack_Start_Charge"
+    ],
+    "AM_HeavyCharged": [
+      "Attack_Heavy_Charged"
+    ],
+    "AM_FinalStand": [
+      "Ability_Sword_LastStand"
+    ],
+    "AM_Hx_LightCombo": [
+      "Attack_Primary",
+      "Attack_Primary_Strike2",
+      "Attack_Primary_Strike3"
+    ],
+    "AM_Hx_HeavyCharge": [
+      "Attack_Start_Charge"
+    ],
+    "AM_Hx_Heavy": [
+      "Attack_Heavy"
+    ],
+    "AM_Hx_HeavyCharged": [
+      "Attack_Heavy_Charged"
+    ],
+    "AM_Hx_SprintAttack": [
+      "Attack_Sprint"
+    ],
+    "AM_Hx_Dodge_F": [
+      "Dodge_Roll"
+    ],
+    "AM_Hx_Dodge_B": [
+      "Dodge_Roll"
+    ],
+    "AM_Hx_Dodge_L": [
+      "Dodge_Roll"
+    ],
+    "AM_Hx_Dodge_R": [
+      "Dodge_Roll"
+    ],
+    "AM_Hx_BlockStart": [
+      "Block_UpperBody_Raise"
+    ],
+    "AM_Hx_BlockEnd": [
+      "Block_UpperBody_Lower"
+    ],
+    "AM_Hx_RagingTorrent": [
+      "Ability_Hatchet_RapidStrikes"
+    ],
+    "AM_Hx_SocialDistancing": [
+      "Ability_Hatchet_DistancingThrow"
+    ],
+    "AM_Hx_RendingThrow": [
+      "Attack_Special2"
+    ],
+    "AM_Hx_Special3": [
+      "Attack_Special3"
+    ],
+    "AM_Hx_Special4": [
+      "Attack_Special4"
+    ],
+    "AM_Hx_Special5": [
+      "Attack_Special5"
+    ]
+  },
+  "armor": "objects/characters/player/male/heroicheavy/male_heroicheavy.cdf",
+  "straighten_loops": true,
+  "inplace_montages": [
+    "AM_JumpStand",
+    "AM_Jump_F",
+    "AM_LandMove_F",
+    "AM_Jump_B",
+    "AM_LandMove_B",
+    "AM_Jump_L",
+    "AM_LandMove_L",
+    "AM_Jump_R",
+    "AM_LandMove_R",
+    "AM_Jump_FL",
+    "AM_LandMove_FL",
+    "AM_Jump_FR",
+    "AM_LandMove_FR",
+    "AM_Jump_BL",
+    "AM_LandMove_BL",
+    "AM_Jump_BR",
+    "AM_LandMove_BR",
+    "AM_Fall",
+    "AM_FallFlail",
+    "AM_Land",
+    "AM_LandHard",
+    "AM_StunLoop",
+    "AM_GatherMine",
+    "AM_GatherChop",
+    "AM_GatherCut",
+    "AM_GatherSkin",
+    "AM_GatherHand"
+  ],
+  "hold_montages": [
+    "AM_HeavyCharge",
+    "AM_Hx_HeavyCharge"
+  ],
+  "window_overrides": {
+    "AM_Hx_": {
+      "adbs": [
+        "player/player_axe.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Axe"
+    }
+  }
+}

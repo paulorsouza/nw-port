@@ -1,0 +1,15 @@
+# Postgres de desenvolvimento do nw-core.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: nw-core-db
+    environment:
+      POSTGRES_USER: nw
+      POSTGRES_PASSWORD: nw
+      POSTGRES_DB: nw
+    ports:
+      - "55433:5432"
+    volumes:
+      - nw-core-db:/var/lib/postgresql/data
+volumes:
+  nw-core-db:

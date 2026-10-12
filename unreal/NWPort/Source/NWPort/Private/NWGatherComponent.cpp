@@ -1,0 +1,263 @@
+#include "NWGatherComponent.h"
+
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "EngineUtils.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/GameStateBase.h"
+#include "Net/UnrealNetwork.h"
+#include "NWCharacter.h"
+#include "NWCombatComponent.h"
+#include "NWGatherField.h"
+#include "NWInventoryComponent.h"
+#include "NWItems.h"
+#include "NWPlayerController.h"
+#include "NWText.h"
+
+static const TCHAR* GatherAnims = TEXT("/Game/NW/sword_shield/Anims/");
+static const TCHAR* GatherMeshes = TEXT("/Game/NW/sword_shield/Mesh/");
+
+UNWGatherComponent::UNWGatherComponent()
+{
+	SetIsReplicatedByDefault(true);
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickInterval = 0.1f;
+	auto Anim = [](const TCHAR* Name) { return TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(FString::Printf(TEXT("%s%s.%s"), GatherAnims, Name, Name))); };
+	auto Mesh = [](const TCHAR* Name) { return TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(FString::Printf(TEXT("%s%s.%s"), GatherMeshes, Name, Name))); };
+	Montages.Add(TEXT("Mining"), Anim(TEXT("AM_GatherMine")));
+	Montages.Add(TEXT("Cutting"), Anim(TEXT("AM_GatherCut")));
+	Montages.Add(TEXT("Chopping"), Anim(TEXT("AM_GatherChop")));
+	Montages.Add(TEXT("Dressing"), Anim(TEXT("AM_GatherSkin")));
+	Montages.Add(TEXT("None"), Anim(TEXT("AM_GatherHand")));
+	ToolMeshes.Add(TEXT("Mining"), Mesh(TEXT("SM_pick")));
+	ToolMeshes.Add(TEXT("Cutting"), Mesh(TEXT("SM_sickle")));
+	ToolMeshes.Add(TEXT("Chopping"), Mesh(TEXT("SM_loggingaxe")));
+	ToolMeshes.Add(TEXT("Dressing"), Mesh(TEXT("SM_knife")));
+}
+
+void UNWGatherComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UNWGatherComponent, GatherIndex);
+	DOREPLIFETIME(UNWGatherComponent, GatherAction);
+	DOREPLIFETIME(UNWGatherComponent, GatherStart);
+	DOREPLIFETIME(UNWGatherComponent, GatherEnd);
+}
+
+float UNWGatherComponent::ServerNow() const
+{
+	const AGameStateBase* GS = GetWorld() ? GetWorld()->GetGameState() : nullptr;
+	return GS ? GS->GetServerWorldTimeSeconds() : (GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f);
+}
+
+float UNWGatherComponent::Progress() const
+{
+	if (!IsGathering() || GatherEnd <= GatherStart)
+	{
+		return 0.f;
+	}
+	return FMath::Clamp((ServerNow() - GatherStart) / (GatherEnd - GatherStart), 0.f, 1.f);
+}
+
+FName UNWGatherComponent::ToolType(FName Action)
+{
+	// Ação do coletável (gatherables.GatheringAction) = GatheringTypes da ferramenta, menos "None" (à mão).
+	return Action == TEXT("None") ? NAME_None : Action;
+}
+
+FString UNWGatherComponent::ToolGroupKey(FName Action)
+{
+	if (Action == TEXT("Mining")) return TEXT("2hpick_groupname");
+	if (Action == TEXT("Cutting")) return TEXT("sickle_groupname");
+	if (Action == TEXT("Chopping")) return TEXT("2haxe_groupname");
+	if (Action == TEXT("Dressing")) return TEXT("1hskinningknife_groupname");
+	return FString();
+}
+
+void UNWGatherComponent::UpdateFocus()
+{
+	FocusIndex = INDEX_NONE;
+	FocusText.Reset();
+	bFocusBlocked = false;
+	const ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	const ANWGatherField* Field = ANWGatherField::Get(GetWorld());
+	if (!Me || !Field || IsGathering() || Me->Combat->State == ENWCombatState::Dead)
+	{
+		return;
+	}
+	FocusIndex = Field->FindNear(Me->GetActorLocation(), Me->GetActorForwardVector());
+	if (FocusIndex == INDEX_NONE)
+	{
+		return;
+	}
+	const ANWGatherField::FVariant& V = Field->VariantOf(FocusIndex);
+	const FString Name = NWText::Get(V.NameKey);
+	const FName Tool = ToolType(V.Action);
+	if (V.Restriction == TEXT("ToolRequired") && !Tool.IsNone() && !(Me->Inventory && Me->Inventory->ToolFor(Tool)))
+	{
+		bFocusBlocked = true;
+		FocusText = FString::Printf(TEXT("%s  ·  %s"), *Name, *NWText::Get(TEXT("ui_notoolitem")).Replace(TEXT("{itemName}"), *NWText::Get(ToolGroupKey(V.Action))));
+		return;
+	}
+	const TCHAR* Verb = V.Action == TEXT("Mining") ? TEXT("ui_mine") : V.Action == TEXT("Chopping") ? TEXT("ui_log") : TEXT("ui_harvest");
+	FocusText = FString::Printf(TEXT("%s %s"), *NWText::Get(Verb), *Name);
+}
+
+void UNWGatherComponent::InteractPressed()
+{
+	if (IsGathering())
+	{
+		ServerCancel();
+	}
+	else if (FocusIndex != INDEX_NONE && !bFocusBlocked)
+	{
+		ServerGather(FocusIndex);
+	}
+}
+
+void UNWGatherComponent::ServerGather_Implementation(int32 Index)
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	ANWGatherField* Field = ANWGatherField::Get(GetWorld());
+	if (!Me || !Field || IsGathering() || Index < 0 || Index >= Field->Num() || Field->IsDepleted(Index)
+		|| Me->Combat->State != ENWCombatState::Idle || !Field->InReach(Index, Me->GetActorLocation(), 150.f))
+	{
+		return;
+	}
+	const ANWGatherField::FVariant& V = Field->VariantOf(Index);
+	const FName Tool = ToolType(V.Action);
+	const FNWItemDef* ToolDef = Tool.IsNone() || !Me->Inventory ? nullptr : Me->Inventory->ToolFor(Tool);
+	if (V.Restriction == TEXT("ToolRequired") && !Tool.IsNone() && !ToolDef)
+	{
+		return;
+	}
+	for (TObjectIterator<UNWGatherComponent> It; It; ++It)
+	{
+		if (*It != this && It->GetWorld() == GetWorld() && It->GatherIndex == Index)
+		{
+			if (ANWPlayerController* PC = Cast<ANWPlayerController>(Me->GetController()))
+			{
+				PC->SystemMessage(NWText::Key(TEXT("nw.gather.busy")));
+			}
+			return;
+		}
+	}
+	// Tempo do jogo: BaseGatherTime ÷ eficiência da ferramenta (à mão = tempo base).
+	const float Time = FMath::Max(1.f, V.Time / FMath::Max(0.1f, ToolDef ? ToolDef->Efficiency : 1.f));
+	GatherIndex = Index;
+	GatherAction = V.Action;
+	GatherStart = ServerNow();
+	GatherEnd = GatherStart + Time;
+	GatherFrom = Me->GetActorLocation();
+	// Vira para o coletável.
+	const FVector To = Field->GetActorTransform().TransformPosition(Field->Node(Index).Transform.GetLocation()) - GatherFrom;
+	Me->SetActorRotation(FRotator(0.f, To.Rotation().Yaw, 0.f));
+	OnRep_Gather();
+	GetOwner()->ForceNetUpdate();
+}
+
+void UNWGatherComponent::ServerCancel_Implementation()
+{
+	if (IsGathering())
+	{
+		Finish(false);
+	}
+}
+
+void UNWGatherComponent::Finish(bool bComplete)
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	ANWGatherField* Field = ANWGatherField::Get(GetWorld());
+	const int32 Index = GatherIndex;
+	GatherIndex = INDEX_NONE;
+	GatherAction = NAME_None;
+	OnRep_Gather();
+	GetOwner()->ForceNetUpdate();
+	if (!bComplete || !Me || !Field || Field->IsDepleted(Index))
+	{
+		return;
+	}
+	TArray<FNWItem> Gained;
+	FNWItemCatalog::Get().RollGame(Field->VariantOf(Index).Loot, Gained);
+	Field->Deplete(Index);
+	if (Me->Inventory)
+	{
+		Me->Inventory->Grant(Gained, 0);
+	}
+}
+
+void UNWGatherComponent::OnRep_Gather()
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	if (!Me)
+	{
+		return;
+	}
+	UAnimInstance* Anim = Me->GetMesh() ? Me->GetMesh()->GetAnimInstance() : nullptr;
+	if (IsGathering())
+	{
+		// Ferramenta na mão direita, escudo guardado; a animação do jogo em loop.
+		if (const TSoftObjectPtr<UStaticMesh>* Tool = ToolMeshes.Find(GatherAction))
+		{
+			if (UStaticMesh* M = Tool->LoadSynchronous())
+			{
+				Me->Sword->SetStaticMesh(M);
+			}
+		}
+		else
+		{
+			Me->Sword->SetVisibility(false);
+		}
+		Me->Shield->SetVisibility(false);
+		const TSoftObjectPtr<UAnimMontage>* Montage = Montages.Find(GatherAction);
+		PlayingMontage = Montage ? Montage->LoadSynchronous() : nullptr;
+		if (Anim && PlayingMontage)
+		{
+			Anim->Montage_Play(PlayingMontage, 1.f);
+			const FName Section = PlayingMontage->GetSectionName(0);
+			Anim->Montage_SetNextSection(Section, Section, PlayingMontage);
+		}
+	}
+	else
+	{
+		if (Anim && PlayingMontage)
+		{
+			Anim->Montage_Stop(0.2f, PlayingMontage);
+		}
+		PlayingMontage = nullptr;
+		Me->Sword->SetVisibility(true);
+		Me->Shield->SetVisibility(true);
+		Me->ApplyWeapon();
+	}
+}
+
+void UNWGatherComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	const ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	if (!Me)
+	{
+		return;
+	}
+	if (Me->IsLocallyControlled())
+	{
+		UpdateFocus();
+	}
+	if (GetOwnerRole() != ROLE_Authority || !IsGathering())
+	{
+		return;
+	}
+	// Andar, sair do lugar, atacar/esquivar ou morrer cancela.
+	const bool bMoved = Me->GetVelocity().Size2D() > 30.f || FVector::Dist2D(Me->GetActorLocation(), GatherFrom) > 60.f;
+	if (bMoved || Me->Combat->State != ENWCombatState::Idle)
+	{
+		Finish(false);
+	}
+	else if (ServerNow() >= GatherEnd)
+	{
+		Finish(true);
+	}
+}
