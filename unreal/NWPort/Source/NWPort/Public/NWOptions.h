@@ -27,6 +27,7 @@ struct NWPORT_API FNWOptions
 	float FovVertical = 50.f;   // @ui_options_fov: graus verticais, como o jogo (câmera padrão 50)
 	bool bMotionBlur = false;   // @ui_enable_motionBlur
 	bool bShowFps = false;      // @ui_show_fps
+	float Brightness = 0.5f;    // @ui_options_brightness: 0..1, 0,5 = curva padrão
 	// Áudio (0..1)
 	float MasterVolume = 1.f;   // @ui_mastervolume
 	float MusicVolume = 0.6f;   // @ui_musicvolume

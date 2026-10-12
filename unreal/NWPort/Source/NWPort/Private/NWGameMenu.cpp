@@ -198,7 +198,8 @@ void FNWGameMenu::DrawOptions(UCanvas* Canvas, const FVector2D& Mouse)
 		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_enable_vsync")), OnOff(O.bVSync), -1.f, 3, Mouse); Y += Step;
 		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_options_fov")), FString::Printf(TEXT("%.0f"), O.FovVertical), (O.FovVertical - 40.f) / 40.f, 4, Mouse); Y += Step;
 		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_enable_motionblur")), OnOff(O.bMotionBlur), -1.f, 5, Mouse); Y += Step;
-		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_show_fps")), OnOff(O.bShowFps), -1.f, 6, Mouse);
+		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_show_fps")), OnOff(O.bShowFps), -1.f, 6, Mouse); Y += Step;
+		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_options_brightness")), Percent(O.Brightness), O.Brightness, 7, Mouse);
 	}
 	else if (Tab == 1)
 	{
@@ -243,6 +244,7 @@ void FNWGameMenu::ChangeOption(int32 Id, int32 Dir, float BarValue)
 	case 4: Bar(O.FovVertical, 40.f, 80.f, 1.f); O.FovVertical = FMath::RoundToFloat(O.FovVertical); break;
 	case 5: O.bMotionBlur = !O.bMotionBlur; break;
 	case 6: O.bShowFps = !O.bShowFps; break;
+	case 7: Bar(O.Brightness, 0.f, 1.f, 0.05f); break;
 	case 10: Bar(O.MasterVolume, 0.f, 1.f, 0.05f); break;
 	case 11: Bar(O.MusicVolume, 0.f, 1.f, 0.05f); break;
 	case 12: Bar(O.SfxVolume, 0.f, 1.f, 0.05f); break;

@@ -93,6 +93,7 @@ void FNWOptions::Load()
 	Float(TEXT("FovVertical"), FovVertical);
 	Bool(TEXT("MotionBlur"), bMotionBlur);
 	Bool(TEXT("ShowFps"), bShowFps);
+	Float(TEXT("Brightness"), Brightness);
 	Float(TEXT("MasterVolume"), MasterVolume);
 	Float(TEXT("MusicVolume"), MusicVolume);
 	Float(TEXT("SfxVolume"), SfxVolume);
@@ -122,6 +123,7 @@ void FNWOptions::Save() const
 	GConfig->SetFloat(Section, TEXT("FovVertical"), FovVertical, GGameUserSettingsIni);
 	GConfig->SetBool(Section, TEXT("MotionBlur"), bMotionBlur, GGameUserSettingsIni);
 	GConfig->SetBool(Section, TEXT("ShowFps"), bShowFps, GGameUserSettingsIni);
+	GConfig->SetFloat(Section, TEXT("Brightness"), Brightness, GGameUserSettingsIni);
 	GConfig->SetFloat(Section, TEXT("MasterVolume"), MasterVolume, GGameUserSettingsIni);
 	GConfig->SetFloat(Section, TEXT("MusicVolume"), MusicVolume, GGameUserSettingsIni);
 	GConfig->SetFloat(Section, TEXT("SfxVolume"), SfxVolume, GGameUserSettingsIni);
@@ -160,6 +162,11 @@ void FNWOptions::Apply(UWorld* World) const
 	};
 	SetCVar(TEXT("t.MaxFPS"), MaxFps);
 	SetCVar(TEXT("r.VSync"), bVSync ? 1 : 0);
+	// Brilho: gama do tonemapper de 1,8 a 2,8; no meio (0,5) fica 0 = curva sRGB padrão da Unreal.
+	if (IConsoleVariable* Gamma = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TonemapperGamma")))
+	{
+		Gamma->Set(FMath::IsNearlyEqual(Brightness, 0.5f, 0.01f) ? 0.f : 1.8f + Brightness * 1.f, ECVF_SetByGameSetting);
+	}
 	SetCVar(TEXT("r.MotionBlurQuality"), bMotionBlur ? 3 : 0);
 	if (UGameUserSettings* S = GEngine ? GEngine->GetGameUserSettings() : nullptr)
 	{
