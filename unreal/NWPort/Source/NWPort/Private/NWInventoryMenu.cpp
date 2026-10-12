@@ -14,8 +14,7 @@ static const TCHAR* ItemLayoutDir = TEXT("lyshineui/images/slices/itemlayout/");
 static const TCHAR* EquipDir = TEXT("lyshineui/images/equipment/");
 // Peça de item do jogo (ItemDraggable/ItemLayout): 122 x 60; espaço de equipamento 72 x 72 (framesquare).
 static constexpr float TileW = 122.f, TileH = 60.f, TileGap = 10.f, EquipSize = 84.f;
-// Peso máximo sem ficar sobrecarregado (inventário base do jogo).
-static constexpr float MaxWeight = 1000.f;
+static constexpr float MaxWeight = UNWInventoryComponent::MaxWeight;
 
 namespace
 {

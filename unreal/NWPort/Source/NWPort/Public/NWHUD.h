@@ -72,6 +72,8 @@ private:
 	 */
 	void DrawCompass();
 	void DrawDamageNumbers();
+	/** Bolsa na barra de ações (hud2024/actionbar/encumbrance): % do peso; sobrecarregado fica vermelho com o aviso do jogo. */
+	void DrawEncumbrance(const APawn* Me);
 	struct FDamageNumber
 	{
 		FVector World;

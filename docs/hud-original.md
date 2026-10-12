@@ -70,5 +70,7 @@ Ver a tabela de estado no fim deste arquivo, atualizada a cada etapa.
 | Câmera com os valores do jogo | feita: estados normal/sprint/inventário, zoom na roda (0,2–6 m), FOV 50° vertical, personagem vira de frente no inventário (`ANWCharacter::UpdateCamera`) |
 | Menu do Esc | feito: Continuar, Configurações, Sair para o Menu Principal, Sair para a Área de Trabalho (`FNWGameMenu`) |
 | Configurações | feitas, textos do jogo: Vídeo (qualidade, modo de janela, FPS máximo, VSync, campo de visão, desfoque, exibir FPS), Áudio (geral, música, efeitos, ambiente), Jogo (idioma, sensibilidade H/V, inverter eixo). Salvas em GameUserSettings.ini [NW.Options] (`FNWOptions`) |
-| Aviso de sobrecarga | a fazer |
+| Bússola | feita: tira compass2048 rolando com a câmera, linha e agulha (`ANWHUD::DrawCompass`; norte do mapa em yaw −4°) |
+| Números de dano | feitos: sobem e somem sobre o alvo; vermelho = dano em mim; bloqueio/esquiva/guarda quebrada em texto (`ANWHUD::DrawDamageNumbers`) |
+| Bolsa e sobrecarga | feitas: bolsa na barra de ações com % do peso a partir de 80%; acima de 1000 fica vermelha com o aviso do jogo (`inv_equiploadencumberednotification`) e o personagem não corre, não esquiva e não pula |
 | Barra de XP, durabilidade, efeitos | depende de sistemas que o port ainda não tem |

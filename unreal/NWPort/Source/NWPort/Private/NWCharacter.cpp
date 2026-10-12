@@ -208,9 +208,11 @@ void ANWCharacter::Tick(float DeltaSeconds)
 
 void ANWCharacter::ApplySprint()
 {
-	const bool bCanSprint = bSprinting && !bWalking && !Combat->IsBusy() && Combat->State != ENWCombatState::Blocking;
+	// Sobrecarregado (peso > máximo): só anda, como no jogo ("não é possível correr, se esquivar ou pular").
+	const bool bEncumbered = Inventory && Inventory->IsEncumbered();
+	const bool bCanSprint = bSprinting && !bWalking && !bEncumbered && !Combat->IsBusy() && Combat->State != ENWCombatState::Blocking;
 	UCharacterMovementComponent* Move = GetCharacterMovement();
-	const float Speed = bWalking ? WalkSpeed
+	const float Speed = bWalking || bEncumbered ? WalkSpeed
 		: bCanSprint ? SprintSpeed
 		: Combat->State == ENWCombatState::Blocking ? RunSpeed * 0.4f : RunSpeed;
 	Move->MaxWalkSpeed = Speed * FMath::Max(1.f, DevSpeedMultiplier);
@@ -460,6 +462,10 @@ void ANWCharacter::BlockReleased() { Combat->RequestBlock(false); }
 
 void ANWCharacter::Dodge()
 {
+	if (Inventory && Inventory->IsEncumbered())
+	{
+		return;
+	}
 	if (InMenu())
 	{
 		return;
@@ -488,6 +494,10 @@ bool ANWCharacter::CanAct() const
 
 void ANWCharacter::JumpPressed()
 {
+	if (Inventory && Inventory->IsEncumbered())
+	{
+		return;
+	}
 	if (InMenu())
 	{
 		return;

@@ -19,6 +19,8 @@ public:
 	UNWInventoryComponent();
 
 	static constexpr int32 BagSize = 40;
+	// Peso máximo sem sobrecarga (inventário base do jogo); acima disso não corre, não esquiva, não pula.
+	static constexpr float MaxWeight = 1000.f;
 	// Vida máxima do jogo no nível 60, para escalar a cura das poções à nossa (MaxHealth).
 	static constexpr float GameMaxHealth = 7000.f;
 
@@ -34,6 +36,9 @@ public:
 	/** Multiplicador de dano da arma equipada do conjunto (Sword/Hatchet) pelo gear score; 1 sem arma. */
 	float DamageMultiplier(FName WeaponSet) const;
 	float GetPotionCooldown() const;
+	/** Peso total (bolsa + equipado), kg, pelo catálogo (Weight do jogo). Servidor e dono têm os itens. */
+	float TotalWeight() const;
+	bool IsEncumbered() const { return TotalWeight() > MaxWeight; }
 
 	// ---- servidor
 	/** Põe na bolsa (junta pilhas, depois espaços livres). Devolve o que não coube. */

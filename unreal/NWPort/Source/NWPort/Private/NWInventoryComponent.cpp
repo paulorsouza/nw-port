@@ -65,6 +65,19 @@ int32 UNWInventoryComponent::FreeBagSlot() const
 	return INDEX_NONE;
 }
 
+float UNWInventoryComponent::TotalWeight() const
+{
+	float W = 0.f;
+	for (const FNWItem& I : Items)
+	{
+		if (const FNWItemDef* D = FNWItemCatalog::Get().Find(I.ItemId))
+		{
+			W += D->Weight * I.Quantity;
+		}
+	}
+	return W;
+}
+
 int32 UNWInventoryComponent::BestPotionSlot() const
 {
 	int32 Best = INDEX_NONE, BestTier = -1;

@@ -415,6 +415,7 @@ void ANWHUD::DrawGameHUD()
 	}
 	DrawCompass();
 	DrawDamageNumbers();
+	DrawEncumbrance(Me);
 	DrawNameplates(Me);
 	DrawGroup(Me);
 	DrawLootTicker();
@@ -866,5 +867,60 @@ void ANWHUD::DrawDamageNumbers()
 		Item.Scale = FVector2D(Scale, Scale);
 		Item.EnableShadow(FLinearColor(0.f, 0.f, 0.f, 0.9f * Alpha));
 		Canvas->DrawItem(Item);
+	}
+}
+
+void ANWHUD::DrawEncumbrance(const APawn* Me)
+{
+	const ANWCharacter* Char = Cast<ANWCharacter>(Me);
+	const UNWInventoryComponent* Inv = Char ? Char->Inventory.Get() : nullptr;
+	UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
+	if (!Inv || !Font || !Canvas)
+	{
+		return;
+	}
+	const float S = Canvas->ClipY / 1080.f;
+	const float Ratio = Inv->TotalWeight() / UNWInventoryComponent::MaxWeight;
+	const bool bOver = Ratio > 1.f;
+	// EncumbranceLayoutElement: 60 x 60 no canto inferior direito (offsets -96..-36, -113..-53 da tela 1080p).
+	const FVector2D Slot(Canvas->ClipX - 96.f * S, Canvas->ClipY - 113.f * S);
+	const float Size = 60.f * S;
+	auto Tex = [&](const TCHAR* Path, FVector2D Pos, FVector2D Dim, FLinearColor Color)
+	{
+		if (UTexture2D* T = FNWUILayout::GameTexture(Path))
+		{
+			FCanvasTileItem Item(Pos, T->GetResource(), Dim, Color);
+			Item.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(Item);
+		}
+	};
+	Tex(TEXT("lyshineui/images/hud2024/actionbar/actionbaritembg.dds"), Slot, FVector2D(Size), FLinearColor::White);
+	// Ícone da bolsa (100 x 72) centrado no espaço.
+	const FVector2D Icon(46.f * S, 33.f * S);
+	Tex(TEXT("lyshineui/images/inventory/icon_inventory.dds"), Slot + (FVector2D(Size) - Icon) * 0.5, Icon,
+		bOver ? FLinearColor(1.f, 0.45f, 0.4f) : FLinearColor(1.f, 1.f, 1.f, 0.9f));
+	// Porcentagem do peso no círculo (PercentageBg), a partir de 80% como aviso.
+	if (Ratio >= 0.8f)
+	{
+		const FVector2D Circle(34.f * S);
+		const FVector2D CPos = Slot + FVector2D(Size - 22.f * S, -12.f * S);
+		Tex(TEXT("lyshineui/images/common/circle_64x64.dds"), CPos, Circle, FLinearColor(0.f, 0.f, 0.f, 0.85f));
+		const FString Pct = FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Ratio * 100.f));
+		const float Scale = 13.f * S / FMath::Max(1, Font->LegacyFontSize);
+		float W = 0.f, H = 0.f;
+		Canvas->TextSize(Font, Pct, W, H, Scale, Scale);
+		DrawText(Pct, bOver ? FLinearColor(FColor(0xFF, 0x71, 0x71)) : FLinearColor(FColor(0xEB, 0xE3, 0xD6)),
+			CPos.X + (Circle.X - W) * 0.5f, CPos.Y + (Circle.Y - H) * 0.5f, Font, Scale);
+	}
+	if (bOver)
+	{
+		// Faixa de mensagem à esquerda (Message: encumbrance_messagebgside) com o aviso do jogo.
+		const FString Msg = NWText::Get(TEXT("inv_equiploadencumberednotification"));
+		const float Scale = 16.f * S / FMath::Max(1, Font->LegacyFontSize);
+		float W = 0.f, H = 0.f;
+		Canvas->TextSize(Font, Msg, W, H, Scale, Scale);
+		const FVector2D BgPos(Slot.X - W - 50.f * S, Slot.Y + 6.f * S);
+		Tex(TEXT("lyshineui/images/encumbrance/encumbrance_messagebgside.dds"), BgPos, FVector2D(W + 46.f * S, 48.f * S), FLinearColor::White);
+		DrawText(Msg, FLinearColor(FColor(0xFF, 0x9A, 0x8A)), BgPos.X + 18.f * S, BgPos.Y + (48.f * S - H) * 0.5f, Font, Scale);
 	}
 }

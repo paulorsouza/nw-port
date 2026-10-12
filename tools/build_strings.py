@@ -32,7 +32,9 @@ GAME_KEYS = ["ui_play", "ui_enter", "ui_cancel", "ui_back", "ui_characters", "ui
              "ui_options_graphics_60fps", "ui_options_graphics_120fps", "ui_options_graphics_144fps",
              "ui_options_graphics_240fps", "ui_options_graphics_uncappedfps", "ui_enable_vsync", "ui_options_fov",
              "ui_enable_motionblur", "ui_show_fps", "ui_mastervolume", "ui_musicvolume", "ui_sfxvolume", "ui_ambvolume",
-             "ui_language", "ui_looksensitivityhorizontal", "ui_looksensitivityvertical", "ui_invertlook"]
+             "ui_language", "ui_looksensitivityhorizontal", "ui_looksensitivityvertical", "ui_invertlook",
+             # Sobrecarga (hud2024/actionbar/encumbrance).
+             "inv_encumbered", "inv_equiploadencumberednotification"]
 GATHERABLES = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "guardaventos_gatherables.json")
 
 

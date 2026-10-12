@@ -27,7 +27,7 @@ SLOT_TEXTURES = ([f"{IL}{k}{shape}{r}.dds" for k in ("itembg", "itemraritybg") f
                  + [f"{EQ}{n}.dds" for n in ("framesquare", "equipmentbg", "tabweaponsarmorselected", "tabweaponsarmorunselected",
                                              "tabtoolsselected", "tabtoolsunselected", "iconweapon", "iconshield", "iconpickaxe",
                                              "iconsickle", "iconlogging", "iconskinning")]
-                 + [f"lyshineui/images/inventory/{n}.dds" for n in ("contentbg", "headerbg", "iconweight")])
+                 + [f"lyshineui/images/inventory/{n}.dds" for n in ("contentbg", "headerbg", "iconweight", "icon_inventory")])
 
 
 def main():
