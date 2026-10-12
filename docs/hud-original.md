@@ -55,6 +55,10 @@ Abas: `@ui_options_visuals` (Vídeo), `@ui_options_audio` (Áudio), `@ui_options
   texto da distância embaixo, botões à direita (`CenterPlayer`, `ZoomInButton`, `ZoomOutButton`: `buttonbg` +
   `heroframedisabled2023`), ícone do jogador `map/icon/player`. Ícones de POI em `map/icon/pois` (194),
   coletáveis em `map/icon/gatherables` e NPCs em `map/icon/npcs`.
+- POIs: posição em `slices/pois/territories/r_<x>_<y>_pois.dynamicslice` (entidades com
+  `TerritoryDataProviderComponent` "territory id" + `TransformComponent`, translação nos 3 últimos valores);
+  nome (`NameLocalizationKey`) e ícone (`MapIcon`, .png no dado = .dds no pak) em
+  `pointofinterestdefinitions/javelindata_poidefinitions_<x>_<y>`. Guardaventos: 78 territórios, 66 com ícone.
 
 ## Atalhos (`libs/config/defaultprofile.xml`)
 
@@ -112,7 +116,7 @@ Ver a tabela de estado no fim deste arquivo, atualizada a cada etapa.
 | Menu do Esc | feito: Continuar, Configurações, Sair para o Menu Principal, Sair para a Área de Trabalho (`FNWGameMenu`) |
 | Configurações | feitas, textos do jogo: Vídeo (qualidade, modo de janela, FPS máximo, VSync, campo de visão, desfoque, exibir FPS), Áudio (geral, música, efeitos, ambiente), Jogo (idioma, sensibilidade H/V, inverter eixo). Salvas em GameUserSettings.ini [NW.Options] (`FNWOptions`) |
 | Atalhos | feitos: aba "Atalhos de Teclado e Mouse" nas configurações, 19 ações com os textos e as teclas padrão do jogo; clicar e apertar a tecla troca (Esc cancela, conflito troca as duas), "Restaurar Padrões"; salvos em [NW.Options] `Key.<Ação>` e aplicados na hora (`ANWCharacter::RebuildKeys`). Corrida automática (=) adicionada: frente/trás cancela |
-| Mapa do mundo (M) | feito: tiles do jogo (nível 2 de perto, 3 de longe) em volta de Guardaventos, borda da região, ícone do jogador virado para onde olha, degradês, régua de escala em metros, coordenadas do jogo, botões centralizar/aproximar/afastar, roda aproxima no cursor, arrastar move (`FNWWorldMap`). Faltam POIs, coletáveis e NPCs no mapa |
+| Mapa do mundo (M) | feito: tiles do jogo (nível 2 de perto, 3 de longe) em volta de Guardaventos, borda da região, ícone do jogador virado para onde olha, degradês, régua de escala em metros, coordenadas do jogo, botões centralizar/aproximar/afastar, roda aproxima no cursor, arrastar move (`FNWWorldMap`). POIs da região com ícone e nome do jogo (nome de perto ou com o mouse em cima). Faltam coletáveis e NPCs no mapa |
 | Bússola | feita: tira compass2048 rolando com a câmera, linha e agulha (`ANWHUD::DrawCompass`; norte do mapa em yaw −4°) |
 | Números de dano | feitos: sobem e somem sobre o alvo; vermelho = dano em mim; bloqueio/esquiva/guarda quebrada em texto (`ANWHUD::DrawDamageNumbers`) |
 | Cartão de coleta | feito: anel `marker_ringgather` no objeto, nome na faixa `unifiedinteractcardtextbg`, tecla em `hintframefilled` + ação; durante a coleta o anel de progresso enche com o tempo no meio (`ANWHUD::DrawGather`) |

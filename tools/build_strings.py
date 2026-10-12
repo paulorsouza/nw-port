@@ -58,6 +58,10 @@ def main():
     out = json.load(open(os.path.join(ROOT, "tools", "strings_nw.json")))
     locs = {lang: load_loc(lang) for lang in LANGS}
     keys = list(GAME_KEYS)
+    # Nomes dos POIs do mapa (tools/make_worldmap.py).
+    worldmap = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "worldmap.json")
+    if os.path.exists(worldmap):
+        keys += sorted({p["name"] for p in json.load(open(worldmap)).get("pois", [])})
     if os.path.exists(GATHERABLES):  # nomes dos coletáveis (tools/make_gatherables.py)
         keys += sorted({v["name_key"].lstrip("@").lower() for v in json.load(open(GATHERABLES))["variants"].values()
                         if v["name_key"]})

@@ -46,6 +46,15 @@ bool FNWWorldMap::Load()
 			L.Tiles.Add({FVector2D(T->GetNumberField(TEXT("x")), T->GetNumberField(TEXT("y"))), T->GetStringField(TEXT("tex"))});
 		}
 	}
+	const TArray<TSharedPtr<FJsonValue>>* PoiArray = nullptr;
+	if (Root->TryGetArrayField(TEXT("pois"), PoiArray))
+	{
+		for (const TSharedPtr<FJsonValue>& PV : *PoiArray)
+		{
+			const TSharedPtr<FJsonObject> P = PV->AsObject();
+			Pois.Add({FVector2D(P->GetNumberField(TEXT("x")), P->GetNumberField(TEXT("y"))), P->GetStringField(TEXT("name")), P->GetStringField(TEXT("icon"))});
+		}
+	}
 	return Levels.Num() > 0;
 }
 
@@ -202,6 +211,34 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 			Line.SetColor(Edge);
 			Line.LineThickness = 2.f;
 			Canvas->DrawItem(Line);
+		}
+	}
+
+	// POIs: ícone do jogo; o nome aparece de perto ou com o mouse em cima.
+	{
+		const float Sz = 40.f * S;
+		const FPoi* Hover = nullptr;
+		for (const FPoi& P : Pois)
+		{
+			const FVector2D C = WorldToScreen(P.Pos);
+			if (C.X < -Sz || C.Y < -Sz || C.X > ScreenSize.X + Sz || C.Y > ScreenSize.Y + Sz)
+			{
+				continue;
+			}
+			DrawTexture(Canvas, P.Icon, C - FVector2D(Sz * 0.5f), FVector2D(Sz));
+			if (FVector2D::Distance(C, Mouse) < Sz * 0.5f)
+			{
+				Hover = &P;
+			}
+			else if (MetersPerPixel <= 0.8)
+			{
+				DrawText(Canvas, NWText::Get(P.NameKey), C.X, C.Y + Sz * 0.5f, 15.f, MapTan, 0, true);
+			}
+		}
+		if (Hover)
+		{
+			const FVector2D C = WorldToScreen(Hover->Pos);
+			DrawText(Canvas, NWText::Get(Hover->NameKey), C.X, C.Y + Sz * 0.5f, 19.f, MapGold, 1, true);
 		}
 	}
 

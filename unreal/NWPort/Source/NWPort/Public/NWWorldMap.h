@@ -29,6 +29,12 @@ private:
 		FVector2D Min;   // canto sudoeste, metros do mundo
 		FString Texture;
 	};
+	struct FPoi
+	{
+		FVector2D Pos;   // mundo, metros
+		FString NameKey;
+		FString Icon;
+	};
 	struct FLevel
 	{
 		double Size = 512.0;
@@ -48,6 +54,7 @@ private:
 	double Angle = 0.0;
 	FBox2D Region = FBox2D(ForceInit);
 	TArray<FLevel> Levels;
+	TArray<FPoi> Pois;
 
 	FVector2D Center = FVector2D::ZeroVector;   // mundo, no meio da tela
 	double MetersPerPixel = 1.0;

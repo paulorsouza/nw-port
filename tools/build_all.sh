@@ -135,7 +135,10 @@ s11() {  # personagem, armas, ferramentas e animações (jogador e Lost)
     guarded python3 tools/build_set.py tools/sets/sword_shield.json
     guarded python3 tools/build_set.py tools/sets/lost_sword.json
 }
-s12() {  # Data/ do projeto (catálogo, saque, textos, telas) e as texturas que as telas usam
+s12() {  # Data/ do projeto (catálogo, saque, textos, telas, mapa) e as texturas que as telas usam
+    # POIs de Guardaventos para o mapa (posição de cada território; tools/make_worldmap.py).
+    [ -f extract/pois/slices/pois/territories/r_+04_+01_pois.dynamicslice.json ] ||
+        guarded nwbt_ unpack -g "$GAME" -o extract/pois -e -w 1 $(objects_args) '^slices/pois/territories/r_\+04_\+01_pois\.dynamicslice$'
     tools/make_data.sh
     local pat
     pat=$(cat extract/ui/*_textures.txt | sort -u | while read -r t; do [ -f "extract/ui/tex/${t%.dds}.png" ] || echo "$t"; done \
