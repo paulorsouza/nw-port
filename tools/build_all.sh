@@ -117,9 +117,15 @@ s10() {  # cenário pré-gerado da região (penhascos, ruínas, props, estradas,
     local common=(-g "$GAME" -o extract/cities/chunks --binary --embed --ior 1.5 -w 2 --texture-size 2048
         --crc-file "$RTTI/nwt-crc.json" --uuid-file "$RTTI/nwt-types.json" --level "$LEVEL" --region "$REGION")
     guarded nwbt_ models chunks "${common[@]}" --name 06swindsward_capitals -f windsward_capitals.glb
-    guarded nwbt_ models chunks "${common[@]}" \
-        --name '{roaddressing,water,06sw0*_prop*,06sw_heartforge,06sw_medea,terrain_softup*,06swindsward_lore,06swindsward_persistence}' \
-        -f windsward_props.glb
+    # Um glb por camada: tudo junto deu 2,4 GB e 150 mil peças, e o import da Unreal esgotou a memória (2026-10-11).
+    local layer
+    for layer in roaddressing water 06sw01_furybay_props 06sw02_cascadeharbor_props 06sw03_noblereach_props \
+        06sw04_stoutmarch_props 06sw05_greenhaven_props 06sw06_eldergate_props 06sw07_perilbrook_props \
+        06sw08_grenville_props 06sw09_primrose_prop 06sw_heartforge 06sw_medea terrain_softup_hdeform_a \
+        terrain_softup_all_hdeform_c 06swindsward_lore 06swindsward_persistence; do
+        [ -f "extract/cities/chunks/windsward_$layer.glb" ] && continue
+        guarded nwbt_ models chunks "${common[@]}" --name "$layer" -f "windsward_$layer.glb" || echo "aviso: $layer sem conteúdo"
+    done
 }
 s11() {  # personagem, armas, ferramentas e animações (jogador e Lost)
     guarded python3 tools/build_set.py tools/sets/sword_shield.json

@@ -53,6 +53,10 @@ Memória e máquina:
   New World original). Regra: um trabalho pesado por vez. Não usar `systemd-run -p MemoryMax`: o teto faz o
   próprio trabalho gerar pressão e o oomd fecha outro programa.
 - `nwbt` carrega ~6 GB de índice dos paks a cada chamada; conversões de malha em lotes de 8 com `-w 2`.
+- Import de glb muito grande na Unreal esgota a memória: o cenário de props da região num arquivo só (2,4 GB,
+  150 mil peças) derrubou a sessão. Exportar e importar uma camada de capitals por vez.
+- Vigia de memória rodando dentro do app do Claude morre junto quando o oomd fecha o app; o trabalho pesado
+  continua sem vigia.
 - VRAM de 8 GB: New World original aberto + cliente Unreal não cabem juntos.
 - `/tmp` é RAM (tmpfs): nunca deixar o cache do nwbt lá (`.nwbt/` fica na raiz do projeto).
 - `pgrep -f`/`pkill -f` casam com a própria linha de comando do shell.

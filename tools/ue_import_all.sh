@@ -61,7 +61,13 @@ terrain() {
 }
 scenery() {
     py region_capitals "$ROOT/tools/ue/import_region_scene.py" "$ROOT/extract/cities/chunks/windsward_capitals.glb" Capitals
-    py region_props "$ROOT/tools/ue/import_region_scene.py" "$ROOT/extract/cities/chunks/windsward_props.glb" Props
+    # Uma camada por vez (arquivos menores; o pacote único esgotava a memória do import).
+    local f name
+    for f in "$ROOT"/extract/cities/chunks/windsward_*.glb; do
+        name=$(basename "$f" .glb); name=${name#windsward_}
+        [ "$name" = capitals ] && continue
+        py "region_$name" "$ROOT/tools/ue/import_region_scene.py" "$f" "$name"
+    done
 }
 
 step 01 "compilar o C++ do editor" build
