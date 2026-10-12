@@ -95,6 +95,15 @@ for a in terrain:
     a.static_mesh_component.set_editor_property("override_materials", [])
 log(f"TERRENO {len(meshes)} malhas, {len(terrain)} atores")
 
+# Rede de segurança (ChaoSeguranca do fix_city) 10 m abaixo do ponto mais baixo do terreno: no lugar antigo (abaixo
+# da cidade) ela ficava acima dos vales e rios, e o personagem andava sobre ela "voando".
+if terrain:
+    lowest = min(a.get_actor_bounds(False)[0].z - a.get_actor_bounds(False)[1].z for a in terrain)
+    for a in eas.get_all_level_actors():
+        if a.get_actor_label().startswith("ChaoSeguranca"):
+            a.set_actor_location(unreal.Vector(0, 0, lowest - 1000), False, False)
+            log(f"TERRENO chão de segurança em {lowest - 1000:.0f}")
+
 spawn = json.load(open(os.path.splitext(GLB)[0] + ".json"))["spawn"]
 for a in eas.get_all_level_actors():
     if isinstance(a, unreal.PlayerStart):
