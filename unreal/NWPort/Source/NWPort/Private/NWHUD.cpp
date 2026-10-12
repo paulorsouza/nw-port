@@ -95,6 +95,8 @@ void ANWHUD::ReloadLanguage()
 	bStaticDone = false;
 	Mastery.Close();
 	Mastery = FNWMasteryMenu();
+	Tradeskills.Close();
+	Tradeskills = FNWTradeskillMenu();
 	Inventory = FNWInventoryMenu();
 	FNWItemCatalog::Get().Reload();
 	Respawn = FNWRespawnScreen();
@@ -404,6 +406,17 @@ void ANWHUD::DrawGameHUD()
 			PC->GetMousePosition(MX, MY);
 		}
 		Mastery.Draw(Canvas, FVector2D(MX, MY));
+		FNWTradeskillMenu::DrawTabs(Canvas, FVector2D(MX, MY), 0);
+		return;
+	}
+	if (Tradeskills.IsOpen())
+	{
+		float MX = 0.f, MY = 0.f;
+		if (APlayerController* PC = GetOwningPlayerController())
+		{
+			PC->GetMousePosition(MX, MY);
+		}
+		Tradeskills.Draw(Canvas, FVector2D(MX, MY));
 		return;
 	}
 	if (Layout.IsLoaded())

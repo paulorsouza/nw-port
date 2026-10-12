@@ -9,6 +9,7 @@
 #include "NWChat.h"
 #include "NWInventoryMenu.h"
 #include "NWWorldMap.h"
+#include "NWTradeskillMenu.h"
 #include "NWGameMenu.h"
 #include "NWHUD.generated.h"
 
@@ -43,6 +44,7 @@ public:
 	FNWChat Chat;
 	FNWInventoryMenu Inventory;
 	FNWWorldMap WorldMap;
+	FNWTradeskillMenu Tradeskills;
 	/** Números de dano (lyshineui/hud/damagenumbers): sobem e somem sobre o alvo em 1,2 s. */
 	void AddDamageNumber(const FVector& World, const FString& Text, const FLinearColor& Color, bool bBig);
 	// Menu do Esc e configurações (desenhado por cima de tudo).

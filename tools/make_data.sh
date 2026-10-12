@@ -16,6 +16,7 @@ step tools/make_worldmap.py
 step tools/build_strings.py
 step tools/ui_build_hud.py
 step tools/ui_build_mastery.py
+step tools/ui_build_tradeskills.py
 step tools/ui_build_login.py
 step tools/ui_build_respawn.py
 step tools/ui_build_group.py

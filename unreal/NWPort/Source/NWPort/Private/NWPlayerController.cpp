@@ -147,7 +147,7 @@ void ANWPlayerController::OnEscape()
 bool ANWPlayerController::IsMenuOpen() const
 {
 	const ANWHUD* HUD = GetNWHUD();
-	return OpenMenu.IsValid() || (HUD && (HUD->Mastery.IsOpen() || HUD->Login.IsActive() || HUD->Chat.IsOpen() || HUD->Inventory.IsOpen()
+	return OpenMenu.IsValid() || (HUD && (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->Login.IsActive() || HUD->Chat.IsOpen() || HUD->Inventory.IsOpen()
 		|| HUD->GameMenu.IsOpen() || HUD->WorldMap.IsOpen()));
 }
 
@@ -201,6 +201,7 @@ void ANWPlayerController::CloseMenus()
 	if (ANWHUD* HUD = GetNWHUD())
 	{
 		HUD->Mastery.Close();
+		HUD->Tradeskills.Close();
 		HUD->Inventory.Close();
 		HUD->GameMenu.Close();
 		HUD->WorldMap.Close();
@@ -218,7 +219,7 @@ void ANWPlayerController::ToggleSkillMenu()
 	{
 		return;
 	}
-	if (HUD->Mastery.IsOpen())
+	if (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen())
 	{
 		CloseMenus();
 		return;
@@ -423,6 +424,23 @@ void ANWPlayerController::OnMenuClick()
 			Me->Combat->ServerRequestRespawn();
 		}
 		return;
+	}
+	// Abas da janela K: Maestria em Armas / Hab. Mercantes.
+	if (HUD && (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen()))
+	{
+		const int32 Tab = FNWTradeskillMenu::TabAt(FVector2D(X, Y));
+		if (Tab == 1 && HUD->Mastery.IsOpen())
+		{
+			HUD->Mastery.Close();
+			HUD->Tradeskills.Open(Cast<ANWCharacter>(GetPawn()));
+			return;
+		}
+		if (Tab == 0 && HUD->Tradeskills.IsOpen())
+		{
+			HUD->Tradeskills.Close();
+			HUD->Mastery.Open(Cast<ANWCharacter>(GetPawn()));
+			return;
+		}
 	}
 	if (!HUD || !HUD->Mastery.IsOpen())
 	{
