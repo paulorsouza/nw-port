@@ -164,6 +164,7 @@ def main():
             "stack": int(r.get("MaxStackSize") or 1), "icon": icon_for(r),
             "gs_min": int(r.get("MinGearScore") or 0), "gs_max": int(r.get("MaxGearScore") or 0),
             "name_key": str(r.get("Name") or ""), "desc_key": str(r.get("Description") or ""),
+            "type_key": str(r.get("ItemTypeDisplayName") or ""),
             "weight": weights.get(r["ItemID"], 0.0),
         }
         if r.get("ItemType") == "Weapon":
@@ -182,7 +183,8 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     for lang in LANGS:
         loc = load_loc(lang)
-        out = [dict(e, name=text(loc, e["name_key"], e["id"]), description=text(loc, e["desc_key"])) for e in catalog]
+        out = [dict(e, name=text(loc, e["name_key"], e["id"]), description=text(loc, e["desc_key"]),
+                    type_name=text(loc, e["type_key"])) for e in catalog]
         json.dump(out, open(os.path.join(OUT, f"items.{lang}.json"), "w"), ensure_ascii=False, indent=1)
 
     # Saque dos Lost: moedas sempre, 1-2 materiais tier 1, poção às vezes, arma tier 2-3 rara.

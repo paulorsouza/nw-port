@@ -62,6 +62,7 @@ struct FNWItemDef
 	float Weight = 0.f;  // kg (o jogo guarda em décimos)
 	FString Name;
 	FString Description;
+	FString TypeName;   // ItemTypeDisplayName do jogo ("Recurso", "Espada")
 };
 
 /** Catálogo de itens e tabela de saque, carregados uma vez (Data/Items). */

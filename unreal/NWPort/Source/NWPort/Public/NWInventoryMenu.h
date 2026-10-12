@@ -44,7 +44,9 @@ private:
 	void DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWItem* Item, bool bSquare, bool bHover, bool bPickedHere);
 	void DrawEquipPanel(UCanvas* Canvas, const FVector2D& Mouse);
 	void DrawStatus(UCanvas* Canvas);
-	void DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse);
+	void DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse, bool bEquipped);
+	// Quebra o texto em linhas que cabem em Width (pixels).
+	TArray<FString> Wrap(const FString& Text, float Width, float Size, int32 Style) const;
 	void DrawText(UCanvas* Canvas, const FString& Text, float X, float Y, float Size, const FLinearColor& Color, int32 Style = 0) const;
 	void DrawTexture(UCanvas* Canvas, const FString& Path, const FBox2f& R, const FLinearColor& Tint = FLinearColor::White, bool bAdditive = false) const;
 	float TextWidth(const FString& Text, float Size, int32 Style = 0) const;

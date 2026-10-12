@@ -36,7 +36,10 @@ GAME_KEYS = ["ui_play", "ui_enter", "ui_cancel", "ui_back", "ui_characters", "ui
              # Sobrecarga (hud2024/actionbar/encumbrance).
              "inv_encumbered", "inv_equiploadencumberednotification",
              # Status no painel de equipamento.
-             "ui_buyorder_gear_score_label", "ui_health", "ui_stamina", "ui_encumbrance"]
+             "ui_buyorder_gear_score_label", "ui_health", "ui_stamina", "ui_encumbrance",
+             "raritylevel0_displayname", "raritylevel1_displayname", "raritylevel2_displayname",
+             "raritylevel3_displayname", "raritylevel4_displayname", "ui_equipped", "ui_tooltip_required",
+             "ui_tooltip_weight", "ui_tooltip_gatherspeed", "ui_tooltip_basedamage"]
 GATHERABLES = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "guardaventos_gatherables.json")
 
 

@@ -71,6 +71,7 @@ void FNWItemCatalog::Load()
 			O->TryGetNumberField(TEXT("weight"), D.Weight);
 			O->TryGetStringField(TEXT("name"), D.Name);
 			O->TryGetStringField(TEXT("description"), D.Description);
+			O->TryGetStringField(TEXT("type_name"), D.TypeName);
 			Items.Add(D.Id, D);
 		}
 	}

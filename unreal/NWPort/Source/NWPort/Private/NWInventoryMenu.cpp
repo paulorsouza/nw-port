@@ -341,55 +341,141 @@ void FNWInventoryMenu::DrawStatus(UCanvas* Canvas)
 	}
 }
 
-void FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse)
+TArray<FString> FNWInventoryMenu::Wrap(const FString& Text, float Width, float Size, int32 Style) const
 {
+	TArray<FString> Out;
+	TArray<FString> Paragraphs;
+	Text.ParseIntoArray(Paragraphs, TEXT("\n"), false);
+	for (const FString& P : Paragraphs)
+	{
+		TArray<FString> Words;
+		P.ParseIntoArrayWS(Words);
+		FString Line;
+		for (const FString& W : Words)
+		{
+			const FString Try = Line.IsEmpty() ? W : Line + TEXT(" ") + W;
+			if (!Line.IsEmpty() && TextWidth(Try, Size, Style) > Width)
+			{
+				Out.Add(Line);
+				Line = W;
+			}
+			else
+			{
+				Line = Try;
+			}
+		}
+		Out.Add(Line);
+	}
+	return Out;
+}
+
+void FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse, bool bEquipped)
+{
+	// Tooltip do jogo (lyshineui/tooltip, DynamicTooltip): 360 de largura; cabeçalho de 104 com o fundo da raridade,
+	// moldura do ícone 90×90 e tier; nome, raridade e tipo à direita; divisor dourado; seções separadas por linha.
 	const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
 	if (!D)
 	{
 		return;
 	}
-	TArray<TPair<FString, FLinearColor>> Lines;
-	Lines.Add({D->Name, D->Type == TEXT("weapon") ? NWRarityColor(Item.Rarity) : InvTan});
-	Lines.Add({NWText::Format(TEXT("nw.inv.tier"), {FString::FromInt(D->Tier)}), InvDim});
-	if (Item.GearScore > 0)
+	static const TCHAR* Dir = TEXT("lyshineui/images/tooltip/");
+	const float S = UIScale;
+	const FLinearColor Body(0.62f, 0.6f, 0.52f), Divider(0.61f, 0.58f, 0.25f), Line(0.2f, 0.2f, 0.2f);
+	const int32 Rarity = D->Type == TEXT("weapon") ? FMath::Min<int32>(Item.Rarity, 4) : FMath::Clamp(D->Tier - 1, 0, 4);
+
+	// Seções do corpo: gear score, atributos, descrição, peso.
+	struct FRow { FString Text; FLinearColor Color; float Size; int32 Style; float Gap; };
+	TArray<FRow> Rows;
+	auto Section = [&Rows]() { Rows.Add({FString(), FLinearColor::Transparent, 0.f, -1, 0.f}); };
+	if (D->Type == TEXT("weapon") && D->Damage > 0.f)
 	{
-		Lines.Add({NWText::Format(TEXT("nw.inv.gear_score"), {FString::FromInt(Item.GearScore)}), InvGold});
+		Rows.Add({FString::Printf(TEXT("%.0f  %s"), D->Damage, *NWText::Get(TEXT("ui_tooltip_basedamage"))), FLinearColor(0.67f, 0.67f, 0.67f), 23.f, 0, 4.f});
 	}
-	if (D->Weight > 0.f)
+	if (!D->Gather.IsNone() && D->Efficiency > 1.f)
 	{
-		Lines.Add({FString::Printf(TEXT("%s %.1f"), *NWText::Get(TEXT("nw.inv.weight")), D->Weight * Item.Quantity), InvDim});
+		Rows.Add({FString::Printf(TEXT("+%.0f%%  %s"), (D->Efficiency - 1.f) * 100.f, *NWText::Get(TEXT("ui_tooltip_gatherspeed"))), FLinearColor(0.67f, 0.67f, 0.67f), 23.f, 0, 4.f});
 	}
 	if (!D->Description.IsEmpty())
 	{
-		// Quebra simples em ~44 caracteres por linha.
-		FString Rest = D->Description.Replace(TEXT("\n"), TEXT(" "));
-		while (!Rest.IsEmpty())
+		if (Rows.Num())
 		{
-			int32 Cut = FMath::Min(44, Rest.Len());
-			if (Cut < Rest.Len())
-			{
-				const int32 Space = Rest.Left(Cut).Find(TEXT(" "), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-				Cut = Space > 10 ? Space : Cut;
-			}
-			Lines.Add({Rest.Left(Cut).TrimStartAndEnd(), InvTan});
-			Rest = Rest.Mid(Cut).TrimStart();
+			Section();
+		}
+		for (const FString& L : Wrap(D->Description, 330.f * S, 23.f, 0))
+		{
+			Rows.Add({L, Body, 23.f, 0, 0.f});
 		}
 	}
-	const float S = UIScale;
-	const float W = 380.f * S, LineH = 26.f * S, Pad = 14.f * S;
-	const float H = Pad * 2 + LineH * Lines.Num();
-	// Ao lado do item, para o lado com espaço.
-	float X = Mouse.X > Canvas->ClipX * 0.5f ? Mouse.X - W - 24.f * S : Mouse.X + 24.f * S;
-	float Y = FMath::Min(float(Mouse.Y), Canvas->ClipY - H - 10.f);
-	DrawTexture(Canvas, TEXT("lyshineui/images/inventory/contentbg.dds"), FBox2f(FVector2f(X, Y), FVector2f(X + W, Y + H)));
-	// Faixa da raridade no topo, como o cabeçalho do tooltip do jogo.
-	const int32 Rarity = D->Type == TEXT("weapon") ? FMath::Min<int32>(Item.Rarity, 4) : FMath::Clamp(D->Tier - 1, 0, 4);
-	DrawTexture(Canvas, FString::Printf(TEXT("%sitemraritybglarge%d.dds"), ItemLayoutDir, Rarity),
-		FBox2f(FVector2f(X, Y), FVector2f(X + W, Y + Pad + LineH * 1.4f)), FLinearColor(1.f, 1.f, 1.f, 0.8f));
-	for (int32 i = 0; i < Lines.Num(); ++i)
+	Section();
+	Rows.Add({NWText::Get(TEXT("ui_tooltip_weight")).Replace(TEXT("{value}"), *FString::Printf(TEXT("%.1f"), D->Weight * Item.Quantity)), Body, 22.f, 0, 0.f});
+
+	const float W = 360.f;
+	float BodyH = 10.f + (Item.GearScore > 0 ? 50.f : 0.f);
+	for (const FRow& R : Rows)
 	{
-		DrawText(Canvas, Lines[i].Key, X + Pad, Y + Pad + i * LineH, i == 0 ? 21.f : 17.f, Lines[i].Value, i == 0 ? 1 : 0);
+		BodyH += R.Style < 0 ? 16.f : 27.f + R.Gap;
 	}
+	const float HeaderH = 106.f, TopH = bEquipped ? 40.f : 0.f;
+	const float H = HeaderH + BodyH + 8.f;
+	// Ao lado do item, para o lado com espaço; nunca para fora da tela.
+	const float PW = W * S, PH = (H + TopH) * S;
+	const float X = Mouse.X > Canvas->ClipX * 0.5f ? Mouse.X - PW - 30.f * S : Mouse.X + 30.f * S;
+	const float Y0 = FMath::Clamp(float(Mouse.Y) - 40.f * S, 20.f * S, Canvas->ClipY - PH - 20.f * S);
+	const float Y = Y0 + TopH * S;
+	auto Box = [&](float L, float T, float R, float B) { return FBox2f(FVector2f(X + L * S, Y + T * S), FVector2f(X + R * S, Y + B * S)); };
+
+	DrawTexture(Canvas, FString(Dir) + TEXT("tooltip_bg_new.dds"), Box(-18.f, -16.f - TopH, W + 17.f, H + 17.f), FLinearColor(0.f, 0.f, 0.f, 0.8f));
+	if (bEquipped)
+	{
+		DrawTexture(Canvas, FString(Dir) + TEXT("tooltip_bgframenew.dds"), Box(0.f, -TopH - 1.f, W, 0.f), FLinearColor(0.35f, 0.33f, 0.14f));
+		DrawText(Canvas, NWText::Get(TEXT("ui_equipped")), X + 8.f * S, Y - 37.f * S, 24.f, FLinearColor::White, 2);
+	}
+	// Cabeçalho.
+	FCanvasTileItem Black(FVector2D(X, Y), FVector2D(PW, HeaderH * S), FLinearColor::Black);
+	Canvas->DrawItem(Black);
+	DrawTexture(Canvas, FString::Printf(TEXT("%stooltip_header_bg_%d.dds"), Dir, Rarity), Box(0.f, 0.f, W, 104.f));
+	if (Rarity == 4)
+	{
+		DrawTexture(Canvas, FString(Dir) + TEXT("tooltip_legendary_overlay.dds"), Box(0.f, 0.f, W, 104.f), FLinearColor(1.f, 1.f, 1.f, 0.5f));
+	}
+	if (UTexture2D* Icon = D->Icon.IsEmpty() ? nullptr : FNWUILayout::GameTexture(D->Icon))
+	{
+		FCanvasTileItem T(FVector2D(X + 10.f * S, Y + 9.f * S), Icon->GetResource(), FVector2D(86.f * S, 86.f * S), FLinearColor::White);
+		T.BlendMode = SE_BLEND_Translucent;
+		Canvas->DrawItem(T);
+	}
+	DrawTexture(Canvas, Rarity > 0 ? FString::Printf(TEXT("%stooltip_itemframe_rarity%d.dds"), Dir, Rarity)
+		: FString(Dir) + TEXT("tooltip_itemframe_rarity_none.dds"), Box(8.f, 7.f, 98.f, 97.f));
+	DrawText(Canvas, Roman(D->Tier), X + 12.f * S, Y + 9.f * S, 23.f, FLinearColor(0.62f, 0.58f, 0.48f));
+	const TArray<FString> NameLines = Wrap(D->Name, 245.f * S, 27.f, 1);
+	for (int32 i = 0; i < FMath::Min(NameLines.Num(), 2); ++i)
+	{
+		DrawText(Canvas, NameLines[i], X + 106.f * S, Y + (3.f + i * 25.f) * S, NameLines.Num() > 1 ? 24.f : 27.f, FLinearColor(0.9f, 0.88f, 0.81f), 1);
+	}
+	DrawText(Canvas, NWText::Get(FString::Printf(TEXT("raritylevel%d_displayname"), Rarity)), X + 106.f * S, Y + 52.f * S, 21.f, NWRarityColor(Rarity));
+	DrawText(Canvas, D->TypeName, X + 106.f * S, Y + 75.f * S, 21.f, FLinearColor::White);
+	DrawTexture(Canvas, FString(Dir) + TEXT("tooltip_divider.dds"), Box(0.f, 103.f, W, 106.f), Divider);
+
+	// Corpo.
+	float CY = HeaderH + 10.f;
+	if (Item.GearScore > 0)
+	{
+		DrawTexture(Canvas, TEXT("lyshineui/images/icons/misc/icon_gearscore.dds"), Box(12.f, CY, 52.f, CY + 40.f));
+		DrawText(Canvas, FString::FromInt(Item.GearScore), X + 56.f * S, Y + (CY - 8.f) * S, 50.f, FLinearColor(0.62f, 0.58f, 0.49f));
+		CY += 50.f;
+	}
+	for (const FRow& R : Rows)
+	{
+		if (R.Style < 0)
+		{
+			DrawTexture(Canvas, TEXT("lyshineui/images/slices/sectionheader/sectionheaderline.dds"), Box(15.f, CY + 6.f, W - 15.f, CY + 10.f), Line);
+			CY += 16.f;
+			continue;
+		}
+		DrawText(Canvas, R.Text, X + 15.f * S, Y + CY * S, R.Size, R.Color, R.Style);
+		CY += 27.f + R.Gap;
+	}
+	DrawTexture(Canvas, FString(Dir) + TEXT("tooltip_bgframenew.dds"), Box(0.f, 0.f, W, H), FLinearColor(0.35f, 0.33f, 0.14f));
 }
 
 void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
@@ -460,7 +546,7 @@ void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	{
 		if (const FNWItem* Item = Inv->At(Hover->Container, Hover->Slot))
 		{
-			DrawTooltip(Canvas, *Item, Mouse);
+			DrawTooltip(Canvas, *Item, Mouse, Hover->Container != ENWItemContainer::Bag);
 		}
 	}
 }

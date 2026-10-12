@@ -24,3 +24,11 @@ for name in SCREENS:
     tex = sorted({e["image"]["texture"] for e in els if e.get("image") and e["image"].get("texture")})
     open(os.path.join(UI, f"{name}_textures.txt"), "w").write("\n".join(tex))
     print(f"{name}: {len(tex)} texturas")
+
+# Tooltip do item (tooltip.dynamicuicanvas tem 3 mil elementos, a maioria ícones de exemplo): só as peças usadas.
+TOOLTIP = ["tooltip/tooltip_bg_new.dds", "tooltip/tooltip_bgframenew.dds", "tooltip/tooltip_divider.dds",
+           "tooltip/tooltip_top_bg.dds", "tooltip/tooltip_legendary_overlay.dds",
+           "slices/sectionheader/sectionheaderline.dds", "icons/misc/icon_gearscore.dds"]
+TOOLTIP += [f"tooltip/tooltip_header_bg_{i}.dds" for i in range(5)] + [f"tooltip/tooltip_itemframe_rarity{i}.dds" for i in range(1, 5)] + ["tooltip/tooltip_itemframe_rarity_none.dds"]
+open(os.path.join(UI, "tooltip_textures.txt"), "w").write("\n".join("lyshineui/images/" + t for t in TOOLTIP))
+print(f"tooltip: {len(TOOLTIP)} texturas")
