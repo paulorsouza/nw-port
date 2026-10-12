@@ -1,0 +1,266 @@
+#include "NWCreature.h"
+
+#include "Animation/BlendSpace.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Dom/JsonObject.h"
+#include "EngineUtils.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Misc/FileHelper.h"
+#include "Net/UnrealNetwork.h"
+#include "NWCombatComponent.h"
+#include "NWSpawnField.h"
+#include "NWTraversalComponent.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+
+FNWCreatureCatalog& FNWCreatureCatalog::Get()
+{
+	static FNWCreatureCatalog Catalog;
+	return Catalog;
+}
+
+void FNWCreatureCatalog::Load(const FString& File)
+{
+	if (Loaded.Contains(File))
+	{
+		return;
+	}
+	Loaded.Add(File);
+	FString Raw;
+	TSharedPtr<FJsonObject> Root;
+	const TSharedPtr<FJsonObject>* Creatures = nullptr;
+	if (!FFileHelper::LoadFileToString(Raw, *File) || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Raw), Root)
+		|| !Root.IsValid() || !Root->TryGetObjectField(TEXT("creatures"), Creatures))
+	{
+		return;
+	}
+	for (const auto& Pair : (*Creatures)->Values)
+	{
+		const TSharedPtr<FJsonObject> O = Pair.Value->AsObject();
+		FNWCreatureDef D;
+		D.Id = FName(*Pair.Key);
+		D.NameKey = O->GetStringField(TEXT("name_key"));
+		D.Set = FName(O->GetStringField(TEXT("set")));
+		D.Level = O->GetIntegerField(TEXT("level"));
+		D.Health = O->GetNumberField(TEXT("health"));
+		D.Damage = O->GetNumberField(TEXT("damage"));
+		D.Mitigation = O->GetNumberField(TEXT("mitigation"));
+		D.Scale = O->GetNumberField(TEXT("scale"));
+		D.bHostile = O->GetBoolField(TEXT("hostile"));
+		const TSharedPtr<FJsonObject>* Skin = nullptr;
+		if (O->TryGetObjectField(TEXT("skin"), Skin))
+		{
+			D.SkinLoot = FName((*Skin)->GetStringField(TEXT("loot")));
+			D.SkinTime = (*Skin)->GetNumberField(TEXT("time"));
+			D.SkinTradeskill = FName((*Skin)->GetStringField(TEXT("tradeskill")));
+			D.SkinTradeXp = int32((*Skin)->GetNumberField(TEXT("trade_xp")));
+			D.SkinNameKey = (*Skin)->GetStringField(TEXT("name_key"));
+		}
+		Defs.Add(D.Id, D);
+	}
+}
+
+namespace
+{
+	// Por conjunto: cápsula (raio, meia altura, antes da escala do jogo), alcance e ataques, velocidades.
+	struct FSetTuning
+	{
+		float Radius, HalfHeight, AttackRange, Walk, Chase;
+		TArray<FName> Attacks;
+	};
+	const FSetTuning* Tuning(FName Set)
+	{
+		static const TMap<FName, FSetTuning> T = {
+			{TEXT("boar"), {35.f, 35.f, 220.f, 140.f, 450.f, {TEXT("Attack1"), TEXT("Attack1"), TEXT("Heavy")}}},
+			{TEXT("wolf"), {30.f, 40.f, 210.f, 160.f, 520.f, {TEXT("Attack1"), TEXT("Attack2"), TEXT("Heavy"), TEXT("Leap")}}},
+		};
+		return T.Find(Set);
+	}
+	constexpr float LeashRange = 4000.f;   // longe disto de casa, desiste e volta
+}
+
+ANWCreature::ANWCreature(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bDummyAttacks = true;
+	DummyAttackInterval = 2.5f;
+	Traversal->bEnabled = false;
+	WeaponSets.Reset();
+	Sword->SetVisibility(false);
+	Shield->SetVisibility(false);
+	Stowed->SetVisibility(false);
+	Combat->LightComboStart = TEXT("Attack1");
+	AnimClass = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/NW/Creatures/ABP_NW_Creature.ABP_NW_Creature_C")));
+}
+
+void ANWCreature::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ANWCreature, CreatureId);
+	DOREPLIFETIME(ANWCreature, bSkinned);
+}
+
+void ANWCreature::Setup(const FNWCreatureDef& D, const TArray<FVector>& InPath, const TArray<float>& InWaits)
+{
+	CreatureId = D.Id;
+	Path = InPath;
+	Waits = InWaits;
+	Combat->MaxHealth = D.Health;
+	Combat->Health = D.Health;
+	Combat->WeaponBaseDamage = D.Damage;
+	Combat->ArmorMitigation = FMath::Clamp(D.Mitigation, 0.f, 0.9f);
+	AggroRange = D.bHostile ? 1200.f : 0.f;
+	if (const FSetTuning* T = Tuning(D.Set))
+	{
+		DummyAttackRange = T->AttackRange;
+		DummyAttackActions = T->Attacks;
+		WalkSpeed = T->Walk;
+		ChaseSpeed = T->Chase;
+		RunSpeed = T->Chase;
+	}
+	ApplyAssets();
+}
+
+const FNWCreatureDef* ANWCreature::Def() const
+{
+	FNWCreatureCatalog::Get().Load(ANWSpawnField::DataFileFor(GetWorld()));
+	return FNWCreatureCatalog::Get().Find(CreatureId);
+}
+
+void ANWCreature::OnRep_Creature()
+{
+	ApplyAssets();
+}
+
+void ANWCreature::ApplyAssets()
+{
+	const FNWCreatureDef* D = Def();
+	if (!D || D->Set.IsNone() || bAssetsApplied)
+	{
+		return;
+	}
+	bAssetsApplied = true;
+	const FString Set = D->Set.ToString();
+	FString Title = Set;
+	Title[0] = FChar::ToUpper(Title[0]);
+	MeshAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(FString::Printf(TEXT("/Game/NW/%s/Mesh/SK_%s.SK_%s"), *Set, *Set, *Set)));
+	ActionTableAsset = TSoftObjectPtr<UDataTable>(FSoftObjectPath(FString::Printf(TEXT("/Game/NW/Data/DT_%sActions.DT_%sActions"), *Title, *Title)));
+	if (const FSetTuning* T = Tuning(D->Set))
+	{
+		GetCapsuleComponent()->SetCapsuleSize(T->Radius, T->HalfHeight);
+		GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -T->HalfHeight));
+	}
+	SetActorScale3D(FVector(D->Scale));
+	LoadMissingAssets();
+	// Blend space de andar do conjunto na variável Locomotion do ABP de criatura (como as armas do jogador).
+	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance())
+	{
+		UBlendSpace* BS = TSoftObjectPtr<UBlendSpace>(FSoftObjectPath(FString::Printf(TEXT("/Game/NW/%s/Anims/BS_Walk.BS_Walk"), *Set))).LoadSynchronous();
+		for (TFieldIterator<FObjectProperty> It(Anim->GetClass()); It; ++It)
+		{
+			if (It->GetFName() == TEXT("Locomotion") && It->PropertyClass->IsChildOf(UBlendSpace::StaticClass()))
+			{
+				It->SetObjectPropertyValue_InContainer(Anim, BS);
+			}
+		}
+	}
+}
+
+void ANWCreature::BeginPlay()
+{
+	ApplyAssets();
+	Super::BeginPlay();
+	Home = GetActorLocation();
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	// A malha recém-criada pode não ter a AnimInstance no ApplyAssets: tenta de novo no próximo quadro.
+	GetWorldTimerManager().SetTimerForNextTick([Weak = TWeakObjectPtr<ANWCreature>(this)]()
+	{
+		if (ANWCreature* Self = Weak.Get())
+		{
+			Self->bAssetsApplied = false;
+			Self->ApplyAssets();
+		}
+	});
+}
+
+bool ANWCreature::HasTarget() const
+{
+	if (AggroRange <= 0.f)
+	{
+		return false;
+	}
+	for (TActorIterator<ANWCharacter> It(GetWorld()); It; ++It)
+	{
+		if (It->IsPlayerControlled() && It->Combat->State != ENWCombatState::Dead
+			&& FVector::Dist2D(It->GetActorLocation(), GetActorLocation()) < AggroRange)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void ANWCreature::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (!HasAuthority() || Combat->State == ENWCombatState::Dead)
+	{
+		return;
+	}
+	const FNWCreatureDef* D = Def();
+	// Longe demais de casa: desiste, volta andando e recupera a vida.
+	if (!bReturning && FVector::Dist2D(GetActorLocation(), Home) > LeashRange)
+	{
+		bReturning = true;
+		AggroRange = 0.f;
+	}
+	if (bReturning)
+	{
+		const FVector To = (Home - GetActorLocation()).GetSafeNormal2D();
+		GetCharacterMovement()->MaxWalkSpeed = ChaseSpeed;
+		AddMovementInput(To, 1.f);
+		SetActorRotation(FMath::RInterpConstantTo(GetActorRotation(), FRotator(0.f, To.Rotation().Yaw, 0.f), DeltaSeconds, 360.f));
+		if (FVector::Dist2D(GetActorLocation(), Home) < 200.f)
+		{
+			bReturning = false;
+			AggroRange = D && D->bHostile ? 1200.f : 0.f;
+			Combat->Health = Combat->MaxHealth;
+		}
+		return;
+	}
+	if (HasTarget())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = ChaseSpeed;   // perseguição e ataque: ANWCharacter::TickDummy
+		return;
+	}
+	TickPatrol(DeltaSeconds);
+}
+
+void ANWCreature::TickPatrol(float DeltaSeconds)
+{
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	if (Path.Num() == 0 || Combat->IsBusy())
+	{
+		return;
+	}
+	if (WaitLeft > 0.f)
+	{
+		WaitLeft -= DeltaSeconds;
+		return;
+	}
+	const FVector Target = Path[PathIndex];
+	const FVector To = Target - GetActorLocation();
+	if (To.Size2D() < 80.f)
+	{
+		// Tarefa do waypoint (pastar, farejar...): parado pelo tempo do jogo; sem tempo, alguns segundos.
+		const float W = Waits.IsValidIndex(PathIndex) ? Waits[PathIndex] : -1.f;
+		WaitLeft = W > 0.f ? W : FMath::FRandRange(4.f, 10.f);
+		PathIndex = (PathIndex + 1) % Path.Num();
+		return;
+	}
+	const FVector Dir = To.GetSafeNormal2D();
+	AddMovementInput(Dir, 1.f);
+	SetActorRotation(FMath::RInterpConstantTo(GetActorRotation(), FRotator(0.f, Dir.Rotation().Yaw, 0.f), DeltaSeconds, 180.f));
+}

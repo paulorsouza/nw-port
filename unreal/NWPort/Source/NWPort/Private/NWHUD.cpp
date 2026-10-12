@@ -484,20 +484,15 @@ void ANWHUD::DrawGather(const APawn* Me)
 	// faixa à direita e a linha com a tecla e a ação; durante a coleta o anel de progresso enche com o tempo no meio.
 	const ANWCharacter* Char = Cast<ANWCharacter>(Me);
 	const UNWGatherComponent* G = Char ? Char->Gather.Get() : nullptr;
-	const ANWGatherField* Field = ANWGatherField::Get(GetWorld());
 	UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
 	APlayerController* PC = GetOwningPlayerController();
-	if (!G || !Field || !Font || !PC)
-	{
-		return;
-	}
-	const int32 Index = G->IsGathering() ? G->GetGatherIndex() : G->FocusIndex;
-	if (Index == INDEX_NONE || Index >= Field->Num())
+	FVector World;
+	if (!G || !Font || !PC || !G->GetFocusLocation(World))
 	{
 		return;
 	}
 	FVector2D C;
-	const FVector World = Field->GetActorTransform().TransformPosition(Field->Node(Index).Transform.GetLocation()) + FVector(0.f, 0.f, 90.f);
+	World += FVector(0.f, 0.f, 90.f);
 	if (!PC->ProjectWorldLocationToScreen(World, C, true))
 	{
 		return;
@@ -549,8 +544,7 @@ void ANWHUD::DrawGather(const APawn* Me)
 		return;
 	}
 	// Faixa do nome à direita do anel (TitleFrame: +185 da âncora do cartão; aqui colada ao anel) e a linha da tecla.
-	const ANWGatherField::FVariant& V = Field->VariantOf(Index);
-	const FString Name = NWText::Get(V.NameKey);
+	const FString Name = G->FocusName;
 	const float NameScale = 19.f * S / FMath::Max(1, Font->LegacyFontSize);
 	float NW = 0.f, NH = 0.f;
 	Canvas->TextSize(Font, Name, NW, NH, NameScale, NameScale);

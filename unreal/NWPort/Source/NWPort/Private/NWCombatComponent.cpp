@@ -1,4 +1,5 @@
 #include "NWCombatComponent.h"
+#include "NWCreature.h"
 
 #include "NWHUD.h"
 #include "NWText.h"
@@ -1043,6 +1044,10 @@ static FString KillerName(const AActor* Killer)
 	if (const APlayerState* PS = Pawn ? Pawn->GetPlayerState() : nullptr)
 	{
 		return PS->GetPlayerName();
+	}
+	if (const ANWCreature* Creature = Cast<ANWCreature>(Killer); Creature && Creature->Def())
+	{
+		return TEXT("#") + Creature->Def()->NameKey;   // nome do jogo, traduzido no cliente (NWText::Resolve)
 	}
 	if (Killer && Killer->GetClass()->GetName().Contains(TEXT("Lost")))
 	{

@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "NWGatherComponent.generated.h"
 
+class ANWCreature;
 class UAnimMontage;
 class UStaticMesh;
 
@@ -24,7 +25,14 @@ public:
 	// ---- dono: coletável em foco e texto da ação ("Minerar Filão de Ferro" ou "Requer Picareta")
 	int32 FocusIndex = INDEX_NONE;
 	FString FocusText;
+	FString FocusName;   // nome do coletável ou da carcaça (faixa do cartão)
 	bool bFocusBlocked = false;
+	/** Carcaça em foco (criatura morta para esfolar, G3); tem prioridade sobre o coletável. */
+	TWeakObjectPtr<ANWCreature> FocusCreature;
+	/** Índice de coleta de carcaça (a criatura fica em GatherActor). */
+	static constexpr int32 SkinIndex = -2;
+	/** Ponto do mundo do que está em foco ou sendo coletado (cartão da HUD); false = nada. */
+	bool GetFocusLocation(FVector& Out) const;
 
 	bool IsGathering() const { return GatherIndex != INDEX_NONE; }
 	/** 0..1 da coleta em andamento. */
@@ -42,6 +50,7 @@ public:
 
 	UFUNCTION(Server, Reliable) void ServerGather(int32 Index);
 	UFUNCTION(Server, Reliable) void ServerCancel();
+	UFUNCTION(Server, Reliable) void ServerSkin(ANWCreature* Creature);
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -51,6 +60,7 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_Gather) FName GatherAction;
 	UPROPERTY(Replicated) float GatherStart = 0.f;
 	UPROPERTY(Replicated) float GatherEnd = 0.f;
+	UPROPERTY(Replicated) TObjectPtr<AActor> GatherActor;
 	FVector GatherFrom = FVector::ZeroVector;
 
 	UFUNCTION() void OnRep_Gather();

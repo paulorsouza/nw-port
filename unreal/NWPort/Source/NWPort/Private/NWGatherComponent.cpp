@@ -16,6 +16,7 @@
 #include "NWItems.h"
 #include "NWPlayerController.h"
 #include "NWProgressionComponent.h"
+#include "NWCreature.h"
 #include "NWText.h"
 
 static const TCHAR* GatherAnims = TEXT("/Game/NW/sword_shield/Anims/");
@@ -46,6 +47,7 @@ void UNWGatherComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME(UNWGatherComponent, GatherAction);
 	DOREPLIFETIME(UNWGatherComponent, GatherStart);
 	DOREPLIFETIME(UNWGatherComponent, GatherEnd);
+	DOREPLIFETIME(UNWGatherComponent, GatherActor);
 }
 
 float UNWGatherComponent::ServerNow() const
@@ -83,14 +85,67 @@ FString UNWGatherComponent::ToolGroupKey(FName Action)
 	return FString();
 }
 
+bool UNWGatherComponent::GetFocusLocation(FVector& Out) const
+{
+	if (IsGathering() && GatherIndex == SkinIndex)
+	{
+		if (GatherActor)
+		{
+			Out = GatherActor->GetActorLocation();
+			return true;
+		}
+		return false;
+	}
+	if (!IsGathering() && FocusCreature.IsValid())
+	{
+		Out = FocusCreature->GetActorLocation();
+		return true;
+	}
+	const int32 Index = IsGathering() ? GatherIndex : FocusIndex;
+	const ANWGatherField* Field = ANWGatherField::Get(GetWorld());
+	if (!Field || Index < 0 || Index >= Field->Num())
+	{
+		return false;
+	}
+	Out = Field->GetActorTransform().TransformPosition(Field->Node(Index).Transform.GetLocation());
+	return true;
+}
+
 void UNWGatherComponent::UpdateFocus()
 {
 	FocusIndex = INDEX_NONE;
+	FocusCreature.Reset();
 	FocusText.Reset();
+	FocusName.Reset();
 	bFocusBlocked = false;
 	const ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	if (!Me || IsGathering() || Me->Combat->State == ENWCombatState::Dead)
+	{
+		return;
+	}
+	// Carcaça perto (criatura morta, ainda não esfolada): "Esfolar Javali"; pede a faca de esfolar.
+	for (TActorIterator<ANWCreature> It(GetWorld()); It; ++It)
+	{
+		const FNWCreatureDef* D = It->Def();
+		if (It->Combat->State != ENWCombatState::Dead || It->bSkinned || !D || D->SkinLoot.IsNone()
+			|| FVector::Dist2D(It->GetActorLocation(), Me->GetActorLocation()) > 250.f)
+		{
+			continue;
+		}
+		FocusCreature = *It;
+		const FString Name = NWText::Get(D->SkinNameKey.IsEmpty() ? D->NameKey : D->SkinNameKey);
+		FocusName = Name;
+		if (!(Me->Inventory && Me->Inventory->ToolFor(TEXT("Dressing"))))
+		{
+			bFocusBlocked = true;
+			FocusText = FString::Printf(TEXT("%s  ·  %s"), *Name, *NWText::Get(TEXT("ui_notoolitem")).Replace(TEXT("{itemName}"), *NWText::Get(ToolGroupKey(TEXT("Dressing")))));
+			return;
+		}
+		FocusText = FString::Printf(TEXT("%s %s"), *NWText::Get(TEXT("nw.gather.skin")), *Name);
+		return;
+	}
 	const ANWGatherField* Field = ANWGatherField::Get(GetWorld());
-	if (!Me || !Field || IsGathering() || Me->Combat->State == ENWCombatState::Dead)
+	if (!Field)
 	{
 		return;
 	}
@@ -101,6 +156,7 @@ void UNWGatherComponent::UpdateFocus()
 	}
 	const ANWGatherField::FVariant& V = Field->VariantOf(FocusIndex);
 	const FString Name = NWText::Get(V.NameKey);
+	FocusName = Name;
 	const FName Tool = ToolType(V.Action);
 	if (V.Restriction == TEXT("ToolRequired") && !Tool.IsNone() && !(Me->Inventory && Me->Inventory->ToolFor(Tool)))
 	{
@@ -126,6 +182,10 @@ void UNWGatherComponent::InteractPressed()
 	if (IsGathering())
 	{
 		ServerCancel();
+	}
+	else if (FocusCreature.IsValid() && !bFocusBlocked)
+	{
+		ServerSkin(FocusCreature.Get());
 	}
 	else if (FocusIndex != INDEX_NONE && !bFocusBlocked)
 	{
@@ -176,6 +236,35 @@ void UNWGatherComponent::ServerGather_Implementation(int32 Index)
 	GetOwner()->ForceNetUpdate();
 }
 
+void UNWGatherComponent::ServerSkin_Implementation(ANWCreature* Creature)
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	const FNWCreatureDef* D = Creature ? Creature->Def() : nullptr;
+	if (!Me || !D || IsGathering() || D->SkinLoot.IsNone() || Creature->bSkinned || Creature->SkinnedBy.IsValid()
+		|| Creature->Combat->State != ENWCombatState::Dead || Me->Combat->State != ENWCombatState::Idle
+		|| FVector::Dist2D(Creature->GetActorLocation(), Me->GetActorLocation()) > 300.f)
+	{
+		return;
+	}
+	const FNWItemDef* Knife = Me->Inventory ? Me->Inventory->ToolFor(TEXT("Dressing")) : nullptr;
+	if (!Knife)
+	{
+		return;
+	}
+	const float SkillBonus = Me->Progression ? Me->Progression->TradeEfficiency(NWTradeskill::Index(D->SkinTradeskill)) : 0.f;
+	Creature->SkinnedBy = Me;
+	GatherIndex = SkinIndex;
+	GatherActor = Creature;
+	GatherAction = TEXT("Dressing");
+	GatherStart = ServerNow();
+	GatherEnd = GatherStart + FMath::Max(1.f, D->SkinTime / FMath::Max(0.1f, Knife->Efficiency + SkillBonus));
+	GatherFrom = Me->GetActorLocation();
+	const FVector To = Creature->GetActorLocation() - GatherFrom;
+	Me->SetActorRotation(FRotator(0.f, To.Rotation().Yaw, 0.f));
+	OnRep_Gather();
+	GetOwner()->ForceNetUpdate();
+}
+
 void UNWGatherComponent::ServerCancel_Implementation()
 {
 	if (IsGathering())
@@ -189,10 +278,39 @@ void UNWGatherComponent::Finish(bool bComplete)
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	ANWGatherField* Field = ANWGatherField::Get(GetWorld());
 	const int32 Index = GatherIndex;
+	ANWCreature* Corpse = Cast<ANWCreature>(GatherActor.Get());
 	GatherIndex = INDEX_NONE;
 	GatherAction = NAME_None;
+	GatherActor = nullptr;
 	OnRep_Gather();
 	GetOwner()->ForceNetUpdate();
+	if (Index == SkinIndex)
+	{
+		// Carcaça: saque da linha de esfolar do jogo (BoarSkinning...) e XP de Esfolamento.
+		const FNWCreatureDef* D = Corpse ? Corpse->Def() : nullptr;
+		if (Corpse)
+		{
+			Corpse->SkinnedBy.Reset();
+		}
+		if (!bComplete || !Me || !D || Corpse->bSkinned)
+		{
+			return;
+		}
+		Corpse->bSkinned = true;
+		Corpse->ForceNetUpdate();
+		TArray<FNWItem> Gained;
+		const int32 Bonus = Me->Progression ? Me->Progression->TradeRollBonus(NWTradeskill::Index(D->SkinTradeskill)) : 0;
+		FNWItemCatalog::Get().RollGame(D->SkinLoot, Gained, Bonus);
+		if (Me->Inventory)
+		{
+			Me->Inventory->Grant(Gained, 0);
+		}
+		if (Me->Progression)
+		{
+			Me->Progression->AddTradeXp(D->SkinTradeskill, D->SkinTradeXp);
+		}
+		return;
+	}
 	if (!bComplete || !Me || !Field || Field->IsDepleted(Index))
 	{
 		return;

@@ -48,6 +48,12 @@ sets() {
     py import_sword "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/sword_shield/manifest.json"
     py import_lost "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/lost_sword/manifest.json"
 }
+creatures() {
+    # G3: javali e lobo (tools/sets/*.json) e o ABP de modelo das criaturas (o grafo é montado à mão uma vez).
+    py import_boar "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/boar/manifest.json"
+    py import_wolf "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/wolf/manifest.json"
+    py creature_abp "$ROOT/tools/ue/make_abp.py" creature
+}
 city() {
     py import_city "$ROOT/tools/ue/import_city.py" "$ROOT/extract/cities/limpa/settlement_southwindsward_complete.glb" SouthWindsward
     py fix_city "$ROOT/tools/ue/fix_city.py" SouthWindsward
@@ -86,4 +92,5 @@ step 08 "materiais (Nanite e instâncias)" py materials "$ROOT/tools/ue/fix_nani
 step 11 "otimização do mapa (distâncias, sombras, luzes)" py optimize "$ROOT/tools/ue/optimize_region.py"
 step 09 "texturas da interface" py ui "$ROOT/tools/ue/import_ui.py"
 step 10 "sons de fundo" py audio "$ROOT/tools/ue/import_audio.py"
+step 12 "criaturas (javali, lobo) e ABP de criatura" creatures
 echo "Pronto. Abra o editor: $UE_DIR/Engine/Binaries/Linux/UnrealEditor $P /Game/NW/Maps/L_SouthWindsward"

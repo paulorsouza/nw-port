@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NWCharacter.h"
 #include "NWGatherField.h"
+#include "NWSpawnField.h"
 #include "NWHUD.h"
 #include "NWPlayerController.h"
 #include "NWPlayerState.h"
@@ -40,6 +41,11 @@ void ANWGameMode::BeginPlay()
 	if (!ANWGatherField::DataFileFor(GetWorld()).IsEmpty() && !ANWGatherField::Get(GetWorld()))
 	{
 		GetWorld()->SpawnActor<ANWGatherField>();
+	}
+	// Criaturas da região (G3): só o servidor; as criaturas replicam.
+	if (!ANWSpawnField::DataFileFor(GetWorld()).IsEmpty())
+	{
+		GetWorld()->SpawnActor<ANWSpawnField>();
 	}
 	if (UNWBackend* B = Backend(); B && B->IsServerEnabled())
 	{
