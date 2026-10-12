@@ -62,8 +62,9 @@ antes dos comandos manuais.
 | `assemble_character.py` | monta personagem + animações num `.blend` (conferência) |
 | `adb_resolve.py`, `adb_windows.py` | lê as receitas do Mannequin (.adb): clipes por tags e janelas de combate |
 | `glb_strip_nodraw.py` | tira de um glb as primitivas que o jogo não desenha (colisão, NoDraw, efeitos) |
-| `ui_canvas.py` | tela LyShine do jogo → layout plano (base dos `ui_build_*.py`) |
-| `ui_build_hud.py`, `ui_build_login.py`, `ui_build_mastery.py`, `ui_build_respawn.py`, `ui_build_group.py`, `ui_build_inventory.py` | layouts das telas do jogo para o C++ (`Data/UI/*_layout*.json`) e listas de texturas |
+| `ui_canvas.py` | tela LyShine do jogo (`.dynamicuicanvas` ou slice `.dynamicslice`, ex.: banners) → layout plano (base dos `ui_build_*.py`) |
+| `ui_build_hud.py`, `ui_build_login.py`, `ui_build_mastery.py`, `ui_build_respawn.py`, `ui_build_group.py`, `ui_build_inventory.py`, `ui_build_tradeskills.py`, `ui_build_attributes.py` | layouts das telas do jogo para o C++ (`Data/UI/*_layout*.json`) e listas de texturas; a HUD inclui a barra de XP (`hud2024/xp`); ofícios e atributos são abas da janela K |
+| `ui_textures_extra.py` | listas de texturas das telas desenhadas direto pelo C++ (bússola, sobrecarga, cartões, números de dano, aviso de saque, tooltip, banner de nível, ícones de ofício, indicador de golpe, faixa de aviso, barra de navegação) |
 | `gallery.py`, `gallery.sh` | galeria de armaduras (escolha visual) |
 | `render_preview.py`, `preview_fbx.py` | prévias headless no Blender |
 
