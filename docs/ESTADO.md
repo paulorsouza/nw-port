@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Ponto de partida para quem chega (pessoa ou sessão nova de IA). Atualizado em 2026-10-11.
+Ponto de partida para quem chega (pessoa ou sessão nova de IA). Atualizado em 2026-10-12.
 
 ## O que é
 
@@ -23,6 +23,8 @@ plano paralelo do dono (estado e regras em `docs/plano-b-cliente-original.md`); 
 | Coleta: 100 mil coletáveis da paisagem (minério, árvores, plantas, alquimia, pedras), ferramentas, saque das tabelas do jogo, respawn | `NWGatherField`, `NWGatherComponent`, `tools/make_gatherables.py` |
 | Cidade de Guardaventos, terreno da região (2 km), cenário pré-gerado (penhascos, ruínas) | `tools/ue/import_*.py` |
 | Música e ambiente de Guardaventos | `NWAmbienceComponent` |
+| Telas do jogo: menu do Esc, configurações (vídeo, áudio, jogo, atalhos), mapa (M) com POIs, bússola com POIs, tooltip de item, aviso de saque, sobrecarga, barra de XP, banner de nível, atributos | `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWHUD`, `NWInventoryMenu`; pesquisa e estado em `docs/hud-original.md` |
+| Nível, XP e atributos com as tabelas do jogo (sem fonte de XP ainda; "Ganhar 1 nível" no menu F10) | `NWProgressionComponent`, `tools/make_progression.py` |
 
 Fases do servidor F0–F3 concluídas; F4 (Guardaventos completo) em andamento: `docs/guardaventos.md`.
 
@@ -31,11 +33,12 @@ Fases do servidor F0–F3 concluídas; F4 (Guardaventos completo) em andamento: 
 Lista completa em `docs/pendencias.md`. Os principais agora:
 
 - Chão com uma textura só (falta o material por bioma do jogo: `region.tractmap.tif` + materiais de terreno).
-- Água: rios, lagos e cachoeira (`region.waterqt`, camada `water`); hoje só há um plano de mar.
 - Personagem "voando" em alguns pontos e pedregulho flutuando: sem diagnóstico ainda.
 - Copas das árvores da cidade com placas coloridas (folhagem masked).
 - Criaturas dos POIs (javali, lobo, esqueletos...), NPCs da cidade, baús: etapas G3–G5 de `docs/guardaventos.md`.
-- Cartão de interação e barra de coleta são provisórios (não são os do jogo).
+- Texturas novas das telas (tooltip, mapa, barra de XP, banner, aviso de saque) ainda não importadas na Unreal:
+  com o editor fechado, `tools/ue_import_all.sh 09`. Sem isso essas telas aparecem sem as imagens.
+- Telas feitas em 2026-10-11/12 sem editor aberto: compilam, mas ninguém viu na tela ainda.
 
 ## Como trabalhar
 

@@ -95,3 +95,18 @@ Anotado em 2026-10-11, depois da primeira sessão no Unreal.
   PvP) e baldes `[LBID]` ficam de fora.
 - Sem VFX/SFX de esgotar (`DepletedVFX`/`DepletedSFX` das variações) nem ícone na bússola (`CompassIcon`).
 - Vegetação dos lotes `<PLOT>` (1.169) e árvores fora da camada de coletáveis: etapa G5.
+
+## Telas do jogo sem editor (2026-10-12)
+
+Feitas com o PC sozinho (sem abrir o editor nem rodar o jogo): compilam, falta conferir na tela.
+
+- Importar as texturas novas: editor fechado, `tools/ue_import_all.sh 09` (listas `tooltip`, `lootticker2024`,
+  `worldmap`, `levelup` e a tela `xp` do `hud_textures`). Os 52 tiles do mapa entram comprimidos (DXT1).
+- Conferir: tooltip (Tab, mouse num item), aviso de saque (coletar), mapa (M: arrastar, roda, botões, POIs),
+  bússola com POIs, barra de XP e banner (F10 > Ganhar 1 nível), atributos e "+" no painel de status,
+  aba Atalhos (trocar tecla, Esc cancela, Restaurar Padrões) e corrida automática (=).
+- Progressão: XP não vem de coleta nem de abate (as tabelas não dizem a fórmula; ver `docs/hud-original.md`);
+  nível/XP/atributos não são salvos no nw-core (precisa migration + `backend/src/routes/internal.rs`);
+  atributos ainda não mudam dano nem vida.
+- Mapa: faltam coletáveis rastreados, NPCs, outros jogadores do grupo; névoa de áreas não descobertas.
+- Atalhos: só teclado e mouse; sem controle. Conflito troca as duas teclas (o jogo apaga a outra).
