@@ -160,7 +160,16 @@ void ANWGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 	ANWPlayerController* PC = Cast<ANWPlayerController>(NewPlayer);
-	if (!PC || !PC->Record)
+	if (PC && !PC->Record)
+	{
+		// Sem backend (Play no editor, teste local): kit inicial com as ferramentas de coleta, para dar para testar.
+		if (ANWCharacter* Ch = Cast<ANWCharacter>(PC->GetPawn()); Ch && Ch->Inventory && Ch->Inventory->Items.Num() == 0)
+		{
+			Ch->Inventory->GiveStarterKit();
+		}
+		return;
+	}
+	if (!PC)
 	{
 		return;
 	}

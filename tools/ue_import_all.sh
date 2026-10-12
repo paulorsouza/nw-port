@@ -58,6 +58,7 @@ terrain() {
     py terrain "$ROOT/tools/ue/import_terrain.py" "$ROOT/extract/cities/guardaventos_terrain.glb" SouthWindsward \
         "$T/jav_fst_feildgrass_a_diff.png" "$T/jav_fst_forestsoil_a_diff.png"
     py fix_spawn "$ROOT/tools/ue/fix_spawn.py" SouthWindsward
+    py water "$ROOT/tools/ue/import_water.py" "$ROOT/extract/cities/guardaventos_water.glb"
 }
 scenery() {
     # Camada já importada (pasta em Content/NW/Region) não é refeita; para refazer, apague a pasta.
@@ -77,11 +78,12 @@ step 01 "compilar o C++ do editor" build
 step 02 "personagens, armas e animações" sets
 step 03 "mapa de treino (L_Arena)" py test_map "$ROOT/tools/ue/make_test_map.py"
 step 04 "cidade de Guardaventos" city
-step 05 "terreno da região" terrain
+step 05 "terreno e água da região" terrain
 step 06 "malhas dos coletáveis" py gatherables "$ROOT/tools/ue/import_gatherables.py" "$ROOT/extract/ue/gatherables/limpa"
 step 07 "cenário da região" scenery
 step 08 "materiais (Nanite e instâncias)" py materials "$ROOT/tools/ue/fix_nanite_materials.py" \
     /Game/NW/Cities /Game/NW/Gatherables /Game/NW/Region /Game/NW/Materials /Game/NW/Terrain
+step 11 "otimização do mapa (distâncias, sombras, luzes)" py optimize "$ROOT/tools/ue/optimize_region.py"
 step 09 "texturas da interface" py ui "$ROOT/tools/ue/import_ui.py"
 step 10 "sons de fundo" py audio "$ROOT/tools/ue/import_audio.py"
 echo "Pronto. Abra o editor: $UE_DIR/Engine/Binaries/Linux/UnrealEditor $P /Game/NW/Maps/L_SouthWindsward"

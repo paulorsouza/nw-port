@@ -107,6 +107,9 @@ s08() {  # terreno da região inteira (2 km)
     local caps
     caps=$(ls extract/terrain/sharedassets/coatlicue/$LEVEL/regions/$REGION/capitals/06swindsward_persistence/*.json)
     python3 tools/make_terrain.py extract/terrain "$caps" Settlement_SouthWindsward_Complete extract/cities/guardaventos_terrain.glb --region "$REGION"
+    # Água: region.waterqt → altura por metro (bin/dbgwater) → malha com rios, lagos e cachoeiras.
+    bin/dbgwater "extract/terrain/sharedassets/coatlicue/$LEVEL/regions/$REGION/region.waterqt" "extract/terrain/water_$REGION.f32"
+    python3 tools/make_water.py "extract/terrain/water_$REGION.f32" "$caps" Settlement_SouthWindsward_Complete extract/cities/guardaventos_water.glb --region "$REGION"
 }
 s09() {  # coletáveis: dados + 435 malhas
     python3 tools/make_gatherables.py
@@ -150,7 +153,7 @@ step 04 "receitas de animação" s04
 step 05 "áudio" s05
 step 06 "dados da região" s06
 step 07 "cidade" s07
-step 08 "terreno da região" s08
+step 08 "terreno e água da região" s08
 step 09 "coletáveis" s09
 step 10 "cenário da região" s10
 step 11 "personagens e animações" s11
