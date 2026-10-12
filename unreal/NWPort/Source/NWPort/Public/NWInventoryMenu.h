@@ -44,7 +44,8 @@ private:
 	void DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWItem* Item, bool bSquare, bool bHover, bool bPickedHere);
 	void DrawEquipPanel(UCanvas* Canvas, const FVector2D& Mouse);
 	void DrawStatus(UCanvas* Canvas);
-	void DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse, bool bEquipped);
+	/** Desenha o tooltip ao lado do mouse (ou com a borda esquerda em ForceX) e devolve o retângulo usado. */
+	FBox2f DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse, bool bEquipped, float ForceX = -1.f);
 	// Quebra o texto em linhas que cabem em Width (pixels).
 	TArray<FString> Wrap(const FString& Text, float Width, float Size, int32 Style) const;
 	void DrawText(UCanvas* Canvas, const FString& Text, float X, float Y, float Size, const FLinearColor& Color, int32 Style = 0) const;

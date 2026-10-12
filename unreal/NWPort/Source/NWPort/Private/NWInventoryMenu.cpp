@@ -412,14 +412,14 @@ TArray<FString> FNWInventoryMenu::Wrap(const FString& Text, float Width, float S
 	return Out;
 }
 
-void FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse, bool bEquipped)
+FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse, bool bEquipped, float ForceX)
 {
 	// Tooltip do jogo (lyshineui/tooltip, DynamicTooltip): 360 de largura; cabeçalho de 104 com o fundo da raridade,
 	// moldura do ícone 90×90 e tier; nome, raridade e tipo à direita; divisor dourado; seções separadas por linha.
 	const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
 	if (!D)
 	{
-		return;
+		return FBox2f(ForceInit);
 	}
 	static const TCHAR* Dir = TEXT("lyshineui/images/tooltip/");
 	const float S = UIScale;
@@ -462,7 +462,7 @@ void FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const F
 	const float H = HeaderH + BodyH + 8.f;
 	// Ao lado do item, para o lado com espaço; nunca para fora da tela.
 	const float PW = W * S, PH = (H + TopH) * S;
-	const float X = Mouse.X > Canvas->ClipX * 0.5f ? Mouse.X - PW - 30.f * S : Mouse.X + 30.f * S;
+	const float X = ForceX >= 0.f ? ForceX : Mouse.X > Canvas->ClipX * 0.5f ? Mouse.X - PW - 30.f * S : Mouse.X + 30.f * S;
 	const float Y0 = FMath::Clamp(float(Mouse.Y) - 40.f * S, 20.f * S, Canvas->ClipY - PH - 20.f * S);
 	const float Y = Y0 + TopH * S;
 	auto Box = [&](float L, float T, float R, float B) { return FBox2f(FVector2f(X + L * S, Y + T * S), FVector2f(X + R * S, Y + B * S)); };
@@ -519,6 +519,7 @@ void FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const F
 		CY += 27.f + R.Gap;
 	}
 	DrawTexture(Canvas, FString(Dir) + TEXT("tooltip_bgframenew.dds"), Box(0.f, 0.f, W, H), FLinearColor(0.35f, 0.33f, 0.14f));
+	return FBox2f(FVector2f(X, Y0), FVector2f(X + PW, Y0 + PH));
 }
 
 void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
@@ -589,7 +590,16 @@ void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	{
 		if (const FNWItem* Item = Inv->At(Hover->Container, Hover->Slot))
 		{
-			DrawTooltip(Canvas, *Item, Mouse, Hover->Container != ENWItemContainer::Bag);
+			const FBox2f R = DrawTooltip(Canvas, *Item, Mouse, Hover->Container != ENWItemContainer::Bag);
+			// Comparação do jogo: item da bolsa que vai num espaço ocupado mostra o equipado ao lado.
+			const FNWItemDef* D = FNWItemCatalog::Get().Find(Item->ItemId);
+			const int32 EquipSlot = D && Hover->Container == ENWItemContainer::Bag ? NWEquip::SlotForSet(D->Set) : INDEX_NONE;
+			if (const FNWItem* Equipped = EquipSlot != INDEX_NONE ? Inv->At(ENWItemContainer::Equip, EquipSlot) : nullptr; Equipped && R.bIsValid)
+			{
+				const float Gap = 14.f * UIScale, W = R.GetSize().X;
+				const float CX = R.Min.X - Gap - W >= 0.f ? R.Min.X - Gap - W : R.Max.X + Gap;
+				DrawTooltip(Canvas, *Equipped, FVector2D(Mouse.X, R.Min.Y + 40.f * UIScale), true, CX);
+			}
 		}
 	}
 }
