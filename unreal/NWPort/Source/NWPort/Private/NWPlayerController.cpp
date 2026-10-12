@@ -1,4 +1,7 @@
 #include "NWPlayerController.h"
+#include "NWCreature.h"
+#include "NWBrainComponent.h"
+#include "NWBehaviorTreeComponent.h"
 #include "TimerManager.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "NWProgressionComponent.h"
@@ -535,8 +538,139 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 			New->FinishSpawning(Where);
 		}
 	};
+	// Arena: criatura do catálogo do jogo (vida e dano do nível) ou personagem, em volta do jogador a ~14 m.
+	auto Around = [&](int32 Index, int32 Count) -> FTransform
+	{
+		const float Yaw = GetControlRotation().Yaw + (Count > 1 ? (Index - (Count - 1) * 0.5f) * 35.f : 0.f);
+		const FVector At = Me->GetActorLocation() + FRotator(0.f, Yaw, 0.f).Vector() * 1400.f + FVector(0.f, 0.f, 80.f);
+		return FTransform(FRotator(0.f, Yaw + 180.f, 0.f), At);
+	};
+	auto SpawnCreature = [&](FName Id, const FTransform& Where)
+	{
+		const FNWCreatureDef* D = ANWCreature::FindDef(Id);
+		ANWCreature* C = D ? World->SpawnActorDeferred<ANWCreature>(ANWCreature::StaticClass(), Where, nullptr, nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn) : nullptr;
+		if (!C)
+		{
+			return;
+		}
+		C->Tags.Add(DevTag);
+		C->Setup(*D, {}, {});
+		C->AggroRange = 3000.f;
+		C->FinishSpawning(Where);
+		// Onda da arena: já entra em combate com quem chamou (a visão do jogo é de 12 m; a onda nasce a 14 m).
+		if (C->Behavior && C->Behavior->IsActive())
+		{
+			C->Behavior->Aggro(Me);
+		}
+	};
+	// Personagem do jogador com outra arma (arco = 2, rapieira = 3 em WeaponSets) e o estilo de luta dela.
+	auto SpawnArmed = [&](const FTransform& Where, int32 Weapon, ENWBrainStyle Style, TArray<FNWBrainAttack> Attacks, float Block, float Dodge)
+	{
+		ANWCharacter* New = World->SpawnActorDeferred<ANWCharacter>(ANWCharacter::StaticClass(), Where, nullptr, nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+		if (!New || !New->WeaponSets.IsValidIndex(Weapon))
+		{
+			if (New) New->Destroy();
+			return;
+		}
+		New->Tags.Add(DevTag);
+		New->AggroRange = 4000.f;
+		New->Loadout = {Weapon, Weapon == 2 ? 3 : 2};
+		New->ActiveWeapon = Weapon;
+		New->Combat->MaxHealth = 1200.f;
+		New->UseBrain(static_cast<uint8>(Style), Attacks);
+		New->Brain->BlockChance = Block;
+		New->Brain->DodgeChance = Dodge;
+		New->FinishSpawning(Where);
+		New->SetLoadout(Weapon, Weapon == 2 ? 3 : 2);
+		New->Combat->WeaponBaseDamage *= 0.7f;
+	};
+	auto Atk2 = [](const TCHAR* A, float Min, float Max, float W, float Cd = 0.f, int32 Chain = 1, bool bGap = false)
+	{
+		FNWBrainAttack R; R.Action = A; R.MinRange = Min; R.MaxRange = Max; R.Weight = W; R.Cooldown = Cd; R.Chain = Chain; R.bGapCloser = bGap;
+		return R;
+	};
+	auto SpawnDuelist = [&](const FTransform& Where)
+	{
+		ANWCharacter* New = World->SpawnActorDeferred<ANWCharacter>(ANWCharacter::StaticClass(), Where, nullptr, nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+		if (!New)
+		{
+			return;
+		}
+		New->Tags.Add(DevTag);
+		New->AggroRange = 3000.f;
+		New->Combat->MaxHealth = 1500.f;
+		New->Combat->WeaponBaseDamage = 70.f;
+		auto Atk = [](const TCHAR* A, float Min, float Max, float W, float Cd = 0.f, int32 Chain = 1, bool bGap = false)
+		{
+			FNWBrainAttack R; R.Action = A; R.MinRange = Min; R.MaxRange = Max; R.Weight = W; R.Cooldown = Cd; R.Chain = Chain; R.bGapCloser = bGap;
+			return R;
+		};
+		// Espada e escudo como o jogador: combo de 1 a 3, pesado, golpe de escudo; levanta a guarda e esquiva.
+		New->UseBrain(static_cast<uint8>(ENWBrainStyle::Duelist), {Atk(TEXT("Light1"), 0.f, 260.f, 2.f, 0.f, 3), Atk(TEXT("Light1"), 0.f, 260.f, 1.f, 0.f, 1),
+			Atk(TEXT("Heavy"), 0.f, 260.f, 1.f, 2.5f), Atk(TEXT("ShieldBash"), 0.f, 220.f, 0.6f, 9.f), Atk(TEXT("SprintAttack"), 400.f, 800.f, 0.6f, 6.f, 1, true)});
+		New->Brain->BlockChance = 0.35f;
+		New->Brain->DodgeChance = 0.2f;
+		New->Brain->HoldDistance = 360.f;
+		New->FinishSpawning(Where);
+	};
 	switch (Command)
 	{
+	case ENWDevCommand::CycleLoadout:
+		if (Me)
+		{
+			static const int32 Pairs[][2] = {{0, 1}, {2, 3}, {2, 0}, {3, 1}};
+			int32 Cur = 0;
+			for (int32 i = 0; i < UE_ARRAY_COUNT(Pairs); ++i)
+			{
+				if (Me->Loadout.Num() == 2 && Me->Loadout[0] == Pairs[i][0] && Me->Loadout[1] == Pairs[i][1]) Cur = i;
+			}
+			for (int32 Step = 1; Step <= UE_ARRAY_COUNT(Pairs); ++Step)
+			{
+				const int32* P = Pairs[(Cur + Step) % UE_ARRAY_COUNT(Pairs)];
+				if (Me->WeaponSets.IsValidIndex(P[0]) && Me->WeaponSets.IsValidIndex(P[1]))
+				{
+					Me->SetLoadout(P[0], P[1]);
+					break;
+				}
+			}
+		}
+		break;
+	case ENWDevCommand::ArenaBoars:
+		if (Me) for (int32 i = 0; i < 2; ++i) SpawnCreature(TEXT("Boar_6"), Around(i, 2));
+		break;
+	case ENWDevCommand::ArenaWolves:
+		if (Me) for (int32 i = 0; i < 3; ++i) SpawnCreature(i == 1 ? FName(TEXT("Wolf_Timber_8")) : FName(TEXT("Wolf_Grey_8")), Around(i, 3));
+		break;
+	case ENWDevCommand::ArenaLost:
+		if (Me) for (int32 i = 0; i < 2; ++i) { const FTransform W = Around(i, 2); ANWCharacter* L = World->SpawnActorDeferred<ANWCharacter>(ANWLost::StaticClass(), W, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn); if (L) { L->Tags.Add(DevTag); L->AggroRange = 3000.f; L->FinishSpawning(W); } }
+		break;
+	case ENWDevCommand::ArenaArcher:
+		// Arqueiro: fica a ~14 m, recua se você chega perto, tiro rápido, Tiro Rápido e Tiro Penetrante; esquiva.
+		if (Me) SpawnArmed(Around(0, 1), 2, ENWBrainStyle::Archer, {Atk2(TEXT("Light1"), 300.f, 3000.f, 3.f, 0.8f),
+			Atk2(TEXT("RapidShot"), 500.f, 3000.f, 1.f, 14.f), Atk2(TEXT("PenetratingShot"), 800.f, 4000.f, 1.f, 18.f),
+			Atk2(TEXT("EvadeShot"), 0.f, 450.f, 2.f, 15.f)}, 0.f, 0.35f);
+		break;
+	case ENWDevCommand::ArenaRapier:
+		// Duelista de rapieira: combos, Tondo (sangra), Brandir e Terminar, investida de longe; esquiva rápida, guarda.
+		if (Me) SpawnArmed(Around(0, 1), 3, ENWBrainStyle::Duelist, {Atk2(TEXT("Light1"), 0.f, 250.f, 3.f, 0.f, 3),
+			Atk2(TEXT("Tondo"), 0.f, 450.f, 1.f, 6.f), Atk2(TEXT("Flourish"), 0.f, 300.f, 1.f, 20.f), Atk2(TEXT("Light1"), 0.f, 250.f, 1.f, 0.f, 2),
+			Atk2(TEXT("Fleche"), 500.f, 1000.f, 1.f, 20.f, 1, true)}, 0.2f, 0.4f);
+		break;
+	case ENWDevCommand::ArenaDuelist:
+		if (Me) SpawnDuelist(Around(0, 1));
+		break;
+	case ENWDevCommand::ArenaMixed:
+		if (Me)
+		{
+			SpawnCreature(TEXT("Wolf_Grey_8"), Around(0, 4));
+			SpawnCreature(TEXT("Wolf_Grey_8"), Around(1, 4));
+			SpawnCreature(TEXT("Boar_6"), Around(2, 4));
+			SpawnDuelist(Around(3, 4));
+		}
+		break;
 	case ENWDevCommand::ToggleNoCooldowns:
 		if (Me) { Me->Combat->bNoCooldowns = !Me->Combat->bNoCooldowns; if (Me->Combat->bNoCooldowns) Me->Combat->ClearCooldowns(); }
 		break;
@@ -597,6 +731,13 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 	case ENWDevCommand::ToggleFastRun:
 		// Atravessar o mapa: todas as velocidades × 4 (de novo volta ao normal).
 		if (Me) Me->DevSpeedMultiplier = Me->DevSpeedMultiplier > 1.f ? 1.f : 4.f;
+		break;
+	case ENWDevCommand::ToggleFly:
+		if (Me)
+		{
+			Me->bDevFlying = !Me->bDevFlying;
+			Me->ApplyDevFlying();
+		}
 		break;
 	case ENWDevCommand::GiveTools:
 		if (Me && Me->Inventory) Me->Inventory->GiveTools();

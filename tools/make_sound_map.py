@@ -29,11 +29,40 @@ VOCALS = {
 }
 # Reações (montagem -> sons no início). O alvo usa Heroic Heavy: impacto de espada em armadura.
 REACTIONS = {
-    "AM_Hit_": [(0.0, "combat/impacts/imp_swordmetal_armor", "impacto"), (0.05, "combat/voice_male/vo_hurt", "dor")],
+    # Reações R1/R2/R3 (AM_Hit1_, AM_Hit_, AM_Hit3_, e as do arco AM_Bw_Hit*) e a queda R4 (AM_Down_).
+    "AM_Hit": [(0.0, "combat/impacts/imp_swordmetal_armor", "impacto"), (0.05, "combat/voice_male/vo_hurt", "dor")],
+    "AM_Bw_Hit": [(0.0, "combat/impacts/imp_swordmetal_armor", "impacto"), (0.05, "combat/voice_male/vo_hurt", "dor")],
+    "AM_Down_": [(0.0, "combat/impacts/imp_swordmetal_armor", "impacto"), (0.05, "combat/voice_male/vo_hurt", "dor")],
     "AM_BlockReact": [(0.0, "combat/impacts/block_wpn_metal_med_vs_shield_metal_med", "bloqueio")],
     "AM_BlockBreak": [(0.0, "combat/impacts/gpui_blockbreaker", "guarda quebrada")],
     "AM_Death": [(0.0, "combat/voice_male/vo_death", "morte")],
 }
+
+
+# Criaturas (conjunto -> montagem -> sons). Tempo "golpe" = início da janela CAGE-Damage da montagem (o whoosh e a
+# mordida saem 0,15 s antes). Os passos dos bichos (walk_boar, run_wolf...) são de outro banco, ainda não extraído.
+# Na dor vai o impacto de espada em carne: hoje quem bate em criatura é o jogador.
+CREATURES = {
+    "boar": {
+        "AM_Attack1": [("golpe", "creatures/boar/sfx_boar_whoosh", "whoosh"), ("golpe", "creatures/boar/sfx_boar_furwhoosh", "pelo")],
+        "AM_Heavy": [(0.0, "creatures/boar/sfx_boar_charge", "investida")],
+        "AM_ChargeStart": [(0.0, "creatures/boar/vox_boar_charge_setup_snort", "bufo"), (0.1, "creatures/boar/sfx_boar_charge_setup", "patas")],
+        "AM_Aggro": [(0.0, "creatures/boar/boar_roar1", "rugido")],
+        "AM_Growl": [(0.0, "creatures/boar/vo_breathing", "voz")],
+        "AM_Hit_": [(0.0, "combat/impacts/imp_swordmetal_flesh", "impacto"), (0.03, "creatures/boar/boar_hurts", "dor")],
+        "AM_Death": [(0.0, "creatures/boar/boar_death", "morte")],
+    },
+    "wolf": {
+        "AM_Attack1": [("golpe", "creatures/wolf/vox_wolf_bite", "mordida")],
+        "AM_Attack2": [("golpe", "creatures/wolf/vox_wolf_bite", "mordida")],
+        "AM_Heavy": [(0.0, "creatures/wolf/vox_wolf_growl", "rosnado"), ("golpe", "creatures/wolf/vox_wolf_bite", "mordida")],
+        "AM_Leap": [(0.0, "creatures/wolf/sfx_wolf_jump", "pulo"), ("golpe", "creatures/wolf/vox_wolf_bite", "mordida")],
+        "AM_Aggro": [(0.0, "creatures/wolf/vox_wolf_alert", "alerta")],
+        "AM_Hit_": [(0.0, "combat/impacts/imp_swordmetal_flesh", "impacto"), (0.03, "creatures/wolf/vox_wolf_hurt", "dor")],
+        "AM_Death": [(0.0, "creatures/wolf/vox_wolf_death", "morte")],
+    },
+}
+CREATURE_ANIMEVENTS = "animations/gameplay/character/npc/natural/predator/{0}/{0}.animevents"
 
 
 MAX_VARIATIONS = 12
@@ -67,7 +96,10 @@ def main():
         return [os.path.join(AUDIO, r["file"]) for r in rows][:MAX_VARIATIONS]
 
     # Passos por clipe (caminho completo do .caf -> eventos).
-    xml = subprocess.run(["nwbt", "cat", "-g", GAME, ANIMEVENTS], capture_output=True, check=True).stdout
+    set_name = os.path.basename(os.path.dirname(os.path.abspath(a.manifest)))
+    creature = CREATURES.get(set_name)
+    events_file = CREATURE_ANIMEVENTS.format(set_name) if creature else ANIMEVENTS
+    xml = subprocess.run(["nwbt", "cat", "-g", GAME, events_file], capture_output=True, check=True).stdout
     steps = {}
     for anim in ET.fromstring(xml):
         name = os.path.splitext(os.path.basename(anim.get("name", "")))[0].lower()
@@ -112,8 +144,22 @@ def main():
                     missing.add(name)
                 add(asset, w["start"], files, "", name)
 
+    # Criaturas: ataques, voz, dor e morte.
+    for montage, keys in m["montages"].items() if creature else ():
+        for prefix, sounds in creature.items():
+            if montage != prefix and not (prefix.endswith("_") and montage.startswith(prefix)):
+                continue
+            asset = m["composites"][keys[0]]["asset"]
+            hit = next((w["start"] for sec in m.get("windows", {}).get(montage, []) for w in sec["windows"]
+                        if w["type"] == "CAGE-Damage"), 0.0)
+            for t, rel, label in sounds:
+                files = folder_files(rel)
+                if not files:
+                    missing.add(rel)
+                add(asset, max(0.0, hit - 0.15) if t == "golpe" else t, files, "", label)
+
     # Reações.
-    for montage, keys in m["montages"].items():
+    for montage, keys in m["montages"].items() if not creature else ():
         for prefix, sounds in REACTIONS.items():
             if montage.startswith(prefix):
                 asset = m["composites"][keys[0]]["asset"]

@@ -39,7 +39,8 @@ DEFAULT_GAME = "/mnt/jogos/Steam/steamapps/common/New World"
 
 # Bancos de (b) combate/movimento. Todos levam -gra (um .txtp por variação aleatória).
 SFX_GROUPS = ["wpn_1h_sword", "wpn_1h_shield", "impacts", "player_mvts",
-              "playvoice_male", "playvoice_female", "bodyfalls", "global"]
+              "playvoice_male", "playvoice_female", "bodyfalls", "global",
+              "npc_boar", "npc_wolf", "wpn_1h_rapier", "wpn_2h_bow", "wpn_1h_axe"]
 
 # Eventos de cada grupo que entram em (b), e a pasta de destino.
 SFX_RULES = [
@@ -54,6 +55,13 @@ SFX_RULES = [
     ("player_mvts", r"^(bodyfall|handhard|handsoft)_player", "movement/bodyfall"),
     ("player_mvts", r"^play_unarmed_whoosh", "combat/whoosh"),
     ("bodyfalls", r".", "combat/bodyfall_npc"),
+    # Criaturas (G3): voz, dor, morte e ataques de cada bicho (npc_<bicho>_events.csv lista os eventos).
+    ("npc_boar", r".", "creatures/boar"),
+    ("npc_wolf", r".", "creatures/wolf"),
+    # Armas do jogador além da espada (rapieira, arco, machadinha): golpes, habilidades, corda, flecha.
+    ("wpn_1h_rapier", r".", "combat/rapier"),
+    ("wpn_2h_bow", r".", "combat/bow"),
+    ("wpn_1h_axe", r".", "combat/hatchet"),
     ("playvoice_male", r"voice=vo_(exert|hurt|death|exhausted|landhard|landsoft|holding)", "combat/voice_male"),
     ("playvoice_female", r"voice=vo_(exert|hurt|death|exhausted|landhard|landsoft|holding)", "combat/voice_female"),
 ]
@@ -386,6 +394,11 @@ CATEGORIES = [
     ("combat/voice_male", "esforço, dor, morte, queda (`playvoice_male`)"),
     ("combat/voice_female", "idem (`playvoice_female`)"),
     ("combat/bodyfall_npc", "`bodyfalls`"),
+    ("creatures/boar", "`npc_boar`: voz, dor, morte, rugido, investida, whoosh"),
+    ("creatures/wolf", "`npc_wolf`: voz, mordida, uivo, rosnado, dor, morte, pulo"),
+    ("combat/rapier", "`wpn_1h_rapier`: golpes e habilidades da rapieira"),
+    ("combat/bow", "`wpn_2h_bow`: corda, disparo, flecha, habilidades do arco"),
+    ("combat/hatchet", "`wpn_1h_axe`: golpes e arremessos da machadinha"),
     ("movement/footsteps", "walk/run/sprint/sprintstop/slide do jogador por superfície"),
     ("movement/dodge", "`dodgeroll_player` por superfície"),
     ("movement/jump_land", "pulo e aterrissagem"),

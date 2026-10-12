@@ -33,6 +33,18 @@ EXTRA = ["lyshineui/images/icons/abilities/sword_ability02.dds", "lyshineui/imag
 def main():
     canvases = []
     textures = set(EXTRA)
+    # Ícones de habilidade e de arma de todas as armas de tools/make_abilities.py (roda antes, em make_data.sh).
+    abil = os.path.join(ROOT, "unreal", "NWPort", "Data", "UI", "abilities.pt-br.json")
+    if os.path.exists(abil):
+        data = json.load(open(abil))
+        for w in data.get("weapons", data).values() if isinstance(data, dict) else []:
+            if not isinstance(w, dict):
+                continue
+            if w.get("hud_icon"):
+                textures.add(w["hud_icon"])
+            for a in (w.get("abilities") or {}).values() if isinstance(w.get("abilities"), dict) else w.get("abilities") or []:
+                if isinstance(a, dict) and a.get("icon"):
+                    textures.add(a["icon"])
     for c in CANVASES:
         src = os.path.join(UI, "lyshineui", "hud2024", c + ".dynamicuicanvas.json")
         tmp = os.path.join(UI, os.path.basename(c) + ".layout.json")

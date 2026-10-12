@@ -100,6 +100,20 @@ void SNWDevMenu::Construct(const FArguments& Args)
 		const ANWCharacter* C = PC.IsValid() ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
 		return FText::FromString(C && C->DevSpeedMultiplier > 1.f ? NWText::Get(TEXT("nw.dev.on")) : NWText::Get(TEXT("nw.dev.off")));
 	}, Dev(ENWDevCommand::ToggleFastRun)));
+	Add(Button(NWText::Get(TEXT("nw.dev.fly")), [PC]() -> FText
+	{
+		const ANWCharacter* C = PC.IsValid() ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		return FText::FromString(C && C->bDevFlying ? NWText::Get(TEXT("nw.dev.on")) : NWText::Get(TEXT("nw.dev.off")));
+	}, Dev(ENWDevCommand::ToggleFly)));
+	Add(Button(NWText::Get(TEXT("nw.dev.weapon_pair")), [PC]() -> FText
+	{
+		const ANWCharacter* C = PC.IsValid() ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		if (!C || C->Loadout.Num() != 2 || !C->WeaponSets.IsValidIndex(C->Loadout[0]) || !C->WeaponSets.IsValidIndex(C->Loadout[1]))
+		{
+			return FText::GetEmpty();
+		}
+		return FText::FromString(C->WeaponSets[C->Loadout[0]].Id.ToString() + TEXT(" + ") + C->WeaponSets[C->Loadout[1]].Id.ToString());
+	}, Dev(ENWDevCommand::CycleLoadout)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_tools")), nullptr, Dev(ENWDevCommand::GiveTools)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_level")), nullptr, Dev(ENWDevCommand::GiveLevel)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_trade_levels")), nullptr, Dev(ENWDevCommand::GiveTradeLevels)));
@@ -112,6 +126,14 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.spawn_attacking")), nullptr, Dev(ENWDevCommand::SpawnAttackingDummy)));
 	Add(Button(NWText::Get(TEXT("nw.dev.kill_enemies")), nullptr, Dev(ENWDevCommand::KillEnemies)));
 	Add(Button(NWText::Get(TEXT("nw.dev.remove_spawned")), nullptr, Dev(ENWDevCommand::RemoveSpawned)));
+	Add(Header(NWText::Get(TEXT("nw.dev.arena"))), 12.f);
+	Add(Button(NWText::Get(TEXT("nw.dev.arena_boars")), nullptr, Dev(ENWDevCommand::ArenaBoars)));
+	Add(Button(NWText::Get(TEXT("nw.dev.arena_wolves")), nullptr, Dev(ENWDevCommand::ArenaWolves)));
+	Add(Button(NWText::Get(TEXT("nw.dev.arena_lost")), nullptr, Dev(ENWDevCommand::ArenaLost)));
+	Add(Button(NWText::Get(TEXT("nw.dev.arena_duelist")), nullptr, Dev(ENWDevCommand::ArenaDuelist)));
+	Add(Button(NWText::Get(TEXT("nw.dev.arena_archer")), nullptr, Dev(ENWDevCommand::ArenaArcher)));
+	Add(Button(NWText::Get(TEXT("nw.dev.arena_rapier")), nullptr, Dev(ENWDevCommand::ArenaRapier)));
+	Add(Button(NWText::Get(TEXT("nw.dev.arena_mixed")), nullptr, Dev(ENWDevCommand::ArenaMixed)));
 	Add(Header(NWText::Get(TEXT("nw.dev.world"))), 12.f);
 	Add(Button(NWText::Get(TEXT("nw.dev.slow_motion")), SlowMo, Dev(ENWDevCommand::ToggleSlowMotion)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_arena")), nullptr, Dev(ENWDevCommand::TravelArena)));

@@ -55,6 +55,8 @@ public:
 	void Setup(const FNWCreatureDef& Def, const TArray<FVector>& InPath, const TArray<float>& InWaits);
 	/** Definição pelo id (o catálogo carrega o arquivo da região na primeira vez, também no cliente). */
 	const FNWCreatureDef* Def() const;
+	/** Definição de qualquer criatura do catálogo (vale em qualquer mapa, ex.: a arena). */
+	static const FNWCreatureDef* FindDef(FName Id);
 
 	UPROPERTY(ReplicatedUsing = OnRep_Creature) FName CreatureId;
 	/** Carcaça já esfolada (não dá para esfolar de novo). */
@@ -63,6 +65,8 @@ public:
 	TWeakObjectPtr<AActor> SkinnedBy;
 
 	virtual void Tick(float DeltaSeconds) override;
+	// IA do jogo (árvore de comportamento do conjunto, Data/AI); sem árvore, usa o UNWBrainComponent.
+	UPROPERTY(VisibleAnywhere) TObjectPtr<class UNWBehaviorTreeComponent> Behavior;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
@@ -81,6 +85,7 @@ private:
 	FVector Home = FVector::ZeroVector;
 	bool bReturning = false;
 	bool bAssetsApplied = false;
+	bool bUseBehaviorTree = false;
 	float WalkSpeed = 150.f;
 	float ChaseSpeed = 450.f;
 };

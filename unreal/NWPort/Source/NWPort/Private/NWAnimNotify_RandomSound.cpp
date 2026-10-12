@@ -1,5 +1,6 @@
 #include "NWAnimNotify_RandomSound.h"
 
+#include "NWCombatComponent.h"
 #include "NWOptions.h"
 
 #include "Components/SkeletalMeshComponent.h"
@@ -12,6 +13,15 @@ void UNWAnimNotify_RandomSound::Notify(USkeletalMeshComponent* MeshComp, UAnimSe
 	if (!MeshComp || Sounds.Num() == 0)
 	{
 		return;
+	}
+	// Impacto de arma na reação a golpe: não toca se quem bateu foi uma criatura (a mordida/chifrada já soa no ataque).
+	if (Label == TEXT("impacto"))
+	{
+		const UNWCombatComponent* Combat = MeshComp->GetOwner() ? MeshComp->GetOwner()->FindComponentByClass<UNWCombatComponent>() : nullptr;
+		if (Combat && Combat->bLastHitByCreature)
+		{
+			return;
+		}
 	}
 	USoundBase* Sound = Sounds[FMath::RandRange(0, Sounds.Num() - 1)];
 	if (!Sound)

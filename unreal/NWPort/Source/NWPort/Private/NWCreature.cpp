@@ -8,7 +8,10 @@
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "Net/UnrealNetwork.h"
+#include "NWBehaviorTreeComponent.h"
+#include "NWBrainComponent.h"
 #include "NWCombatComponent.h"
 #include "NWSpawnField.h"
 #include "NWTraversalComponent.h"
@@ -69,12 +72,27 @@ namespace
 	{
 		float Radius, HalfHeight, AttackRange, Walk, Chase;
 		TArray<FName> Attacks;
+		ENWBrainStyle Style;
+		TArray<FNWBrainAttack> Brain;
 	};
+	FNWBrainAttack Atk(const TCHAR* Action, float Min, float Max, float Weight, float Cooldown = 0.f, bool bGap = false, TArray<FName> Then = {})
+	{
+		FNWBrainAttack A;
+		A.Action = Action; A.MinRange = Min; A.MaxRange = Max; A.Weight = Weight; A.Cooldown = Cooldown; A.bGapCloser = bGap;
+		A.FollowUps = MoveTemp(Then);
+		return A;
+	}
 	const FSetTuning* Tuning(FName Set)
 	{
+		// Javali: chifrada de perto; de longe prepara (bufa e cava) e investe em linha, depois freia exposto.
+		// Lobo: matilha que cerca pelos flancos; mordidas de perto, bote de meia distância, salto de longe.
 		static const TMap<FName, FSetTuning> T = {
-			{TEXT("boar"), {42.f, 42.f, 240.f, 140.f, 450.f, {TEXT("Attack1"), TEXT("Attack1"), TEXT("Heavy")}}},
-			{TEXT("wolf"), {36.f, 42.f, 220.f, 160.f, 520.f, {TEXT("Attack1"), TEXT("Attack2"), TEXT("Heavy"), TEXT("Leap")}}},
+			{TEXT("boar"), {42.f, 42.f, 240.f, 140.f, 450.f, {TEXT("Attack1"), TEXT("Attack1"), TEXT("Heavy")}, ENWBrainStyle::Charger,
+				{Atk(TEXT("Attack1"), 0.f, 250.f, 3.f),
+				 Atk(TEXT("ChargeStart"), 500.f, 1200.f, 2.f, 7.f, true, {TEXT("Heavy"), TEXT("Heavy"), TEXT("ChargeEnd")})}}},
+			{TEXT("wolf"), {36.f, 42.f, 220.f, 160.f, 520.f, {TEXT("Attack1"), TEXT("Attack2"), TEXT("Heavy"), TEXT("Leap")}, ENWBrainStyle::Pack,
+				{Atk(TEXT("Attack1"), 0.f, 230.f, 2.f), Atk(TEXT("Attack2"), 0.f, 230.f, 1.f, 3.f),
+				 Atk(TEXT("Heavy"), 180.f, 450.f, 1.f, 4.f, true), Atk(TEXT("Leap"), 450.f, 800.f, 1.f, 6.f, true)}}},
 		};
 		return T.Find(Set);
 	}
@@ -92,6 +110,8 @@ ANWCreature::ANWCreature(const FObjectInitializer& ObjectInitializer)
 	Shield->SetVisibility(false);
 	Stowed->SetVisibility(false);
 	Combat->LightComboStart = TEXT("Attack1");
+	Combat->StaggerResistRating = 10.f;   // javali e lobo (GritComponent das slices)
+	Behavior = CreateDefaultSubobject<UNWBehaviorTreeComponent>(TEXT("Behavior"));
 	AnimClass = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/NW/Creatures/ABP_NW_Creature.ABP_NW_Creature_C")));
 }
 
@@ -119,14 +139,30 @@ void ANWCreature::Setup(const FNWCreatureDef& D, const TArray<FVector>& InPath, 
 		WalkSpeed = T->Walk;
 		ChaseSpeed = T->Chase;
 		RunSpeed = T->Chase;
+		// Com a árvore do jogo (Data/AI/<conjunto>.json) ela manda; sem, o cérebro do port.
+		bUseBehaviorTree = FNWBTAsset::Get(D.Set) != nullptr;
+		if (bUseBehaviorTree)
+		{
+			bDummyAttacks = false;
+		}
+		else if (T->Brain.Num())
+		{
+			UseBrain(static_cast<uint8>(T->Style), T->Brain);
+		}
 	}
 	ApplyAssets();
 }
 
 const FNWCreatureDef* ANWCreature::Def() const
 {
-	FNWCreatureCatalog::Get().Load(ANWSpawnField::DataFileFor(GetWorld()));
-	return FNWCreatureCatalog::Get().Find(CreatureId);
+	return FindDef(CreatureId);
+}
+
+const FNWCreatureDef* ANWCreature::FindDef(FName Id)
+{
+	// O catálogo (vida, dano, conjunto) vale em qualquer mapa; os spawners só no da região (ANWSpawnField).
+	FNWCreatureCatalog::Get().Load(FPaths::ProjectDir() / TEXT("Data/World/guardaventos_spawns.json"));
+	return FNWCreatureCatalog::Get().Find(Id);
 }
 
 void ANWCreature::OnRep_Creature()
@@ -183,6 +219,11 @@ void ANWCreature::BeginPlay()
 	Super::BeginPlay();
 	Home = GetActorLocation();
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	if (HasAuthority() && bUseBehaviorTree)
+	{
+		const FNWCreatureDef* D = Def();
+		bUseBehaviorTree = D && Behavior->Start(D->Set, Home, Path);
+	}
 	// A malha recém-criada pode não ter a AnimInstance no ApplyAssets: tenta de novo no próximo quadro.
 	GetWorldTimerManager().SetTimerForNextTick([Weak = TWeakObjectPtr<ANWCreature>(this)]()
 	{
@@ -214,9 +255,9 @@ bool ANWCreature::HasTarget() const
 void ANWCreature::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if (!HasAuthority() || Combat->State == ENWCombatState::Dead)
+	if (!HasAuthority() || Combat->State == ENWCombatState::Dead || bUseBehaviorTree)
 	{
-		return;
+		return;   // com a árvore do jogo, ela cuida de patrulha, perseguição e leash
 	}
 	const FNWCreatureDef* D = Def();
 	// Longe demais de casa: desiste, volta andando e recupera a vida.
@@ -241,7 +282,8 @@ void ANWCreature::Tick(float DeltaSeconds)
 	}
 	if (HasTarget())
 	{
-		GetCharacterMovement()->MaxWalkSpeed = ChaseSpeed;   // perseguição e ataque: ANWCharacter::TickDummy
+		// Perseguição e ataque: UNWBrainComponent (ou ANWCharacter::TickDummy). Rodeando, anda.
+		GetCharacterMovement()->MaxWalkSpeed = bWalking ? WalkSpeed : ChaseSpeed;
 		return;
 	}
 	TickPatrol(DeltaSeconds);

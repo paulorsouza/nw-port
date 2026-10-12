@@ -1,6 +1,6 @@
 """Importa as malhas dos coletáveis (glb limpos de tools/convert_gatherables.sh), uma malha por .cgf.
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_gatherables.py <pasta limpa>"
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_gatherables.py <pasta limpa> [filtro|/Game/destino]"
 
 Cria /Game/NW/Gatherables/<nome>/<nome> (malha única: as partes do glb são combinadas), com materiais e texturas
 na mesma pasta (uma pasta por malha: materiais de malhas diferentes têm o mesmo nome, ex. "stone").
@@ -16,8 +16,11 @@ import time
 import unreal
 
 SRC = sys.argv[1]
-ONLY = sys.argv[2] if len(sys.argv) > 2 else ""  # filtro por nome (teste com uma malha)
-DEST = "/Game/NW/Gatherables"
+# Segundo argumento: filtro por nome (teste com uma malha) ou, começando com /Game/, outra pasta de destino
+# (ex.: as peças da arena, tools/arena/meshes.txt → /Game/NW/Arena).
+ARG = sys.argv[2] if len(sys.argv) > 2 else ""
+ONLY = "" if ARG.startswith("/Game/") else ARG
+DEST = ARG if ARG.startswith("/Game/") else "/Game/NW/Gatherables"
 eal = unreal.EditorAssetLibrary
 t0 = time.time()
 

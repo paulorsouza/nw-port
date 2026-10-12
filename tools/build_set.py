@@ -79,7 +79,9 @@ def main():
                 "loops": {k: composite(v, True) for k, v in spec["loops"].items()},
                 "montages": {k: [composite(sec, False) for sec in v] for k, v in spec["montages"].items()},
                 "inplace_montages": spec.get("inplace_montages", []),
-                "hold_montages": spec.get("hold_montages", [])}
+                "hold_montages": spec.get("hold_montages", []),
+                "upper_montages": spec.get("upper_montages", []),
+                "montage_starts": spec.get("montage_starts", {})}
 
     for bs_name, layers in spec["blendspaces"].items():
         spaces = []
@@ -127,18 +129,37 @@ def main():
     adbs = [os.path.join(adb_dir, f) for f in spec.get("window_adbs", ["player/player_sword.adb", "player/player_1h_melee.adb", "player/player.adb"])]
     wtags = set(spec.get("window_tags", "").split(","))
     manifest["windows"] = {}
+    # Velocidade do clipe no fragmento (Animation speed="1.1"): a montagem toca nessa taxa e as janelas, que estão em
+    # tempo real, vão para o tempo da sequência (× velocidade) no import.
+    manifest["montage_rates"] = {}
     overrides = spec.get("window_overrides", {})
     for montage, frags in spec.get("fragments", {}).items():
         secs = []
         m_adbs, m_tags = adbs, wtags
+        m_attach = [os.path.join(adb_dir, f) for f in spec.get("window_attach_adbs", [])]
         for prefix, ov in overrides.items():
             if montage.startswith(prefix):
                 m_adbs = [os.path.join(adb_dir, f) for f in ov["adbs"]]
                 m_tags = set(ov["tags"].split(","))
+                if "attach_adbs" in ov:
+                    m_attach = [os.path.join(adb_dir, f) for f in ov["attach_adbs"]]
         for frag_name in frags:
             frag = adb_windows.best_fragment(m_adbs, m_tags, frag_name)
-            secs.append({"fragment": frag_name, "windows": adb_windows.windows(frag) if frag is not None else []})
+            wins = adb_windows.windows(frag) if frag is not None else []
+            # Escopo da arma (attach_adbs): fragmentos só com janelas; na rapieira o dano dos ataques básicos mora lá.
+            for att in m_attach:
+                af = adb_windows.best_fragment([att], m_tags, frag_name, need_anims=False)
+                if af is not None:
+                    wins = sorted(wins + adb_windows.windows(af), key=lambda w: w["start"])
+            rate = 1.0
+            if frag is not None:
+                first = frag.find("AnimLayer/Animation")
+                if first is not None and first.get("speed"):
+                    rate = float(first.get("speed"))
+            secs.append({"fragment": frag_name, "windows": wins, "rate": rate})
         manifest["windows"][montage] = secs
+        if any(sc["rate"] != 1.0 for sc in secs):
+            manifest["montage_rates"][montage] = [sc["rate"] for sc in secs]
     print(f"janelas: {sum(len(w['windows']) for v in manifest['windows'].values() for w in v)} em {len(manifest['windows'])} montagens")
 
     glb_dir = os.path.join(out, "glb")

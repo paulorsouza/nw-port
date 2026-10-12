@@ -163,12 +163,11 @@ void ANWHUD::UpdateAbilities(const ANWCharacter* Me, float DeltaSeconds)
 	const UNWCombatComponent* C = Me->Combat;
 	ReadyFlash.SetNumZeroed(6);
 	WasCooling.SetNumZeroed(6);
-	const int32 NumSets = FMath::Max(1, Me->WeaponSets.Num());
 	for (int32 Row = 0; Row < 2; ++Row)
 	{
 		// Linha 0 (embaixo, maior) = arma ativa; linha 1 = a outra, com o fundo "inativo" do jogo.
 		const FString Set = SetNames[Row];
-		const int32 SetIndex = Me->WeaponSets.Num() > 0 ? (Me->ActiveWeapon + Row) % NumSets : INDEX_NONE;
+		const int32 SetIndex = Me->WeaponSets.Num() > 0 ? (Row == 0 ? Me->ActiveWeapon : Me->OtherWeapon()) : INDEX_NONE;
 		const bool bShown = Row == 0 || Me->WeaponSets.Num() > 1;
 		if (FNWUIElement* Root = Layout.FindOne(WeaponCanvas, Set))
 		{

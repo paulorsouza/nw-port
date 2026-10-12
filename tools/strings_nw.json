@@ -379,6 +379,10 @@
     "pt-br": "Correr rápido (4×)",
     "en-us": "Fast run (4×)"
   },
+  "nw.dev.fly": {
+    "pt-br": "Voar",
+    "en-us": "Fly"
+  },
   "nw.hit.blocked": {
     "pt-br": "Bloqueado",
     "en-us": "Blocked"
@@ -402,5 +406,41 @@
   "nw.dev.go_creature": {
     "pt-br": "Ir para criatura",
     "en-us": "Go to creature"
+  },
+  "nw.dev.arena": {
+    "pt-br": "Arena",
+    "en-us": "Arena"
+  },
+  "nw.dev.arena_boars": {
+    "pt-br": "Javalis",
+    "en-us": "Boars"
+  },
+  "nw.dev.arena_wolves": {
+    "pt-br": "Matilha",
+    "en-us": "Wolf pack"
+  },
+  "nw.dev.arena_lost": {
+    "pt-br": "Lost duelistas",
+    "en-us": "Lost duelists"
+  },
+  "nw.dev.arena_duelist": {
+    "pt-br": "Duelista",
+    "en-us": "Duelist"
+  },
+  "nw.dev.arena_mixed": {
+    "pt-br": "Onda mista",
+    "en-us": "Mixed wave"
+  },
+  "nw.dev.weapon_pair": {
+    "pt-br": "Trocar par de armas",
+    "en-us": "Switch weapon pair"
+  },
+  "nw.dev.arena_archer": {
+    "pt-br": "Arqueiro",
+    "en-us": "Archer"
+  },
+  "nw.dev.arena_rapier": {
+    "pt-br": "Duelista de rapieira",
+    "en-us": "Rapier duelist"
   }
 }

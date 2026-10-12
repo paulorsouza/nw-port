@@ -31,11 +31,11 @@ antes dos comandos manuais.
 
 | Script | Para quê | Pesado? |
 |---|---|---|
-| `tools/build_all.sh [NN]` | extrai e converte tudo da instalação do jogo, 13 etapas retomáveis | sim, 2 a 4 h |
+| `tools/build_all.sh [NN]` | extrai e converte tudo da instalação do jogo, 14 etapas retomáveis | sim, 2 a 4 h |
 | `tools/ue_import_all.sh [NN]` | monta o projeto Unreal (editor fechado), 10 etapas retomáveis | sim, ~1 h 30 |
 | `tools/make_data.sh` | regenera `unreal/NWPort/Data/` (itens, saque, coletáveis, textos, telas) | não |
 | `tools/convert_city.sh <slice>` | converte uma cidade (`*_complete`) em glb limpo + recorte de terreno | sim |
-| `tools/convert_gatherables.sh` | converte as malhas dos coletáveis em lotes | sim |
+| `tools/convert_gatherables.sh [lista] [saída]` | converte as malhas dos coletáveis em lotes (ou outra lista de `.cgf`, ex. `tools/arena/meshes.txt`) | sim |
 | `tools/render_ambient.sh <território>` | renderiza o ambiente sonoro de um território | não |
 | `tools/play_local.sh [mapa]` | backend + servidor dedicado + cliente na tela de entrada (para uma pessoa jogar) | sim |
 | `tools/package_server.sh [--skip-cook]` | empacota o servidor dedicado Linux em `deploy/build/LinuxServer` | sim |
@@ -53,7 +53,10 @@ antes dos comandos manuais.
 | `make_abilities.py` | habilidades por arma para a HUD e a maestria |
 | `make_worldmap.py` | mapa do mundo (M): referencial da cidade, limites da região e tiles do jogo (níveis 2 e 3) em volta de Guardaventos → `Data/World/worldmap.json` e `extract/ui/worldmap_textures.txt` |
 | `make_progression.py` | nível do personagem (XP total por nível, pontos de atributo) e efeito de cada valor de atributo → `Data/Progression/progression.json` |
-| `make_datatables.py` | CSV das DataTables de dano e ações |
+| `make_datatables.py` | CSV das DataTables de dano, ações (por arma) e tremidas de câmera |
+| `make_ai.py` | IA das criaturas: árvore do Server.pak + perfil do slice → `Data/AI/<conjunto>.json` (`docs/ia-criaturas.md`) |
+| `ai_sim.py <conjunto> Chave=valor...` | simula o planejamento da árvore para um blackboard (conferir sem a Unreal) |
+| `weapon_report.py <arma>` | relatório do que o jogo define sobre o combate de uma arma (fragmentos, janelas, dano, stamina, recargas, habilidades, status) → `extract/research/` |
 | `make_sound_map.py` | liga sons às animações (passos, golpes, vozes) |
 | `build_strings.py` | tabela de textos pt-BR/en-US do C++ (`Data/UI/nw_strings.json`), de `tools/strings_nw.json` + chaves do jogo |
 | `build_set.py` | conjunto personagem + armas + animações → FBX + manifest (`tools/sets/*.json`) |
@@ -76,7 +79,7 @@ Dados escritos à mão: `tools/strings_nw.json` (textos nossos pt/en), `tools/se
 |---|---|
 | `import_nw.py <manifest>` | personagem, armas, animações com janelas e sons, blend spaces, montagens, DataTables |
 | `make_abp.py` | cria `ABP_NW`/`ABP_Lost` vazias (o grafo é feito à mão; as prontas estão no repositório) |
-| `make_test_map.py` | mapa de treino `L_Arena` |
+| `make_test_map.py` | arena de testes `L_Arena` (peças do jogo em `/Game/NW/Arena`, zonas de tiro, bonecos, duelo, travessia) |
 | `import_city.py <glb> <Nome>` | cidade num mapa próprio |
 | `fix_city.py <Nome>` | colisão, luz móvel, chão de segurança |
 | `nanite_on.py <pastas>` | liga Nanite nas malhas |

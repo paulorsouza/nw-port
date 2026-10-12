@@ -23,8 +23,9 @@ KEY_PARAM = {
 }
 
 
-def best_fragment(adb_files, tags, fragment):
-    """Variante mais específica do fragmento entre as que cabem nas tags (mesmo critério do adb_resolve)."""
+def best_fragment(adb_files, tags, fragment, need_anims=True):
+    """Variante mais específica do fragmento entre as que cabem nas tags (mesmo critério do adb_resolve).
+    need_anims=False aceita fragmentos só com ProcLayer (escopo da arma, ex. playermaleanims_1h_meleeattach.adb)."""
     best, best_n = None, -1
     for adb in adb_files:
         root = ET.parse(adb).getroot()
@@ -33,7 +34,8 @@ def best_fragment(adb_files, tags, fragment):
                 continue
             for f in frag.findall("Fragment"):
                 ftags = {t for t in f.get("Tags", "").split("+") if t}
-                if ftags <= tags and len(ftags) > best_n and f.findall("AnimLayer"):
+                if ftags <= tags and len(ftags) > best_n and (f.findall("AnimLayer") or not need_anims) \
+                        and (need_anims or f.findall("ProcLayer")):
                     best, best_n = f, len(ftags)
     return best
 
@@ -45,7 +47,8 @@ def windows(frag):
         items = list(layer)
         for i in range(0, len(items) - 1, 2):
             blend, proc = items[i], items[i + 1]
-            t += float(blend.get("ExitTime", 0)) if prev is not None or i == 0 else 0.0
+            # ExitTime é relativo ao início do clipe anterior da camada, vazio ou não (o vazio só encerra o anterior).
+            t += float(blend.get("ExitTime", 0))
             if prev is not None:
                 prev["end"] = round(t, 4)
             ptype = proc.get("type", "")

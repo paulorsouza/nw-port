@@ -2,7 +2,10 @@
 # Converte as malhas dos coletáveis (extract/ue/gatherables/meshes.txt, de tools/make_gatherables.py) em glb
 # limpos, um por .cgf, prontos para tools/ue/import_gatherables.py.
 #
-#     tools/convert_gatherables.sh
+#     tools/convert_gatherables.sh [lista] [saida]
+#
+# Outra lista de .cgf (um caminho do pak por linha) e outra pasta de saída servem para qualquer conjunto de malhas
+# estáticas (ex.: tools/convert_gatherables.sh tools/arena/meshes.txt extract/ue/arena).
 #
 # Saída: extract/ue/gatherables/glb/<caminho do pak>.glb (bruto do nwbt) e extract/ue/gatherables/limpa/<nome>.glb
 # (sem as primitivas NoDraw). Pula o que já existe; pode rodar de novo. nwbt roda com cwd = raiz do repo (cache em
@@ -17,8 +20,8 @@ cd "$ROOT"
 source tools/env.sh
 
 GAME="${NW_GAME:-/mnt/jogos/Steam/steamapps/common/New World}"
-OUT=extract/ue/gatherables
-LIST="$OUT/meshes.txt"
+OUT="${2:-extract/ue/gatherables}"
+LIST="${1:-$OUT/meshes.txt}"
 [ -f "$LIST" ] || { echo "falta $LIST (rode tools/make_gatherables.py)" >&2; exit 2; }
 mkdir -p "$OUT/glb" "$OUT/limpa"
 

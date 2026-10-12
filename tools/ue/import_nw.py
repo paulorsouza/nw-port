@@ -242,13 +242,15 @@ for name in m.get("inplace_montages", []):
     loop_assets |= {m["composites"][k]["asset"] for k in m["montages"].get(name, [])}
 
 seqs = {}
+upper_keys = {k for mt in m.get("upper_montages", []) for k in m["montages"].get(mt, [])}
 for key, comp in m["composites"].items():
     paths = run_import(comp["fbx"], P_ANIM, anim_ui, comp["asset"])
     seq = next((load(p) for p in paths if isinstance(load(p), unreal.AnimSequence)), None)
     if seq is None:
         continue
     # Montagens usam o deslocamento do clipe; loops/blend spaces ficam no lugar (quem move é o CharacterMovement).
-    is_loop = comp["asset"] in loop_assets
+    # Corpo superior (arco) também fica sem root motion: quem anda é a locomoção por baixo.
+    is_loop = comp["asset"] in loop_assets or key in upper_keys
     seq.set_editor_property("enable_root_motion", not is_loop)
     seq.set_editor_property("force_root_lock", is_loop)
     eal.save_loaded_asset(seq)
@@ -272,6 +274,9 @@ def curve_name(w):
 
 
 alib = unreal.AnimationLibrary
+# Montagens que dividem o clipe (ex.: carga e golpe carregado da rapieira) somam as janelas na mesma sequência. Montagem
+# que começa no meio do clipe (montage_starts, fração) desloca as janelas do fragmento para depois desse ponto.
+by_seq = {}
 for montage, sections in m.get("windows", {}).items():
     for sec_idx, sec in enumerate(sections):
         comp_key = m["montages"][montage][min(sec_idx, len(m["montages"][montage]) - 1)]
@@ -279,18 +284,35 @@ for montage, sections in m.get("windows", {}).items():
         if seq is None:
             continue
         length = seq.get_play_length()
-        curves = {}
+        shift = m.get("montage_starts", {}).get(montage, 0.0) * length
+        rate = sec.get("rate", 1.0)
+        curves = by_seq.setdefault(comp_key, {})
         for w in sec["windows"]:
             if w["type"] not in CURVE_TYPES:
                 continue
-            curves.setdefault(curve_name(w), []).append((w["start"], w["end"] if w["end"] is not None else length))
+            # Janela em tempo real do fragmento → tempo da sequência (clipe tocado a "rate").
+            curves.setdefault(curve_name(w), []).append((w["start"] * rate + shift, (w["end"] * rate + shift) if w["end"] is not None else length))
+def merged(spans):
+    """Junta trechos que se sobrepõem (vários fragmentos na mesma sequência)."""
+    out = []
+    for a, b in sorted(spans):
+        if out and a <= out[-1][1]:
+            out[-1] = (out[-1][0], max(out[-1][1], b))
+        else:
+            out.append((a, b))
+    return out
+
+
+for comp_key, curves in by_seq.items():
+        seq = seqs[comp_key]
+        length = seq.get_play_length()
         for cname, spans in curves.items():
             if alib.does_curve_exist(seq, cname, unreal.RawCurveTrackTypes.RCT_FLOAT):
                 alib.remove_curve(seq, cname, False)
             alib.add_curve(seq, cname, unreal.RawCurveTrackTypes.RCT_FLOAT, False)
             times, values = [0.0], [0.0]
             eps = 1.0 / m["fps"] / 4
-            for a, b in sorted(spans):
+            for a, b in merged(spans):
                 a, b = max(0.0, min(a, length)), max(0.0, min(b, length))
                 times += [max(a - eps, 0.0), a, b, min(b + eps, length)]
                 values += [0.0, 1.0, 1.0, 0.0]
@@ -380,6 +402,13 @@ for montage, sections in m["montages"].items():
         am = get_or_create(name, P_ANIM, unreal.AnimMontage, factory)
         # Montagens que seguram o último quadro até outra entrar (ex.: carga do pesado): sem auto blend out.
         am.set_editor_property("enable_auto_blend_out", montage not in m.get("hold_montages", []))
+        # Velocidade do clipe no jogo (fragmento do .adb).
+        rates = m.get("montage_rates", {}).get(montage)
+        if rates:
+            am.set_editor_property("rate_scale", rates[min(i, len(rates) - 1)])
+        # Corpo superior (arco): slot UpperBody do ABP_NW, por cima da locomoção.
+        if montage in m.get("upper_montages", []) and hasattr(unreal, "NWEditorTools"):
+            unreal.NWEditorTools.set_montage_slot(am, "UpperBody")
         eal.save_loaded_asset(am, only_if_is_dirty=False)
 log("montagens criadas")
 
@@ -434,7 +463,8 @@ else:
 data_dir = os.path.join(os.path.dirname(MANIFEST), "data")
 for csv_name in sorted(os.listdir(data_dir)) if os.path.isdir(data_dir) else []:
     table = os.path.splitext(csv_name)[0]
-    struct_path = "/Script/NWPort.NWDamageRow" if "Damage" in table else "/Script/NWPort.NWActionRow"
+    struct_path = ("/Script/NWPort.NWCameraShakeRow" if "CameraShake" in table
+                   else "/Script/NWPort.NWDamageRow" if "Damage" in table else "/Script/NWPort.NWActionRow")
     csv_path = os.path.join(data_dir, csv_name)
     struct = unreal.load_object(None, struct_path)
     if not os.path.exists(csv_path) or struct is None:

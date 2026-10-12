@@ -31,6 +31,21 @@ struct FNWWeaponSet
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<UBlendSpace> Locomotion;
 	UPROPERTY(EditAnywhere) FString HudIcon;              // ícone "drawing" do jogo
 	UPROPERTY(EditAnywhere) TArray<FName> Abilities;
+	// Osso da mão que segura (o arco vai na esquerda).
+	UPROPERTY(EditAnywhere) FName Socket = TEXT("right_hand_attach");
+	// Números da arma (javelindata_itemdefinitions_weapons, T2). Dano na escala do port: espada 64 do jogo = 100.
+	UPROPERTY(EditAnywhere) float BaseDamage = 100.f;
+	UPROPERTY(EditAnywhere) float CritChance = 0.07f;
+	UPROPERTY(EditAnywhere) float CritDamageMultiplier = 1.3f;
+	UPROPERTY(EditAnywhere) float StaggerDamage = 36.f;
+	UPROPERTY(EditAnywhere) float BlockStaminaDamage = 36.f;
+	// Estabilidade de quem bloqueia com esta arma (com escudo, a do escudo).
+	UPROPERTY(EditAnywhere) float BlockStability = 30.f;
+	// Arma de mira (arco): botão direito mira, esquerdo atira.
+	UPROPERTY(EditAnywhere) bool bAims = false;
+	// Carga do pesado (Attack_Start_Charge): soltar antes de MinHold = leve; FullCharge = sai o carregado sozinho.
+	UPROPERTY(EditAnywhere) float HeavyMinHold = 0.333f;
+	UPROPERTY(EditAnywhere) float HeavyFullCharge = 0.667f;
 };
 
 /**
@@ -62,12 +77,24 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWInventoryComponent> Inventory;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWGatherComponent> Gather;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWProgressionComponent> Progression;
+	// IA de combate (inimigos). Criado desligado; ligado (UseBrain), substitui o TickDummy.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWBrainComponent> Brain;
+	/** Liga o cérebro com o estilo e os ataques dados (servidor). */
+	void UseBrain(uint8 Style, const TArray<struct FNWBrainAttack>& Attacks);
+	// Flecha na corda enquanto mira com o arco.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<UStaticMeshComponent> NockedArrow;
 	// Arma guardada no quadril (a que não está em uso).
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<UStaticMeshComponent> Stowed;
 
 	// Armas do jogador (vazio = personagem de uma arma só, como o Lost).
 	UPROPERTY(EditAnywhere, Category = "NW|Armas") TArray<FNWWeaponSet> WeaponSets;
 	UPROPERTY(ReplicatedUsing = OnRep_ActiveWeapon, BlueprintReadOnly, Category = "NW|Armas") int32 ActiveWeapon = 0;
+	// As duas armas em uso (teclas 1 e 2), índices em WeaponSets; como no jogo, duas por vez.
+	UPROPERTY(ReplicatedUsing = OnRep_ActiveWeapon, BlueprintReadOnly, Category = "NW|Armas") TArray<int32> Loadout = {0, 1};
+	/** A arma do par que não está na mão (INDEX_NONE com uma arma só). */
+	int32 OtherWeapon() const;
+	/** Servidor: troca o par de armas (menu de dev) e saca a primeira. */
+	void SetLoadout(int32 First, int32 Second);
 	// Troca de arma (1/2): toca o sacar da arma nova.
 	void SwitchWeapon(int32 Index);
 	void SetWeaponAbilities(int32 SetIndex, const TArray<FName>& New);
@@ -109,6 +136,13 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW") bool bWalking = false;
 	// Menu de dev: multiplica todas as velocidades (correr mais rápido para atravessar o mapa).
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW") float DevSpeedMultiplier = 1.f;
+	// Menu de dev: voo livre, atravessa o cenário. Frente segue a câmera (com inclinação); Espaço sobe, Ctrl desce.
+	UPROPERTY(ReplicatedUsing = OnRep_DevFlying, BlueprintReadOnly, Category = "NW") bool bDevFlying = false;
+	void ApplyDevFlying();
+	/** Tremida do jogo (javelindata_camerashake, DT_NWCameraShake) na câmera deste personagem, se for local. */
+	void PlayCameraShake(FName Id);
+	// Tranco curto na câmera (golpe dado/recebido): 1 = ~5 cm por ~0,25 s.
+	void AddCameraKick(float Amount) { CameraKick = FMath::Max(CameraKick, Amount); CameraKickTime = 0.f; }
 
 	// Boneco de treino (sem jogador): fica com o escudo levantado.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") bool bDummyBlocks = false;
@@ -168,9 +202,23 @@ protected:
 	UFUNCTION(Server, Reliable) void ServerSwitchWeapon(int32 Index);
 	UFUNCTION(Server, Reliable) void ServerSetWeaponAbilities(int32 SetIndex, const TArray<FName>& New);
 	UFUNCTION() void OnRep_ActiveWeapon();
+	UFUNCTION() void OnRep_DevFlying() { ApplyDevFlying(); }
+	float CameraKick = 0.f;
+	float CameraKickTime = 0.f;
+	// Tremida em curso (parâmetros da linha, tempo, alvo atual e anterior, próxima troca de alvo).
+	struct FShake
+	{
+		bool bActive = false;
+		FVector Shift = FVector::ZeroVector, Angle = FVector::ZeroVector;
+		float FadeIn = 0.f, Sustain = 0.f, FadeOut = 0.f, Period = 0.03f, Randomness = 0.f, Time = 0.f, NextTarget = 0.f;
+		float Flip = 1.f;
+		FVector FromShift = FVector::ZeroVector, ToShift = FVector::ZeroVector, FromAngle = FVector::ZeroVector, ToAngle = FVector::ZeroVector;
+	} ActiveShake;
+	UPROPERTY() TObjectPtr<UDataTable> ShakeTable;
+	bool bFlyUp = false;
 	void ApplyWeapon();
-	void Weapon1() { SwitchWeapon(0); }
-	void Weapon2() { SwitchWeapon(1); }
+	void Weapon1() { if (Loadout.IsValidIndex(0)) SwitchWeapon(Loadout[0]); }
+	void Weapon2() { if (Loadout.IsValidIndex(1)) SwitchWeapon(Loadout[1]); }
 	void ApplySprint();
 
 private:

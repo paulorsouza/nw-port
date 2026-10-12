@@ -37,25 +37,39 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float WeaponBaseDamage = 100.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números", meta = (ClampMin = 0, ClampMax = 0.95)) float ArmorMitigation = 0.3f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float MaxStamina = 100.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenPerSecond = 35.f;
+	// StaminaComponent do jogador (docs/combate-regras-jogo.md §7): 33,33/s; 10/s com a guarda levantada; 1 s de
+	// espera depois de gastar (esquiva) ou soltar a guarda; exausto em 0 até encher de novo.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenPerSecond = 33.33f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenBlocking = 10.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenDelay = 1.f;
-	// Stamina perdida ao bloquear = base + por nível de BlockPowerLevel do golpe.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float BlockStaminaBase = 15.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float BlockStaminaPerPower = 8.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float BlockArcDegrees = 180.f;
-	// Unidade do HitStun do jogo ainda não confirmada; 0.01 s por unidade como ponto de partida.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float SecondsPerHitStun = 0.01f;
-	// Golpes com PowerLevel acima disto interrompem o alvo (fora da janela de grit).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float Poise = 0.f;
+	// HitStun em quadros de 30 fps; a reação dura 0,2 s + HitStun/30 (§3).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float SecondsPerHitStun = 1.f / 30.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float ReactionBaseSeconds = 0.2f;
+
+	// ---- arma em uso e corpo (javelindata_itemdefinitions_weapons, slices do jogo; §4–§6) ----
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float CritChance = 0.03f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float CritDamageMultiplier = 1.3f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float BaseStaggerDamage = 36.f;
+	// Stamina que o golpe tira de quem bloqueia (arma de quem bate) e estabilidade de quem bloqueia (0..100).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float BlockStaminaDamage = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float BlockStability = 15.f;
+	// Resistência a stagger do corpo (jogador 0, damned 20, javali e lobo 10) e escala do empurrão recebido.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float StaggerResistRating = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float ImpactDistanceScale = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float RespawnDelay = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float BladeRadius = 16.f;
 	// Hit-stop: atacante e alvo quase param por um instante no acerto (peso do golpe).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float HitStopSeconds = 0.07f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float HitStopDilation = 0.05f;
+	// Último golpe recebido veio de criatura (mordida, chifrada): a reação não toca o impacto de arma da montagem.
+	bool bLastHitByCreature = false;
 	// Carga do pesado (Attack_Start_Charge do jogo): soltar antes de HeavyMinHold = leve; entre os dois = pesado;
 	// ao chegar em HeavyFullCharge o golpe carregado sai sozinho.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float HeavyMinHold = 0.333f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float HeavyFullCharge = 0.667f;
+	// Arco com mira: soltar antes de AimFullCharge = tiro normal, depois = carregado (sem disparo automático).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float AimFullCharge = 0.5f;
 
 	// ---- estado replicado ----
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") float Health = 0.f;
@@ -75,11 +89,22 @@ public:
 	float DamageBonusAmount = 0.f;
 	float GetDamageBonus() const { return ServerNow() < DamageBonusUntil ? DamageBonusAmount : 0.f; }
 
-	// Projétil arremessado atingiu um alvo (servidor).
-	void ProjectileHit(UNWCombatComponent* Target, FName DamageID, const FVector& Point);
+	// Projétil arremessado atingiu um alvo (servidor). bHead: acertou o volume da cabeça.
+	void ProjectileHit(UNWCombatComponent* Target, FName DamageID, const FVector& Point, bool bHead = false, float Falloff = 1.f);
+	// Projétil que explode (Flecha Explosiva): área com outra linha de dano.
+	void ExplodeAt(const FVector& Point, float Radius, FName DamageID, AActor* Skip);
+
+	// ---- efeitos de status (servidor; Statuses replica para a HUD) ----
+	UPROPERTY(Replicated) TArray<FNWStatus> Statuses;
+	void ApplyStatus(FName Id, float Seconds, float Tick, float DamagePerStack, int32 MaxStacks, float MoveSpeed, UNWCombatComponent* Source);
+	int32 GetStatusStacks(FName Id) const;
+	/** Tira o status e devolve o dano que ele ainda causaria (acúmulos × tique × tiques restantes). */
+	float ConsumeStatus(FName Id);
+	/** Multiplicador de velocidade de movimento dos status (lentidão, pressa). */
+	float GetMoveSpeedMultiplier() const;
 
 	// Servidor: atordoa (loop de atordoado) por Seconds; cura total; limpa recargas.
-	void ApplyStun(float Seconds);
+	void ApplyStun(float Seconds, bool bBreakOnDamage = false);
 	void HealFull();
 	// Sacar a arma (linha Draw da tabela atual), usado na troca de arma.
 	void PlayDraw();
@@ -110,6 +135,13 @@ public:
 	float GetCooldownRemaining(FName Action, float* OutDuration = nullptr) const;
 	// Direção do input em espaço do personagem (X frente, Y direita).
 	UFUNCTION(BlueprintCallable, Category = "NW") void RequestDodge(FVector2D LocalInput);
+	// Ação direcional pelo input (X frente, Y direita): Prefix + F/B/L/R (Evade_F...).
+	void RequestDirectional(const FString& Prefix, FVector2D LocalInput);
+	// Arco: mira com o botão direito (estado de mira, câmera perto, anda devagar).
+	void RequestAim(bool bAim);
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") bool bAiming = false;
+	// A arma em uso mira (arco): o botão direito mira em vez de bloquear e o esquerdo atira.
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Arma") bool bAimWeapon = false;
 	UFUNCTION(BlueprintCallable, Category = "NW") void RequestBlock(bool bBlock);
 
 	UFUNCTION(BlueprintPure, Category = "NW") bool IsInvulnerable() const;
@@ -117,6 +149,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "NW") float GetCurve(FName Curve) const;
 
 	UPROPERTY(EditAnywhere, Category = "NW|Dados") FName LightComboStart = TEXT("Light1");
+	FName GetCurrentAction() const { return CurrentAction; }
+	// Conta as ações começadas no servidor (a IA percebe "golpe novo" do alvo por aqui).
+	int32 GetActionSerial() const { return ActionSerial; }
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -129,13 +164,15 @@ protected:
 	UFUNCTION(Server, Reliable) void ServerRequestAction(FName Action, uint16 PredictionId);
 	UFUNCTION(Server, Reliable) void ServerRequestBlock(bool bBlock);
 	UFUNCTION(Server, Reliable) void ServerAttackInput(bool bPressed, uint16 PredictionId);
-	UFUNCTION(NetMulticast, Reliable) void MulticastPlayMontage(UAnimMontage* Montage, float Rate, uint16 PredictionId);
+	UFUNCTION(NetMulticast, Reliable) void MulticastPlayMontage(UAnimMontage* Montage, float Rate, uint16 PredictionId, float StartAt);
 	UFUNCTION(Client, Reliable) void ClientRejectPrediction(uint16 PredictionId);
 	// Montagem em loop (seção ligada nela mesma), ex.: guarda levantada enquanto o botão está pressionado.
 	UFUNCTION(NetMulticast, Reliable) void MulticastPlayLoop(UAnimMontage* Montage);
 	UFUNCTION(NetMulticast, Reliable) void MulticastStopMontages(float BlendOut);
 	/** Número de dano e, no alvo local, o indicador de direção do golpe (From = posição do atacante). */
-	UFUNCTION(NetMulticast, Unreliable) void MulticastShowHit(float Damage, ENWHitResult Result, FVector_NetQuantize From);
+	/** Também toca as tremidas de câmera da linha de dano: ByShake na câmera de By, TargetShake na deste. */
+	UFUNCTION(NetMulticast, Unreliable) void MulticastShowHit(float Damage, ENWHitResult Result, FVector_NetQuantize From, bool bByCreature,
+		bool bCrit, AActor* By, FName ByShake, FName TargetShake);
 	UFUNCTION(NetMulticast, Unreliable) void MulticastHitStop(AActor* Other, float Seconds);
 
 	UFUNCTION() void HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -162,7 +199,12 @@ private:
 	void SweepWeapon();
 	void AreaHit();
 	void ResolveHit(UNWCombatComponent* Target, const FVector& ImpactPoint);
-	ENWHitResult ReceiveHit(UNWCombatComponent* Attacker, const FNWDamageRow& Damage, float& OutDamage);
+	ENWHitResult ReceiveHit(UNWCombatComponent* Attacker, const FNWDamageRow& Damage, float& OutDamage, bool bHead = false);
+	void Push(const FVector& Dir, float Meters, float DecayRate, bool bNoDecay);
+	void TickStatuses(float Now);
+	// IA: depois de uma reação completa, 2 s em que golpe leve não interrompe (AI_Reaction_Limiter).
+	float ReactionLimiterUntil = 0.f;
+	float LastBlockRelease = -100.f;
 	void Die(AActor* Killer);
 	void Respawn();
 	void SpendStamina(float Amount);
@@ -180,11 +222,27 @@ private:
 	FName ChargeComboFrom;
 	bool bAttackHeld = false;
 	bool TryStartCharge();
-	void SpawnProjectile();
-	bool bProjectileFired = false;
+	void SpawnProjectile(FName DamageID);
+	void FireGround();
+	UFUNCTION(Server, Reliable) void ServerRequestAim(bool bAim);
+	void PlayAimIdle();
+	FName CooldownKey(FName Action, const FNWActionRow& Row) const { return Row.CooldownGroup.IsNone() ? Action : Row.CooldownGroup; }
+	// Disparos já feitos na ação (FireTimes) e ponto no chão mirado (Chuva de Flechas).
+	int32 ShotsFired = 0;
+	// Janelas de dano abertas nesta ação (Rajada: a 3ª janela usa a 3ª linha de FireDamageIDs).
+	int32 DamageWindowIndex = 0;
+	bool bGroundFired = false;
+	FVector GroundTarget = FVector::ZeroVector;
+	bool bStunBreaksOnDamage = false;
+	float CounterUntil = 0.f;
+	bool bJustShot = false;
+	// Arco: clique dado antes da janela de tiro (vira tiro sem carga quando ela abrir).
+	bool bAimClickBuffered = false;
+	FName ReactionNext;
 	float ActionStartedAt = 0.f;
 	void ReleaseCharge();
 	FNWActionRow CurrentRow;
+	int32 ActionSerial = 0;
 	bool bDamageWindowWasOpen = false;
 	FName BufferedAction;
 	TSet<TWeakObjectPtr<AActor>> HitThisSwing;

@@ -12,4 +12,7 @@ class NWPORT_API ANWLost : public ANWCharacter
 
 public:
 	ANWLost(const FObjectInitializer& ObjectInitializer);
+
+protected:
+	virtual void BeginPlay() override;
 };

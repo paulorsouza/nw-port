@@ -135,6 +135,9 @@ s11() {  # personagem, armas, ferramentas e animações (jogador e Lost)
     guarded python3 tools/build_set.py tools/sets/sword_shield.json
     guarded python3 tools/build_set.py tools/sets/lost_sword.json
 }
+s13() {  # peças do jogo da arena de testes (muros da arena da Legião, alvos, bonecos, braseiros, rochas)
+    guarded tools/convert_gatherables.sh tools/arena/meshes.txt extract/ue/arena
+}
 s12() {  # Data/ do projeto (catálogo, saque, textos, telas, mapa) e as texturas que as telas usam
     # POIs de Guardaventos para o mapa (posição de cada território; tools/make_worldmap.py).
     [ -f extract/pois/slices/pois/territories/r_+04_+01_pois.dynamicslice.json ] ||
@@ -161,4 +164,5 @@ step 09 "coletáveis" s09
 step 10 "cenário da região" s10
 step 11 "personagens e animações" s11
 step 12 "dados do projeto e texturas das telas" s12
+step 13 "peças da arena de testes" s13
 echo "Pronto. Próximo: feche a Unreal e rode tools/ue_import_all.sh"

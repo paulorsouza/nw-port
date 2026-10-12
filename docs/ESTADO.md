@@ -15,7 +15,9 @@ plano paralelo do dono (agora no repo cliente original (fora deste repositório)
 
 | Área | Onde |
 |---|---|
-| Combate de espada e escudo e machadinha (leve, pesado carregado, bloqueio, esquiva, habilidades Q/R/F, maestria) | `NWCombatComponent`, `NWCharacter`, `docs/plano-mecanicas.md` |
+| Combate de espada e escudo, machadinha, arco e rapieira (leve, pesado carregado, bloqueio, esquiva, mira e flechas, habilidades Q/R/F, maestria), com as regras do jogo (crítico e costas, reação por PowerLevel, stagger, empurrão com decaimento, tremidas, stamina, status com tique) | `NWCombatComponent`, `NWCharacter`, `NWProjectile`; `docs/combate-armas.md` (como portar outra arma), `docs/combate-regras-jogo.md`, `docs/armas/` |
+| IA das criaturas pelas árvores de comportamento do jogo (lobo, javali), com visão, aggro de grupo e navegação do slice | `NWBehaviorTreeComponent`, `tools/make_ai.py`, `docs/ia-criaturas.md` |
+| IA do port para os humanos (duelista, arqueiro) e arena de testes `L_Arena` com peças do jogo e ondas (F10 > Arena) | `NWBrainComponent`, `tools/ue/make_test_map.py` |
 | Lost (inimigo) com IA simples e saque | `NWLost`, `ANWGameMode::GrantLoot` |
 | Servidor dedicado + backend Rust (contas por convite, personagens, inventário salvo) + Docker | `backend/`, `deploy/`, `docs/plano-servidor.md` |
 | Tela de entrada, chat, grupo, morte/renascer, HUD do jogo, tela de maestria | `NWLoginMenu`, `NWChat`, `NWHUD`, `NWMasteryMenu` |

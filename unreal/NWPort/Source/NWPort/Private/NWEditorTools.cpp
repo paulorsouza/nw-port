@@ -1,5 +1,6 @@
 #include "NWEditorTools.h"
 
+#include "Animation/AnimMontage.h"
 #include "Animation/BlendSpace.h"
 #include "Animation/Skeleton.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -134,4 +135,16 @@ int32 UNWEditorTools::MergeFolderToInstances(UObject* WorldContext, const FStrin
 #else
 	return 0;
 #endif
+}
+
+bool UNWEditorTools::SetMontageSlot(UAnimMontage* Montage, FName Slot)
+{
+	if (!Montage || Montage->SlotAnimTracks.Num() == 0)
+	{
+		return false;
+	}
+	Montage->Modify();
+	Montage->SlotAnimTracks[0].SlotName = Slot;
+	Montage->MarkPackageDirty();
+	return true;
 }

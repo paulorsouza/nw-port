@@ -29,6 +29,18 @@
     "knife": {
       "file": "objects/weapons/melee/knives/1h/skinningknifet1/wep_me1h_skinningknifet1_lookbase.cdf",
       "socket": "right_hand_attach"
+    },
+    "bow": {
+      "file": "objects/weapons/ranged/bows/bowa/wep_ran2h_bowa_t5.cgf",
+      "socket": "left_hand_attach"
+    },
+    "arrow": {
+      "file": "objects/weapons/ranged/projectiles/arrowa/jav_wep_gear_arrowa.cgf",
+      "socket": "right_hand_attach"
+    },
+    "rapier": {
+      "file": "objects/weapons/melee/swords/1h/rapiera/wep_me1h_sw_rapiera_t5.cdf",
+      "socket": "right_hand_attach"
     }
   },
   "_comment": "Camadas da base para cima, como o Mannequin toca: corpo inteiro (tags 1H_Melee+Sword) e por cima o braço do escudo (Shield_OH).",
@@ -50,6 +62,20 @@
     "BS_Hatchet_Sprint": [
       "unarmed_sprint_veerslope_v2_blend",
       "rswrd_sprint_veerslope_blend"
+    ],
+    "BS_Bw_Strafe": [
+      "unarmed_cmbtstrafe_blend",
+      "bow_ststrafe_blend"
+    ],
+    "BS_Bw_Sprint": [
+      "unarmed_sprint_veerslope_v2_blend",
+      "bow_sprint_veerslope_blend"
+    ],
+    "BS_Bw_AimStrafe": [
+      "bow_aim_halfdrw_strafe_blend"
+    ],
+    "BS_Bw_ChargedStrafe": [
+      "bow_aim_fulldrw_strafe_blend"
     ]
   },
   "loops": {
@@ -76,6 +102,16 @@
     ],
     "Hx_Idle": [
       "cmbt_idle_1h"
+    ],
+    "Bw_Idle": [
+      "unarmed_idle",
+      "bow_idle"
+    ],
+    "Bw_AimIdle_UB": [
+      "bow_aim_halfdrw_idle_ub"
+    ],
+    "Bw_ChargedIdle_UB": [
+      "bow_aim_fulldrw_idle_ub"
     ]
   },
   "montages": {
@@ -586,6 +622,448 @@
       [
         "unarmed_interact02_loop"
       ]
+    ],
+    "AM_Bw_Draw": [
+      [
+        "bow_idle_draw_ub"
+      ]
+    ],
+    "AM_Bw_Sheath": [
+      [
+        "bow_idle_sheath_ub"
+      ]
+    ],
+    "AM_Bw_HipFire": [
+      [
+        "bow_quickfire_ub"
+      ]
+    ],
+    "AM_Bw_AimStart": [
+      [
+        "bow_idle_to_aim_halfdrw_ub"
+      ]
+    ],
+    "AM_Bw_AimIdle": [
+      [
+        "bow_aim_halfdrw_idle_ub"
+      ]
+    ],
+    "AM_Bw_AimShot": [
+      [
+        "bow_aim_halfdrw_release_ub"
+      ]
+    ],
+    "AM_Bw_Charge": [
+      [
+        "bow_aim_halfdrw_to_fulldrw_walk_ub"
+      ]
+    ],
+    "AM_Bw_ChargedIdle": [
+      [
+        "bow_aim_fulldrw_idle_ub"
+      ]
+    ],
+    "AM_Bw_ChargedShot": [
+      [
+        "bow_aim_fulldrw_release_ub"
+      ]
+    ],
+    "AM_Bw_Reload": [
+      [
+        "bow_aim_halfdrw_reload_ub"
+      ]
+    ],
+    "AM_Bw_ReloadCharged": [
+      [
+        "bow_aim_fulldrw_reload_ub"
+      ]
+    ],
+    "AM_Bw_Dodge_F": [
+      [
+        "unarmed_dodgeroll_f_light_to_crch",
+        "bow_dodgeroll_f_light_to_crch"
+      ]
+    ],
+    "AM_Bw_Dodge_B": [
+      [
+        "unarmed_dodgeroll_b_light_to_crch",
+        "bow_dodgeroll_b_light_to_crch"
+      ]
+    ],
+    "AM_Bw_Dodge_L": [
+      [
+        "unarmed_dodgeroll_l_light_to_crch",
+        "bow_dodgeroll_l_light_to_crch"
+      ]
+    ],
+    "AM_Bw_Dodge_R": [
+      [
+        "unarmed_dodgeroll_r_light_to_crch",
+        "bow_dodgeroll_r_light_to_crch"
+      ]
+    ],
+    "AM_Bw_Hit_F": [
+      [
+        "unarmed_r2_f",
+        "bow_r2_f"
+      ]
+    ],
+    "AM_Bw_Hit_B": [
+      [
+        "unarmed_r2_b",
+        "bow_r2_b"
+      ]
+    ],
+    "AM_Bw_Hit_L": [
+      [
+        "unarmed_r2_l",
+        "bow_r2_l"
+      ]
+    ],
+    "AM_Bw_Hit_R": [
+      [
+        "unarmed_r2_r",
+        "bow_r2_r"
+      ]
+    ],
+    "AM_Bw_StunLoop": [
+      [
+        "unarmed_r_stun_loop",
+        "unarmed_r_stun_loop"
+      ]
+    ],
+    "AM_Bw_RapidShot": [
+      [
+        "bow_spc_attack_1",
+        "bow_spc_attack_1"
+      ]
+    ],
+    "AM_Bw_EvadeShot": [
+      [
+        "bow_spc_5_rapidfire_jump",
+        "bow_spc_5_rapidfire_jump"
+      ]
+    ],
+    "AM_Bw_ExplosiveArrow": [
+      [
+        "bow_spc_attack_2_ub"
+      ]
+    ],
+    "AM_Bw_AimEnd": [
+      [
+        "bow_aim_halfdrw_to_idle_ub"
+      ]
+    ],
+    "AM_Bw_AimEndCharged": [
+      [
+        "bow_aim_fulldrw_to_idle_ub"
+      ]
+    ],
+    "AM_Bw_AimEndFromShot": [
+      [
+        "bow_aim_halfdrw_release_to_idle_ub"
+      ]
+    ],
+    "AM_Bw_AimEndFromShotCharged": [
+      [
+        "bow_aim_fulldrw_release_to_idle_ub"
+      ]
+    ],
+    "AM_Bw_Shake": [
+      [
+        "bow_aim_fulldrw_walk_shake_ub"
+      ]
+    ],
+    "AM_Bw_PenetratingShot": [
+      [
+        "bow_spc_3_aim_fulldrw_release_ub"
+      ]
+    ],
+    "AM_Bw_PoisonShot": [
+      [
+        "bow_aim_halfdrw_release_ub"
+      ]
+    ],
+    "AM_Bw_RainReady": [
+      [
+        "bow_idle_to_spc_4_aim_idle"
+      ]
+    ],
+    "AM_Bw_RainIdle": [
+      [
+        "bow_spc_4_aim_idle_ub"
+      ]
+    ],
+    "AM_Bw_RainShot": [
+      [
+        "bow_spc_4_aim_fire_intro",
+        "bow_spc_4_aim_fire_intro"
+      ]
+    ],
+    "AM_Bw_RainEnd": [
+      [
+        "bow_spc_4_aim_idle_to_idle"
+      ]
+    ],
+    "AM_Rp_LightCombo": [
+      [
+        "rapier_prim_c1"
+      ],
+      [
+        "rapier_prim_c2"
+      ],
+      [
+        "rapier_prim_c3"
+      ]
+    ],
+    "AM_Rp_HeavyCharge": [
+      [
+        "rapier_hvy_c1_stab"
+      ]
+    ],
+    "AM_Rp_HeavyCharged": [
+      [
+        "rapier_hvy_c1_stab"
+      ]
+    ],
+    "AM_Rp_SprintAttack": [
+      [
+        "rapier_sprint_downstrike"
+      ]
+    ],
+    "AM_Rp_Dodge_F": [
+      [
+        "cmbt_1h_quickstep_f"
+      ]
+    ],
+    "AM_Rp_Dodge_B": [
+      [
+        "cmbt_1h_quickstep_b"
+      ]
+    ],
+    "AM_Rp_Dodge_L": [
+      [
+        "cmbt_1h_quickstep_l"
+      ]
+    ],
+    "AM_Rp_Dodge_R": [
+      [
+        "cmbt_1h_quickstep_r"
+      ]
+    ],
+    "AM_Rp_Draw": [
+      [
+        "rapier_idle_draw_v1_ub"
+      ]
+    ],
+    "AM_Rp_Tondo": [
+      [
+        "rapier_ability_wideslash"
+      ]
+    ],
+    "AM_Rp_Flurry": [
+      [
+        "rapier_ability_flurry"
+      ]
+    ],
+    "AM_Rp_Flourish": [
+      [
+        "rapier_ability_flourish"
+      ]
+    ],
+    "AM_Rp_Finish": [
+      [
+        "rapier_ability_flourish_lunge"
+      ]
+    ],
+    "AM_Rp_RiposteStart": [
+      [
+        "rapier_ability_riposte_start"
+      ]
+    ],
+    "AM_Rp_RiposteLoop": [
+      [
+        "rapier_ability_riposte_loop"
+      ]
+    ],
+    "AM_Rp_RiposteOut": [
+      [
+        "rapier_ability_riposte_end"
+      ]
+    ],
+    "AM_Rp_RiposteCancel": [
+      [
+        "rapier_ability_riposte_cancel"
+      ]
+    ],
+    "AM_Rp_FlecheStart": [
+      [
+        "rapier_ability_aeriallunge_start"
+      ]
+    ],
+    "AM_Rp_FlecheLoop": [
+      [
+        "rapier_ability_aeriallunge_loop"
+      ]
+    ],
+    "AM_Rp_FlecheEnd": [
+      [
+        "rapier_ability_aeriallunge_end"
+      ]
+    ],
+    "AM_Rp_Wake": [
+      [
+        "rapier_ability_aeriallunge_stab"
+      ]
+    ],
+    "AM_Rp_Evade_F": [
+      [
+        "rapier_ability_evade_f"
+      ]
+    ],
+    "AM_Rp_Evade_B": [
+      [
+        "rapier_ability_evade_b"
+      ]
+    ],
+    "AM_Rp_Evade_L": [
+      [
+        "rapier_ability_evade_l"
+      ]
+    ],
+    "AM_Rp_Evade_R": [
+      [
+        "rapier_ability_evade_r"
+      ]
+    ],
+    "AM_Rp_EvadeAttack": [
+      [
+        "rapier_prim_c1"
+      ]
+    ],
+    "AM_Hit1_F": [
+      [
+        "cmbt_idle_1h_r1_f"
+      ]
+    ],
+    "AM_Hit3_F": [
+      [
+        "unarmed_r3_f",
+        "rswrd_r3_f"
+      ]
+    ],
+    "AM_Down_F": [
+      [
+        "unarmed_r4_f"
+      ],
+      [
+        "unarmed_prn_idle_to_idle"
+      ]
+    ],
+    "AM_Bw_Hit1_F": [
+      [
+        "unarmed_r1_f",
+        "bow_r1_f"
+      ]
+    ],
+    "AM_Bw_Hit3_F": [
+      [
+        "unarmed_r3_f",
+        "bow_r3_f"
+      ]
+    ],
+    "AM_Hit1_B": [
+      [
+        "cmbt_idle_1h_r1_b"
+      ]
+    ],
+    "AM_Hit3_B": [
+      [
+        "unarmed_r3_b",
+        "rswrd_r3_b"
+      ]
+    ],
+    "AM_Down_B": [
+      [
+        "unarmed_r4_b"
+      ],
+      [
+        "unarmed_prn_idle_to_idle"
+      ]
+    ],
+    "AM_Bw_Hit1_B": [
+      [
+        "unarmed_r1_b",
+        "bow_r1_b"
+      ]
+    ],
+    "AM_Bw_Hit3_B": [
+      [
+        "unarmed_r3_b",
+        "bow_r3_b"
+      ]
+    ],
+    "AM_Hit1_L": [
+      [
+        "cmbt_idle_1h_r1_l"
+      ]
+    ],
+    "AM_Hit3_L": [
+      [
+        "unarmed_r3_l",
+        "rswrd_r3_l"
+      ]
+    ],
+    "AM_Down_L": [
+      [
+        "unarmed_r4_l"
+      ],
+      [
+        "unarmed_prn_idle_to_idle"
+      ]
+    ],
+    "AM_Bw_Hit1_L": [
+      [
+        "unarmed_r1_l",
+        "bow_r1_l"
+      ]
+    ],
+    "AM_Bw_Hit3_L": [
+      [
+        "unarmed_r3_l",
+        "bow_r3_l"
+      ]
+    ],
+    "AM_Hit1_R": [
+      [
+        "cmbt_idle_1h_r1_r"
+      ]
+    ],
+    "AM_Hit3_R": [
+      [
+        "unarmed_r3_r",
+        "rswrd_r3_r"
+      ]
+    ],
+    "AM_Down_R": [
+      [
+        "unarmed_r4_r"
+      ],
+      [
+        "unarmed_prn_idle_to_idle"
+      ]
+    ],
+    "AM_Bw_Hit1_R": [
+      [
+        "unarmed_r1_r",
+        "bow_r1_r"
+      ]
+    ],
+    "AM_Bw_Hit3_R": [
+      [
+        "unarmed_r3_r",
+        "bow_r3_r"
+      ]
     ]
   },
   "window_tags": "1H_Melee,Sword",
@@ -698,6 +1176,248 @@
     ],
     "AM_Hx_Special5": [
       "Attack_Special5"
+    ],
+    "AM_Bw_Draw": [
+      "Unsheathe_UpperBody"
+    ],
+    "AM_Bw_Sheath": [
+      "Sheathe_UpperBody"
+    ],
+    "AM_Bw_HipFire": [
+      "Bow_Shoot_HipFire"
+    ],
+    "AM_Bw_AimStart": [
+      "Bow_ReadyWeapon_UpperBody"
+    ],
+    "AM_Bw_AimIdle": [
+      "Bow_Aim_UpperBody"
+    ],
+    "AM_Bw_AimShot": [
+      "Bow_Shoot_UpperBody"
+    ],
+    "AM_Bw_Charge": [
+      "Bow_Charge_UpperBody"
+    ],
+    "AM_Bw_ChargedIdle": [
+      "Bow_Aim_UpperBody"
+    ],
+    "AM_Bw_ChargedShot": [
+      "Bow_Shoot_Charged"
+    ],
+    "AM_Bw_Reload": [
+      "Bow_Reload_UpperBody"
+    ],
+    "AM_Bw_ReloadCharged": [
+      "Bow_Reload_Charged_UpperBody"
+    ],
+    "AM_Bw_Dodge_F": [
+      "Dodge_Roll_Fast"
+    ],
+    "AM_Bw_Dodge_B": [
+      "Dodge_Roll_Fast"
+    ],
+    "AM_Bw_Dodge_L": [
+      "Dodge_Roll_Fast"
+    ],
+    "AM_Bw_Dodge_R": [
+      "Dodge_Roll_Fast"
+    ],
+    "AM_Bw_Hit_F": [
+      "r_R2_F"
+    ],
+    "AM_Bw_Hit_B": [
+      "r_R2_B"
+    ],
+    "AM_Bw_Hit_L": [
+      "r_R2_L"
+    ],
+    "AM_Bw_Hit_R": [
+      "r_R2_R"
+    ],
+    "AM_Bw_StunLoop": [
+      "r_Stun_Loop"
+    ],
+    "AM_Bw_RapidShot": [
+      "Ability_Bow_RapidShot"
+    ],
+    "AM_Bw_EvadeShot": [
+      "Ability_Bow_JumpBackShot"
+    ],
+    "AM_Bw_ExplosiveArrow": [
+      "Ability_Bow_ExplosiveArrow"
+    ],
+    "AM_Bw_AimEnd": [
+      "Bow_Lower_UpperBody"
+    ],
+    "AM_Bw_AimEndCharged": [
+      "Bow_Lower_UpperBody"
+    ],
+    "AM_Bw_AimEndFromShot": [
+      "Bow_Lower_FromShoot_UpperBody"
+    ],
+    "AM_Bw_AimEndFromShotCharged": [
+      "Bow_Lower_FromShoot_Charged_UpperBody"
+    ],
+    "AM_Bw_Shake": [
+      "Bow_Shake_UpperBody"
+    ],
+    "AM_Bw_PenetratingShot": [
+      "Bow_Shoot_UpperBody"
+    ],
+    "AM_Bw_PoisonShot": [
+      "Bow_Shoot_UpperBody"
+    ],
+    "AM_Bw_RainReady": [
+      "Bow_ReadyWeapon_UpperBody"
+    ],
+    "AM_Bw_RainIdle": [
+      "Bow_Aim_UpperBody"
+    ],
+    "AM_Bw_RainShot": [
+      "Bow_Shoot_RainOfArrows"
+    ],
+    "AM_Bw_RainEnd": [
+      "Bow_Lower_FromRain_UpperBody"
+    ],
+    "AM_Rp_LightCombo": [
+      "Attack_Primary",
+      "Attack_Primary_Strike2",
+      "Attack_Primary_Strike3"
+    ],
+    "AM_Rp_HeavyCharge": [
+      "Attack_Start_Charge"
+    ],
+    "AM_Rp_HeavyCharged": [
+      "Attack_Heavy_Charged"
+    ],
+    "AM_Rp_SprintAttack": [
+      "Attack_Sprint"
+    ],
+    "AM_Rp_Dodge_F": [
+      "Dodge_Roll"
+    ],
+    "AM_Rp_Dodge_B": [
+      "Dodge_Roll"
+    ],
+    "AM_Rp_Dodge_L": [
+      "Dodge_Roll"
+    ],
+    "AM_Rp_Dodge_R": [
+      "Dodge_Roll"
+    ],
+    "AM_Rp_Draw": [
+      "Unsheathe_UpperBody"
+    ],
+    "AM_Rp_Tondo": [
+      "Ability_Rapier_Slash"
+    ],
+    "AM_Rp_Flurry": [
+      "Ability_Rapier_Flurry"
+    ],
+    "AM_Rp_Flourish": [
+      "Ability_Rapier_Flourish"
+    ],
+    "AM_Rp_Finish": [
+      "Ability_Rapier_Finish"
+    ],
+    "AM_Rp_RiposteStart": [
+      "Ability_Rapier_Riposte"
+    ],
+    "AM_Rp_RiposteLoop": [
+      "Ability_Rapier_Riposte_Loop"
+    ],
+    "AM_Rp_RiposteOut": [
+      "Ability_Rapier_Riposte_Out"
+    ],
+    "AM_Rp_RiposteCancel": [
+      "Ability_Rapier_Riposte_Kickout"
+    ],
+    "AM_Rp_FlecheStart": [
+      "Ability_Rapier_Aerial_Lunge_Intro"
+    ],
+    "AM_Rp_FlecheLoop": [
+      "Ability_Rapier_Aerial_Lunge_Loop"
+    ],
+    "AM_Rp_FlecheEnd": [
+      "Ability_Rapier_Aerial_Lunge_Stop"
+    ],
+    "AM_Rp_Wake": [
+      "Ability_Rapier_Wake"
+    ],
+    "AM_Rp_Evade_F": [
+      "Ability_Rapier_Evasion"
+    ],
+    "AM_Rp_Evade_B": [
+      "Ability_Rapier_Evasion"
+    ],
+    "AM_Rp_Evade_L": [
+      "Ability_Rapier_Evasion"
+    ],
+    "AM_Rp_Evade_R": [
+      "Ability_Rapier_Evasion"
+    ],
+    "AM_Rp_EvadeAttack": [
+      "Ability_Rapier_Evade_Attack"
+    ],
+    "AM_Hit1_F": [
+      "r_R1_F"
+    ],
+    "AM_Hit3_F": [
+      "r_R3_F"
+    ],
+    "AM_Down_F": [
+      "r_R4_F"
+    ],
+    "AM_Bw_Hit1_F": [
+      "r_R1_F"
+    ],
+    "AM_Bw_Hit3_F": [
+      "r_R3_F"
+    ],
+    "AM_Hit1_B": [
+      "r_R1_B"
+    ],
+    "AM_Hit3_B": [
+      "r_R3_B"
+    ],
+    "AM_Down_B": [
+      "r_R4_B"
+    ],
+    "AM_Bw_Hit1_B": [
+      "r_R1_B"
+    ],
+    "AM_Bw_Hit3_B": [
+      "r_R3_B"
+    ],
+    "AM_Hit1_L": [
+      "r_R1_L"
+    ],
+    "AM_Hit3_L": [
+      "r_R3_L"
+    ],
+    "AM_Down_L": [
+      "r_R4_L"
+    ],
+    "AM_Bw_Hit1_L": [
+      "r_R1_L"
+    ],
+    "AM_Bw_Hit3_L": [
+      "r_R3_L"
+    ],
+    "AM_Hit1_R": [
+      "r_R1_R"
+    ],
+    "AM_Hit3_R": [
+      "r_R3_R"
+    ],
+    "AM_Down_R": [
+      "r_R4_R"
+    ],
+    "AM_Bw_Hit1_R": [
+      "r_R1_R"
+    ],
+    "AM_Bw_Hit3_R": [
+      "r_R3_R"
     ]
   },
   "armor": "objects/characters/player/male/heroicheavy/male_heroicheavy.cdf",
@@ -732,8 +1452,10 @@
     "AM_GatherHand"
   ],
   "hold_montages": [
+    "AM_Bw_Charge",
     "AM_HeavyCharge",
-    "AM_Hx_HeavyCharge"
+    "AM_Hx_HeavyCharge",
+    "AM_Rp_HeavyCharge"
   ],
   "window_overrides": {
     "AM_Hx_": {
@@ -743,6 +1465,188 @@
         "player/player.adb"
       ],
       "tags": "1H_Melee,Axe"
+    },
+    "AM_Bw_": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow",
+      "attach_adbs": []
+    },
+    "AM_Bw_Charged": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow,ChargedAim",
+      "attach_adbs": []
+    },
+    "AM_Bw_AimEndCharged": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow,ChargedAim",
+      "attach_adbs": []
+    },
+    "AM_Bw_Shake": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow,ChargedAim",
+      "attach_adbs": []
+    },
+    "AM_Bw_PenetratingShot": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow,PenetratingAim",
+      "attach_adbs": []
+    },
+    "AM_Bw_PoisonShot": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow,SmokeAim",
+      "attach_adbs": []
+    },
+    "AM_Bw_Rain": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow,HeavyAim",
+      "attach_adbs": []
+    },
+    "AM_Bw_Dodge_B": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow,BackNav",
+      "attach_adbs": []
+    },
+    "AM_Bw_Dodge_L": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow,LeftNav",
+      "attach_adbs": []
+    },
+    "AM_Bw_Dodge_R": {
+      "adbs": [
+        "player/player_bow.adb",
+        "player/player.adb"
+      ],
+      "tags": "Bow,LongBow,RightNav",
+      "attach_adbs": []
+    },
+    "AM_Rp_": {
+      "adbs": [
+        "player/player_rapier.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Rapier"
+    },
+    "AM_Rp_Dodge_F": {
+      "adbs": [
+        "player/player_rapier.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Rapier,ForwardNav"
+    },
+    "AM_Rp_Evade_F": {
+      "adbs": [
+        "player/player_rapier.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Rapier,ForwardNav"
+    },
+    "AM_Rp_Dodge_B": {
+      "adbs": [
+        "player/player_rapier.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Rapier,BackNav"
+    },
+    "AM_Rp_Evade_B": {
+      "adbs": [
+        "player/player_rapier.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Rapier,BackNav"
+    },
+    "AM_Rp_Dodge_L": {
+      "adbs": [
+        "player/player_rapier.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Rapier,LeftNav"
+    },
+    "AM_Rp_Evade_L": {
+      "adbs": [
+        "player/player_rapier.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Rapier,LeftNav"
+    },
+    "AM_Rp_Dodge_R": {
+      "adbs": [
+        "player/player_rapier.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Rapier,RightNav"
+    },
+    "AM_Rp_Evade_R": {
+      "adbs": [
+        "player/player_rapier.adb",
+        "player/player_1h_melee.adb",
+        "player/player.adb"
+      ],
+      "tags": "1H_Melee,Rapier,RightNav"
     }
+  },
+  "upper_montages": [
+    "AM_Bw_AimEnd",
+    "AM_Bw_AimEndCharged",
+    "AM_Bw_AimEndFromShot",
+    "AM_Bw_AimEndFromShotCharged",
+    "AM_Bw_AimIdle",
+    "AM_Bw_AimShot",
+    "AM_Bw_AimStart",
+    "AM_Bw_Charge",
+    "AM_Bw_ChargedIdle",
+    "AM_Bw_ChargedShot",
+    "AM_Bw_Draw",
+    "AM_Bw_ExplosiveArrow",
+    "AM_Bw_HipFire",
+    "AM_Bw_PenetratingShot",
+    "AM_Bw_PoisonShot",
+    "AM_Bw_RainIdle",
+    "AM_Bw_Reload",
+    "AM_Bw_ReloadCharged",
+    "AM_Bw_Shake",
+    "AM_Bw_Sheath",
+    "AM_Rp_Draw"
+  ],
+  "window_attach_adbs": [
+    "playermaleanims_1h_meleeattach.adb"
+  ],
+  "montage_starts": {
+    "AM_Rp_HeavyCharged": 0.74,
+    "AM_Rp_EvadeAttack": 0.2
   }
 }

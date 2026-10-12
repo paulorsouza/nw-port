@@ -93,7 +93,7 @@ Durante a extração: não abra o New World nem a Unreal. O Ubuntu fecha program
 ## 4. Conferir
 
 ```bash
-ls extract/.etapas      # 00.ok … 12.ok
+ls extract/.etapas      # 00.ok … 13.ok
 du -sh extract          # ~30 GB
 ```
 

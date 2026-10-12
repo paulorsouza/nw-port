@@ -22,6 +22,11 @@
 #include "InputModifiers.h"
 #include "Net/UnrealNetwork.h"
 #include "Dom/JsonObject.h"
+#include "NWBrainComponent.h"
+#include "HAL/IConsoleManager.h"
+
+// c_shakeMult do jogo: multiplica as tremidas de câmera.
+static TAutoConsoleVariable<float> CVarNWShakeScale(TEXT("nw.ShakeScale"), 1.f, TEXT("Multiplica as tremidas de câmera do jogo"));
 #include "NWCombatComponent.h"
 #include "NWTraversalComponent.h"
 #include "NWGatherComponent.h"
@@ -75,6 +80,11 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Body->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 
 
+	NockedArrow = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("NockedArrow"));
+	NockedArrow->SetupAttachment(Body, TEXT("right_hand_attach"));
+	NockedArrow->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	NockedArrow->SetVisibility(false);
+	NockedArrow->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));   // mesma correção das armas (ponta em +Z da malha)
 	Sword = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Sword"));
 	Sword->SetupAttachment(Body, TEXT("right_hand_attach"));
 	Sword->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -99,6 +109,7 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 		SwordSet.Actions = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/NW/Data/DT_NWActions.DT_NWActions")));
 		SwordSet.Locomotion = TSoftObjectPtr<UBlendSpace>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Anims/BS_Strafe.BS_Strafe")));
 		SwordSet.HudIcon = TEXT("lyshineui/images/icons/items/drawing/1hsword.dds");
+		// SwordT2: dano 64 (= 100 do port), crítico 7% ×1,3, stagger 36; bloqueio com o escudo redondo (estabilidade 30).
 		SwordSet.Abilities = {TEXT("ShieldBash"), TEXT("SpinAttack"), TEXT("SwipeStab")};
 		WeaponSets.Add(SwordSet);
 		FNWWeaponSet Hatchet;
@@ -107,8 +118,37 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 		Hatchet.Actions = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/NW/Data/DT_HatchetActions.DT_HatchetActions")));
 		Hatchet.Locomotion = TSoftObjectPtr<UBlendSpace>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Anims/BS_Hatchet_Strafe.BS_Hatchet_Strafe")));
 		Hatchet.HudIcon = TEXT("lyshineui/images/icons/items/drawing/1hhatchet.dds");
+		// HatchetT2: dano 67 (×100/64), crítico 8% ×1,4, stagger 30, estabilidade 21.
+		Hatchet.BaseDamage = 105.f; Hatchet.CritChance = 0.08f; Hatchet.CritDamageMultiplier = 1.4f;
+		Hatchet.StaggerDamage = 30.f; Hatchet.BlockStaminaDamage = 30.f; Hatchet.BlockStability = 21.f;
 		Hatchet.Abilities = {TEXT("Berserk"), TEXT("RagingTorrent"), TEXT("RendingThrow")};
 		WeaponSets.Add(Hatchet);
+		// Arco (F10 > Trocar par de armas): BowT2 84 (×100/64), crítico 8% ×1,3, stagger 38; não bloqueia.
+		FNWWeaponSet Bow;
+		Bow.Id = TEXT("Bow");
+		Bow.Mesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SM_bow.SM_bow")));
+		Bow.Actions = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/NW/Data/DT_BowActions.DT_BowActions")));
+		Bow.Locomotion = TSoftObjectPtr<UBlendSpace>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Anims/BS_Bw_Strafe.BS_Bw_Strafe")));
+		Bow.HudIcon = TEXT("lyshineui/images/icons/items/drawing/bowa.dds");
+		Bow.Abilities = {TEXT("RapidShot"), TEXT("EvadeShot"), TEXT("PenetratingShot")};
+		Bow.Socket = TEXT("left_hand_attach");
+		Bow.BaseDamage = 131.f; Bow.CritChance = 0.08f; Bow.CritDamageMultiplier = 1.3f;
+		Bow.StaggerDamage = 38.f; Bow.BlockStaminaDamage = 38.f; Bow.BlockStability = 0.f;
+		Bow.bAims = true;
+		WeaponSets.Add(Bow);
+		// Rapieira: RapierT2 61 (×100/64), crítico 9% ×1,4, stagger 28, estabilidade 17. Carga sem pesado intermediário:
+		// soltar antes de 0,667 s = leve, chegar a 0,667 s = carregado.
+		FNWWeaponSet Rapier;
+		Rapier.Id = TEXT("Rapier");
+		Rapier.Mesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SM_rapier.SM_rapier")));
+		Rapier.Actions = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/NW/Data/DT_RapierActions.DT_RapierActions")));
+		Rapier.Locomotion = TSoftObjectPtr<UBlendSpace>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Anims/BS_Hatchet_Strafe.BS_Hatchet_Strafe")));
+		Rapier.HudIcon = TEXT("lyshineui/images/icons/items/drawing/1hrapier.dds");
+		Rapier.Abilities = {TEXT("Tondo"), TEXT("Riposte"), TEXT("Evade")};
+		Rapier.BaseDamage = 95.f; Rapier.CritChance = 0.09f; Rapier.CritDamageMultiplier = 1.4f;
+		Rapier.StaggerDamage = 28.f; Rapier.BlockStaminaDamage = 28.f; Rapier.BlockStability = 17.f;
+		Rapier.HeavyMinHold = 0.667f; Rapier.HeavyFullCharge = 0.667f;
+		WeaponSets.Add(Rapier);
 	}
 
 	Combat = CreateDefaultSubobject<UNWCombatComponent>(TEXT("Combat"));
@@ -116,6 +156,8 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Inventory = CreateDefaultSubobject<UNWInventoryComponent>(TEXT("Inventory"));
 	Gather = CreateDefaultSubobject<UNWGatherComponent>(TEXT("Gather"));
 	Progression = CreateDefaultSubobject<UNWProgressionComponent>(TEXT("Progression"));
+	Brain = CreateDefaultSubobject<UNWBrainComponent>(TEXT("Brain"));
+	Brain->bAutoActivate = false;
 
 	// Caminhos criados pelo tools/ue/import_nw.py (conjunto sword_shield).
 	MeshAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SK_player_male.SK_player_male")));
@@ -132,7 +174,9 @@ void ANWCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ANWCharacter, bSprinting);
 	DOREPLIFETIME(ANWCharacter, bWalking);
 	DOREPLIFETIME(ANWCharacter, DevSpeedMultiplier);
+	DOREPLIFETIME(ANWCharacter, bDevFlying);
 	DOREPLIFETIME(ANWCharacter, ActiveWeapon);
+	DOREPLIFETIME(ANWCharacter, Loadout);
 }
 
 void ANWCharacter::LoadMissingAssets()
@@ -179,11 +223,26 @@ void ANWCharacter::Tick(float DeltaSeconds)
 	{
 		AddMovementInput(FRotator(0.f, Controller->GetControlRotation().Yaw, 0.f).Vector(), 1.f);
 	}
+	if (bDevFlying && IsLocallyControlled() && !InMenu())
+	{
+		AddMovementInput(FVector::UpVector, (bFlyUp ? 1.f : 0.f) - (bWalking ? 1.f : 0.f));
+	}
+	// Flecha na mão direita do jogo (CAGE-Attachment ActiveWeapon) enquanto mira e puxa; some no disparo e volta na recarga.
+	{
+		const FName A = Combat->GetCurrentAction();
+		const bool bShow = Combat->bAimWeapon && Combat->bAiming && A != TEXT("AimShot") && A != TEXT("ChargedShot") && A != TEXT("PenetratingShot")
+			&& A != TEXT("PoisonShot");
+		if (bShow && !NockedArrow->GetStaticMesh())
+		{
+			NockedArrow->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Game/NW/sword_shield/Mesh/SM_arrow.SM_arrow")));
+		}
+		NockedArrow->SetVisibility(bShow);
+	}
 	UpdateAutoSprint();
 	ApplySprint();
 	UpdateCamera(DeltaSeconds);
 	UpdateCameraClipHide();
-	if (HasAuthority() && bDummyAttacks && !IsPlayerControlled())
+	if (HasAuthority() && bDummyAttacks && !IsPlayerControlled() && !Brain->IsActive())
 	{
 		TickDummy(DeltaSeconds);
 	}
@@ -201,13 +260,32 @@ void ANWCharacter::Tick(float DeltaSeconds)
 			// Inventário aberto: o personagem vira de frente para a câmera (BlendLookDirection do jogo).
 			SetActorRotation(FMath::RInterpTo(GetActorRotation(), FRotator(0.f, Target.Yaw + 180.f, 0.f), DeltaSeconds, 8.f));
 		}
-		else if ((!bBusy || Combat->IsCharging()) && !bSprinting)
+		else if ((!bBusy || Combat->IsCharging() || Combat->bAiming) && !bSprinting)
 		{
 			SetActorRotation(FMath::RInterpTo(GetActorRotation(), Target, DeltaSeconds, 18.f));
 		}
 		else if (bBusy && Combat->GetCurve(TEXT("Homing")) > 0.5f)
 		{
-			SetActorRotation(FMath::RInterpConstantTo(GetActorRotation(), Target, DeltaSeconds, HomingTurnRate));
+			// Homing do jogo: vira para o inimigo mais perto à frente da câmera (raio ~2,75 m, cone de 45°, janelas
+			// Homing do .adb); sem ninguém, para onde a câmera olha.
+			FRotator Aim = Target;
+			float Best = 275.f;
+			const FVector CamFwd = Target.Vector();
+			for (TActorIterator<ANWCharacter> It(GetWorld()); It; ++It)
+			{
+				if (*It == this || It->IsPlayerControlled() || It->Combat->State == ENWCombatState::Dead)
+				{
+					continue;
+				}
+				const FVector To = It->GetActorLocation() - GetActorLocation();
+				const float D = To.Size2D() - It->GetCapsuleComponent()->GetScaledCapsuleRadius();
+				if (D < Best && FVector::DotProduct(To.GetSafeNormal2D(), CamFwd) > FMath::Cos(FMath::DegreesToRadians(45.f)))
+				{
+					Best = D;
+					Aim = FRotator(0.f, To.Rotation().Yaw, 0.f);
+				}
+			}
+			SetActorRotation(FMath::RInterpConstantTo(GetActorRotation(), Aim, DeltaSeconds, HomingTurnRate));
 		}
 	}
 }
@@ -216,13 +294,62 @@ void ANWCharacter::ApplySprint()
 {
 	// Sobrecarregado (peso > máximo): só anda, como no jogo ("não é possível correr, se esquivar ou pular").
 	const bool bEncumbered = Inventory && Inventory->IsEncumbered();
-	const bool bCanSprint = bSprinting && !bWalking && !bEncumbered && !Combat->IsBusy() && Combat->State != ENWCombatState::Blocking;
+	const bool bCanSprint = bSprinting && !bWalking && !bEncumbered && !Combat->IsBusy() && Combat->State != ENWCombatState::Blocking && !Combat->bAiming;
 	UCharacterMovementComponent* Move = GetCharacterMovement();
-	const float Speed = bWalking || bEncumbered ? WalkSpeed
+	// Mirando com o arco anda a 1,65 m/s (AimCamera do jogo).
+	const float Speed = bWalking || bEncumbered || Combat->bAiming ? WalkSpeed
 		: bCanSprint ? SprintSpeed
 		: Combat->State == ENWCombatState::Blocking ? RunSpeed * 0.4f : RunSpeed;
-	Move->MaxWalkSpeed = Speed * FMath::Max(1.f, DevSpeedMultiplier);
+	Move->MaxWalkSpeed = Speed * FMath::Max(1.f, DevSpeedMultiplier) * Combat->GetMoveSpeedMultiplier();
+	Move->MaxFlySpeed = SprintSpeed * 2.f * FMath::Max(1.f, DevSpeedMultiplier);
 	Move->bOrientRotationToMovement = bCanSprint;
+}
+
+void ANWCharacter::PlayCameraShake(FName Id)
+{
+	if (!IsLocallyControlled() || Id.IsNone())
+	{
+		return;
+	}
+	if (!ShakeTable)
+	{
+		ShakeTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/NW/Data/DT_NWCameraShake.DT_NWCameraShake"));
+	}
+	// Nomes das tabelas de dano às vezes têm espaço no fim ("Small "); ID inexistente = sem tremida (como no jogo).
+	const FNWCameraShakeRow* R = ShakeTable ? ShakeTable->FindRow<FNWCameraShakeRow>(FName(*Id.ToString().TrimStartAndEnd()), TEXT("shake"), false) : nullptr;
+	if (!R)
+	{
+		return;
+	}
+	ActiveShake = FShake();
+	ActiveShake.bActive = true;
+	ActiveShake.Shift = FVector(R->ShiftX, R->ShiftY, R->ShiftZ);
+	ActiveShake.Angle = FVector(R->AngleX, R->AngleY, R->AngleZ);
+	ActiveShake.FadeIn = R->FadeIn;
+	ActiveShake.Sustain = R->Sustain;
+	ActiveShake.FadeOut = R->FadeOut;
+	ActiveShake.Period = R->Frequency;
+	ActiveShake.Randomness = R->Randomness;
+	ActiveShake.Flip = R->FlipVec ? 1.f : -1.f;
+}
+
+void ANWCharacter::UseBrain(uint8 Style, const TArray<FNWBrainAttack>& Attacks)
+{
+	Brain->ApplyStyle(static_cast<ENWBrainStyle>(Style));
+	Brain->Attacks = Attacks;
+	Brain->Activate(true);
+}
+
+void ANWCharacter::ApplyDevFlying()
+{
+	UCharacterMovementComponent* Move = GetCharacterMovement();
+	Move->BrakingDecelerationFlying = 6000.f;
+	Move->SetMovementMode(bDevFlying ? MOVE_Flying : MOVE_Falling);
+	// Atravessa terreno, rochas e construções; continua acertando e sendo acertado (Pawn segue bloqueando).
+	const ECollisionResponse R = bDevFlying ? ECR_Ignore : ECR_Block;
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, R);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldDynamic, R);
+	bFlyUp = false;
 }
 
 void ANWCharacter::UpdateAutoSprint()
@@ -234,7 +361,7 @@ void ANWCharacter::UpdateAutoSprint()
 	// Indo para a frente da câmera (até ~45° para os lados), sem andar com Ctrl, sem ataque/bloqueio: sprint.
 	const FVector Accel = GetCharacterMovement()->GetCurrentAcceleration().GetSafeNormal2D();
 	const FVector Forward = FRotator(0.f, Controller->GetControlRotation().Yaw, 0.f).Vector();
-	const bool bWant = !Accel.IsNearlyZero() && FVector::DotProduct(Accel, Forward) > 0.7f && !bWalking
+	const bool bWant = !Accel.IsNearlyZero() && FVector::DotProduct(Accel, Forward) > 0.7f && !bWalking && !Combat->bAiming
 		&& !Combat->IsBusy() && Combat->State != ENWCombatState::Blocking;
 	if (bWant != bSprinting)
 	{
@@ -389,6 +516,13 @@ void ANWCharacter::Move(const FInputActionValue& Value)
 	{
 		return;
 	}
+	if (bDevFlying)
+	{
+		const FRotationMatrix View(Controller->GetControlRotation());
+		AddMovementInput(View.GetUnitAxis(EAxis::X), V.Y);
+		AddMovementInput(View.GetUnitAxis(EAxis::Y), V.X);
+		return;
+	}
 	const FRotator Yaw(0.f, Controller->GetControlRotation().Yaw, 0.f);
 	AddMovementInput(FRotationMatrix(Yaw).GetUnitAxis(EAxis::X), V.Y);
 	AddMovementInput(FRotationMatrix(Yaw).GetUnitAxis(EAxis::Y), V.X);
@@ -418,6 +552,10 @@ void ANWCharacter::UpdateCamera(float DeltaSeconds)
 	{
 		Right = 77.f; Height = 95.f; Distance = 275.f; PitchMin = -70.f; PitchMax = -10.f;   // UI_Inventory
 	}
+	else if (Combat->bAiming)
+	{
+		Distance = 100.f;                                                                        // AimCamera (arco)
+	}
 	else if (bSprinting && GetVelocity().Size2D() > RunSpeed)
 	{
 		Right = 70.f; Distance = FMath::Max(Distance, 400.f);                                   // MidCameraSprint
@@ -430,6 +568,52 @@ void ANWCharacter::UpdateCamera(float DeltaSeconds)
 	CameraBoom->SetRelativeLocation(Loc);
 	CameraBoom->SocketOffset.Y = FMath::FInterpTo(CameraBoom->SocketOffset.Y, Right, DeltaSeconds, Speed);
 	CameraBoom->TargetArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, Distance, DeltaSeconds, Speed);
+	FVector Shake = FVector::ZeroVector;
+	if (CameraKick > 0.f)
+	{
+		CameraKickTime += DeltaSeconds;
+		const float A = CameraKick * 5.f;
+		Shake = FVector(0.f, FMath::Sin(CameraKickTime * 60.f) * A, FMath::Sin(CameraKickTime * 47.f + 1.f) * A * 0.7f);
+		CameraKick = FMath::Max(0.f, CameraKick - DeltaSeconds * 4.f);
+	}
+	// Tremida do jogo: alvo aleatório a cada período (sinal alternado), interpolado e no envelope suavizado.
+	FRotator ShakeRot = FRotator::ZeroRotator;
+	if (ActiveShake.bActive)
+	{
+		FShake& S = ActiveShake;
+		S.Time += DeltaSeconds;
+		const float Total = S.FadeIn + S.Sustain + S.FadeOut;
+		if (S.Time >= Total)
+		{
+			S.bActive = false;
+		}
+		else
+		{
+			if (S.Time >= S.NextTarget)
+			{
+				S.FromShift = S.ToShift;
+				S.FromAngle = S.ToAngle;
+				S.Flip = -S.Flip;
+				auto Rnd = [&S](const FVector& V) { const float N = S.Randomness * (FMath::Abs(V.X) + FMath::Abs(V.Y) + FMath::Abs(V.Z)) / 3.f;
+					return FVector(V.X * FMath::FRandRange(0.5f, 1.f) + FMath::FRandRange(-N, N), V.Y * FMath::FRandRange(0.5f, 1.f) + FMath::FRandRange(-N, N),
+						V.Z * FMath::FRandRange(0.5f, 1.f) + FMath::FRandRange(-N, N)); };
+				S.ToShift = Rnd(S.Shift) * S.Flip;
+				S.ToAngle = Rnd(S.Angle) * S.Flip;
+				S.NextTarget = S.Time + FMath::Max(S.Period, 0.005f);
+			}
+			const float A = FMath::Clamp(1.f - (S.NextTarget - S.Time) / FMath::Max(S.Period, 0.005f), 0.f, 1.f);
+			const float Sm = A * A * (3.f - 2.f * A);
+			float Env = S.Time < S.FadeIn ? S.Time / FMath::Max(S.FadeIn, 0.001f) : S.Time > S.FadeIn + S.Sustain ? (Total - S.Time) / FMath::Max(S.FadeOut, 0.001f) : 1.f;
+			Env = Env * Env * (3.f - 2.f * Env);
+			const FVector Sh = FMath::Lerp(S.FromShift, S.ToShift, Sm) * Env * 100.f * CVarNWShakeScale.GetValueOnGameThread();
+			const FVector An = FMath::Lerp(S.FromAngle, S.ToAngle, Sm) * Env * CVarNWShakeScale.GetValueOnGameThread();
+			// Eixos do CryEngine na câmera: X direita, Y frente, Z cima → Unreal X frente, Y direita, Z cima.
+			Shake += FVector(Sh.Y, Sh.X, Sh.Z);
+			ShakeRot = FRotator(FMath::RadiansToDegrees(An.X), FMath::RadiansToDegrees(An.Z), FMath::RadiansToDegrees(An.Y));
+		}
+	}
+	Camera->SetRelativeLocation(Shake);
+	Camera->SetRelativeRotation(ShakeRot);
 	if (APlayerCameraManager* PCM = PC ? PC->PlayerCameraManager.Get() : nullptr)
 	{
 		PCM->ViewPitchMin = PitchMin;
@@ -492,12 +676,25 @@ void ANWCharacter::BlockPressed()
 	{
 		return;
 	}
+	if (Combat->bAimWeapon)
+	{
+		Combat->RequestAim(true);   // arco: o botão direito mira
+		return;
+	}
 	if (CanAct())
 	{
 		Combat->RequestBlock(true);
 	}
 }
-void ANWCharacter::BlockReleased() { Combat->RequestBlock(false); }
+void ANWCharacter::BlockReleased()
+{
+	if (Combat->bAimWeapon || Combat->bAiming)
+	{
+		Combat->RequestAim(false);
+		return;
+	}
+	Combat->RequestBlock(false);
+}
 
 void ANWCharacter::Dodge()
 {
@@ -533,6 +730,11 @@ bool ANWCharacter::CanAct() const
 
 void ANWCharacter::JumpPressed()
 {
+	if (bDevFlying)
+	{
+		bFlyUp = true;
+		return;
+	}
 	if (Inventory && Inventory->IsEncumbered())
 	{
 		return;
@@ -555,6 +757,7 @@ void ANWCharacter::JumpPressed()
 
 void ANWCharacter::JumpReleased()
 {
+	bFlyUp = false;
 	StopJumping();
 }
 
@@ -707,7 +910,7 @@ void ANWCharacter::CaptureTo(FNWCharacterRecord& Record) const
 	{
 		Record.ActiveWeapon = WeaponSets[ActiveWeapon].Id.ToString();
 	}
-	TSharedRef<FJsonObject> Loadout = MakeShared<FJsonObject>();
+	TSharedRef<FJsonObject> AbilityLoadout = MakeShared<FJsonObject>();
 	for (const FNWWeaponSet& Set : WeaponSets)
 	{
 		TArray<TSharedPtr<FJsonValue>> Names;
@@ -715,9 +918,9 @@ void ANWCharacter::CaptureTo(FNWCharacterRecord& Record) const
 		{
 			Names.Add(MakeShared<FJsonValueString>(N.ToString()));
 		}
-		Loadout->SetArrayField(Set.Id.ToString(), Names);
+		AbilityLoadout->SetArrayField(Set.Id.ToString(), Names);
 	}
-	Record.Loadout = Loadout;
+	Record.Loadout = AbilityLoadout;
 	Record.Items = Inventory->Items;
 	Record.Coins = Inventory->Coins;
 	Record.Progression = Progression->Save();
@@ -776,7 +979,24 @@ void ANWCharacter::ApplyWeapon()
 	{
 		Combat->ActionTable = Table;
 	}
+	Combat->WeaponBaseDamage = Set.BaseDamage;
+	Combat->CritChance = Set.CritChance;
+	Combat->CritDamageMultiplier = Set.CritDamageMultiplier;
+	Combat->BaseStaggerDamage = Set.StaggerDamage;
+	Combat->BlockStaminaDamage = Set.BlockStaminaDamage;
+	Combat->BlockStability = Set.BlockStability;
+	Combat->HeavyMinHold = Set.HeavyMinHold;
+	Combat->HeavyFullCharge = Set.HeavyFullCharge;
+	if (HasAuthority())
+	{
+		Combat->bAimWeapon = Set.bAims;
+		if (!Set.bAims)
+		{
+			Combat->bAiming = false;
+		}
+	}
 	Sword->SetStaticMesh(Set.Mesh.LoadSynchronous());
+	Sword->AttachToComponent(Body, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Set.Socket);
 	Sword->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));
 	Combat->SetMainWeapon(Sword);
 
@@ -798,9 +1018,31 @@ void ANWCharacter::ApplyWeapon()
 		Shield->SetRelativeTransform(StowRelative(Body, TEXT("Spine2"), Back));
 	}
 
-	// A outra arma no quadril esquerdo, cabo para cima e lâmina para baixo e para trás.
-	const int32 Other = WeaponSets.Num() > 1 ? (ActiveWeapon + 1) % WeaponSets.Num() : INDEX_NONE;
-	if (Other != INDEX_NONE)
+	// Escudo só existe com espada e escudo no par de armas (no jogo é parte dessa arma); sem ela, some.
+	bool bShieldInPair = Set.bUsesShield;
+	for (const int32 I : Loadout)
+	{
+		bShieldInPair |= WeaponSets.IsValidIndex(I) && WeaponSets[I].bUsesShield;
+	}
+	Shield->SetVisibility(bShieldInPair && (WeaponSets.Num() > 0));
+
+	// A outra arma: arco nas costas (attachment "bow" do jogo, na coluna); as outras no quadril esquerdo, cabo para
+	// cima e lâmina para baixo e para trás.
+	const int32 Other = OtherWeapon();
+	if (Other != INDEX_NONE && WeaponSets[Other].bAims)
+	{
+		Stowed->SetStaticMesh(WeaponSets[Other].Mesh.LoadSynchronous());
+		const float Lean = FMath::DegreesToRadians(29.f);
+		const FVector Out(0.f, -FMath::Cos(Lean), FMath::Sin(Lean));
+		const FVector Up(0.f, FMath::Sin(Lean), FMath::Cos(Lean));
+		// Arco de pé nas costas, inclinado ~35° (ponta de cima para o ombro direito).
+		const FVector Along = (Up * FMath::Cos(FMath::DegreesToRadians(35.f)) + FVector(1.f, 0.f, 0.f) * FMath::Sin(FMath::DegreesToRadians(35.f))).GetSafeNormal();
+		const FTransform Back(FRotationMatrix::MakeFromZX(Along, Out).Rotator(), FVector(0.f, -20.f, 128.f));
+		Stowed->AttachToComponent(Body, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("Spine2"));
+		Stowed->SetRelativeTransform(StowRelative(Body, TEXT("Spine2"), Back));
+		Stowed->SetVisibility(true);
+	}
+	else if (Other != INDEX_NONE)
 	{
 		Stowed->SetStaticMesh(WeaponSets[Other].Mesh.LoadSynchronous());
 		const FVector Blade = FVector(0.f, -0.45f, -1.f).GetSafeNormal();
@@ -859,8 +1101,10 @@ void ANWCharacter::ServerSwitchWeapon_Implementation(int32 Index)
 	// Jogador com inventário: só troca para uma arma equipada.
 	if (Inventory && Inventory->Items.Num() > 0)
 	{
-		const int32 Slot = WeaponSets[Index].Id == TEXT("Hatchet") ? NWEquip::Hatchet : NWEquip::Sword;
-		if (!Inventory->At(ENWItemContainer::Equip, Slot))
+		// Arco e rapieira ainda sem espaço próprio no equipamento: liberados (arena de testes).
+		const FName Id = WeaponSets[Index].Id;
+		const int32 Slot = Id == TEXT("Hatchet") ? NWEquip::Hatchet : NWEquip::Sword;
+		if ((Id == TEXT("Sword") || Id == TEXT("Hatchet")) && !Inventory->At(ENWItemContainer::Equip, Slot))
 		{
 			return;
 		}
@@ -870,6 +1114,32 @@ void ANWCharacter::ServerSwitchWeapon_Implementation(int32 Index)
 		Combat->RequestBlock(false);
 	}
 	ActiveWeapon = Index;
+	ApplyWeapon();
+	Combat->PlayDraw();
+}
+
+int32 ANWCharacter::OtherWeapon() const
+{
+	if (Loadout.Num() == 2 && WeaponSets.IsValidIndex(Loadout[0]) && WeaponSets.IsValidIndex(Loadout[1]))
+	{
+		return Loadout[0] == ActiveWeapon ? Loadout[1] : Loadout[0];
+	}
+	return WeaponSets.Num() > 1 ? (ActiveWeapon + 1) % WeaponSets.Num() : INDEX_NONE;
+}
+
+void ANWCharacter::SetLoadout(int32 First, int32 Second)
+{
+	if (!WeaponSets.IsValidIndex(First) || !WeaponSets.IsValidIndex(Second) || Combat->IsBusy())
+	{
+		return;
+	}
+	if (Combat->State == ENWCombatState::Blocking)
+	{
+		Combat->RequestBlock(false);
+	}
+	Loadout = {First, Second};
+	ActiveWeapon = First;
+	Abilities = WeaponSets[First].Abilities;
 	ApplyWeapon();
 	Combat->PlayDraw();
 }
@@ -907,10 +1177,20 @@ void ANWCharacter::Ability(int32 Index)
 	{
 		return;
 	}
-	if (Abilities.IsValidIndex(Index) && CanAct())
+	if (!Abilities.IsValidIndex(Index) || !CanAct())
 	{
-		Combat->RequestAction(Abilities[Index]);
+		return;
 	}
+	// Evadir (rapieira): passo curto na direção do movimento (Evade_F/B/L/R), recarga única "Evade".
+	if (Abilities[Index] == TEXT("Evade") && Controller)
+	{
+		const FRotator CamYaw(0.f, Controller->GetControlRotation().Yaw, 0.f);
+		const FVector World = FRotationMatrix(CamYaw).GetUnitAxis(EAxis::X) * LastMoveInput.X + FRotationMatrix(CamYaw).GetUnitAxis(EAxis::Y) * LastMoveInput.Y;
+		const FVector Local = GetActorTransform().InverseTransformVectorNoScale(World);
+		Combat->RequestDirectional(TEXT("Evade_"), FVector2D(Local.X, Local.Y));
+		return;
+	}
+	Combat->RequestAction(Abilities[Index]);
 }
 
 static TAutoConsoleVariable<int32> CVarDebugCamera(TEXT("nw.DebugCamera"), 0, TEXT("Registra a câmera (pitch, braço, distância) a cada segundo."));

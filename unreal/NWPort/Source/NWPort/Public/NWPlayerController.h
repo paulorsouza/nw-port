@@ -32,6 +32,17 @@ enum class ENWDevCommand : uint8
 	GiveLevel,
 	GiveTradeLevels,
 	GoToCreature,
+	ToggleFly,
+	// Arena de testes: ondas em volta do jogador (UNWBrainComponent).
+	ArenaBoars,
+	ArenaWolves,
+	ArenaLost,
+	ArenaDuelist,
+	ArenaMixed,
+	ArenaArcher,
+	ArenaRapier,
+	// Próximo par de armas (1 e 2): espada+machadinha, arco+rapieira, arco+espada, rapieira+machadinha.
+	CycleLoadout,
 };
 
 /** Canais do chat (nomes do jogo: ui_chat_name_local / _group, ui_error_systemname). */

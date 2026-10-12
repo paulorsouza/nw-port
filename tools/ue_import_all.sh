@@ -47,6 +47,18 @@ build() {
 sets() {
     py import_sword "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/sword_shield/manifest.json"
     py import_lost "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/lost_sword/manifest.json"
+    # Material de efeitos (rastro da flecha, explosão, nuvem) e transições curtas das montagens do arco.
+    py fx "$ROOT/tools/ue/make_fx.py"
+}
+arena() {
+    # Peças do jogo (tools/arena/meshes.txt, convertidas por tools/convert_gatherables.sh) e o mapa.
+    if [ -d "$ROOT/extract/ue/arena/limpa" ]; then
+        py arena_meshes "$ROOT/tools/ue/import_gatherables.py" "$ROOT/extract/ue/arena/limpa" /Game/NW/Arena
+        py arena_materials "$ROOT/tools/ue/fix_nanite_materials.py" /Game/NW/Arena
+    else
+        echo "sem extract/ue/arena/limpa: a arena sai sem as peças do jogo (tools/convert_gatherables.sh tools/arena/meshes.txt extract/ue/arena)"
+    fi
+    py test_map "$ROOT/tools/ue/make_test_map.py"
 }
 creatures() {
     # G3: javali e lobo (tools/sets/*.json) e o ABP de modelo das criaturas (o grafo é montado à mão uma vez).
@@ -82,7 +94,7 @@ scenery() {
 
 step 01 "compilar o C++ do editor" build
 step 02 "personagens, armas e animações" sets
-step 03 "mapa de treino (L_Arena)" py test_map "$ROOT/tools/ue/make_test_map.py"
+step 03 "arena de testes (L_Arena)" arena
 step 04 "cidade de Guardaventos" city
 step 05 "terreno e água da região" terrain
 step 06 "malhas dos coletáveis" py gatherables "$ROOT/tools/ue/import_gatherables.py" "$ROOT/extract/ue/gatherables/limpa"

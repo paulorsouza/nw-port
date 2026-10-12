@@ -43,6 +43,22 @@ WEAPONS = {
         "default": ["Berserk", "RagingTorrent", "RendingThrow"],
         "hud_icon": "lyshineui/images/icons/items/drawing/1hhatchet.dds",
     },
+    "bow": {
+        "name_key": "ui_bow_mastery", "trees": ["ui_bow_tree1", "ui_bow_tree2"],
+        "actions": {"Ability_Bow_RapidShot": "RapidShot", "Ability_Bow_EvadeShot": "EvadeShot",
+                    "Ability_Bow_PenetratingShot": "PenetratingShot", "Ability_Bow_PoisonShot": "PoisonShot",
+                    "Ability_Bow_SplinterShot": "ExplosiveArrow", "Ability_Bow_RainofArrows": "RainOfArrows"},
+        "default": ["RapidShot", "EvadeShot", "PenetratingShot"],
+        "hud_icon": "lyshineui/images/icons/items/drawing/bowa.dds",
+    },
+    "rapier": {
+        "name_key": "ui_rapier_mastery", "trees": ["ui_blood", "ui_evade"],
+        "actions": {"Ability_Rapier_Slash": "Tondo", "Ability_Rapier_Flurry": "Flurry", "Ability_Rapier_Flourish": "Flourish",
+                    "Ability_Rapier_Riposte": "Riposte", "Ability_Rapier_Aerial_Lunge_Intro": "Fleche",
+                    "Ability_Rapier_Evasion": "Evade"},
+        "default": ["Tondo", "Riposte", "Evade"],
+        "hud_icon": "lyshineui/images/icons/items/drawing/1hrapier.dds",
+    },
 }
 # Fundo do ícone pela categoria (AbilitiesCommon.backgroundPathByCategory do jogo).
 BACKGROUND = {"Attack": "abilities_bg2.dds", "Defense": "abilities_bg3.dds"}

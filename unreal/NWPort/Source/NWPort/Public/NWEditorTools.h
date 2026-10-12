@@ -29,4 +29,9 @@ public:
 	// memória ao abrir o mapa. Devolve quantos atores foram juntados.
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor", meta = (WorldContext = "WorldContext"))
 	static int32 MergeFolderToInstances(UObject* WorldContext, const FString& Folder);
+
+	// Troca o slot da montagem (ex.: "UpperBody" para os fragmentos de corpo superior do arco). O Python não
+	// enxerga SlotAnimTracks.
+	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
+	static bool SetMontageSlot(class UAnimMontage* Montage, FName Slot);
 };
