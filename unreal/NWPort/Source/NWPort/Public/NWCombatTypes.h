@@ -146,6 +146,8 @@ struct FNWActionRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName NextAction;
 	// Começa a montagem nesta fração do clipe (golpe carregado da rapieira entra em 74% da estocada).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StartAt = 0.f;
+	// Reação: início do procclip HitStun no fragmento do .adb (s); a reação dura isso + HitStun/30.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float HitStunStart = 0.f;
 	// Recarga compartilhada (as quatro direções do Evadir usam "Evade").
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName CooldownGroup;
 	// Pode ser usada no meio de qualquer ação (Evadir: CanAttack_Evasion desde 0 s).

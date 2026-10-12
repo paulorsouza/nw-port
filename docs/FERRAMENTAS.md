@@ -56,6 +56,8 @@ antes dos comandos manuais.
 | `make_datatables.py` | CSV das DataTables de dano, ações (por arma) e tremidas de câmera |
 | `make_ai.py` | IA das criaturas: árvore do Server.pak + perfil do slice → `Data/AI/<conjunto>.json` (`docs/ia-criaturas.md`) |
 | `ai_sim.py <conjunto> Chave=valor...` | simula o planejamento da árvore para um blackboard (conferir sem a Unreal) |
+| `make_rules.py` | fatos da engenharia reversa (`docs/analise-re/valores.json`) → `Data/regras.json`, lido pelo `FNWRules` no C++ |
+| `re_check.py` | o que da engenharia reversa já entrou no port: valores aplicados e faltando, `Data/regras.json` em dia, colunas da damagetable que o cliente do jogo lê e o port não exporta |
 | `weapon_report.py <arma>` | relatório do que o jogo define sobre o combate de uma arma (fragmentos, janelas, dano, stamina, recargas, habilidades, status) → `extract/research/` |
 | `make_sound_map.py` | liga sons às animações (passos, golpes, vozes) |
 | `build_strings.py` | tabela de textos pt-BR/en-US do C++ (`Data/UI/nw_strings.json`), de `tools/strings_nw.json` + chaves do jogo |

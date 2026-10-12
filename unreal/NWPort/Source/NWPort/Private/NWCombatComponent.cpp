@@ -1,4 +1,5 @@
 #include "NWCombatComponent.h"
+#include "NWRules.h"
 #include "GameFramework/RootMotionSource.h"
 #include "Curves/CurveFloat.h"
 #include "UObject/Package.h"
@@ -1053,7 +1054,7 @@ void UNWCombatComponent::ResolveHit(UNWCombatComponent* Target, const FVector& I
 	}
 	if (Result == ENWHitResult::Hit || Result == ENWHitResult::Blocked || Result == ENWHitResult::BlockBroken)
 	{
-		MulticastHitStop(Target->GetOwner(), HitStopSeconds);
+		MulticastHitStop(Target->GetOwner(), FNWRules::Num(TEXT("combate.hit_stop_s"), 0.0));
 	}
 	if (Result == ENWHitResult::Hit && Action && Action->TargetStun > 0.f && Target->State != ENWCombatState::Dead)
 	{
@@ -1209,7 +1210,7 @@ void UNWCombatComponent::ProjectileHit(UNWCombatComponent* Target, FName DamageI
 	const ENWHitResult Result = Target->ReceiveHit(this, Damage ? *Damage : Fallback, Dealt, bHead);
 	if (Result == ENWHitResult::Hit || Result == ENWHitResult::Blocked)
 	{
-		MulticastHitStop(Target->GetOwner(), HitStopSeconds);
+		MulticastHitStop(Target->GetOwner(), FNWRules::Num(TEXT("combate.hit_stop_s"), 0.0));
 	}
 }
 
@@ -1349,9 +1350,9 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		const bool bLimited = Now < ReactionLimiterUntil && Damage.AttackType == TEXT("Light");
 		bReact = StaggerDmg >= Resist && !bLimited;
 	}
+	float ReactionSeconds = 0.f;
 	if (bReact)
 	{
-		const float Seconds = ReactionBaseSeconds + Stun * SecondsPerHitStun + (PL >= 4.f ? 0.8f : 0.f);
 		// Animação pela categoria (tabela de reação do jogo): R1 leve, R2, R3 forte, R4 cai e levanta. Quem não tem a
 		// animação daquela categoria (Lost, bichos) usa a R2.
 		const TCHAR* Prefix = PL >= 4.f ? TEXT("Down_") : PL >= 3.f ? TEXT("Hit3_") : PL >= 2.f ? TEXT("Hit_") : TEXT("Hit1_");
@@ -1360,46 +1361,48 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		{
 			Reaction = DirectionalAction(TEXT("Hit_"), ToAttacker);
 		}
-		PlayReaction(Reaction, Seconds);
+		ReactionSeconds = PlayHitReaction(Reaction, Stun, PL >= 4.f ? 0.8f : 0.f);
 		if (bTargetAI)
 		{
 			ReactionLimiterUntil = Now + 2.f;
 		}
 	}
-	// Empurrão (§2): para trás (Y) e para o lado de quem bate (X); com reação decai por quadro, sem reação é o
-	// "Pushable" do jogo (velocidade constante por 0,4 s).
+	// Empurrão (§2): para trás (Y) e para o lado de quem bate (X); com reação segue a curva do jogo até o fim da
+	// reação, sem reação é o "Pushable" do jogo (velocidade constante por 0,4 s).
 	const float Back = Pick(Damage.ImpactDistance, Damage.ImpactDistance_AI, Damage.CritImpactDistance);
 	const FVector Dir = Away * Back + Right * Damage.ImpactDistanceX;
 	if (!Dir.IsNearlyZero())
 	{
-		Push(Dir.GetSafeNormal2D(), Dir.Size2D() * ImpactDistanceScale, Damage.ImpactDecayRate, !bReact);
+		Push(Dir.GetSafeNormal2D(), Dir.Size2D() * ImpactDistanceScale, Damage.ImpactDecayRate, !bReact, ReactionSeconds);
 	}
 	return ENWHitResult::Hit;
 }
 
 namespace
 {
-	// Curva de força do empurrão: r^k por quadro de 1/30 s, no tempo normalizado (0..1) do root motion.
-	UCurveFloat* DecayCurve(float R, int32 Frames)
+	// Força do empurrão no tempo normalizado (0..1) do root motion: e^(−K·x·T) = r^(30·t).
+	UCurveFloat* DecayCurve(float K, float Seconds)
 	{
-		static TMap<int32, TObjectPtr<UCurveFloat>> Cache;
-		const int32 Key = FMath::RoundToInt(R * 1000.f) * 100 + Frames;
+		static TMap<FIntPoint, TObjectPtr<UCurveFloat>> Cache;
+		const FIntPoint Key(FMath::RoundToInt(K * 100.f), FMath::RoundToInt(Seconds * 1000.f));
 		if (TObjectPtr<UCurveFloat>* Found = Cache.Find(Key))
 		{
 			return *Found;
 		}
 		UCurveFloat* C = NewObject<UCurveFloat>(GetTransientPackage());
 		C->AddToRoot();
-		for (int32 k = 0; k <= Frames; ++k)
+		constexpr int32 Keys = 24;
+		for (int32 i = 0; i <= Keys; ++i)
 		{
-			C->FloatCurve.AddKey(float(k) / Frames, FMath::Pow(R, float(k)));
+			const float X = float(i) / Keys;
+			C->FloatCurve.AddKey(X, FMath::Exp(-K * X * Seconds));
 		}
 		Cache.Add(Key, C);
 		return C;
 	}
 }
 
-void UNWCombatComponent::Push(const FVector& Dir, float Meters, float DecayRate, bool bNoDecay)
+void UNWCombatComponent::Push(const FVector& Dir, float Meters, float DecayRate, bool bNoDecay, float ReactionSeconds)
 {
 	ACharacter* Char = Cast<ACharacter>(GetOwner());
 	UCharacterMovementComponent* Move = Char ? Char->GetCharacterMovement() : nullptr;
@@ -1408,34 +1411,32 @@ void UNWCombatComponent::Push(const FVector& Dir, float Meters, float DecayRate,
 		return;
 	}
 	// Root motion colado ao chão (LaunchCharacter punha o alvo "caindo", sem atrito: em descida ele voava longe).
-	constexpr float Frame = 1.f / 30.f;
+	const float Fps = float(FNWRules::Num(TEXT("combate.quadros_por_s"), 30.0));
 	TSharedPtr<FRootMotionSource_ConstantForce> P = MakeShared<FRootMotionSource_ConstantForce>();
 	P->InstanceName = TEXT("NWKnockback");
 	P->AccumulateMode = ERootMotionAccumulateMode::Override;
 	P->Priority = 5;
 	P->FinishVelocityParams.Mode = ERootMotionFinishVelocityMode::SetVelocity;
 	P->FinishVelocityParams.SetVelocity = FVector::ZeroVector;
-	const float R = FMath::Clamp(DecayRate, 0.f, 1.f);
-	if (bNoDecay || R >= 0.999f)
+	const float R = DecayRate;
+	if (bNoDecay)
 	{
 		P->Duration = 0.4f;
 		P->Force = Dir * (Meters * 100.f / P->Duration);
 	}
+	else if (R <= 0.001f || R >= 0.999f || ReactionSeconds <= 0.f)
+	{
+		// combate.empurrao_curva: r ≈ 0, r ≈ 1 ou sem duração, o empurrão inteiro num quadro.
+		P->Duration = 1.f / Fps;
+		P->Force = Dir * (Meters * 100.f * Fps);
+	}
 	else
 	{
-		// v_k = v0·r^k até cair a 1%; v0 tal que a soma dos quadros dá a distância toda.
-		const int32 Frames = R <= 0.f ? 1 : FMath::Clamp(FMath::CeilToInt(FMath::Loge(0.01f) / FMath::Loge(R)), 1, 45);
-		float Sum = 0.f;
-		for (int32 k = 0; k < Frames; ++k)
-		{
-			Sum += FMath::Pow(R, float(k));
-		}
-		P->Duration = Frames * Frame;
-		P->Force = Dir * (Meters * 100.f / (Frame * Sum));
-		if (Frames > 1)
-		{
-			P->StrengthOverTime = DecayCurve(R, Frames);
-		}
+		// combate.empurrao_curva: s(t) = D·(1 − r^(30t)) até o fim da reação; v(t) = D·K·e^(−K·t), K = −30·ln r.
+		const float K = -FMath::Loge(R) * Fps;
+		P->Duration = ReactionSeconds;
+		P->Force = Dir * (Meters * 100.f * K);
+		P->StrengthOverTime = DecayCurve(K, ReactionSeconds);
 	}
 	Move->ApplyRootMotionSource(P);
 }
@@ -1492,6 +1493,42 @@ void UNWCombatComponent::PlayReaction(FName Action, float StunSeconds)
 			// +0,3 s: o fim da montagem (que chama o levantar) chega antes de o atordoamento acabar.
 			StunUntil = FMath::Max(StunUntil, GetWorld()->GetTimeSeconds() + CurrentMontage->GetPlayLength() / FMath::Max(CurrentMontage->RateScale, 0.01f) + 0.3f);
 		}
+	}
+}
+
+float UNWCombatComponent::PlayHitReaction(FName Action, float HitStun, float ExtraSeconds)
+{
+	// combate.reacao_duracao: a reação dura o início do procclip HitStun (HitStunStart, do .adb) + HitStun/30; o resto
+	// da montagem toca no ritmo que termina junto, se a montagem não tiver velocidade própria.
+	const FNWActionRow* Row = ActionTable ? ActionTable->FindRow<FNWActionRow>(Action, TEXT("reaction"), false) : nullptr;
+	const float Start = Row ? Row->HitStunStart : 0.f;
+	const float Fps = float(FNWRules::Num(TEXT("combate.quadros_por_s"), 30.0));
+	const float Stun = FMath::Max(HitStun, float(FNWRules::Num(TEXT("combate.hitstun_min"), 0.0025))) / Fps;
+	const float Seconds = Start + Stun + ExtraSeconds;
+	PlayReaction(Action, Seconds);
+	GetWorld()->GetTimerManager().ClearTimer(ReactionRateTimer);
+	UAnimMontage* Montage = CurrentMontage;
+	if (Row && Montage && Row->NextAction.IsNone() && Start > 0.f && FMath::IsNearlyEqual(Montage->RateScale, 1.f))
+	{
+		const float Rate = FMath::Clamp((Montage->GetPlayLength() - Start) / Stun,
+			float(FNWRules::Num(TEXT("combate.reacao_velocidade_min"), 0.001)), float(FNWRules::Num(TEXT("combate.reacao_velocidade_max"), 3.0)));
+		TWeakObjectPtr<UNWCombatComponent> Weak(this);
+		GetWorld()->GetTimerManager().SetTimer(ReactionRateTimer, [Weak, Montage, Rate]()
+		{
+			if (Weak.IsValid())
+			{
+				Weak->MulticastSetMontageRate(Montage, Rate);
+			}
+		}, Start, false);
+	}
+	return Seconds;
+}
+
+void UNWCombatComponent::MulticastSetMontageRate_Implementation(UAnimMontage* Montage, float Rate)
+{
+	if (UAnimInstance* Anim = GetAnim(); Anim && Montage && Anim->Montage_IsPlaying(Montage))
+	{
+		Anim->Montage_SetPlayRate(Montage, Rate);
 	}
 }
 
@@ -1552,12 +1589,17 @@ void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitRes
 void UNWCombatComponent::MulticastHitStop_Implementation(AActor* Other, float Seconds)
 {
 	AActor* Self = GetOwner();
-	Self->CustomTimeDilation = HitStopDilation;
 	// Extra do port (nw.HitKick): quem acertou sente o golpe também, tranco leve na câmera do jogador local.
 	if (ANWCharacter* Me = Cast<ANWCharacter>(Self); Me && Me->IsLocallyControlled() && CVarNWHitKick.GetValueOnGameThread() != 0)
 	{
 		Me->AddCameraKick(0.35f);
 	}
+	// combate.hit_stop_s: 0 no jogo, sem pausa.
+	if (Seconds <= 0.f)
+	{
+		return;
+	}
+	Self->CustomTimeDilation = HitStopDilation;
 	if (Other)
 	{
 		Other->CustomTimeDilation = HitStopDilation;

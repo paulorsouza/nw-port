@@ -108,22 +108,23 @@ Distribuição de `ImpactDecayRate` nas 3534 linhas com `ImpactDistanceY ≠ 0` 
 - Golpe que não gera reação: ação `Pushable` com `UsePushNoDecay=true`, dura 0.4 s (dado,
   `CAGE/playeractions_reaction.actionlist`).
 
-O código do `ReactionMotion` (`PushSpeedUpdate`, `PushSpeedExit` no binário) não foi lido. A curva exata não tem fonte.
+### Curva (código, `docs/analise-re/combate-cliente.md` §1)
 
-### Como reproduzir (modelo sugerido, inferido)
-
-- Distância total `D = ImpactDistance × m_impactdistancescale × PushBackScale`.
-- Velocidade por tick de 1/30 s: `v_k = v0 · r^k`, `r = ImpactDecayRate`, `k = 0..N−1`, N = ticks da reação.
-- `v0 = D / (Δt · Σ r^k)`. Assim o deslocamento soma exatamente `D`.
-- `r = 0`: tudo no primeiro tick. `r = 1` ou `UsePushNoDecay`: velocidade constante `D/T`.
-- Exemplo espada leve contra IA (`ImpactDistanceY_AI` 0 → usa 0.5; r = 0.8): v0 ≈ 3.0 m/s, cai a 1% em 21 ticks
-  (0.7 s).
+- Deslocamento até o tempo t da reação: `s(t) = D·(1 − r^(30·t))`, t limitado à duração da reação. Se a reação acaba
+  antes, anda `D·(1 − r^(30·T))`, não `D` inteiro.
+- `r ≈ 0`, `r ≈ 1` ou reação sem duração: tudo no primeiro quadro.
+- `ImpactDecayRate ≤ 0`: vai até uma posição que o servidor grava no golpe (sem fonte para a posição).
+- Eixos: Y na direção do golpe, X à direita dela, Z para cima; `PushBackScale` só reduz o que aponta para a frente.
+- No port: `combate.empurrao_curva` em `UNWCombatComponent::Push`. Faltam Z e `PushBackScale` (`tools/re_check.py`).
 
 ## 3. HitStun
 
 ### Unidade
 
-**Quadros a 30 fps** (1 = 1/30 s). Inferido, confiança média.
+**Quadros a 30 fps** (1 = 1/30 s). Confirmado no código do `CHitStunContext` (`docs/analise-re/combate-cliente.md` §2):
+a reação dura o início do procclip `HitStun` + `HitStun/30`, e o resto do fragmento toca na velocidade
+`(duração − início)/(HitStun/30)`, limitada a (0.001, 3]. O port lê o início do procclip do `.adb` (coluna
+`HitStunStart` das ações de reação).
 
 Motivo:
 
@@ -133,8 +134,6 @@ Motivo:
 - Com quadros a 30 fps, `0.2 + HitStun/30` passa desses marcadores para os valores típicos (R1 15 → 0.70 s;
   R2 25 → 1.03 s; R3 30 → 1.20 s). Com centésimos (0.35 s; 0.45 s) a reação acabaria antes dos próprios marcadores.
 - Todos os tempos do Mannequin são múltiplos de 1/30 s.
-
-Sem confirmação no binário: o `CHitStunContext` existe, mas o fator não está em string.
 
 ### Colunas `_AI`
 
@@ -148,7 +147,8 @@ Valem quando o **alvo é IA**. Valor 0 = sem override, usa a coluna normal. Infe
 
 ### Hit stop
 
-O jogo tem o cvar `g_hitStopTime` ("how long do we hitstop for on reaction?"). Valor padrão não extraído.
+`g_hitStopTime` = 0 por padrão e nenhum `.cfg` muda (código): **o jogo não tem hit stop**. O port também não
+(`combate.hit_stop_s`).
 
 ## 4. PowerLevel e resistência
 
@@ -256,7 +256,8 @@ No crítico (dado, colunas): `CritHitStun` substitui `HitStun` (espada leve 15 �
 
 Sem fonte:
 
-- `CanCrit`: só a rapieira tem True. A espada crita no jogo, então não é o portão do crítico aleatório.
+- `CanCrit`: célula vazia = pode critar; só `False` desliga (código do parser). O JSON do nwbt grava vazio como
+  `False`, então a coluna exportada não diz quem crita; o port não a usa.
 - `CriticalHitsComponent.m_inactivitytime` = 5000 ms na slice do jogador.
 - Se golpe corpo a corpo conta headshot.
 
@@ -366,7 +367,7 @@ Constantes do `UNWCombatComponent` hoje chutadas (`Public/NWCombatComponent.h`):
 
 | Constante | Hoje | Jogo | Fórmula / regra |
 |---|---|---|---|
-| `SecondsPerHitStun` | 0.01 | 1/30 = 0.0333 | Reação = 0.2 s + `HitStun`/30. Inferido. |
+| `SecondsPerHitStun` | 0.01 | 1/30 = 0.0333 | Feito: `combate.quadros_por_s` e `HitStunStart` (código). |
 | `Poise` + teste `PowerLevel >= Poise` | 0 | Sem poise | PL é categoria. Alvo jogador: PL 0 só flinch, 1–3 interrompe (sem grit), ≥4 derruba. Alvo IA: usar colunas `_AI` (0 = sem override); rating de stagger 20 (damned) / 10 (bichos) contra `BaseStaggerDamage × StaggerDmgModifier`; limiter de 2 s. |
 | `ArmorMitigation` | 0.3 | 0.35 para IA | Vitals `PhysicalMitigation`; teto 0.9. Jogador: sem fórmula. |
 | `BlockStaminaBase` + `BlockStaminaPerPower` | 15 + 8 × BPL | — | `BlockStaminaDamage × BlockStaminaDmgMod × max(1 − BlockStability/100, 0.1)`. Espada 36/22, escudo redondo 54/30, damned 100. |
@@ -379,16 +380,18 @@ Constantes do `UNWCombatComponent` hoje chutadas (`Public/NWCombatComponent.h`):
 | `MaxStamina` | 100 | 100 | Ok. |
 | `WeaponBaseDamage` | 100 | 64 (espada), 67 (machadinha) | Mais escala de atributo e GS. IA: `BaseDamage` do nível × modificadores. |
 | `MaxHealth` | 1000 | 856 + 40/ponto de CON acima de 5 | Vitals `Player` e `javelindata_attributeconstitution`. |
-| `HitStopSeconds` | 0.07 | sem valor | Existe `g_hitStopTime`; valor padrão não extraído. |
+| `HitStopSeconds` | 0.07 | 0 | Feito: `combate.hit_stop_s` (código). |
 | Empurrão: força constante por 0.25 s | `ImpactDistanceY` | decaimento | Ver seção 2: total `D`, `v_k = v0 · r^k` por tick de 1/30 s, escala do alvo (damned 1.2). Usar `ImpactDistanceX` e `UseAttackerPosForReaction`. |
 | Crítico | ausente | 7% espada, ×1.3 | Backstab a ≥ 135° = crítico. `CritHitStun`, `CritImpactDistanceY`, tremida `Large_short`. |
 | Tremida de câmera | ausente | tabela | Só no crítico para golpes de espada; IA → alvo `Small`. |
 
 ## Sem fonte
 
-- Curva exata do empurrão e uso do `ImpactDecayRate` (código do `ReactionMotion`).
-- Unidade do `HitStun` confirmada no código (só inferência pelos tempos do ADB).
-- Fórmula de gear score e de mitigação por armadura do jogador.
+Dano, crítico, backstab, grit e mitigação são calculados no servidor e não estão no cliente
+(`docs/analise-re/combate-cliente.md`); ficam as regras inferidas acima.
+
+- Posição do empurrão com `ImpactDecayRate ≤ 0`.
+- Fórmula de gear score (só a faixa está no cliente: `itens.gs_faixa`) e de mitigação por armadura do jogador.
 - Uso do custo `Block` (10), de `BlockStaminaCost` 0.8 e de `m_maxwindedtime` 2.
-- Unidade e consumo do grit (1000/10000).
-- `CanCrit`, `m_inactivitytime`, valor de `g_hitStopTime`.
+- Consumo do grit (pool 1000/10000).
+- `m_inactivitytime`.

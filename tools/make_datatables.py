@@ -296,6 +296,42 @@ SETS = {"sword_shield": [("DT_NWActions", ACTIONS, HIT_SHAPES, ABILITY_IDS, None
         "wolf": [("DT_WolfActions", WOLF_ACTIONS, CREATURE_SHAPES, {}, {})]}
 
 
+# Colunas da damagetable no DT_NWDamage (FNWDamageRow) e a coluna do jogo de onde cada uma vem, quando o nome muda.
+# Colunas que o jogo lê e o port não: python3 tools/re_check.py.
+DAMAGE_COLS = ["WeaponCategory", "DamageType", "DmgCoef", "HitStun", "BlockHitStun", "PowerLevel", "BlockPowerLevel", "ImpactDistance",
+               "Unblockable", "AttackType", "ImpactDistanceX", "ImpactDecayRate", "HitStun_AI", "PowerLevel_AI", "ImpactDistance_AI",
+               "DmgCoefCrit", "CritHitStun", "CritPowerLevel", "CritImpactDistance", "DmgCoefHead", "NoBackstab", "NoHeadshot",
+               "StaggerDmgModifier", "StaggerResistModifier", "BlockStaminaDmgMod", "CameraShakeID", "TargetCameraShakeID",
+               "BlockCameraShakeID", "BlockTargetCameraShakeID", "CritCameraShakeID", "CritTargetCameraShakeID"]
+DAMAGE_SOURCE = {"ImpactDistance": "ImpactDistanceY", "ImpactDistance_AI": "ImpactDistanceY_AI", "CritImpactDistance": "CritImpactDistanceY"}
+# Fora de propósito, com o motivo (id do valores.json ou texto).
+DAMAGE_IGNORED = {"CanCrit": "dano.cancrit_vazio: o nwbt grava célula vazia como False, então a coluna não diz quem crita"}
+
+
+def hitstun_start(manifest, montage, fallback):
+    """Início do procclip HitStun da montagem (janelas do manifest); reação sem janela usa o mais comum do conjunto."""
+    for sec in manifest.get("windows", {}).get(montage, []):
+        for w in sec["windows"]:
+            if w.get("type") == "HitStun":
+                return w["start"]
+    return fallback
+
+
+def set_hitstun_start(name):
+    """Início mais comum do procclip HitStun nos .adb do conjunto (window_adbs de tools/sets/<conjunto>.json)."""
+    import collections
+    import adb_windows
+    import xml.etree.ElementTree as ET
+    spec = json.load(open(os.path.join(ROOT, "tools", "sets", name + ".json")))
+    adb_dir = os.path.join(ROOT, "extract", "models", "animations", "mannequin", "adb")
+    starts = collections.Counter()
+    for f in spec.get("window_adbs", ["player/player_sword.adb", "player/player_1h_melee.adb", "player/player.adb"]):
+        for frag in ET.parse(os.path.join(adb_dir, f)).getroot().find("FragmentList"):
+            for fr in frag.findall("Fragment"):
+                starts.update(round(w["start"], 3) for w in adb_windows.windows(fr) if w.get("type") == "HitStun")
+    return starts.most_common(1)[0][0] if starts else 0.2
+
+
 def rows(name):
     return json.load(open(os.path.join(DT, name + ".datasheet.json")))["rows"]
 
@@ -321,12 +357,7 @@ def main():
     # docs/combate-regras-jogo.md (empurrão X/Y e decaimento, colunas _AI, crítico, cabeça, stagger, tremidas).
     used = sorted(d for d in damage if d.startswith(("1H_Sword", "OH_Shield", "Hatchet_", "1H_Rapier", "Bow", *(p for _, p in CREATURE_DAMAGE)))
                   or damage[d].get("WeaponCategory") in ("Bow", "Bow_Heavy", "Rapier"))
-    cols = ["WeaponCategory", "DamageType", "DmgCoef", "HitStun", "BlockHitStun", "PowerLevel", "BlockPowerLevel", "ImpactDistance",
-            "Unblockable", "AttackType", "ImpactDistanceX", "ImpactDecayRate", "HitStun_AI", "PowerLevel_AI", "ImpactDistance_AI",
-            "DmgCoefCrit", "CritHitStun", "CritPowerLevel", "CritImpactDistance", "DmgCoefHead", "NoBackstab", "NoHeadshot",
-            "StaggerDmgModifier", "StaggerResistModifier", "BlockStaminaDmgMod", "CameraShakeID", "TargetCameraShakeID",
-            "BlockCameraShakeID", "BlockTargetCameraShakeID", "CritCameraShakeID", "CritTargetCameraShakeID"]
-    source = {"ImpactDistance": "ImpactDistanceY", "ImpactDistance_AI": "ImpactDistanceY_AI", "CritImpactDistance": "CritImpactDistanceY"}
+    cols, source = DAMAGE_COLS, DAMAGE_SOURCE
 
     def cell(r, c):
         v = r.get(source.get(c, c))
@@ -352,6 +383,7 @@ def main():
                         str(bool(r.get("FlipVec")))])
 
     cooldown = {r["AbilityID"]: r["Time"] for r in rows("javelindata_cooldowns_player")}
+    set_start = set_hitstun_start(manifest["name"])
     missing = []
     for table_name, actions, shapes, ability_ids, effects in tables:
         if effects is None:
@@ -363,7 +395,7 @@ def main():
                        "FireTimes", "FireDamageIDs", "ProjectileSpeed", "ProjectileRadius", "GravityDelay", "bPierce",
                        "ExplodeRadius", "ExplodeDamageID", "GroundRadius", "GroundRange", "GroundDelay", "NextAction",
                        "StartAt", "CooldownGroup", "bCancelsAny", "CounterSeconds", "CounterAction", "bStunBreaksOnDamage",
-                       "TransitionCurve", "CloudRadius", "CloudSeconds"]
+                       "TransitionCurve", "CloudRadius", "CloudSeconds", "HitStunStart"]
             text_cols = {"StatusID", "ConsumeStatusID", "FireTimes", "FireDamageIDs", "ExplodeDamageID", "NextAction",
                          "CooldownGroup", "CounterAction", "TransitionCurve"}
 
@@ -380,6 +412,8 @@ def main():
                 # Montagem que começa no meio do clipe (montage_starts do conjunto).
                 fx.setdefault("StartAt", manifest.get("montage_starts", {}).get(montage, 0))
                 fx.setdefault("TransitionCurve", TRANSITIONS.get(table_name, {}).get(action, ""))
+                if action.startswith(("Hit", "Down_")):
+                    fx.setdefault("HitStunStart", hitstun_start(manifest, montage, set_start))
                 fx = {k: (str(v) if isinstance(v, bool) else v) for k, v in fx.items()}
                 w.writerow([action, f"{anim_path}/{montage}.{montage}", did, stamina.get(cost_id, 0), nxt, shape, rng, ang, cd,
                             fx.get("TargetStun", 0), fx.get("BuffSeconds", 0), fx.get("BuffDamageReduction", 0),

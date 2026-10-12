@@ -43,9 +43,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenBlocking = 10.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenDelay = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float BlockArcDegrees = 180.f;
-	// HitStun em quadros de 30 fps; a reação dura 0,2 s + HitStun/30 (§3).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float SecondsPerHitStun = 1.f / 30.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float ReactionBaseSeconds = 0.2f;
+	// Duração da reação, hit stop e empurrão: fatos da engenharia reversa (FNWRules, docs/analise-re/valores.json).
 
 	// ---- arma em uso e corpo (javelindata_itemdefinitions_weapons, slices do jogo; §4–§6) ----
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float CritChance = 0.03f;
@@ -59,8 +57,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float ImpactDistanceScale = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float RespawnDelay = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float BladeRadius = 16.f;
-	// Hit-stop: atacante e alvo quase param por um instante no acerto (peso do golpe).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float HitStopSeconds = 0.07f;
+	// Hit stop (combate.hit_stop_s, 0 no jogo): quanto atacante e alvo desaceleram enquanto dura.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float HitStopDilation = 0.05f;
 	// Último golpe recebido veio de criatura (mordida, chifrada): a reação não toca o impacto de arma da montagem.
 	bool bLastHitByCreature = false;
@@ -174,6 +171,7 @@ protected:
 	UFUNCTION(NetMulticast, Unreliable) void MulticastShowHit(float Damage, ENWHitResult Result, FVector_NetQuantize From, bool bByCreature,
 		bool bCrit, AActor* By, FName ByShake, FName TargetShake);
 	UFUNCTION(NetMulticast, Unreliable) void MulticastHitStop(AActor* Other, float Seconds);
+	UFUNCTION(NetMulticast, Unreliable) void MulticastSetMontageRate(UAnimMontage* Montage, float Rate);
 
 	UFUNCTION() void HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	UFUNCTION() void HandleMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
@@ -195,12 +193,14 @@ private:
 	uint16 ServerRequestId = 0;   // servidor: número da predição do pedido em processamento
 	void StartAction(FName Action, const FNWActionRow& Row);
 	void PlayReaction(FName Action, float StunSeconds);
+	/** Reação a golpe: dura início do procclip HitStun + HitStun/30 e estica o resto da montagem. Devolve a duração. */
+	float PlayHitReaction(FName Action, float HitStun, float ExtraSeconds);
 	void PlayBlockIdle();
 	void SweepWeapon();
 	void AreaHit();
 	void ResolveHit(UNWCombatComponent* Target, const FVector& ImpactPoint);
 	ENWHitResult ReceiveHit(UNWCombatComponent* Attacker, const FNWDamageRow& Damage, float& OutDamage, bool bHead = false);
-	void Push(const FVector& Dir, float Meters, float DecayRate, bool bNoDecay);
+	void Push(const FVector& Dir, float Meters, float DecayRate, bool bNoDecay, float ReactionSeconds);
 	void TickStatuses(float Now);
 	// IA: depois de uma reação completa, 2 s em que golpe leve não interrompe (AI_Reaction_Limiter).
 	float ReactionLimiterUntil = 0.f;
@@ -256,4 +256,5 @@ private:
 	FVector BladeLocalTip = FVector::ZeroVector;
 	FTimerHandle RespawnTimer;
 	FTimerHandle HitStopTimer;
+	FTimerHandle ReactionRateTimer;
 };

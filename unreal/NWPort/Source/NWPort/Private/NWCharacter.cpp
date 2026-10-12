@@ -1,5 +1,6 @@
 #include "NWCharacter.h"
 #include "Misc/App.h"
+#include "NWRules.h"
 
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
@@ -25,8 +26,14 @@
 #include "NWBrainComponent.h"
 #include "HAL/IConsoleManager.h"
 
-// c_shakeMult do jogo: multiplica as tremidas de câmera.
+// Ajuste do port sobre o c_shakeMult do jogo (camera.shake_mult).
 static TAutoConsoleVariable<float> CVarNWShakeScale(TEXT("nw.ShakeScale"), 1.f, TEXT("Multiplica as tremidas de câmera do jogo"));
+
+// camera.shake_mult × nw.ShakeScale.
+static float ShakeScale()
+{
+	return float(FNWRules::Num(TEXT("camera.shake_mult"), 1.0)) * CVarNWShakeScale.GetValueOnGameThread();
+}
 #include "NWCombatComponent.h"
 #include "NWTraversalComponent.h"
 #include "NWGatherComponent.h"
@@ -317,7 +324,8 @@ void ANWCharacter::PlayCameraShake(FName Id)
 	}
 	// Nomes das tabelas de dano às vezes têm espaço no fim ("Small "); ID inexistente = sem tremida (como no jogo).
 	const FNWCameraShakeRow* R = ShakeTable ? ShakeTable->FindRow<FNWCameraShakeRow>(FName(*Id.ToString().TrimStartAndEnd()), TEXT("shake"), false) : nullptr;
-	if (!R)
+	// camera.shake_min: escala total desprezível ignora a tremida (View.cpp do CryEngine).
+	if (!R || ShakeScale() < FNWRules::Num(TEXT("camera.shake_min"), 0.001))
 	{
 		return;
 	}
@@ -605,8 +613,8 @@ void ANWCharacter::UpdateCamera(float DeltaSeconds)
 			const float Sm = A * A * (3.f - 2.f * A);
 			float Env = S.Time < S.FadeIn ? S.Time / FMath::Max(S.FadeIn, 0.001f) : S.Time > S.FadeIn + S.Sustain ? (Total - S.Time) / FMath::Max(S.FadeOut, 0.001f) : 1.f;
 			Env = Env * Env * (3.f - 2.f * Env);
-			const FVector Sh = FMath::Lerp(S.FromShift, S.ToShift, Sm) * Env * 100.f * CVarNWShakeScale.GetValueOnGameThread();
-			const FVector An = FMath::Lerp(S.FromAngle, S.ToAngle, Sm) * Env * CVarNWShakeScale.GetValueOnGameThread();
+			const FVector Sh = FMath::Lerp(S.FromShift, S.ToShift, Sm) * Env * 100.f * ShakeScale();
+			const FVector An = FMath::Lerp(S.FromAngle, S.ToAngle, Sm) * Env * ShakeScale();
 			// Eixos do CryEngine na câmera: X direita, Y frente, Z cima → Unreal X frente, Y direita, Z cima.
 			Shake += FVector(Sh.Y, Sh.X, Sh.Z);
 			ShakeRot = FRotator(FMath::RadiansToDegrees(An.X), FMath::RadiansToDegrees(An.Z), FMath::RadiansToDegrees(An.Y));

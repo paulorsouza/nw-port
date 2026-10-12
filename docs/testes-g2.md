@@ -157,3 +157,6 @@ Javalis (já nascem em combate). Guardaventos: F10 > Ir para criatura.
 52. Fugir para longe (70 m da casa deles): voltam correndo e recuperam a vida.
 53. Céu limpo em qualquer mapa: sem formas grandes no ar nem sombra delas no chão. A capa e a saia da armadura ficam
     no corpo do personagem.
+54. Golpes sem pausa no acerto (o jogo não tem hit stop; o tranco de câmera do `nw.HitKick` continua). Reação a golpe
+    dura 0,2 s + HitStun/30 e a animação termina junto, mais rápida nos golpes leves. Empurrão com reação: rápido no começo,
+    para quando a reação acaba.
