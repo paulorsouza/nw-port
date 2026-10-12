@@ -83,6 +83,9 @@ public:
 	bool IsChatOpen() const;
 	// Servidor: mensagem do Sistema só para este jogador.
 	void SystemMessage(const FString& Text) { ClientChat(ENWChatChannel::System, FString(), Text); }
+	/** Aviso na faixa do jogo (lyshineui/warningbar), não no chat: bolsa cheia, ação recusada... (#chave|args). */
+	void Warning(const FString& Text) { ClientWarning(Text); }
+	UFUNCTION(Client, Reliable) void ClientWarning(const FString& Text);
 	// Comando local (cvars de depuração do cliente).
 	void LocalConsole(const FString& Command);
 

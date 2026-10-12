@@ -445,6 +445,7 @@ void ANWHUD::DrawGameHUD()
 	DrawCompass();
 	DrawLevelUp();
 	DrawHitIndicators();
+	DrawWarning();
 	DrawDamageNumbers();
 	DrawEncumbrance(Me);
 	DrawNameplates(Me);
@@ -1270,4 +1271,29 @@ void ANWHUD::DrawHitIndicators()
 		Tex(H.Fraction > 0.15f ? TEXT("lyshineui/images/hitindicator/hiteffect_medium_b.dds") : TEXT("lyshineui/images/hitindicator/hiteffect_light_b.dds"),
 			EdgeCenter, FVector2D(Len, Thick), Side, Alpha * 0.8f);
 	}
+}
+
+void ANWHUD::DrawWarning()
+{
+	const double Age = FPlatformTime::Seconds() - WarningAt;
+	UFont* Font = Fonts.IsValidIndex(0) ? Fonts[0].Get() : nullptr;
+	if (Age > 3.0 || WarningText.IsEmpty() || !Font || !Canvas)
+	{
+		return;
+	}
+	// WarningBar: fundo background_warningbar (51 px) e texto amarelo 23; some no último meio segundo.
+	const float Alpha = FMath::Clamp(float(3.0 - Age) / 0.5f, 0.f, 1.f);
+	const float S = Canvas->ClipY / 1080.f;
+	const float Scale = 23.f * S / FMath::Max(1, Font->LegacyFontSize);
+	float W = 0.f, H = 0.f;
+	Canvas->TextSize(Font, WarningText, W, H, Scale, Scale);
+	const float BW = W + 160.f * S, BH = 41.f * S;
+	const FVector2D Pos(Canvas->ClipX * 0.5f - BW * 0.5f, Canvas->ClipY * 0.3f);
+	if (UTexture2D* Bg = FNWUILayout::GameTexture(TEXT("lyshineui/images/warningbar/background_warningbar.dds")))
+	{
+		FCanvasTileItem Item(Pos, Bg->GetResource(), FVector2D(BW, BH), FLinearColor(1.f, 1.f, 1.f, Alpha));
+		Item.BlendMode = SE_BLEND_Translucent;
+		Canvas->DrawItem(Item);
+	}
+	DrawText(WarningText, FLinearColor(1.f, 0.87f, 0.33f, Alpha), Pos.X + (BW - W) * 0.5f, Pos.Y + (BH - H) * 0.5f, Font, Scale);
 }

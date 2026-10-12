@@ -156,7 +156,7 @@ void UNWGatherComponent::ServerGather_Implementation(int32 Index)
 		{
 			if (ANWPlayerController* PC = Cast<ANWPlayerController>(Me->GetController()))
 			{
-				PC->SystemMessage(NWText::Key(TEXT("nw.gather.busy")));
+				PC->Warning(NWText::Key(TEXT("nw.gather.busy")));
 			}
 			return;
 		}

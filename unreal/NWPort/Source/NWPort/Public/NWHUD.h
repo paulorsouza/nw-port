@@ -58,6 +58,8 @@ public:
 	void ShowTradeXp(uint8 Skill, int32 Amount);
 	/** XP ganho (UNWProgressionComponent::ClientXpGained): "+N XP" ao lado do nível por 2,5 s. */
 	void ShowXp(int64 Amount);
+	/** Faixa de aviso do jogo (lyshineui/warningbar) por 3 s. */
+	void ShowWarning(const FString& Text) { WarningText = Text; WarningAt = FPlatformTime::Seconds(); }
 	// Depois de trocar o idioma (NWText::SetLang): recarrega as telas.
 	void ReloadLanguage();
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -92,6 +94,9 @@ private:
 	void DrawCompass();
 	void DrawDamageNumbers();
 	void DrawHitIndicators();
+	void DrawWarning();
+	FString WarningText;
+	double WarningAt = -100.0;
 	struct FHitIndicator { FVector From; float Fraction = 0.f; double Time = 0.0; };
 	TArray<FHitIndicator> HitIndicators;
 	/** Bolsa na barra de ações (hud2024/actionbar/encumbrance): % do peso; sobrecarregado fica vermelho com o aviso do jogo. */

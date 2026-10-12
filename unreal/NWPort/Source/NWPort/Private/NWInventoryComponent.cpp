@@ -340,7 +340,7 @@ void UNWInventoryComponent::Grant(const TArray<FNWItem>& Gained, int64 GainedCoi
 	ANWPlayerController* PC = Pawn ? Cast<ANWPlayerController>(Pawn->GetController()) : nullptr;
 	if (bFull && PC)
 	{
-		PC->SystemMessage(NWText::Key(TEXT("nw.inv.bag_full")));
+		PC->Warning(NWText::Key(TEXT("nw.inv.bag_full")));
 	}
 	AddCoins(GainedCoins);
 	if (Kept.Num() > 0 || GainedCoins > 0)

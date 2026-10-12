@@ -60,6 +60,14 @@ void ANWPlayerController::BeginPlay()
 	}
 }
 
+void ANWPlayerController::ClientWarning_Implementation(const FString& Text)
+{
+	if (ANWHUD* HUD = GetNWHUD())
+	{
+		HUD->ShowWarning(NWText::Resolve(Text));
+	}
+}
+
 void ANWPlayerController::RecordBreadcrumb()
 {
 	const ACharacter* Me = Cast<ACharacter>(GetPawn());
@@ -84,22 +92,22 @@ void ANWPlayerController::ServerUnstuck_Implementation()
 	const double Now = GetWorld()->GetTimeSeconds();
 	if (!Me || Me->Combat->State == ENWCombatState::Dead)
 	{
-		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_player_dead")));
+		Warning(NWText::Key(TEXT("ui_unstuck_request_denied_player_dead")));
 		return;
 	}
 	if (GetWorldTimerManager().IsTimerActive(UnstuckTimer))
 	{
-		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_request_already_active")));
+		Warning(NWText::Key(TEXT("ui_unstuck_request_denied_request_already_active")));
 		return;
 	}
 	if (Now < UnstuckReadyAt)
 	{
-		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_on_cooldown"), {FString::FromInt(FMath::CeilToInt(UnstuckReadyAt - Now))}));
+		Warning(NWText::Key(TEXT("ui_unstuck_request_denied_on_cooldown"), {FString::FromInt(FMath::CeilToInt(UnstuckReadyAt - Now))}));
 		return;
 	}
 	if (Breadcrumbs.Num() == 0)
 	{
-		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_no_breadcrumbs")));
+		Warning(NWText::Key(TEXT("ui_unstuck_request_denied_no_breadcrumbs")));
 		return;
 	}
 	SystemMessage(NWText::Key(TEXT("ui_unstuck_request_accepted"), {TEXT("5")}));
@@ -117,7 +125,7 @@ void ANWPlayerController::FinishUnstuck()
 	const FVector To = Breadcrumbs[FMath::Max(0, Breadcrumbs.Num() - 2)] + FVector(0.f, 0.f, 50.f);
 	if (!Me->TeleportTo(To, Me->GetActorRotation()))
 	{
-		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_teleport_failed")));
+		Warning(NWText::Key(TEXT("ui_unstuck_request_denied_teleport_failed")));
 		return;
 	}
 	Breadcrumbs.SetNum(FMath::Max(0, Breadcrumbs.Num() - 1));
