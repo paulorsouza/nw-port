@@ -104,7 +104,10 @@ Feitas com o PC sozinho (sem abrir o editor nem rodar o jogo): compilam, falta c
   `worldmap`, `levelup` e a tela `xp` do `hud_textures`). Os 52 tiles do mapa entram comprimidos (DXT1).
 - Conferir: tooltip (Tab, mouse num item), aviso de saque (coletar), mapa (M: arrastar, roda, botões, POIs),
   bússola com POIs, barra de XP e banner (F10 > Ganhar 1 nível), atributos e "+" no painel de status,
-  aba Atalhos (trocar tecla, Esc cancela, Restaurar Padrões) e corrida automática (=).
+  aba Atalhos (trocar tecla, Esc cancela, Restaurar Padrões) e corrida automática (=), tooltip de comparação
+  (arma da bolsa com outra equipada), números de dano empilhados (Configurações > Jogo), Desprender (Esc), XP de
+  ofício no aviso de saque ao coletar e a aba Hab. Mercantes na janela K (nível e anel).
+- Importar também `levelup`, `tradeskills` (listas novas do `tools/ue/import_ui.py`).
 - Ofícios: exigir `RequiredTradeskillLevel` (hoje qualquer nível coleta tudo; ligar só quando o nível for salvo,
   senão cada sessão começa do 0 e trava árvores grandes), `RollBonus` no saque (só tabelas com
   `RollBonusSetting` = AddToRoll), tela de ofícios do jogo, salvar no nw-core.
