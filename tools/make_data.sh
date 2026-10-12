@@ -10,7 +10,7 @@ step() { echo "== $*"; python3 "$@"; }
 # Ordem importa: o catálogo de itens lê os coletáveis (saque); os textos leem os coletáveis; o inventário lê os itens.
 step tools/make_gatherables.py
 step tools/make_spawns.py
-# Fatos da engenharia reversa (docs/analise-re/valores.json) lidos pelo C++ (FNWRules).
+# Fatos da engenharia reversa (docs/analise-re/valores/) lidos pelo C++ (FNWRules).
 step tools/make_rules.py
 # IA das criaturas (árvores do Server.pak); pula se o Server.pak não foi extraído (docs/analise-re/ferramentas.md).
 [ -d extract/serverpak/json/sharedassets/ai ] && step tools/make_ai.py || echo "== sem extract/serverpak: Data/AI fica como está"

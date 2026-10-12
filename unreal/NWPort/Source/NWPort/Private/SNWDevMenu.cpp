@@ -7,6 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NWCharacter.h"
 #include "NWCombatComponent.h"
+#include "NWDevRegistry.h"
 #include "NWUILayout.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
@@ -138,6 +139,21 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.slow_motion")), SlowMo, Dev(ENWDevCommand::ToggleSlowMotion)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_arena")), nullptr, Dev(ENWDevCommand::TravelArena)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_city")), nullptr, Dev(ENWDevCommand::TravelCity)));
+	// Botões das esteiras (NW_REGISTER_DEV, NWDevRegistry.h).
+	if (FNWDevRegistry::All().Num() > 0)
+	{
+		Add(Header(NWText::Get(TEXT("nw.dev.extras"))), 12.f);
+		for (const FNWDevEntry& E : FNWDevRegistry::All())
+		{
+			TFunction<FText()> State;
+			if (E.State)
+			{
+				State = [PC, F = E.State]() { return F(PC.Get()); };
+			}
+			const FName Id = E.Id;
+			Add(Button(NWText::Get(E.LabelKey), State, [PC, Id]() { if (PC.IsValid()) PC->ServerDevNamed(Id); }));
+		}
+	}
 	Add(Header(NWText::Get(TEXT("nw.dev.debug"))), 12.f);
 	Add(Button(NWText::Get(TEXT("nw.dev.show_hits")), CVar(TEXT("nw.DebugHits")), ToggleCVar(TEXT("nw.DebugHits"))));
 	Add(Button(NWText::Get(TEXT("nw.dev.show_traversal")), CVar(TEXT("nw.DebugTraversal")), ToggleCVar(TEXT("nw.DebugTraversal"))));

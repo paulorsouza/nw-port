@@ -1,0 +1,277 @@
+{
+  "_comment": "Esteira 4 (sistemas: entrada, morte, chat, grupo, inventário, nível, atributos, ofícios).",
+  "textos": {
+    "nw.login.account": {
+      "pt-br": "Conta",
+      "en-us": "Account"
+    },
+    "nw.login.password": {
+      "pt-br": "Senha",
+      "en-us": "Password"
+    },
+    "nw.login.invite": {
+      "pt-br": "Convite do clã",
+      "en-us": "Clan invite"
+    },
+    "nw.login.create_account": {
+      "pt-br": "Criar conta",
+      "en-us": "Create account"
+    },
+    "nw.login.logout": {
+      "pt-br": "Sair da conta",
+      "en-us": "Log out"
+    },
+    "nw.login.delete": {
+      "pt-br": "Excluir",
+      "en-us": "Delete"
+    },
+    "nw.login.name_mismatch": {
+      "pt-br": "O nome não confere.",
+      "en-us": "The name doesn't match."
+    },
+    "nw.chat.too_many": {
+      "pt-br": "Muitas mensagens seguidas. Espere um pouco.",
+      "en-us": "Too many messages. Wait a moment."
+    },
+    "nw.chat.unknown_command": {
+      "pt-br": "Comando desconhecido: /{0}",
+      "en-us": "Unknown command: /{0}"
+    },
+    "nw.chat.help": {
+      "pt-br": "Comandos: /convidar Nome, /aceitar, /recusar, /sair, /g mensagem (grupo), /ajuda",
+      "en-us": "Commands: /invite Name, /accept, /decline, /leave, /g message (group), /help"
+    },
+    "nw.err.no_ticket": {
+      "pt-br": "Entre pela conta do clã.",
+      "en-us": "Log in with your clan account."
+    },
+    "nw.err.server_closing": {
+      "pt-br": "Servidor encerrando.",
+      "en-us": "Server is shutting down."
+    },
+    "nw.err.already_online": {
+      "pt-br": "Esse personagem já está no servidor.",
+      "en-us": "This character is already on the server."
+    },
+    "nw.err.ticket_missing": {
+      "pt-br": "Passe de entrada ausente.",
+      "en-us": "Missing join ticket."
+    },
+    "nw.err.backend_down": {
+      "pt-br": "Servidor da conta fora do ar.",
+      "en-us": "The account server is offline."
+    },
+    "nw.err.backend_status": {
+      "pt-br": "Erro {0} no servidor da conta.",
+      "en-us": "Account server error {0}."
+    },
+    "nw.err.bad_response": {
+      "pt-br": "Resposta inválida do servidor da conta.",
+      "en-us": "Invalid response from the account server."
+    },
+    "nw.err.no_address": {
+      "pt-br": "Endereço do servidor não configurado.",
+      "en-us": "Server address is not configured."
+    },
+    "nw.err.incompatible": {
+      "pt-br": "Versão do jogo diferente da do servidor.",
+      "en-us": "Your game version doesn't match the server."
+    },
+    "nw.err.bad_credentials": {
+      "pt-br": "Conta ou senha incorretas.",
+      "en-us": "Wrong account or password."
+    },
+    "nw.err.invalid_invite": {
+      "pt-br": "Convite inválido, expirado ou já usado.",
+      "en-us": "Invite is invalid, expired or already used."
+    },
+    "nw.err.name_taken": {
+      "pt-br": "Esse nome já existe.",
+      "en-us": "That name is already taken."
+    },
+    "nw.err.invalid_name": {
+      "pt-br": "Nome inválido.",
+      "en-us": "Invalid name."
+    },
+    "nw.err.invalid_password": {
+      "pt-br": "Senha: 8 a 128 caracteres.",
+      "en-us": "Password: 8 to 128 characters."
+    },
+    "nw.err.too_many_characters": {
+      "pt-br": "Limite de personagens por conta atingido.",
+      "en-us": "Character limit per account reached."
+    },
+    "nw.err.unauthorized": {
+      "pt-br": "Sessão expirada. Entre de novo.",
+      "en-us": "Session expired. Please log in again."
+    },
+    "nw.err.invalid_ticket": {
+      "pt-br": "Passe de entrada inválido ou expirado.",
+      "en-us": "Join ticket is invalid or expired."
+    },
+    "nw.group.not_found": {
+      "pt-br": "Jogador não encontrado: {0}",
+      "en-us": "Player not found: {0}"
+    },
+    "nw.group.only_leader": {
+      "pt-br": "Só o líder do grupo pode convidar.",
+      "en-us": "Only the group leader can invite."
+    },
+    "nw.group.already_grouped": {
+      "pt-br": "{0} já está em um grupo.",
+      "en-us": "{0} is already in a group."
+    },
+    "nw.group.full": {
+      "pt-br": "O grupo está cheio (5).",
+      "en-us": "The group is full (5)."
+    },
+    "nw.group.invite_sent": {
+      "pt-br": "Convite enviado para {0}.",
+      "en-us": "Invite sent to {0}."
+    },
+    "nw.group.invited": {
+      "pt-br": "{0} convidou você para o grupo. /aceitar ou /recusar",
+      "en-us": "{0} invited you to a group. /accept or /decline"
+    },
+    "nw.group.no_invite": {
+      "pt-br": "Nenhum convite pendente.",
+      "en-us": "No pending invite."
+    },
+    "nw.group.joined": {
+      "pt-br": "{0} entrou no grupo.",
+      "en-us": "{0} joined the group."
+    },
+    "nw.group.declined": {
+      "pt-br": "{0} recusou o convite.",
+      "en-us": "{0} declined the invite."
+    },
+    "nw.group.you_left": {
+      "pt-br": "Você saiu do grupo.",
+      "en-us": "You left the group."
+    },
+    "nw.group.left": {
+      "pt-br": "{0} saiu do grupo.",
+      "en-us": "{0} left the group."
+    },
+    "nw.group.disbanded": {
+      "pt-br": "O grupo foi desfeito.",
+      "en-us": "The group was disbanded."
+    },
+    "nw.group.new_leader": {
+      "pt-br": "{0} agora lidera o grupo.",
+      "en-us": "{0} is now the group leader."
+    },
+    "nw.group.not_in_group": {
+      "pt-br": "Você não está em um grupo.",
+      "en-us": "You are not in a group."
+    },
+    "nw.inv.bag_full": {
+      "pt-br": "Bolsa cheia: parte do saque ficou para trás.",
+      "en-us": "Bag full: some loot was left behind."
+    },
+    "nw.inv.coins": {
+      "pt-br": "Moedas",
+      "en-us": "Coins"
+    },
+    "nw.inv.title": {
+      "pt-br": "Inventário",
+      "en-us": "Inventory"
+    },
+    "nw.inv.equipment": {
+      "pt-br": "Equipamento",
+      "en-us": "Equipment"
+    },
+    "nw.inv.gear_score": {
+      "pt-br": "Pontuação de Equipamento {0}",
+      "en-us": "Gear Score {0}"
+    },
+    "nw.inv.tier": {
+      "pt-br": "Nível {0}",
+      "en-us": "Tier {0}"
+    },
+    "nw.inv.heal": {
+      "pt-br": "Recupera vida",
+      "en-us": "Restores health"
+    },
+    "nw.inv.shield": {
+      "pt-br": "Escudo",
+      "en-us": "Shield"
+    },
+    "nw.inv.slot_sword": {
+      "pt-br": "Espada",
+      "en-us": "Sword"
+    },
+    "nw.inv.slot_hatchet": {
+      "pt-br": "Machadinha",
+      "en-us": "Hatchet"
+    },
+    "nw.inv.cat_weapons": {
+      "pt-br": "Armas e ferramentas",
+      "en-us": "Weapons and tools"
+    },
+    "nw.inv.cat_resources": {
+      "pt-br": "Recursos",
+      "en-us": "Resources"
+    },
+    "nw.inv.tab_weapons": {
+      "pt-br": "Armas e armadura",
+      "en-us": "Weapons and armor"
+    },
+    "nw.inv.tab_tools": {
+      "pt-br": "Ferramentas",
+      "en-us": "Tools"
+    },
+    "nw.inv.weight": {
+      "pt-br": "Peso",
+      "en-us": "Weight"
+    }
+  },
+  "chaves_do_jogo": [
+    "ui_play",
+    "ui_enter",
+    "ui_characters",
+    "ui_createcharacter",
+    "ui_deletecharacter",
+    "mm_deletechartitle",
+    "mm_deletecharwarning",
+    "ui_confirm_delete_character_placeholder",
+    "ui_charactername",
+    "mm_disconnected",
+    "ui_deathrecap_killedby",
+    "ui_respawn",
+    "ui_deathrecap_respawn_points",
+    "ui_deathrecap_respawn_ready",
+    "ui_chat_name_local",
+    "ui_chat_name_group",
+    "ui_error_systemname",
+    "ui_chat_placeholder",
+    "ui_navmenu_settings",
+    "inv_encumbered",
+    "inv_equiploadencumberednotification",
+    "ui_buyorder_gear_score_label",
+    "ui_health",
+    "ui_stamina",
+    "ui_encumbrance",
+    "raritylevel0_displayname",
+    "raritylevel1_displayname",
+    "raritylevel2_displayname",
+    "raritylevel3_displayname",
+    "raritylevel4_displayname",
+    "ui_equipped",
+    "ui_tooltip_required",
+    "ui_tooltip_weight",
+    "ui_xp",
+    "ui_level",
+    "ui_attribute_point",
+    "ui_strength",
+    "ui_dexterity",
+    "ui_intelligence",
+    "ui_focus",
+    "ui_constitution",
+    "ui_level_up",
+    "ui_trade_skills",
+    "ui_glory_to_level",
+    "ui_available_points",
+    "ui_attributes"
+  ]
+}

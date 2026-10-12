@@ -7,6 +7,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Scalability.h"
+#include "NWInputRegistry.h"
 
 static const TCHAR* Section = TEXT("NW.Options");
 
@@ -24,7 +25,7 @@ const TArray<FNWKeyAction>& FNWOptions::KeyActions()
 {
 	// Ordem e teclas do jogo (defaultprofile.xml: moveforward w, autorun equals, walk lctrl, dodge lshift,
 	// ability1-3 q/r/f, quickslot-weapon1/2 1/2, quickslot-consumable-1 3, toggleInventoryWindow tab).
-	static const TArray<FNWKeyAction> Actions = {
+	static TArray<FNWKeyAction> Actions = {
 		{TEXT("MoveForward"), TEXT("ui_movefoward"), EKeys::W},
 		{TEXT("MoveBack"), TEXT("ui_movebackward"), EKeys::S},
 		{TEXT("MoveLeft"), TEXT("ui_moveleft"), EKeys::A},
@@ -46,6 +47,16 @@ const TArray<FNWKeyAction>& FNWOptions::KeyActions()
 		{TEXT("Map"), TEXT("ui_map"), EKeys::M},
 		{TEXT("Mastery"), TEXT("ui_mastery"), EKeys::K},
 	};
+	// Teclas das esteiras (NW_REGISTER_INPUT), depois das do jogo; montado na primeira chamada, já em execução.
+	static bool bRegistered = false;
+	if (!bRegistered)
+	{
+		bRegistered = true;
+		for (const FNWInputBinding& B : FNWInputRegistry::All())
+		{
+			Actions.Add({B.Id, B.LabelKey, B.Default});
+		}
+	}
 	return Actions;
 }
 

@@ -19,6 +19,16 @@ class UAnimInstance;
 class UBlendSpace;
 struct FNWCharacterRecord;
 
+// Locomoção base trocada por outra esteira (montaria, coleta) enquanto valer: ver SetLocomotionOverride.
+USTRUCT()
+struct FNWLocomotionOverride
+{
+	GENERATED_BODY()
+	UPROPERTY() TObjectPtr<UBlendSpace> Space;
+	UPROPERTY() int32 Priority = 0;
+	UPROPERTY() bool bNoSprint = true;
+};
+
 // Uma arma do jogador (troca no 1/2): malha, tabela de ações, locomoção e habilidades de Q/R/F.
 USTRUCT(BlueprintType)
 struct FNWWeaponSet
@@ -49,7 +59,12 @@ struct FNWWeaponSet
 };
 
 /**
- * Personagem de espada e escudo. Câmera por cima do ombro, strafe com a câmera (como no jogo com a arma
+ * Personagem do jogador (e base do Lost e das criaturas). A implementação é dividida por esteira (docs/esteiras.md):
+ * NWCharacter.cpp (movimento, câmera, input, menus), NWCharacterArmas.cpp (armas, combate, habilidades, boneco),
+ * NWCharacterSave.cpp (salvar/restaurar). Coleta e montaria ficam nos componentes (Gather, Mount); teclas novas pelo
+ * NW_REGISTER_INPUT (NWInputRegistry.h), comandos do F10 pelo NW_REGISTER_DEV (NWDevRegistry.h).
+ *
+ * Câmera por cima do ombro, strafe com a câmera (como no jogo com a arma Câmera por cima do ombro, strafe com a câmera (como no jogo com a arma
  * em mãos) e sprint orientado ao movimento. Sem controlador, serve de boneco de treino.
  *
  * Controles (padrão do jogo, libs/config/defaultprofile.xml): WASD, mouse, Espaço pula (ou sobe degrau,
@@ -77,6 +92,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWInventoryComponent> Inventory;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWGatherComponent> Gather;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWProgressionComponent> Progression;
+	// Montaria (esteira 3, NWMountComponent).
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWMountComponent> Mount;
 	// IA de combate (inimigos). Criado desligado; ligado (UseBrain), substitui o TickDummy.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWBrainComponent> Brain;
 	/** Liga o cérebro com o estilo e os ataques dados (servidor). */
@@ -98,6 +115,17 @@ public:
 	// Troca de arma (1/2): toca o sacar da arma nova.
 	void SwitchWeapon(int32 Index);
 	void SetWeaponAbilities(int32 SetIndex, const TArray<FName>& New);
+
+	/**
+	 * Troca a locomoção base do ABP (o pino Locomotion) sem mexer no grafo: montaria, coleta. Vale a de maior
+	 * prioridade; sem nenhuma, a da arma em uso. bNoSprint tira a animação de sprint enquanto valer. Local em cada
+	 * máquina: quem replica o estado (ex.: montado) chama nos clientes também.
+	 */
+	void SetLocomotionOverride(FName Owner, UBlendSpace* Space, int32 Priority = 0, bool bNoSprint = true);
+	void ClearLocomotionOverride(FName Owner);
+	bool LocomotionBlocksSprint() const;
+	/** Menu aberto (maestria, inventário, dev): o personagem não age. */
+	bool InMenu() const;
 
 	// Assets do personagem (o padrão é o jogador de espada e escudo; o Lost troca no construtor).
 	UPROPERTY(EditAnywhere, Category = "NW|Assets") TSoftObjectPtr<USkeletalMesh> MeshAsset;
@@ -186,8 +214,6 @@ protected:
 	void JumpReleased();
 	// Pulo, travessia ou ação de combate em curso: não aceita outra ação.
 	bool CanAct() const;
-	// Menu aberto (maestria ou dev): o personagem não age.
-	bool InMenu() const;
 	void WalkPressed();
 	void WalkReleased();
 	/** Dono: sprint quando o movimento pedido vai para a frente da câmera e nada impede. */
@@ -217,6 +243,11 @@ protected:
 	UPROPERTY() TObjectPtr<UDataTable> ShakeTable;
 	bool bFlyUp = false;
 	void ApplyWeapon();
+	/** Preenche WeaponSets com as armas do jogador (NWCharacterArmas.cpp). */
+	void AddPlayerWeaponSets();
+	/** Põe no ABP a locomoção que vale agora (override de maior prioridade ou a da arma). */
+	void RefreshLocomotion();
+	UPROPERTY() TMap<FName, FNWLocomotionOverride> LocomotionOverrides;
 	void Weapon1() { if (Loadout.IsValidIndex(0)) SwitchWeapon(Loadout[0]); }
 	void Weapon2() { if (Loadout.IsValidIndex(1)) SwitchWeapon(Loadout[1]); }
 	void ApplySprint();
@@ -251,6 +282,8 @@ private:
 	void InventoryPressed();
 	void InteractPressed();
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> IA_Abilities;
+	// Teclas das esteiras (FNWInputRegistry), na mesma ordem do registro.
+	UPROPERTY() TArray<TObjectPtr<UInputAction>> IA_Registered;
 
 	void TickDummy(float DeltaSeconds);
 

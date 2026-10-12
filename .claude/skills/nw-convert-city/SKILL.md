@@ -1,17 +1,18 @@
 ---
 name: nw-convert-city
-description: Converte uma cidade/assentamento do New World (dynamicslice *_complete) em glb limpo + recorte de terreno com tools/convert_city.sh. Usar só quando o usuário pedir outra cidade (o escopo atual é uma região por vez).
+description: Converte uma cidade/assentamento do New World (dynamicslice *_complete) em glb limpo + recorte de terreno com tools/convert_city.sh. Usar para a capital de Queda Eterna (esteira 4) ou quando o dono pedir outra cidade.
 ---
 
 # Converter uma cidade (tools/convert_city.sh)
 
-Escopo combinado: uma região por vez (hoje Guardaventos). Só converta outra cidade se o usuário pedir.
+Cidades combinadas: Guardaventos (pronta) e a capital de Queda Eterna (esteira 4, `docs/esteiras.md`). Outra cidade,
+só com pedido do dono.
 
-Antes: nada pesado rodando, New World original fechado. O script espera 12 GB livres para começar e para se
-cair abaixo de 8 GB.
+Antes: New World original fechado. Roda pela fila de trabalho pesado (`tools/pesado.sh`). O script espera 12 GB
+livres para começar e para se cair abaixo de 8 GB.
 
 ```bash
-tools/convert_city.sh settlement_southwindsward_complete
+tools/pesado.sh tools/convert_city.sh settlement_southwindsward_complete
 ```
 
 Saída: `extract/cities/limpa/<slice>.glb` e `extract/cities/<curto>_terrain.glb`. Log em

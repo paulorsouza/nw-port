@@ -14,6 +14,12 @@ Unreal (passos 5 a 7) no Windows; isso ainda não foi validado de ponta a ponta.
 - Unreal Engine 5.8.3 (binário da Epic). Só o servidor dedicado precisa da engine compilada do código-fonte
   (`docs/plano-servidor.md`); para jogar e desenvolver, o binário basta.
 
+## Versão do jogo
+
+Todo mundo usa a mesma build do New World: a de `tools/jogo.versao` (buildid da Steam e sha256 do `NewWorld.exe`).
+Dados extraídos e endereços da engenharia reversa valem só para ela. `tools/jogo_versao.sh` confere; o
+`tools/build_all.sh` para se a build for outra. Atualizar só junto com o time, refazendo a extração.
+
 ## 1. Pacotes do sistema
 
 ```bash

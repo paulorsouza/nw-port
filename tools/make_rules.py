@@ -1,16 +1,35 @@
 #!/usr/bin/env python3
-"""Fatos da engenharia reversa (docs/analise-re/valores.json) → unreal/NWPort/Data/regras.json, lido pelo FNWRules.
-Só os que têm valor numérico; as regras (valor null) entram no código com o id citado em comentário.
-Conferir o que falta aplicar: python3 tools/re_check.py."""
+"""Fatos da engenharia reversa (docs/analise-re/valores/<área>.json) → unreal/NWPort/Data/regras.json, lido pelo
+FNWRules. Só os que têm valor numérico; as regras (valor null) entram no código com o id citado em comentário.
+Conferir o que falta aplicar: python3 tools/re_check.py.
+
+Cada arquivo: {"valores": {"<área>.<nome>": {"valor", "unidade", "prova" (C/R/H), "endereco", "doc", "o_que"}}}.
+O id começa pela área do arquivo; o mesmo id em dois arquivos é erro.
+"""
 import json
 import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VALUES = os.path.join(ROOT, "docs", "analise-re", "valores")
+
+
+def load_values():
+    out, owner = {}, {}
+    for name in sorted(os.listdir(VALUES)):
+        if not name.endswith(".json"):
+            continue
+        for k, v in json.load(open(os.path.join(VALUES, name)))["valores"].items():
+            if k in owner:
+                raise SystemExit(f"valor {k} em {owner[k]} e {name}")
+            if not k.startswith(name[:-5] + "."):
+                raise SystemExit(f"valor {k} fora da área do arquivo {name}")
+            owner[k] = name
+            out[k] = v
+    return out
 
 
 def main():
-    src = json.load(open(os.path.join(ROOT, "docs", "analise-re", "valores.json")))["valores"]
-    out = {k: v["valor"] for k, v in src.items() if isinstance(v.get("valor"), (int, float))}
+    out = {k: v["valor"] for k, v in load_values().items() if isinstance(v.get("valor"), (int, float))}
     path = os.path.join(ROOT, "unreal", "NWPort", "Data", "regras.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     json.dump(out, open(path, "w"), indent=1, sort_keys=True)

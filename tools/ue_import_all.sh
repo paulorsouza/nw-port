@@ -10,6 +10,8 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Fila de trabalho pesado (várias sessões na mesma máquina; docs/esteiras.md).
+[ -n "${NW_PESADO:-}" ] || exec "$ROOT/tools/pesado.sh" "$ROOT/tools/$(basename "$0")" "$@"
 cd "$ROOT"
 UE_DIR="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}"
 UE="$UE_DIR/Engine/Binaries/Linux/UnrealEditor-Cmd"
@@ -105,4 +107,9 @@ step 11 "otimização do mapa (distâncias, sombras, luzes)" py optimize "$ROOT/
 step 09 "texturas da interface" py ui "$ROOT/tools/ue/import_ui.py"
 step 10 "sons de fundo" py audio "$ROOT/tools/ue/import_audio.py"
 step 12 "criaturas (javali, lobo) e ABP de criatura" creatures
+# Etapas das esteiras (docs/esteiras.md): tools/etapas/<esteira>.ue.sh chama `step <esteira>-NN "descrição" comando`.
+for f in "$ROOT"/tools/etapas/*.ue.sh; do
+    # shellcheck disable=SC1090
+    [ -e "$f" ] && source "$f"
+done
 echo "Pronto. Abra o editor: $UE_DIR/Engine/Binaries/Linux/UnrealEditor $P /Game/NW/Maps/L_SouthWindsward"

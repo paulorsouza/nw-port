@@ -6,7 +6,9 @@ Ponto de partida para quem chega (pessoa ou sessão nova de IA). Atualizado em 2
 
 Port do New World para Unreal 5.8.3 para o clã jogar num servidor próprio. Assets da instalação de cada um
 (nada do jogo no repositório). Cliente principal Windows, servidor Linux, desenvolvimento no Linux. Só pt-BR e
-en-US. Escopo atual: o território de Guardaventos inteiro (região `r_+04_+01`), uma região por vez.
+en-US. Escopo atual: o território de Guardaventos inteiro (região `r_+04_+01`) e a capital de Queda Eterna
+(só a cidade, para os sistemas). O trabalho corre em quatro esteiras paralelas (armas, coleta, montarias, sistemas):
+`docs/esteiras.md`.
 
 Decisões fechadas: Unreal é o plano principal; o cliente original com servidor emulado (Discord OpenWorld) é um
 plano paralelo do dono (agora no repo cliente original (fora deste repositório): https://github.com/paulorsouza/cliente original (fora deste repositório)); Lumberyard/O3DE descartado. Tema jurídico encerrado.
@@ -48,6 +50,8 @@ Lista completa em `docs/pendencias.md`. Os principais agora:
 - Mudou uma tabela ou script de dados: `tools/make_data.sh`. Mudou C++: compilar (passo 01 do `ue_import_all.sh`).
 - Verificar algo visual: abrir o editor e olhar (ou pedir o print a quem está com o editor). Não automatizar
   "rodar o jogo e tirar print": consumiu horas sem mostrar o que importa.
+- Várias sessões ao mesmo tempo: regras, donos dos arquivos e fila de trabalho pesado (`tools/pesado.sh`) em
+  `docs/esteiras.md`. Engenharia reversa sob demanda: skill `nw-re`.
 - Commits e push só quando o dono pedir.
 
 ## Armadilhas (já custaram horas)

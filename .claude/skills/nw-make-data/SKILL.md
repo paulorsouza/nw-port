@@ -15,5 +15,5 @@ Ordem fixa dentro do script: coletáveis → itens (o saque dos coletáveis defi
 telas. Se uma tela nova usar texturas que ainda não existem em PNG, rode `tools/build_all.sh 12` e depois
 `tools/ue_import_all.sh 09`.
 
-Texto novo do C++: chave em `tools/strings_nw.json` (pt-br e en-us) ou, se vier do jogo, em `GAME_KEYS` de
-`tools/build_strings.py`.
+Texto novo do C++: em `tools/strings/<esteira>.json`, `textos` (pt-br e en-us) ou, se vier do jogo,
+`chaves_do_jogo`. Arquivo de outra esteira: não mexa (`docs/esteiras.md`).

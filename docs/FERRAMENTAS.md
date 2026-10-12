@@ -56,11 +56,15 @@ antes dos comandos manuais.
 | `make_datatables.py` | CSV das DataTables de dano, ações (por arma) e tremidas de câmera |
 | `make_ai.py` | IA das criaturas: árvore do Server.pak + perfil do slice → `Data/AI/<conjunto>.json` (`docs/ia-criaturas.md`) |
 | `ai_sim.py <conjunto> Chave=valor...` | simula o planejamento da árvore para um blackboard (conferir sem a Unreal) |
-| `make_rules.py` | fatos da engenharia reversa (`docs/analise-re/valores.json`) → `Data/regras.json`, lido pelo `FNWRules` no C++ |
+| `check.sh [--cpp]` | conferência antes de mesclar um branch: conflitos esquecidos, JSON, chaves repetidas entre esteiras, Python, shell, versão do jogo; `--cpp` compila |
+| `pesado.sh <comando>` | fila de trabalho pesado (um por vez na máquina; `docs/esteiras.md`) |
+| `jogo_versao.sh [--exe]` | confere se a instalação é a build do time (`tools/jogo.versao`) |
+| `setspec.py` | junta as partes de um conjunto (`tools/sets/player/<esteira>.json` no do jogador) para `build_set.py` e `make_datatables.py` |
+| `make_rules.py` | fatos da engenharia reversa (`docs/analise-re/valores/<área>.json`) → `Data/regras.json`, lido pelo `FNWRules` no C++ |
 | `re_check.py` | o que da engenharia reversa já entrou no port: valores aplicados e faltando, `Data/regras.json` em dia, colunas da damagetable que o cliente do jogo lê e o port não exporta |
 | `weapon_report.py <arma>` | relatório do que o jogo define sobre o combate de uma arma (fragmentos, janelas, dano, stamina, recargas, habilidades, status) → `extract/research/` |
 | `make_sound_map.py` | liga sons às animações (passos, golpes, vozes) |
-| `build_strings.py` | tabela de textos pt-BR/en-US do C++ (`Data/UI/nw_strings.json`), de `tools/strings_nw.json` + chaves do jogo |
+| `build_strings.py` | tabela de textos pt-BR/en-US do C++ (`Data/UI/nw_strings.json`), de `tools/strings/<esteira>.json` (textos nossos + chaves do jogo) |
 | `build_set.py` | conjunto personagem + armas + animações → FBX + manifest (`tools/sets/*.json`) |
 | `export_ue.py` | parte Blender do `build_set.py` (FBX em cm, camadas de animação, armas nos sockets) |
 | `nwchar.py` | utilitários Blender de personagem/animação usados pelos outros |
@@ -73,7 +77,8 @@ antes dos comandos manuais.
 | `gallery.py`, `gallery.sh` | galeria de armaduras (escolha visual) |
 | `render_preview.py`, `preview_fbx.py` | prévias headless no Blender |
 
-Dados escritos à mão: `tools/strings_nw.json` (textos nossos pt/en), `tools/sets/*.json` (receitas dos conjuntos).
+Dados escritos à mão: `tools/strings/<esteira>.json` (textos nossos pt/en e chaves do jogo usadas pelo C++),
+`tools/sets/*.json` (receitas dos conjuntos; o do jogador em partes: `tools/sets/player/<esteira>.json`).
 
 ## Dentro da Unreal (`tools/ue/*.py`, rodam com `UnrealEditor-Cmd ... -run=pythonscript`)
 

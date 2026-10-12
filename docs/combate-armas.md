@@ -40,7 +40,8 @@ proposta (ações, montagens, DamageID, stamina, recarga, forma do acerto, códi
 
 ## 2. Animações: receita no conjunto do jogador
 
-Todas as armas do jogador moram no mesmo conjunto (`tools/sets/sword_shield.json`, mesmo esqueleto). Cada arma tem
+Todas as armas do jogador moram no mesmo conjunto (`tools/sets/sword_shield.json`, mesmo esqueleto), com a parte
+das armas em `tools/sets/player/armas.json`. Cada arma tem
 um prefixo de montagem: `AM_` espada, `AM_Hx_` machadinha, `AM_Bw_` arco, `AM_Rp_` rapieira.
 
 No `.json`:
@@ -67,7 +68,8 @@ O que o pipeline faz sozinho com o `.adb`:
 - janelas do `ProcLayer` com o tempo certo depois de clipe vazio;
 - janelas de montagens que dividem o mesmo clipe são somadas (antes a última sobrescrevia).
 
-Converter: `source tools/env.sh && python3 tools/build_set.py tools/sets/sword_shield.json` (Blender + nwbt, pesado).
+Converter: `source tools/env.sh && tools/pesado.sh python3 tools/build_set.py tools/sets/sword_shield.json` (Blender +
+nwbt, pesado).
 
 ## 3. Ações: tabela de ações da arma
 
@@ -115,7 +117,7 @@ Colunas extras da ação (no dicionário `<ARMA>_EFFECTS`):
 
 ## 5. C++: registrar a arma
 
-Em `ANWCharacter` (construtor), um `FNWWeaponSet` por arma: `Id`, malha, tabela de ações, blend space de
+Em `ANWCharacter::AddPlayerWeaponSets` (`NWCharacterArmas.cpp`), um `FNWWeaponSet` por arma: `Id`, malha, tabela de ações, blend space de
 locomoção, ícone, habilidades padrão, mão (`Socket`), números da arma (`BaseDamage` na escala do port = dano do jogo ×
 100/64, `CritChance`, `CritDamageMultiplier`, `StaggerDamage`, `BlockStaminaDamage`, `BlockStability`), carga do
 pesado (`HeavyMinHold`, `HeavyFullCharge`) e `bAims` (arma de mira). O par de armas em uso (teclas 1 e 2) é o

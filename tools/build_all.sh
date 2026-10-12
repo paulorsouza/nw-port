@@ -15,6 +15,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Fila de trabalho pesado (várias sessões na mesma máquina; docs/esteiras.md).
+[ -n "${NW_PESADO:-}" ] || exec "$ROOT/tools/pesado.sh" "$ROOT/tools/$(basename "$0")" "$@"
 cd "$ROOT"
 # shellcheck disable=SC1091
 source tools/env.sh
@@ -48,8 +50,8 @@ objects_args() {
     echo --x-objects json --crc-file "$ROOT/.nwbt/rtti/nwt-crc.json" --uuid-file "$ROOT/.nwbt/rtti/nwt-types.json"
 }
 
-step() {  # step NN "descrição" função
-    local n="$1" what="$2" fn="$3"
+step() {  # step NN "descrição" função [args]
+    local n="$1" what="$2"; shift 2
     if [ -n "$ONLY" ] && [ "$ONLY" != "$n" ]; then return; fi
     if [ -z "$ONLY" ] && [ -f "$DONE/$n.ok" ]; then echo "[$n] $what: já feito"; return; fi
     if pgrep -x NewWorld.exe >/dev/null || pgrep -f "[N]ewWorldLauncher.exe" >/dev/null; then
@@ -57,7 +59,7 @@ step() {  # step NN "descrição" função
     fi
     echo "[$n] $what ($(date +%T))"
     local t0=$SECONDS
-    "$fn"
+    "$@"
     touch "$DONE/$n.ok"
     echo "[$n] ok em $(( (SECONDS - t0) / 60 )) min"
 }
@@ -151,6 +153,8 @@ s12() {  # Data/ do projeto (catálogo, saque, textos, telas, mapa) e as textura
     fi
 }
 
+# Build do jogo igual à do time (tools/jogo.versao).
+tools/jogo_versao.sh || exit $?
 step 00 "ferramentas" s00
 step 01 "lista dos paks" s01
 step 02 "tabelas e textos" s02
@@ -165,4 +169,9 @@ step 10 "cenário da região" s10
 step 11 "personagens e animações" s11
 step 12 "dados do projeto e texturas das telas" s12
 step 13 "peças da arena de testes" s13
+# Etapas das esteiras (docs/esteiras.md): tools/etapas/<esteira>.build.sh chama `step <esteira>-NN "descrição" comando`.
+for f in "$ROOT"/tools/etapas/*.build.sh; do
+    # shellcheck disable=SC1090
+    [ -e "$f" ] && source "$f"
+done
 echo "Pronto. Próximo: feche a Unreal e rode tools/ue_import_all.sh"

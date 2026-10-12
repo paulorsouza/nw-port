@@ -304,7 +304,7 @@ DAMAGE_COLS = ["WeaponCategory", "DamageType", "DmgCoef", "HitStun", "BlockHitSt
                "StaggerDmgModifier", "StaggerResistModifier", "BlockStaminaDmgMod", "CameraShakeID", "TargetCameraShakeID",
                "BlockCameraShakeID", "BlockTargetCameraShakeID", "CritCameraShakeID", "CritTargetCameraShakeID"]
 DAMAGE_SOURCE = {"ImpactDistance": "ImpactDistanceY", "ImpactDistance_AI": "ImpactDistanceY_AI", "CritImpactDistance": "CritImpactDistanceY"}
-# Fora de propósito, com o motivo (id do valores.json ou texto).
+# Fora de propósito, com o motivo (id de docs/analise-re/valores/ ou texto).
 DAMAGE_IGNORED = {"CanCrit": "dano.cancrit_vazio: o nwbt grava célula vazia como False, então a coluna não diz quem crita"}
 
 
@@ -322,7 +322,8 @@ def set_hitstun_start(name):
     import collections
     import adb_windows
     import xml.etree.ElementTree as ET
-    spec = json.load(open(os.path.join(ROOT, "tools", "sets", name + ".json")))
+    import setspec
+    spec = setspec.load(os.path.join(ROOT, "tools", "sets", name + ".json"))
     adb_dir = os.path.join(ROOT, "extract", "models", "animations", "mannequin", "adb")
     starts = collections.Counter()
     for f in spec.get("window_adbs", ["player/player_sword.adb", "player/player_1h_melee.adb", "player/player.adb"]):

@@ -1,0 +1,55 @@
+{
+  "_comment": "Esteira 2 (coleta): ferramentas e animações de coleta. Junta-se ao sword_shield.json (tools/setspec.py).",
+  "weapons": {
+    "pick": {
+      "file": "objects/weapons/tools/2h/pickaxet1/wep_tl2h_pickaxet1_lookbase.cdf",
+      "socket": "right_hand_attach"
+    },
+    "sickle": {
+      "file": "objects/weapons/tools/1h/sicklet1/wep_tl1h_sicklet1_lookbase.cdf",
+      "socket": "right_hand_attach"
+    },
+    "loggingaxe": {
+      "file": "objects/weapons/tools/2h/loggingaxet1/wep_axe2h_loggingaxet1_lookbase.cdf",
+      "socket": "right_hand_attach"
+    },
+    "knife": {
+      "file": "objects/weapons/melee/knives/1h/skinningknifet1/wep_me1h_skinningknifet1_lookbase.cdf",
+      "socket": "right_hand_attach"
+    }
+  },
+  "montages": {
+    "AM_GatherMine": [
+      [
+        "axe2h_mine_vrt"
+      ]
+    ],
+    "AM_GatherChop": [
+      [
+        "axe2h_chop_hrz"
+      ]
+    ],
+    "AM_GatherCut": [
+      [
+        "raxe_chop_hrz"
+      ]
+    ],
+    "AM_GatherSkin": [
+      [
+        "knife_gathering_loop"
+      ]
+    ],
+    "AM_GatherHand": [
+      [
+        "unarmed_interact02_loop"
+      ]
+    ]
+  },
+  "inplace_montages": [
+    "AM_GatherMine",
+    "AM_GatherChop",
+    "AM_GatherCut",
+    "AM_GatherSkin",
+    "AM_GatherHand"
+  ]
+}

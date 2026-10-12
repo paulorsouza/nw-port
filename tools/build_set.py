@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import adb_windows  # noqa: E402
+import setspec  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ANIM_ROOT = "animations/gameplay/character/player/male/"
@@ -61,7 +62,7 @@ def main():
     ap.add_argument("--paths", default=os.path.join(ROOT, "extract", "manifest", "paths.txt"))  # nwbt list | awk '{print $NF}'
     a = ap.parse_args()
 
-    spec = json.load(open(a.set))
+    spec = setspec.load(a.set)
     out = os.path.join(ROOT, "extract", "ue", spec["name"])
     os.makedirs(out, exist_ok=True)
     idx = index(a.paths, spec.get("anim_root", ANIM_ROOT))

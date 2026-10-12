@@ -3,10 +3,11 @@
 
     python3 tools/re_check.py
 
-1. Valores (docs/analise-re/valores.json): cada id é procurado no código do port (C++ em unreal/NWPort/Source,
+1. Valores (docs/analise-re/valores/<área>.json): cada id é procurado no código do port (C++ em unreal/NWPort/Source,
    Python em tools/ e tools/ue/). Valor numérico entra pelo FNWRules (Data/regras.json); regra (valor null) entra
    citando o id em comentário onde é aplicada. Sem uso = falta aplicar.
-2. Data/regras.json desatualizado em relação ao valores.json (rodar tools/make_rules.py).
+2. Data/regras.json desatualizado em relação aos valores (rodar tools/make_rules.py).
+4. Perguntas (docs/analise-re/perguntas/<esteira>-NNN.md) respondidas e ainda não aplicadas.
 3. Colunas (docs/analise-re/colunas.json, tirado do executável por tools/re/colunas.py): colunas da damagetable que o
    cliente do jogo lê e o port não exporta (make_datatables.DAMAGE_COLS), e as que o port exporta e o cliente não lê
    (de servidor: o port, que é servidor e cliente, usa mesmo assim).
@@ -35,7 +36,8 @@ def port_files():
 
 
 def check_values():
-    valores = json.load(open(os.path.join(RE_DIR, "valores.json")))["valores"]
+    from make_rules import load_values
+    valores = load_values()
     texts = {os.path.relpath(p, ROOT): open(p, encoding="utf-8", errors="replace").read() for p in port_files()}
     applied, pending = [], []
     for vid, v in valores.items():
@@ -99,10 +101,22 @@ def check_columns():
             print(f"  no port e não lidas pelo cliente (servidor): {' '.join(server)}")
 
 
+def check_questions():
+    qdir = os.path.join(RE_DIR, "perguntas")
+    states = {}
+    for name in sorted(os.listdir(qdir)) if os.path.isdir(qdir) else []:
+        m = re.search(r"^- Estado: (\w+)", open(os.path.join(qdir, name)).read(), re.M)
+        states.setdefault(m.group(1) if m else "?", []).append(name[:-3])
+    print("== Perguntas: " + ", ".join(f"{len(v)} {k}" for k, v in sorted(states.items())))
+    if states.get("respondida"):
+        print(f"  respondidas, falta aplicar: {' '.join(states['respondida'])}")
+
+
 def main():
     valores = check_values()
     check_rules(valores)
     check_columns()
+    check_questions()
 
 
 if __name__ == "__main__":

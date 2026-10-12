@@ -1,0 +1,29 @@
+{
+  "_comment": "Esteira 2 (coleta).",
+  "textos": {
+    "nw.gather.busy": {
+      "pt-br": "Outra pessoa já está coletando aqui.",
+      "en-us": "Someone else is already gathering here."
+    },
+    "nw.gather.skin": {
+      "pt-br": "Esfolar",
+      "en-us": "Skin"
+    }
+  },
+  "chaves_do_jogo": [
+    "ui_mine",
+    "ui_harvest",
+    "ui_log",
+    "ui_notoolitem",
+    "2hpick_groupname",
+    "sickle_groupname",
+    "2haxe_groupname",
+    "1hskinningknife_groupname",
+    "ui_tooltip_gatherspeed",
+    "ui_mining",
+    "ui_logging",
+    "ui_harvesting",
+    "ui_skinning",
+    "ui_interact_required_level"
+  ]
+}

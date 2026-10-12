@@ -1,4 +1,5 @@
 #include "NWPlayerController.h"
+#include "NWDevRegistry.h"
 #include "NWCreature.h"
 #include "NWBrainComponent.h"
 #include "NWBehaviorTreeComponent.h"
@@ -508,6 +509,14 @@ void ANWPlayerController::EndPlay(const EEndPlayReason::Type Reason)
 void ANWPlayerController::LocalConsole(const FString& Command)
 {
 	ConsoleCommand(Command, true);
+}
+
+void ANWPlayerController::ServerDevNamed_Implementation(FName Id)
+{
+	if (const FNWDevEntry* E = FNWDevRegistry::Find(Id); E && E->Server)
+	{
+		E->Server(this);
+	}
 }
 
 void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)

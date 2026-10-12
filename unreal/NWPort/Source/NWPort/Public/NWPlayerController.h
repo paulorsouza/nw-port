@@ -82,6 +82,8 @@ public:
 	bool IsInventoryOpen() const;
 
 	UFUNCTION(Server, Reliable) void ServerDev(ENWDevCommand Command);
+	/** Botão do F10 registrado por uma esteira (NW_REGISTER_DEV, NWDevRegistry.h). */
+	UFUNCTION(Server, Reliable) void ServerDevNamed(FName Id);
 
 	// Chat: o servidor valida, limita e distribui; "/" no começo é comando.
 	UFUNCTION(Server, Reliable) void ServerSendChat(const FString& Text);

@@ -1,0 +1,54 @@
+{
+  "_comment": "Esteira 1 (armas).",
+  "textos": {
+    "nw.weapon.sword": {
+      "pt-br": "Espada e Escudo",
+      "en-us": "Sword and Shield"
+    },
+    "nw.weapon.hatchet": {
+      "pt-br": "Machadinha",
+      "en-us": "Hatchet"
+    },
+    "nw.dummy": {
+      "pt-br": "Boneco de treino",
+      "en-us": "Training dummy"
+    },
+    "nw.hit.guard_broken": {
+      "pt-br": "Guarda quebrada",
+      "en-us": "Guard broken"
+    },
+    "nw.mastery.level": {
+      "pt-br": "Nível {0}",
+      "en-us": "Level {0}"
+    },
+    "nw.mastery.confirm": {
+      "pt-br": "Confirmar",
+      "en-us": "Confirm"
+    },
+    "nw.mastery.active": {
+      "pt-br": "Habilidade ativa  ·  Recarga: {0} s",
+      "en-us": "Active ability  ·  Cooldown: {0} s"
+    },
+    "nw.mastery.ultimate": {
+      "pt-br": "Ultimate  ·  requer {0} pontos nesta árvore",
+      "en-us": "Ultimate  ·  requires {0} points in this tree"
+    },
+    "nw.mastery.passive": {
+      "pt-br": "Passiva",
+      "en-us": "Passive"
+    },
+    "nw.hit.blocked": {
+      "pt-br": "Bloqueado",
+      "en-us": "Blocked"
+    },
+    "nw.hit.dodged": {
+      "pt-br": "Esquivou",
+      "en-us": "Dodged"
+    }
+  },
+  "chaves_do_jogo": [
+    "ui_tooltip_basedamage",
+    "ui_weapon_mastery",
+    "ui_skills"
+  ]
+}
