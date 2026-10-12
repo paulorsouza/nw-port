@@ -930,6 +930,34 @@ void ANWHUD::DrawCompass()
 		Piece(Left, 180.f, -Half);
 		Piece(-180.f, Heading + Half - 360.f, 180.f - Heading);
 	}
+	// POIs a até 400 m na tira, no rumo em que estão (o jogo mostra os pontos próximos na bússola).
+	if (const APawn* Me = PC->GetPawn())
+	{
+		WorldMap.EnsureLoaded();
+		const float IconSz = 28.f * S;
+		for (const FNWWorldMap::FPoi& P : WorldMap.GetPois())
+		{
+			const FVector2D U = WorldMap.ToUnreal(P.Pos);
+			const FVector2D D = U - FVector2D(Me->GetActorLocation());
+			if (D.SizeSquared() > FMath::Square(40000.0))
+			{
+				continue;
+			}
+			const float Rel = FRotator::NormalizeAxis(FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X)) - PC->GetControlRotation().Yaw);
+			if (FMath::Abs(Rel) > Half)
+			{
+				continue;
+			}
+			const float SX = CX + Rel * PxPerDeg * S;
+			const float Alpha = FMath::Clamp((1.f - FMath::Abs(Rel) / Half) / 0.25f, 0.f, 1.f);
+			if (UTexture2D* Icon = FNWUILayout::GameTexture(P.Icon))
+			{
+				FCanvasTileItem T(FVector2D(SX - IconSz * 0.5f, 14.f * S), Icon->GetResource(), FVector2D(IconSz), FLinearColor(1.f, 1.f, 1.f, Alpha));
+				T.BlendMode = SE_BLEND_Translucent;
+				Canvas->DrawItem(T);
+			}
+		}
+	}
 	// Linha de base e agulha (CompassLines / Needle).
 	if (UTexture2D* Line = FNWUILayout::GameTexture(TEXT("lyshineui/images/compass/compassbg.dds")))
 	{

@@ -66,6 +66,14 @@ FVector2D FNWWorldMap::ToWorld(const FVector& L) const
 	return Origin + FVector2D(C * Lx - S * Ly, S * Lx + C * Ly);
 }
 
+FVector2D FNWWorldMap::ToUnreal(const FVector2D& W) const
+{
+	const FVector2D D = W - Origin;
+	const double C = FMath::Cos(Angle), S = FMath::Sin(Angle);
+	const double Lx = C * D.X + S * D.Y, Ly = -S * D.X + C * D.Y;
+	return FVector2D(-Lx * 100.0, Ly * 100.0);
+}
+
 FVector2D FNWWorldMap::WorldToScreen(const FVector2D& W) const
 {
 	// Norte (y do mundo) para cima.
@@ -80,10 +88,7 @@ FVector2D FNWWorldMap::ScreenToWorld(const FVector2D& P) const
 
 void FNWWorldMap::Open(const APawn* Player)
 {
-	if (!bLoaded)
-	{
-		Load();
-	}
+	EnsureLoaded();
 	bOpen = Levels.Num() > 0;
 	MetersPerPixel = 1.0;
 	Center = Player ? ToWorld(Player->GetActorLocation()) : Region.GetCenter();

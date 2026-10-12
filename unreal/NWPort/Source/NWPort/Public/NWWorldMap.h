@@ -22,18 +22,24 @@ public:
 
 	/** Posição do Unreal (cm, referencial da cidade) -> mundo do jogo (m). */
 	FVector2D ToWorld(const FVector& Location) const;
+	/** Mundo do jogo (m) -> plano do Unreal (cm). */
+	FVector2D ToUnreal(const FVector2D& World) const;
+	/** Lê Data/World/worldmap.json uma vez (o mapa e a bússola usam). */
+	void EnsureLoaded() { if (!bLoaded) Load(); }
+
+	struct FPoi
+	{
+		FVector2D Pos;   // mundo, metros
+		FString NameKey;
+		FString Icon;
+	};
+	const TArray<FPoi>& GetPois() const { return Pois; }
 
 private:
 	struct FTile
 	{
 		FVector2D Min;   // canto sudoeste, metros do mundo
 		FString Texture;
-	};
-	struct FPoi
-	{
-		FVector2D Pos;   // mundo, metros
-		FString NameKey;
-		FString Icon;
 	};
 	struct FLevel
 	{
