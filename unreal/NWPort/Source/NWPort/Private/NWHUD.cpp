@@ -430,6 +430,7 @@ void ANWHUD::DrawGameHUD()
 		DrawRect(FLinearColor::Black, CX + CW * (C->HeavyMinHold / C->HeavyFullCharge) - 1.f, CY - 2.f, 2.f, 9.f);
 	}
 	DrawCompass();
+	DrawLevelUp();
 	DrawDamageNumbers();
 	DrawEncumbrance(Me);
 	DrawNameplates(Me);
@@ -1087,6 +1088,12 @@ void ANWHUD::UpdateXp(const ANWCharacter* Me)
 	{
 		return;
 	}
+	if (LastLevel > 0 && P->Level > LastLevel)
+	{
+		LevelUpValue = P->Level;
+		LevelUpAt = FPlatformTime::Seconds();
+	}
+	LastLevel = P->Level;
 	const float Fill = P->LevelProgress();
 	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("LevelText"))) E->TextOverride = FString::FromInt(P->Level);
 	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("MeterFill"))) E->Fill = Fill;
@@ -1107,4 +1114,46 @@ void ANWHUD::UpdateXp(const ANWCharacter* Me)
 	{
 		E->TextOverride = FString::Printf(TEXT("+%lld %s"), XpShown, *NWText::Get(TEXT("ui_xp")));
 	}
+}
+
+void ANWHUD::DrawLevelUp()
+{
+	const double Age = FPlatformTime::Seconds() - LevelUpAt;
+	UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
+	if (Age > 4.5 || !Canvas || !Font)
+	{
+		return;
+	}
+	// Entra em 0,3 s, fica, sai no último 0,8 s. Posições do bannerlevelup (tela 1080p, centro x = 960).
+	const float Alpha = FMath::Clamp(float(FMath::Min(Age / 0.3, (4.5 - Age) / 0.8)), 0.f, 1.f);
+	const float S = Canvas->ClipY / 1080.f;
+	const float CX = Canvas->ClipX * 0.5f;
+	auto Tex = [&](const TCHAR* Path, float L, float T, float R, float B, FLinearColor Color, float Rotation = 0.f)
+	{
+		if (UTexture2D* Tx = FNWUILayout::GameTexture(Path))
+		{
+			FCanvasTileItem Item(FVector2D(CX + (L - 960.f) * S, T * S), Tx->GetResource(), FVector2D((R - L) * S, (B - T) * S), Color.CopyWithNewOpacity(Color.A * Alpha));
+			Item.BlendMode = SE_BLEND_Translucent;
+			if (Rotation != 0.f)
+			{
+				Item.Rotation = FRotator(0.f, Rotation, 0.f);
+				Item.PivotPoint = FVector2D(0.5, 0.5);
+			}
+			Canvas->DrawItem(Item);
+		}
+	};
+	Tex(TEXT("lyshineui/images/banner/banner_fog.dds"), 760.f, 60.f, 1160.f, 360.f, FLinearColor(0.f, 0.f, 0.f, 0.6f));
+	Tex(TEXT("lyshineui/images/banner/bannerleveluprune_xp.dds"), 848.f, 96.f, 1072.f, 321.f, FLinearColor::White);
+	Tex(TEXT("lyshineui/images/banner/bannerleveluprune_x.dds"), 840.f, 98.f, 1080.f, 338.f, FLinearColor::White, float(Age) * 12.f);
+	Tex(TEXT("lyshineui/images/banner/banner_light_blue2.dds"), 800.f, 156.f, 1120.f, 266.f, FLinearColor(0.f, 0.f, 0.f, 0.85f));
+	Tex(TEXT("lyshineui/images/notifications/notification_showline.dds"), 735.f, 170.f, 1185.f, 180.f, FLinearColor::White);
+	auto Centered = [&](const FString& Text, float Y, float Size)
+	{
+		const float Scale = Size * S / FMath::Max(1, Font->LegacyFontSize);
+		float W = 0.f, H = 0.f;
+		Canvas->TextSize(Font, Text, W, H, Scale, Scale);
+		DrawText(Text, FLinearColor(1.f, 1.f, 1.f, Alpha), CX - W * 0.5f, Y * S, Font, Scale);
+	};
+	Centered(NWText::Get(TEXT("ui_level_up")), 186.f, 24.f);
+	Centered(FString::FromInt(LevelUpValue), 208.f, 54.f);
 }

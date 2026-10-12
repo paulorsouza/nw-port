@@ -32,3 +32,9 @@ TOOLTIP = ["tooltip/tooltip_bg_new.dds", "tooltip/tooltip_bgframenew.dds", "tool
 TOOLTIP += [f"tooltip/tooltip_header_bg_{i}.dds" for i in range(5)] + [f"tooltip/tooltip_itemframe_rarity{i}.dds" for i in range(1, 5)] + ["tooltip/tooltip_itemframe_rarity_none.dds"]
 open(os.path.join(UI, "tooltip_textures.txt"), "w").write("\n".join("lyshineui/images/" + t for t in TOOLTIP))
 print(f"tooltip: {len(TOOLTIP)} texturas")
+
+# Banner de subir de nível (lyshineui/banner/bannerlevelup.dynamicslice): só a parte de XP.
+LEVELUP = ["banner/bannerleveluprune_xp.dds", "banner/bannerleveluprune_x.dds", "banner/banner_light_blue2.dds",
+           "banner/banner_fog.dds", "notifications/notification_showline.dds"]
+open(os.path.join(UI, "levelup_textures.txt"), "w").write("\n".join("lyshineui/images/" + t for t in LEVELUP))
+print(f"levelup: {len(LEVELUP)} texturas")

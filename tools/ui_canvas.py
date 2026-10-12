@@ -75,9 +75,18 @@ def main():
     a = ap.parse_args()
 
     d = json.load(open(a.canvas))
-    canvas = next(o for o in walk(d) if o.get("__type") == "UiCanvasComponent")
-    cw, ch = canvas["canvassize"]
+    canvas = next((o for o in walk(d) if o.get("__type") == "UiCanvasComponent"), None)
     ents = {str(o["id"]["id"]): o for o in walk(d) if o.get("__type") == "AZ::Entity" and "id" in o}
+    if canvas:
+        cw, ch = canvas["canvassize"]
+        roots = [str(canvas["rootelement"]["id"])]
+    else:
+        # Slice de tela (.dynamicslice, ex.: banners): sem canvas; tela de referência 1920x1080 e raiz = elemento que
+        # não é filho de nenhum outro.
+        cw, ch = 1920, 1080
+        children = {str(k["childentityid"]["id"]) for o in walk(d) if isinstance(o, dict) and "childentityid" in o
+                    for k in [o]}
+        roots = [i for i, e in ents.items() if find(e, "UiElementComponent") and i not in children]
 
     out = []
     excluded = {x for x in a.exclude.split(",") if x}
@@ -160,8 +169,8 @@ def main():
         # Índice do último descendente (para recortar a subárvore de uma máscara).
         out[my_index]["end"] = len(out) - 1
 
-    root = str(canvas["rootelement"]["id"])
-    visit(root, (0, 0, cw, ch), 0, 1.0, True)
+    for root in roots:
+        visit(root, (0, 0, cw, ch), 0, 1.0, True)
     json.dump({"canvas": a.canvas, "size": [cw, ch], "elements": out}, open(a.out, "w"), indent=1)
     textures = sorted({e["image"]["texture"] for e in out if e.get("image") and e["image"]["texture"]})
     print(f"{len(out)} elementos, {len(textures)} texturas, tela {cw}x{ch}")

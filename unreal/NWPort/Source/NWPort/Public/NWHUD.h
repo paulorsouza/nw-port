@@ -73,6 +73,11 @@ private:
 	void UpdateXp(const class ANWCharacter* Me);
 	int64 XpShown = 0;
 	double XpShownAt = -100.0;
+	/** Banner de subir de nível (lyshineui/banner/bannerlevelup, parte de XP): runa, faixa, "Subiu de Nível" e o nível. */
+	void DrawLevelUp();
+	int32 LastLevel = 0;
+	int32 LevelUpValue = 0;
+	double LevelUpAt = -100.0;
 	void DrawLootTicker();
 	/**
 	 * Bússola do jogo no topo (lyshineui/compass): tira compass2048 rolando com a câmera, linha compassbg e agulha.
