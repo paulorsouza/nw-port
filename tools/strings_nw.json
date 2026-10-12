@@ -378,5 +378,13 @@
   "nw.dev.fast_run": {
     "pt-br": "Correr rápido (4×)",
     "en-us": "Fast run (4×)"
+  },
+  "nw.hit.blocked": {
+    "pt-br": "Bloqueado",
+    "en-us": "Blocked"
+  },
+  "nw.hit.dodged": {
+    "pt-br": "Esquivou",
+    "en-us": "Dodged"
   }
 }

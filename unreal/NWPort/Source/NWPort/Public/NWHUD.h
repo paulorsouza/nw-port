@@ -41,6 +41,8 @@ public:
 	FNWRespawnScreen Respawn;
 	FNWChat Chat;
 	FNWInventoryMenu Inventory;
+	/** Números de dano (lyshineui/hud/damagenumbers): sobem e somem sobre o alvo em 1,2 s. */
+	void AddDamageNumber(const FVector& World, const FString& Text, const FLinearColor& Color, bool bBig);
 	// Menu do Esc e configurações (desenhado por cima de tudo).
 	FNWGameMenu GameMenu;
 	bool IsDeathScreen() const { return bDeathScreen; }
@@ -69,6 +71,17 @@ private:
 	 * Norte do mapa = yaw −4° no L_SouthWindsward (giro da cidade −94°: atan2(cos a, −sin a)).
 	 */
 	void DrawCompass();
+	void DrawDamageNumbers();
+	struct FDamageNumber
+	{
+		FVector World;
+		FString Text;
+		FLinearColor Color;
+		bool bBig = false;
+		double Time = 0.0;
+		float Drift = 0.f;
+	};
+	TArray<FDamageNumber> DamageNumbers;
 	float CompassNorthYaw = -4.f;
 	/** HUD do jogo (tudo menos o menu do Esc, que o DrawHUD desenha por cima). */
 	void DrawGameHUD();

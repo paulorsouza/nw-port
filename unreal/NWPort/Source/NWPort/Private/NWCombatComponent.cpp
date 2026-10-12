@@ -1,4 +1,6 @@
 #include "NWCombatComponent.h"
+
+#include "NWHUD.h"
 #include "NWText.h"
 #include "NWProjectile.h"
 #include "NWGameMode.h"
@@ -978,18 +980,26 @@ FName UNWCombatComponent::DirectionalAction(const TCHAR* Prefix, const FVector& 
 
 void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitResult Result)
 {
+	// Número de dano na HUD do jogador local (como o damagenumbers do jogo); servidor dedicado não desenha.
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	ANWHUD* HUD = PC ? Cast<ANWHUD>(PC->GetHUD()) : nullptr;
+	if (!HUD)
+	{
+		return;
+	}
 	const FVector At = GetOwner()->GetActorLocation() + FVector(0, 0, 110);
-	FString Text;
-	FColor Color = FColor::White;
+	// Dano em mim: vermelho; dano que eu ou outros causam: claro; bloqueio e esquiva: texto do port.
+	const bool bMe = GetOwner() == PC->GetPawn();
 	switch (Result)
 	{
-	case ENWHitResult::Hit: Text = FString::Printf(TEXT("%.0f"), Damage); Color = FColor::Orange; break;
-	case ENWHitResult::Blocked: Text = TEXT("Bloqueado"); Color = FColor::Cyan; break;
-	case ENWHitResult::BlockBroken: Text = NWText::Get(TEXT("nw.hit.guard_broken")); Color = FColor::Yellow; break;
-	case ENWHitResult::Dodged: Text = TEXT("Esquivou"); Color = FColor::Green; break;
-	default: return;
+	case ENWHitResult::Hit:
+		HUD->AddDamageNumber(At, FString::Printf(TEXT("%.0f"), Damage), bMe ? FLinearColor(FColor(0xFF, 0x5A, 0x4A)) : FLinearColor(FColor(0xF2, 0xEC, 0xDF)), Damage >= 150.f);
+		break;
+	case ENWHitResult::Blocked: HUD->AddDamageNumber(At, NWText::Get(TEXT("nw.hit.blocked")), FLinearColor(FColor(0x9A, 0xB8, 0xC8)), false); break;
+	case ENWHitResult::BlockBroken: HUD->AddDamageNumber(At, NWText::Get(TEXT("nw.hit.guard_broken")), FLinearColor(FColor(0xED, 0xC6, 0x3E)), true); break;
+	case ENWHitResult::Dodged: HUD->AddDamageNumber(At, NWText::Get(TEXT("nw.hit.dodged")), FLinearColor(FColor(0x9A, 0x96, 0x8E)), false); break;
+	default: break;
 	}
-	DrawDebugString(GetWorld(), At, Text, nullptr, Color, 1.2f, true, 1.4f);
 }
 
 void UNWCombatComponent::MulticastHitStop_Implementation(AActor* Other, float Seconds)

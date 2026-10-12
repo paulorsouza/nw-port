@@ -414,6 +414,7 @@ void ANWHUD::DrawGameHUD()
 		DrawRect(FLinearColor::Black, CX + CW * (C->HeavyMinHold / C->HeavyFullCharge) - 1.f, CY - 2.f, 2.f, 9.f);
 	}
 	DrawCompass();
+	DrawDamageNumbers();
 	DrawNameplates(Me);
 	DrawGroup(Me);
 	DrawLootTicker();
@@ -821,5 +822,49 @@ void ANWHUD::DrawCompass()
 		FCanvasTileItem T(FVector2D(CX - 6.f * S, 41.f * S), Needle->GetResource(), FVector2D(12.f * S, 6.f * S), FLinearColor::White);
 		T.BlendMode = SE_BLEND_Translucent;
 		Canvas->DrawItem(T);
+	}
+}
+
+void ANWHUD::AddDamageNumber(const FVector& World, const FString& Text, const FLinearColor& Color, bool bBig)
+{
+	// Deslocamento lateral pequeno e aleatório: golpes seguidos não ficam um em cima do outro.
+	DamageNumbers.Add({World, Text, Color, bBig, FPlatformTime::Seconds(), FMath::FRandRange(-30.f, 30.f)});
+	if (DamageNumbers.Num() > 40)
+	{
+		DamageNumbers.RemoveAt(0);
+	}
+}
+
+void ANWHUD::DrawDamageNumbers()
+{
+	const double Now = FPlatformTime::Seconds();
+	DamageNumbers.RemoveAll([Now](const FDamageNumber& N) { return Now - N.Time > 1.2; });
+	UFont* Font = Fonts.IsValidIndex(2) ? Fonts[2].Get() : Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
+	APlayerController* PC = GetOwningPlayerController();
+	if (!Font || !PC || !Canvas)
+	{
+		return;
+	}
+	const float S = Canvas->ClipY / 1080.f;
+	for (const FDamageNumber& N : DamageNumbers)
+	{
+		FVector2D Screen;
+		if (!PC->ProjectWorldLocationToScreen(N.World, Screen, true))
+		{
+			continue;
+		}
+		const float T = float(Now - N.Time) / 1.2f;
+		// Entra grande e encolhe (0,15 s), sobe 70 px, some no último terço.
+		const float Pop = 1.f + 0.35f * FMath::Clamp(1.f - T / 0.125f, 0.f, 1.f);
+		const float Size = (N.bBig ? 30.f : 24.f) * Pop * S;
+		const float Scale = Size / FMath::Max(1, Font->LegacyFontSize);
+		const float Alpha = FMath::Clamp((1.f - T) / 0.33f, 0.f, 1.f);
+		float W = 0.f, H = 0.f;
+		Canvas->TextSize(Font, N.Text, W, H, Scale, Scale);
+		const FVector2D At(Screen.X + N.Drift * S - W * 0.5f, Screen.Y - 70.f * S * T - H * 0.5f);
+		FCanvasTextItem Item(At, FText::FromString(N.Text), Font, N.Color.CopyWithNewOpacity(Alpha));
+		Item.Scale = FVector2D(Scale, Scale);
+		Item.EnableShadow(FLinearColor(0.f, 0.f, 0.f, 0.9f * Alpha));
+		Canvas->DrawItem(Item);
 	}
 }
