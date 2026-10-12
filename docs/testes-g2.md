@@ -5,7 +5,7 @@ Play. Para cada item: print se algo estiver errado (de preferência com o consol
 
 ## G2 — terreno, água, cenário
 
-1. **Personagem voando.** Andar pelas bordas da cidade e pelos morros fora dela. Onde o personagem ficar acima do
+1. ~~**Personagem voando.**~~ **Resolvido 2026-10-12:** era o `ChaoSeguranca` (plano invisível do fix_city) acima dos vales; agora fica 10 m abaixo do terreno mais baixo. Original: Andar pelas bordas da cidade e pelos morros fora dela. Onde o personagem ficar acima do
    chão (ou atravessar), print + posição (F10 > o HUD de diagnóstico mostra; ou `nw.HudDebug 1`). Dizer se é sobre
    terreno, rocha, ponte ou ruína.
 2. **Pedregulho flutuando.** Mesmo caso para pedras/coletáveis acima do chão: print e posição.

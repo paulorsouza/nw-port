@@ -119,3 +119,13 @@ Feitas com o PC sozinho (sem abrir o editor nem rodar o jogo): compilam, falta c
 - Mapa: faltam coletáveis rastreados, NPCs e a névoa de áreas não descobertas. Conferir grupo, marcador (botão
   direito no mapa, aparece na bússola) e último local de morte.
 - Atalhos: só teclado e mouse; sem controle. Conflito troca as duas teclas (o jogo apaga a outra).
+
+## Teste com o usuário (2026-10-12)
+
+- Personagem voando: **resolvido** (chão de segurança acima dos vales; `import_terrain.py` agora o põe abaixo do
+  terreno mais baixo).
+- Materiais criados por script não compilavam no SM6 (normal com textura de cor; água Single Layer sem o nó de
+  saída): corrigidos no editor e nos scripts. Jogador, Lost, javali, lobo e água afetados.
+- Faltam: cachoeira "muito estranha" e iluminação (prints pendentes); javali/lobo "melhoraram um pouco".
+- Editor + Play + Lumen estouram os 8 GB de VRAM: não tirar print em alta resolução pelo remoto; após queda por VRAM
+  o driver Nvidia 615 pode travar a GPU (GSP `NV_ERR_STATE_IN_USE`) até o reboot.
