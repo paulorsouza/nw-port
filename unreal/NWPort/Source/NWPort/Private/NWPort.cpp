@@ -8,7 +8,7 @@
  */
 class FNWPortModule : public FDefaultGameModuleImpl
 {
-	static constexpr uint32 NetProtocol = 2;   // 2: inventário (F3)
+	static constexpr uint32 NetProtocol = 3;   // 2: inventário (F3); 3: coleta, progressão e ofícios, desprender
 
 	virtual void StartupModule() override
 	{

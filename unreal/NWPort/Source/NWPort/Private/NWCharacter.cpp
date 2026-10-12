@@ -681,6 +681,7 @@ void ANWCharacter::RestoreFrom(const FNWCharacterRecord& Record)
 		Combat->Health = FMath::Min(Record.Health, Combat->MaxHealth);
 	}
 	Inventory->Load(Record.Items, Record.Coins);
+	Progression->Load(Record.Progression);
 	if (Record.bFirstJoin)
 	{
 		Inventory->GiveStarterKit();
@@ -719,6 +720,7 @@ void ANWCharacter::CaptureTo(FNWCharacterRecord& Record) const
 	Record.Loadout = Loadout;
 	Record.Items = Inventory->Items;
 	Record.Coins = Inventory->Coins;
+	Record.Progression = Progression->Save();
 	Record.bFirstJoin = false;
 }
 

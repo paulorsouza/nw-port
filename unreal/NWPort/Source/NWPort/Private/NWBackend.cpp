@@ -57,6 +57,7 @@ TOptional<FNWCharacterRecord> FNWCharacterRecord::FromJson(const TSharedPtr<FJso
 	const TSharedPtr<FJsonObject>* Field = nullptr;
 	R.Loadout = Obj->TryGetObjectField(TEXT("loadout"), Field) ? *Field : MakeShared<FJsonObject>();
 	R.Mastery = Obj->TryGetObjectField(TEXT("mastery"), Field) ? *Field : MakeShared<FJsonObject>();
+	R.Progression = Obj->TryGetObjectField(TEXT("progression"), Field) ? *Field : MakeShared<FJsonObject>();
 	double Coins = 0.0;
 	if (Obj->TryGetNumberField(TEXT("coins"), Coins))
 	{
@@ -128,6 +129,10 @@ FString FNWCharacterRecord::StateJson() const
 		Inv.Add(MakeShared<FJsonValueObject>(I));
 	}
 	Obj->SetArrayField(TEXT("inventory"), Inv);
+	if (Progression.IsValid())
+	{
+		Obj->SetObjectField(TEXT("progression"), Progression);
+	}
 	return WriteJson(Obj);
 }
 

@@ -36,6 +36,9 @@ pub struct CharacterState {
     /// Inventário inteiro (bolsa e equipado). Ausente = mantém; presente = substitui.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inventory: Option<Vec<ItemInstance>>,
+    /// Nível, XP, atributos e ofícios (objeto do servidor de jogo). Ausente = mantém.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progression: Option<Value>,
 }
 
 /// Um item do personagem (ItemID do jogo, ver Data/Items/items.*.json no projeto Unreal).
@@ -103,12 +106,13 @@ pub(crate) struct CharacterRow {
     loadout: Value,
     mastery: Value,
     coins: i64,
+    progression: Value,
 }
 
 /// Colunas de `CharacterRow`, em macro para entrar em `concat!` (o sqlx só aceita SQL estático).
 macro_rules! character_columns {
     () => {
-        "id, name, created_at, last_seen_at, map, pos_x, pos_y, pos_z, yaw, health, active_weapon, loadout, mastery, coins"
+        "id, name, created_at, last_seen_at, map, pos_x, pos_y, pos_z, yaw, health, active_weapon, loadout, mastery, coins, progression"
     };
 }
 pub(crate) use character_columns;
@@ -134,6 +138,7 @@ impl From<CharacterRow> for Character {
                 mastery: r.mastery,
                 coins: Some(r.coins),
                 inventory: None,
+                progression: Some(r.progression),
             },
         }
     }

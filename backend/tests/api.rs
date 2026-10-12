@@ -218,6 +218,7 @@ async fn inventario_salva_e_volta(db: PgPool) {
     assert_eq!(first["first_join"], true);
     assert_eq!(first["character"]["coins"], 0);
     assert_eq!(first["character"]["inventory"], json!([]));
+    assert_eq!(first["character"]["progression"], json!({}));
     let (_, join) = api.call("POST", &format!("/v1/characters/{id}/join"), Some(&t), false, None).await;
     let (_, second) = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": join["ticket"] }))).await;
     assert_eq!(second["first_join"], false);
@@ -226,6 +227,7 @@ async fn inventario_salva_e_volta(db: PgPool) {
                        "loadout": {}, "mastery": {} });
     let mut state = base.clone();
     state["coins"] = json!(120);
+    state["progression"] = json!({ "level": 3, "xp": 1200, "spent": [0, 0, 0, 0, 5], "trade": [640, 0, 110, 0] });
     state["inventory"] = json!([
         { "item_id": "1hSwordT2", "quantity": 1, "container": "equip", "slot": 0, "gear_score": 250, "rarity": 1 },
         { "item_id": "OreT1", "quantity": 37, "container": "bag", "slot": 0 },
@@ -240,6 +242,8 @@ async fn inventario_salva_e_volta(db: PgPool) {
     assert_eq!(inv.len(), 3);
     assert!(inv.iter().any(|i| i["item_id"] == "OreT1" && i["quantity"] == 37));
     assert!(inv.iter().any(|i| i["item_id"] == "1hSwordT2" && i["gear_score"] == 250 && i["container"] == "equip"));
+    assert_eq!(c["progression"]["level"], 3);
+    assert_eq!(c["progression"]["trade"], json!([640, 0, 110, 0]));
 
     // Sem inventário/moedas no salvamento: mantém.
     let (status, _) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(base.clone())).await;
@@ -247,6 +251,12 @@ async fn inventario_salva_e_volta(db: PgPool) {
     let c = redeem(&api, &t, &id).await;
     assert_eq!(c["coins"], 120);
     assert_eq!(c["inventory"].as_array().unwrap().len(), 3);
+    assert_eq!(c["progression"]["xp"], 1200);
+    let mut s = base.clone();
+    s["progression"] = json!([1, 2]);
+    let (status, err) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(s)).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(err["error"], "invalid_progression");
 
     // Slot repetido e quantidade zero são recusados, e nada muda.
     for bad in [

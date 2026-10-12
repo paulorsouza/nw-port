@@ -85,11 +85,15 @@ pub async fn save_state(
     if s.coins.is_some_and(|c| c < 0) {
         return Err(ApiError::bad_request("invalid_coins", "Moedas negativas."));
     }
+    if s.progression.as_ref().is_some_and(|p| !p.is_object()) {
+        return Err(ApiError::bad_request("invalid_progression", "Progressão tem que ser um objeto."));
+    }
     let mut tx = state.db.begin().await?;
     let done = sqlx::query(
         "update characters
             set map = $2, pos_x = $3, pos_y = $4, pos_z = $5, yaw = $6, health = $7,
-                active_weapon = $8, loadout = $9, mastery = $10, coins = coalesce($11, coins), last_seen_at = now()
+                active_weapon = $8, loadout = $9, mastery = $10, coins = coalesce($11, coins),
+                progression = coalesce($12, progression), last_seen_at = now()
           where id = $1 and deleted_at is null",
     )
     .bind(id)
@@ -103,6 +107,7 @@ pub async fn save_state(
     .bind(&s.loadout)
     .bind(&s.mastery)
     .bind(s.coins)
+    .bind(&s.progression)
     .execute(&mut *tx)
     .await?;
     if done.rows_affected() == 0 {

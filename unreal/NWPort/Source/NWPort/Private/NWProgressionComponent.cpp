@@ -220,6 +220,74 @@ float UNWProgressionComponent::ConstitutionHealth() const
 	return FProgressionData::Get().ConstitutionHealth.FindRef(Attribute(ENWAttribute::Constitution));
 }
 
+void UNWProgressionComponent::Load(const TSharedPtr<FJsonObject>& Json)
+{
+	if (!Json.IsValid())
+	{
+		return;
+	}
+	double Num = 0.0;
+	if (Json->TryGetNumberField(TEXT("xp"), Num))
+	{
+		Xp = FMath::Max<int64>(0, int64(Num));
+	}
+	// O nível sai do XP pela tabela (o salvo é só conferência).
+	Level = 1;
+	while (Level < MaxLevel() && Xp >= XpForLevel(Level + 1))
+	{
+		++Level;
+	}
+	auto ReadInts = [&Json](const TCHAR* Name, TArray<int32>& Out)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Arr = nullptr;
+		if (Json->TryGetArrayField(Name, Arr))
+		{
+			for (int32 i = 0; i < Out.Num() && i < Arr->Num(); ++i)
+			{
+				Out[i] = FMath::Max(0, int32((*Arr)[i]->AsNumber()));
+			}
+		}
+	};
+	ReadInts(TEXT("spent"), Spent);
+	ReadInts(TEXT("trade"), TradeXp);
+	// Pontos gastos além dos ganhos (tabela mudou): zera a distribuição.
+	int32 Used = 0;
+	for (int32 S : Spent)
+	{
+		Used += S;
+	}
+	const TArray<int32>& P = FProgressionData::Get().LevelPoints;
+	int32 Earned = 0;
+	for (int32 i = 1; i < Level && i < P.Num(); ++i)
+	{
+		Earned += P[i];
+	}
+	if (Used > Earned)
+	{
+		Spent.Init(0, int32(ENWAttribute::Num));
+	}
+	GetOwner()->ForceNetUpdate();
+}
+
+TSharedRef<FJsonObject> UNWProgressionComponent::Save() const
+{
+	TSharedRef<FJsonObject> J = MakeShared<FJsonObject>();
+	J->SetNumberField(TEXT("level"), Level);
+	J->SetNumberField(TEXT("xp"), double(Xp));
+	auto WriteInts = [&J](const TCHAR* Name, const TArray<int32>& In)
+	{
+		TArray<TSharedPtr<FJsonValue>> Arr;
+		for (int32 V : In)
+		{
+			Arr.Add(MakeShared<FJsonValueNumber>(V));
+		}
+		J->SetArrayField(Name, Arr);
+	};
+	WriteInts(TEXT("spent"), Spent);
+	WriteInts(TEXT("trade"), TradeXp);
+	return J;
+}
+
 void UNWProgressionComponent::AddXp(int64 Amount)
 {
 	if (Amount <= 0 || GetOwnerRole() != ROLE_Authority)

@@ -30,6 +30,7 @@ struct FNWCharacterRecord
 	FString ActiveWeapon;
 	TSharedPtr<FJsonObject> Loadout;  // { "Sword": ["ShieldBash", ...], ... }
 	TSharedPtr<FJsonObject> Mastery;  // { "sword": ["id", ...], ... }
+	TSharedPtr<FJsonObject> Progression;  // { "level": 3, "xp": 1200, "spent": [5], "trade": [4] } (UNWProgressionComponent)
 	int64 Coins = 0;
 	TArray<FNWItem> Items;
 	bool bFirstJoin = false;          // primeira entrada: o servidor dá o kit inicial

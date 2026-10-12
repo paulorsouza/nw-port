@@ -73,6 +73,9 @@ public:
 	float ConstitutionHealth() const;
 
 	// ---- servidor
+	/** Estado salvo no nw-core (FNWCharacterRecord::Progression). */
+	void Load(const TSharedPtr<class FJsonObject>& Json);
+	TSharedRef<class FJsonObject> Save() const;
 	/** Soma XP e sobe de nível pela tabela; avisa o dono. */
 	void AddXp(int64 Amount);
 
