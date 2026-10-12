@@ -342,20 +342,20 @@ void ANWPlayerController::ToggleDevMenu()
 bool ANWPlayerController::InputKey(const FInputKeyEventArgs& Params)
 {
 	ANWHUD* HUD = GetNWHUD();
-	if (HUD && HUD->GameMenu.IsWaitingKey())
+	// Só o "apertar" vira a tecla nova; soltar e eixos seguem normais (senão o soltar do clique que abriu a espera
+	// nunca chega e o botão fica preso como apertado).
+	if (HUD && HUD->GameMenu.IsWaitingKey() && Params.Event == IE_Pressed
+		&& !Params.Key.IsAxis1D() && !Params.Key.IsAxis2D() && !Params.Key.IsGamepadKey())
 	{
-		if (Params.Event == IE_Pressed && !Params.Key.IsAxis1D() && !Params.Key.IsAxis2D() && !Params.Key.IsGamepadKey())
+		if (Params.Key == EKeys::Escape)
 		{
-			if (Params.Key == EKeys::Escape)
-			{
-				HUD->GameMenu.CancelKey();
-			}
-			else
-			{
-				HUD->GameMenu.AssignKey(Params.Key);
-			}
-			ApplyKeyChanges();
+			HUD->GameMenu.CancelKey();
 		}
+		else
+		{
+			HUD->GameMenu.AssignKey(Params.Key);
+		}
+		ApplyKeyChanges();
 		return true;
 	}
 	return Super::InputKey(Params);

@@ -69,5 +69,5 @@ private:
 	bool bDragging = false;
 	bool bCenterOnPlayer = false;
 	FVector2D DragLast = FVector2D::ZeroVector;
-	FBox2f Buttons[3];   // centralizar, aproximar, afastar
+	FBox2f Buttons[3] = {FBox2f(ForceInit), FBox2f(ForceInit), FBox2f(ForceInit)};   // centralizar, aproximar, afastar
 };
