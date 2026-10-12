@@ -93,6 +93,8 @@ public:
 
 	// ---- dono -> servidor
 	UFUNCTION(Server, Reliable) void ServerSpendPoint(ENWAttribute A);
+	/** Vários pontos de uma vez (aba Atributos: Confirmar), na ordem FOR, DES, INT, FOC, CON. */
+	UFUNCTION(Server, Reliable) void ServerSpendPoints(const TArray<int32>& Points);
 
 	UFUNCTION(Client, Reliable) void ClientXpGained(int64 Amount, int32 NewLevel);
 

@@ -108,7 +108,8 @@ Feitas com o PC sozinho (sem abrir o editor nem rodar o jogo): compilam, falta c
   (arma da bolsa com outra equipada), números de dano empilhados (Configurações > Jogo), Desprender (Esc), XP de
   ofício no aviso de saque ao coletar, a aba Hab. Mercantes na janela K (nível e anel) e o indicador de golpe
   (apanhar de um Lost pelos lados: seta e brilho na borda certa; o sentido da rotação do Canvas não foi visto).
-- Importar também `levelup`, `tradeskills` (listas novas do `tools/ue/import_ui.py`).
+- Importar também `levelup`, `tradeskills`, `attributes` (listas novas do `tools/ue/import_ui.py`).
+- Conferir a aba Atributos (K > Atributos): runa com os pontos (máscara), +/−, Confirmar, barra de XP.
 - Ofícios: `RequiredTradeskillLevel` vale só para personagem do servidor (progressão do nw-core); no Play do
   editor tudo é coletável. `RollBonus` do nível entra no dado do saque (AddToRoll soma, ClampMax limita ao máximo).
 - Progressão: XP de personagem não vem de coleta nem de abate (as tabelas não dizem a fórmula; ver `docs/hud-original.md`);

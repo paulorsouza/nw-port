@@ -8,7 +8,7 @@
 #include "NWProgressionComponent.h"
 #include "NWText.h"
 
-FBox2f FNWTradeskillMenu::TabRects[2] = {FBox2f(ForceInit), FBox2f(ForceInit)};
+FBox2f FNWTradeskillMenu::TabRects[3] = {FBox2f(ForceInit), FBox2f(ForceInit), FBox2f(ForceInit)};
 
 bool FNWTradeskillMenu::Load()
 {
@@ -82,10 +82,10 @@ void FNWTradeskillMenu::DrawTabs(UCanvas* Canvas, const FVector2D& Mouse, int32 
 	// TabbedList do jogo (no topo da janela): botões escuros com moldura; a aba atual fica em dourado.
 	const float S = Canvas->ClipY / 1080.f;
 	const float W = 300.f * S, H = 44.f * S, Y = 100.f * S;
-	const float X0 = Canvas->ClipX * 0.5f - W - 6.f * S;
-	static const TCHAR* Labels[2] = {TEXT("ui_weapon_mastery"), TEXT("ui_trade_skills")};
+	const float X0 = Canvas->ClipX * 0.5f - W * 1.5f - 12.f * S;
+	static const TCHAR* Labels[3] = {TEXT("ui_weapon_mastery"), TEXT("ui_trade_skills"), TEXT("ui_attributes")};
 	UFont* Font = FNWUILayout::GameFont(1);
-	for (int32 i = 0; i < 2; ++i)
+	for (int32 i = 0; i < 3; ++i)
 	{
 		TabRects[i] = FBox2f(FVector2f(X0 + i * (W + 12.f * S), Y), FVector2f(X0 + i * (W + 12.f * S) + W, Y + H));
 		const bool bHover = TabRects[i].IsInside(FVector2f(Mouse));
@@ -120,7 +120,7 @@ void FNWTradeskillMenu::DrawTabs(UCanvas* Canvas, const FVector2D& Mouse, int32 
 
 int32 FNWTradeskillMenu::TabAt(const FVector2D& Mouse)
 {
-	for (int32 i = 0; i < 2; ++i)
+	for (int32 i = 0; i < 3; ++i)
 	{
 		if (TabRects[i].bIsValid && TabRects[i].IsInside(FVector2f(Mouse)))
 		{

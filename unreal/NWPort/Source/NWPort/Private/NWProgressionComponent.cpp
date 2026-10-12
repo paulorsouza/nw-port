@@ -339,6 +339,28 @@ void UNWProgressionComponent::ServerSpendPoint_Implementation(ENWAttribute A)
 	}
 }
 
+void UNWProgressionComponent::ServerSpendPoints_Implementation(const TArray<int32>& Points)
+{
+	int32 Sum = 0;
+	for (int32 i = 0; i < Points.Num(); ++i)
+	{
+		if (Points[i] < 0 || i >= int32(ENWAttribute::Num))
+		{
+			return;
+		}
+		Sum += Points[i];
+	}
+	if (Sum == 0 || Sum > UnspentPoints())
+	{
+		return;
+	}
+	for (int32 i = 0; i < Points.Num(); ++i)
+	{
+		Spent[i] += Points[i];
+	}
+	GetOwner()->ForceNetUpdate();
+}
+
 void UNWProgressionComponent::ClientXpGained_Implementation(int64 Amount, int32 NewLevel)
 {
 	const APawn* Pawn = Cast<APawn>(GetOwner());

@@ -10,6 +10,7 @@
 #include "NWInventoryMenu.h"
 #include "NWWorldMap.h"
 #include "NWTradeskillMenu.h"
+#include "NWAttributesMenu.h"
 #include "NWGameMenu.h"
 #include "NWHUD.generated.h"
 
@@ -45,6 +46,7 @@ public:
 	FNWInventoryMenu Inventory;
 	FNWWorldMap WorldMap;
 	FNWTradeskillMenu Tradeskills;
+	FNWAttributesMenu Attributes;
 	/** Números de dano (lyshineui/hud/damagenumbers): sobem e somem sobre o alvo em 1,2 s. */
 	void AddDamageNumber(const FVector& World, const FString& Text, const FLinearColor& Color, bool bBig);
 	/** Golpe recebido (lyshineui/hitindicator): seta em volta da mira e brilho vermelho na borda do lado do atacante. */

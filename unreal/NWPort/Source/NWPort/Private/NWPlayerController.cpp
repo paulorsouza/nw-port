@@ -155,7 +155,7 @@ void ANWPlayerController::OnEscape()
 bool ANWPlayerController::IsMenuOpen() const
 {
 	const ANWHUD* HUD = GetNWHUD();
-	return OpenMenu.IsValid() || (HUD && (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->Login.IsActive() || HUD->Chat.IsOpen() || HUD->Inventory.IsOpen()
+	return OpenMenu.IsValid() || (HUD && (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->Attributes.IsOpen() || HUD->Login.IsActive() || HUD->Chat.IsOpen() || HUD->Inventory.IsOpen()
 		|| HUD->GameMenu.IsOpen() || HUD->WorldMap.IsOpen()));
 }
 
@@ -210,6 +210,7 @@ void ANWPlayerController::CloseMenus()
 	{
 		HUD->Mastery.Close();
 		HUD->Tradeskills.Close();
+		HUD->Attributes.Close();
 		HUD->Inventory.Close();
 		HUD->GameMenu.Close();
 		HUD->WorldMap.Close();
@@ -227,7 +228,7 @@ void ANWPlayerController::ToggleSkillMenu()
 	{
 		return;
 	}
-	if (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen())
+	if (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->Attributes.IsOpen())
 	{
 		CloseMenus();
 		return;
@@ -421,7 +422,7 @@ void ANWPlayerController::OnMenuClick()
 		return;
 	}
 	// Barra de navegação do topo (inventário, personagem, mapa): troca de tela.
-	if (HUD && (HUD->Inventory.IsOpen() || HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->WorldMap.IsOpen()))
+	if (HUD && (HUD->Inventory.IsOpen() || HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->Attributes.IsOpen() || HUD->WorldMap.IsOpen()))
 	{
 		const int32 Tab = HUD->NavTabAt(FVector2D(X, Y));
 		const int32 Current = HUD->Inventory.IsOpen() ? 0 : HUD->WorldMap.IsOpen() ? 2 : 1;
@@ -450,20 +451,23 @@ void ANWPlayerController::OnMenuClick()
 		}
 		return;
 	}
-	// Abas da janela K: Maestria em Armas / Hab. Mercantes.
-	if (HUD && (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen()))
+	// Abas da janela K: Maestria em Armas / Hab. Mercantes / Atributos.
+	if (HUD && (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->Attributes.IsOpen()))
 	{
 		const int32 Tab = FNWTradeskillMenu::TabAt(FVector2D(X, Y));
-		if (Tab == 1 && HUD->Mastery.IsOpen())
+		const int32 Current = HUD->Mastery.IsOpen() ? 0 : HUD->Tradeskills.IsOpen() ? 1 : 2;
+		if (Tab != INDEX_NONE && Tab != Current)
 		{
 			HUD->Mastery.Close();
-			HUD->Tradeskills.Open(Cast<ANWCharacter>(GetPawn()));
+			HUD->Tradeskills.Close();
+			HUD->Attributes.Close();
+			ANWCharacter* Me = Cast<ANWCharacter>(GetPawn());
+			Tab == 0 ? HUD->Mastery.Open(Me) : Tab == 1 ? HUD->Tradeskills.Open(Me) : HUD->Attributes.Open(Me);
 			return;
 		}
-		if (Tab == 0 && HUD->Tradeskills.IsOpen())
+		if (HUD->Attributes.IsOpen())
 		{
-			HUD->Tradeskills.Close();
-			HUD->Mastery.Open(Cast<ANWCharacter>(GetPawn()));
+			HUD->Attributes.Click(FVector2D(X, Y));
 			return;
 		}
 	}

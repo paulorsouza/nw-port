@@ -20,7 +20,7 @@ public:
 	void Draw(UCanvas* Canvas, const FVector2D& Mouse);
 
 	/**
-	 * Abas da janela K (Maestria em Armas / Hab. Mercantes), desenhadas por cima da tela aberta; Active = aba
+	 * Abas da janela K (Maestria em Armas / Hab. Mercantes / Atributos), desenhadas por cima da tela aberta; Active = aba
 	 * atual. Devolve a aba sob o mouse no clique (ou INDEX_NONE) por TabAt.
 	 */
 	static void DrawTabs(UCanvas* Canvas, const FVector2D& Mouse, int32 Active);
@@ -31,5 +31,5 @@ private:
 	FNWUILayout Layout;
 	bool bLoaded = false;
 	TWeakObjectPtr<ANWCharacter> Character;
-	static FBox2f TabRects[2];
+	static FBox2f TabRects[3];
 };
