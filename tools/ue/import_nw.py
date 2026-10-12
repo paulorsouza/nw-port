@@ -114,6 +114,7 @@ else:
         if eal.does_asset_exist(path):
             return load(path)
         mat = get_or_create(name, P_MAT, unreal.Material, unreal.MaterialFactoryNew())
+        mat.set_editor_property("used_with_skeletal_mesh", True)
         if masked:
             mat.set_editor_property("blend_mode", unreal.BlendMode.BLEND_MASKED)
             mat.set_editor_property("two_sided", True)
@@ -126,6 +127,8 @@ else:
         diff = tex("Diffuse", -900, -200)
         spec = tex("Spec", -900, 100)
         norm = tex("Normal", -900, 400, unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+        # Amostrador de normal com a textura padrão de cor não compila (SM6): textura padrão de normal da engine.
+        norm.set_editor_property("texture", unreal.load_asset("/Engine/EngineMaterials/DefaultNormal"))
         # metallic ~ intensidade do specular (dielétricos ficam perto de 0.04)
         mx = mel.create_material_expression(mat, unreal.MaterialExpressionComponentMask, -650, 100)
         mx.set_editor_property("r", True)
