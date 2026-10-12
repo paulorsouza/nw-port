@@ -23,8 +23,8 @@ plano paralelo do dono (estado e regras em `docs/plano-b-cliente-original.md`); 
 | Coleta: 100 mil coletáveis da paisagem (minério, árvores, plantas, alquimia, pedras), ferramentas, saque das tabelas do jogo, respawn | `NWGatherField`, `NWGatherComponent`, `tools/make_gatherables.py` |
 | Cidade de Guardaventos, terreno da região (2 km), cenário pré-gerado (penhascos, ruínas) | `tools/ue/import_*.py` |
 | Música e ambiente de Guardaventos | `NWAmbienceComponent` |
-| Telas do jogo: menu do Esc, configurações (vídeo, áudio, jogo, atalhos), mapa (M) com POIs, bússola com POIs, tooltip de item, aviso de saque, sobrecarga, barra de XP, banner de nível, atributos | `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWHUD`, `NWInventoryMenu`; pesquisa e estado em `docs/hud-original.md` |
-| Nível, XP e atributos com as tabelas do jogo (sem fonte de XP ainda; "Ganhar 1 nível" no menu F10) | `NWProgressionComponent`, `tools/make_progression.py` |
+| Telas do jogo: menu do Esc (com Desprender), configurações (vídeo, áudio, jogo, atalhos), barra de navegação, mapa (M) com POIs, bússola com POIs, tooltip de item com comparação, aviso de saque, faixa de aviso, indicador de golpe, sobrecarga, barra de XP, banner de nível, atributos, aba de ofícios na janela K | `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWHUD`, `NWInventoryMenu`, `NWTradeskillMenu`; pesquisa e estado em `docs/hud-original.md` |
+| Nível, XP e atributos com as tabelas do jogo (XP de personagem ainda sem fonte; "Ganhar 1 nível" no F10); ofícios de coleta com XP, nível, velocidade, bônus no saque e nível mínimo dos coletáveis; tudo salvo no nw-core | `NWProgressionComponent`, `tools/make_progression.py`, migration 0003 |
 
 Fases do servidor F0–F3 concluídas; F4 (Guardaventos completo) em andamento: `docs/guardaventos.md`.
 
