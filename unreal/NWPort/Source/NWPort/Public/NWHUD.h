@@ -64,6 +64,12 @@ private:
 	void DrawNameplates(const APawn* Me);
 	void UpdateConsumables(const class ANWCharacter* Me);
 	void DrawLootTicker();
+	/**
+	 * Bússola do jogo no topo (lyshineui/compass): tira compass2048 rolando com a câmera, linha compassbg e agulha.
+	 * Norte do mapa = yaw −4° no L_SouthWindsward (giro da cidade −94°: atan2(cos a, −sin a)).
+	 */
+	void DrawCompass();
+	float CompassNorthYaw = -4.f;
 	/** HUD do jogo (tudo menos o menu do Esc, que o DrawHUD desenha por cima). */
 	void DrawGameHUD();
 	/** Coleta: "[E] Minerar Filão de Ferro" perto de um coletável e a barra durante a coleta. */

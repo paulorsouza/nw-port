@@ -18,4 +18,5 @@ step tools/ui_build_login.py
 step tools/ui_build_respawn.py
 step tools/ui_build_group.py
 step tools/ui_build_inventory.py
+step tools/ui_textures_extra.py
 echo "Data/ pronto: $(find unreal/NWPort/Data -type f | wc -l) arquivos"

@@ -413,6 +413,7 @@ void ANWHUD::DrawGameHUD()
 		DrawBar(CX, CY, CW, 5.f, Ratio, Ratio >= 1.f ? FLinearColor(1.f, 0.85f, 0.3f) : FLinearColor(0.85f, 0.85f, 0.85f));
 		DrawRect(FLinearColor::Black, CX + CW * (C->HeavyMinHold / C->HeavyFullCharge) - 1.f, CY - 2.f, 2.f, 9.f);
 	}
+	DrawCompass();
 	DrawNameplates(Me);
 	DrawGroup(Me);
 	DrawLootTicker();
@@ -757,4 +758,68 @@ const UNWCombatComponent* ANWHUD::FindTarget(const APawn* Self) const
 		}
 	}
 	return Best;
+}
+
+void ANWHUD::DrawCompass()
+{
+	APlayerController* PC = GetOwningPlayerController();
+	UTexture2D* Strip = FNWUILayout::GameTexture(TEXT("lyshineui/images/compass/compass2048.dds"));
+	if (!PC || !Strip || !Canvas)
+	{
+		return;
+	}
+	const float S = Canvas->ClipY / 1080.f;
+	const float CX = Canvas->ClipX * 0.5f;
+	// Direção da câmera em graus de bússola (0 = norte, 90 = leste), -180..180.
+	const float Heading = FRotator::NormalizeAxis(PC->GetControlRotation().Yaw - CompassNorthYaw);
+	// Na tira: N em 1021,6 px, 4,592 px por grau; cobre de -180° (S à esquerda) até +222°. Escala 1:1 na tela 1080p.
+	constexpr float PxPerDeg = 4.592f, NorthPx = 1021.6f, TexW = 2048.f, Half = 386.f / PxPerDeg;
+	const float Y0 = 3.f * S, H = 64.f * S;
+	auto Piece = [&](float From, float To, float ScreenFrom)
+	{
+		// Fatias com alfa que some nas pontas (a máscara compassmask do jogo).
+		constexpr int32 Slices = 24;
+		const float Step = (To - From) / Slices;
+		for (int32 i = 0; i < Slices; ++i)
+		{
+			const float A = From + i * Step;
+			const float SX = CX + (ScreenFrom + (A - From)) * PxPerDeg * S;
+			const float Edge = FMath::Abs((SX - CX) / (386.f * S));
+			const float Alpha = FMath::Clamp((1.f - Edge) / 0.25f, 0.f, 1.f);
+			FCanvasTileItem T(FVector2D(SX, Y0), Strip->GetResource(), FVector2D(Step * PxPerDeg * S, H),
+				FVector2D((NorthPx + A * PxPerDeg) / TexW, 0.f), FVector2D((NorthPx + (A + Step) * PxPerDeg) / TexW, 1.f),
+				FLinearColor(1.f, 1.f, 1.f, Alpha));
+			T.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(T);
+		}
+	};
+	const float Left = Heading - Half;
+	if (Left >= -180.f && Heading + Half <= 222.f)
+	{
+		Piece(Left, Heading + Half, -Half);
+	}
+	else if (Left < -180.f)
+	{
+		// Passou do sul pela esquerda: o pedaço de antes de -180 vem do fim da volta (+180).
+		Piece(Left + 360.f, 180.f, -Half);
+		Piece(-180.f, Heading + Half, -180.f - Heading);
+	}
+	else
+	{
+		Piece(Left, 180.f, -Half);
+		Piece(-180.f, Heading + Half - 360.f, 180.f - Heading);
+	}
+	// Linha de base e agulha (CompassLines / Needle).
+	if (UTexture2D* Line = FNWUILayout::GameTexture(TEXT("lyshineui/images/compass/compassbg.dds")))
+	{
+		FCanvasTileItem T(FVector2D(CX - 386.f * S, 45.f * S), Line->GetResource(), FVector2D(772.f * S, 8.f * S), FLinearColor(0.8f, 0.74f, 0.635f, 1.f));
+		T.BlendMode = SE_BLEND_Translucent;
+		Canvas->DrawItem(T);
+	}
+	if (UTexture2D* Needle = FNWUILayout::GameTexture(TEXT("lyshineui/images/compass/compassneedle.dds")))
+	{
+		FCanvasTileItem T(FVector2D(CX - 6.f * S, 41.f * S), Needle->GetResource(), FVector2D(12.f * S, 6.f * S), FLinearColor::White);
+		T.BlendMode = SE_BLEND_Translucent;
+		Canvas->DrawItem(T);
+	}
 }
