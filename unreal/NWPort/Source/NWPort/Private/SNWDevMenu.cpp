@@ -95,6 +95,11 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.heal")), nullptr, Dev(ENWDevCommand::HealSelf)));
 	Add(Button(NWText::Get(TEXT("nw.dev.die")), nullptr, Dev(ENWDevCommand::KillSelf)));
 	Add(Button(NWText::Get(TEXT("nw.dev.clear_cooldowns")), nullptr, Dev(ENWDevCommand::ClearCooldowns)));
+	Add(Button(NWText::Get(TEXT("nw.dev.fast_run")), [PC]() -> FText
+	{
+		const ANWCharacter* C = PC.IsValid() ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		return FText::FromString(C && C->DevSpeedMultiplier > 1.f ? NWText::Get(TEXT("nw.dev.on")) : NWText::Get(TEXT("nw.dev.off")));
+	}, Dev(ENWDevCommand::ToggleFastRun)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_tools")), nullptr, Dev(ENWDevCommand::GiveTools)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_ore")), nullptr, Dev(ENWDevCommand::GoToOre)));
 	Add(Header(NWText::Get(TEXT("nw.dev.enemies"))), 12.f);

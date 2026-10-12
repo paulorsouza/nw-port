@@ -116,7 +116,8 @@ s10() {  # cenário pré-gerado da região (penhascos, ruínas, props, estradas,
     mkdir -p extract/cities/chunks
     local common=(-g "$GAME" -o extract/cities/chunks --binary --embed --ior 1.5 -w 2 --texture-size 2048
         --crc-file "$RTTI/nwt-crc.json" --uuid-file "$RTTI/nwt-types.json" --level "$LEVEL" --region "$REGION")
-    guarded nwbt_ models chunks "${common[@]}" --name 06swindsward_capitals -f windsward_capitals.glb
+    [ -f extract/cities/chunks/windsward_capitals.glb ] \
+        || guarded nwbt_ models chunks "${common[@]}" --name 06swindsward_capitals -f windsward_capitals.glb
     # Um glb por camada: tudo junto deu 2,4 GB e 150 mil peças, e o import da Unreal esgotou a memória (2026-10-11).
     local layer
     for layer in roaddressing water 06sw01_furybay_props 06sw02_cascadeharbor_props 06sw03_noblereach_props \

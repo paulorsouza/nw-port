@@ -374,5 +374,9 @@
   "nw.inv.weight": {
     "pt-br": "Peso",
     "en-us": "Weight"
+  },
+  "nw.dev.fast_run": {
+    "pt-br": "Correr rápido (4×)",
+    "en-us": "Fast run (4×)"
   }
 }

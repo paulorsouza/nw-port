@@ -60,12 +60,15 @@ terrain() {
     py fix_spawn "$ROOT/tools/ue/fix_spawn.py" SouthWindsward
 }
 scenery() {
-    py region_capitals "$ROOT/tools/ue/import_region_scene.py" "$ROOT/extract/cities/chunks/windsward_capitals.glb" Capitals
+    # Camada já importada (pasta em Content/NW/Region) não é refeita; para refazer, apague a pasta.
+    [ -d "$ROOT/unreal/NWPort/Content/NW/Region/Capitals" ] \
+        || py region_capitals "$ROOT/tools/ue/import_region_scene.py" "$ROOT/extract/cities/chunks/windsward_capitals.glb" Capitals
     # Uma camada por vez (arquivos menores; o pacote único esgotava a memória do import).
     local f name
     for f in "$ROOT"/extract/cities/chunks/windsward_*.glb; do
         name=$(basename "$f" .glb); name=${name#windsward_}
         [ "$name" = capitals ] && continue
+        [ -d "$ROOT/unreal/NWPort/Content/NW/Region/$name" ] && continue
         py "region_$name" "$ROOT/tools/ue/import_region_scene.py" "$f" "$name"
     done
 }

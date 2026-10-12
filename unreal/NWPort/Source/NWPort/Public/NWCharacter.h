@@ -39,7 +39,8 @@ struct FNWWeaponSet
  *
  * Controles (padrão do jogo, libs/config/defaultprofile.xml): WASD, mouse, Espaço pula (ou sobe degrau,
  * vault, mantle), Shift esquiva, Alt esquerdo corre, botão esquerdo ataca (segurar = pesado), direito bloqueia,
- * Q/R/F habilidades, 1/2 troca de arma, E coleta, K menu de habilidades, F10 menu de dev.
+ * Q/R/F habilidades, 1/2 troca de arma, E coleta, K menu de habilidades, F10 menu de dev. Corre sozinho para a
+ * frente (sprint); Ctrl segurado anda.
  */
 UCLASS()
 class NWPORT_API ANWCharacter : public ACharacter
@@ -78,6 +79,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NW|Assets") TSoftObjectPtr<UDataTable> DamageTableAsset;
 	UPROPERTY(EditAnywhere, Category = "NW|Assets") TSoftObjectPtr<UDataTable> ActionTableAsset;
 
+	// Velocidades das animações de locomoção do jogo: andar 1,65 m/s, correr (combate) 4 m/s, sprint.
+	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float WalkSpeed = 165.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float RunSpeed = 400.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float SprintSpeed = 650.f;
 	// Velocidade de giro durante a janela Homing do ataque (graus/s).
@@ -93,7 +96,11 @@ public:
 	void RestoreFrom(const FNWCharacterRecord& Record);
 	void CaptureTo(FNWCharacterRecord& Record) const;
 
+	// Sprint automático indo para a frente (como no jogo); Ctrl segurado anda.
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW") bool bSprinting = false;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW") bool bWalking = false;
+	// Menu de dev: multiplica todas as velocidades (correr mais rápido para atravessar o mapa).
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW") float DevSpeedMultiplier = 1.f;
 
 	// Boneco de treino (sem jogador): fica com o escudo levantado.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") bool bDummyBlocks = false;
@@ -134,14 +141,17 @@ protected:
 	bool CanAct() const;
 	// Menu aberto (maestria ou dev): o personagem não age.
 	bool InMenu() const;
-	void SprintPressed();
-	void SprintReleased();
+	void WalkPressed();
+	void WalkReleased();
+	/** Dono: sprint quando o movimento pedido vai para a frente da câmera e nada impede. */
+	void UpdateAutoSprint();
 	void Ability(int32 Index);
 	void Ability1() { Ability(0); }
 	void Ability2() { Ability(1); }
 	void Ability3() { Ability(2); }
 
 	UFUNCTION(Server, Reliable) void ServerSetSprinting(bool bNew);
+	UFUNCTION(Server, Reliable) void ServerSetWalking(bool bNew);
 	UFUNCTION(Server, Reliable) void ServerSwitchWeapon(int32 Index);
 	UFUNCTION(Server, Reliable) void ServerSetWeaponAbilities(int32 SetIndex, const TArray<FName>& New);
 	UFUNCTION() void OnRep_ActiveWeapon();
@@ -159,7 +169,7 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> IA_Attack;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Block;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Dodge;
-	UPROPERTY() TObjectPtr<UInputAction> IA_Sprint;
+	UPROPERTY() TObjectPtr<UInputAction> IA_Walk;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Jump;
 	UPROPERTY() TObjectPtr<UInputAction> IA_SkillMenu;
 	UPROPERTY() TObjectPtr<UInputAction> IA_DevMenu;

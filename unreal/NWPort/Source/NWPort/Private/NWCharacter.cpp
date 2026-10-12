@@ -123,6 +123,8 @@ void ANWCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ANWCharacter, bSprinting);
+	DOREPLIFETIME(ANWCharacter, bWalking);
+	DOREPLIFETIME(ANWCharacter, DevSpeedMultiplier);
 	DOREPLIFETIME(ANWCharacter, ActiveWeapon);
 }
 
@@ -166,6 +168,7 @@ void ANWCharacter::BeginPlay()
 void ANWCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	UpdateAutoSprint();
 	ApplySprint();
 	UpdateCameraClipHide();
 	if (HasAuthority() && bDummyAttacks && !IsPlayerControlled())
@@ -193,10 +196,31 @@ void ANWCharacter::Tick(float DeltaSeconds)
 
 void ANWCharacter::ApplySprint()
 {
-	const bool bCanSprint = bSprinting && !Combat->IsBusy() && Combat->State != ENWCombatState::Blocking;
+	const bool bCanSprint = bSprinting && !bWalking && !Combat->IsBusy() && Combat->State != ENWCombatState::Blocking;
 	UCharacterMovementComponent* Move = GetCharacterMovement();
-	Move->MaxWalkSpeed = bCanSprint ? SprintSpeed : (Combat->State == ENWCombatState::Blocking ? RunSpeed * 0.4f : RunSpeed);
+	const float Speed = bWalking ? WalkSpeed
+		: bCanSprint ? SprintSpeed
+		: Combat->State == ENWCombatState::Blocking ? RunSpeed * 0.4f : RunSpeed;
+	Move->MaxWalkSpeed = Speed * FMath::Max(1.f, DevSpeedMultiplier);
 	Move->bOrientRotationToMovement = bCanSprint;
+}
+
+void ANWCharacter::UpdateAutoSprint()
+{
+	if (!IsLocallyControlled() || !Controller)
+	{
+		return;
+	}
+	// Indo para a frente da câmera (até ~45° para os lados), sem andar com Ctrl, sem ataque/bloqueio: sprint.
+	const FVector Accel = GetCharacterMovement()->GetCurrentAcceleration().GetSafeNormal2D();
+	const FVector Forward = FRotator(0.f, Controller->GetControlRotation().Yaw, 0.f).Vector();
+	const bool bWant = !Accel.IsNearlyZero() && FVector::DotProduct(Accel, Forward) > 0.7f && !bWalking
+		&& !Combat->IsBusy() && Combat->State != ENWCombatState::Blocking;
+	if (bWant != bSprinting)
+	{
+		bSprinting = bWant;
+		ServerSetSprinting(bWant);
+	}
 }
 
 // ---------------------------------------------------------------- input
@@ -220,7 +244,7 @@ void ANWCharacter::BuildInput()
 	IA_Attack = MakeAction(this, TEXT("IA_Attack"), EInputActionValueType::Boolean);
 	IA_Block = MakeAction(this, TEXT("IA_Block"), EInputActionValueType::Boolean);
 	IA_Dodge = MakeAction(this, TEXT("IA_Dodge"), EInputActionValueType::Boolean);
-	IA_Sprint = MakeAction(this, TEXT("IA_Sprint"), EInputActionValueType::Boolean);
+	IA_Walk = MakeAction(this, TEXT("IA_Walk"), EInputActionValueType::Boolean);
 	IA_Jump = MakeAction(this, TEXT("IA_Jump"), EInputActionValueType::Boolean);
 	IA_SkillMenu = MakeAction(this, TEXT("IA_SkillMenu"), EInputActionValueType::Boolean);
 	IA_DevMenu = MakeAction(this, TEXT("IA_DevMenu"), EInputActionValueType::Boolean);
@@ -258,7 +282,7 @@ void ANWCharacter::BuildInput()
 	Mapping->MapKey(IA_Inventory, EKeys::Tab);
 	Mapping->MapKey(IA_Interact, EKeys::E);
 	Mapping->MapKey(IA_Dodge, EKeys::LeftShift);
-	Mapping->MapKey(IA_Sprint, EKeys::LeftAlt);
+	Mapping->MapKey(IA_Walk, EKeys::LeftControl);
 	Mapping->MapKey(IA_Abilities[0], EKeys::Q);
 	Mapping->MapKey(IA_Abilities[1], EKeys::R);
 	Mapping->MapKey(IA_Abilities[2], EKeys::F);
@@ -294,8 +318,8 @@ void ANWCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	In->BindAction(IA_Potion, ETriggerEvent::Started, this, &ANWCharacter::UsePotion);
 	In->BindAction(IA_Inventory, ETriggerEvent::Started, this, &ANWCharacter::InventoryPressed);
 	In->BindAction(IA_Interact, ETriggerEvent::Started, this, &ANWCharacter::InteractPressed);
-	In->BindAction(IA_Sprint, ETriggerEvent::Started, this, &ANWCharacter::SprintPressed);
-	In->BindAction(IA_Sprint, ETriggerEvent::Completed, this, &ANWCharacter::SprintReleased);
+	In->BindAction(IA_Walk, ETriggerEvent::Started, this, &ANWCharacter::WalkPressed);
+	In->BindAction(IA_Walk, ETriggerEvent::Completed, this, &ANWCharacter::WalkReleased);
 	In->BindAction(IA_Abilities[0], ETriggerEvent::Started, this, &ANWCharacter::Ability1);
 	In->BindAction(IA_Abilities[1], ETriggerEvent::Started, this, &ANWCharacter::Ability2);
 	In->BindAction(IA_Abilities[2], ETriggerEvent::Started, this, &ANWCharacter::Ability3);
@@ -727,16 +751,21 @@ void ANWCharacter::OnRep_ActiveWeapon()
 	ApplyWeapon();
 }
 
-void ANWCharacter::SprintPressed()
+void ANWCharacter::WalkPressed()
 {
-	bSprinting = true;
-	ServerSetSprinting(true);
+	bWalking = true;
+	ServerSetWalking(true);
 }
 
-void ANWCharacter::SprintReleased()
+void ANWCharacter::WalkReleased()
 {
-	bSprinting = false;
-	ServerSetSprinting(false);
+	bWalking = false;
+	ServerSetWalking(false);
+}
+
+void ANWCharacter::ServerSetWalking_Implementation(bool bNew)
+{
+	bWalking = bNew;
 }
 
 void ANWCharacter::ServerSetSprinting_Implementation(bool bNew)

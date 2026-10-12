@@ -332,6 +332,10 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 	case ENWDevCommand::KillSelf:
 		if (Me) Me->Combat->Kill();
 		break;
+	case ENWDevCommand::ToggleFastRun:
+		// Atravessar o mapa: todas as velocidades × 4 (de novo volta ao normal).
+		if (Me) Me->DevSpeedMultiplier = Me->DevSpeedMultiplier > 1.f ? 1.f : 4.f;
+		break;
 	case ENWDevCommand::GiveTools:
 		if (Me && Me->Inventory) Me->Inventory->GiveTools();
 		break;
