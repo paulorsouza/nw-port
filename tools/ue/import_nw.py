@@ -198,13 +198,16 @@ else:
     def assign_materials(mesh):
         mats = mesh.get_editor_property("materials")
         changed = False
-        for slot in mats:
+        # Iterar o array dá cópias dos slots: altera a cópia e devolve pelo índice (senão nada muda).
+        for i in range(len(mats)):
+            slot = mats[i]
             name = str(slot.get_editor_property("material_slot_name"))
             mi = instances.get(name) or by_key.get(slot_key(name))
             if mi is None:
                 unreal.log_warning(f"material: slot {name} sem instância ({sorted(instances)})")
                 continue
             slot.set_editor_property("material_interface", mi)
+            mats[i] = slot
             changed = True
         if changed:
             mesh.set_editor_property("materials", mats)
