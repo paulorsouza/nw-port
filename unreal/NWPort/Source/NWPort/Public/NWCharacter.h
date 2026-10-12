@@ -123,6 +123,8 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	/** Refaz o mapeamento com as teclas das opções (aba Atalhos). */
+	void RebuildKeys();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void OnConstruction(const FTransform& Transform) override;
@@ -173,6 +175,11 @@ protected:
 
 private:
 	void BuildInput();
+	void MapKeys();
+	/** Corrida automática (tecla = do jogo): segue para a frente da câmera até apertar frente/trás. */
+	void AutoRunPressed() { bAutoRun = !bAutoRun; }
+	bool bAutoRun = false;
+	UPROPERTY() TObjectPtr<UInputAction> IA_AutoRun;
 
 	UPROPERTY() TObjectPtr<UInputMappingContext> Mapping;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Move;

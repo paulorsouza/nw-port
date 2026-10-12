@@ -94,6 +94,10 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void SetupInputComponent() override;
+	/** Aba Atalhos esperando tecla: a próxima tecla vai para a ação (Esc cancela) e não chega ao jogo. */
+	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
+	/** Depois de trocar teclas: refaz o mapeamento do personagem. */
+	void ApplyKeyChanges();
 
 	// {"loadout": {...}, "mastery": {...}}; o cliente grava no GameUserSettings.ini, que as telas já leem.
 	UPROPERTY(ReplicatedUsing = OnRep_Progress) FString ProgressJson;

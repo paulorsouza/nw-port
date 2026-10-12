@@ -175,6 +175,10 @@ void ANWCharacter::BeginPlay()
 void ANWCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if (bAutoRun && IsLocallyControlled() && Controller && !InMenu() && Combat->State != ENWCombatState::Dead)
+	{
+		AddMovementInput(FRotator(0.f, Controller->GetControlRotation().Yaw, 0.f).Vector(), 1.f);
+	}
 	UpdateAutoSprint();
 	ApplySprint();
 	UpdateCamera(DeltaSeconds);
@@ -275,35 +279,60 @@ void ANWCharacter::BuildInput()
 		IA_Abilities.Add(MakeAction(this, N, EInputActionValueType::Boolean));
 	}
 
-	// WASD -> eixo 2D (X = lado, Y = frente), como no template do Unreal.
-	auto MapMove = [this](FKey Key, bool bSwizzle, bool bNegate)
+	IA_AutoRun = MakeAction(this, TEXT("IA_AutoRun"), EInputActionValueType::Boolean);
+	MapKeys();
+}
+
+void ANWCharacter::MapKeys()
+{
+	Mapping->UnmapAll();
+	const FNWOptions& O = FNWOptions::Get();
+	auto Key = [&O](const TCHAR* Id) { return O.KeyFor(Id); };
+	// Movimento -> eixo 2D (X = lado, Y = frente), como no template do Unreal.
+	auto MapMove = [this](FKey K, bool bSwizzle, bool bNegate)
 	{
-		FEnhancedActionKeyMapping& M = Mapping->MapKey(IA_Move, Key);
+		FEnhancedActionKeyMapping& M = Mapping->MapKey(IA_Move, K);
 		if (bSwizzle) M.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(Mapping));
 		if (bNegate) M.Modifiers.Add(NewObject<UInputModifierNegate>(Mapping));
 	};
-	MapMove(EKeys::W, true, false);
-	MapMove(EKeys::S, true, true);
-	MapMove(EKeys::D, false, false);
-	MapMove(EKeys::A, false, true);
+	MapMove(Key(TEXT("MoveForward")), true, false);
+	MapMove(Key(TEXT("MoveBack")), true, true);
+	MapMove(Key(TEXT("MoveRight")), false, false);
+	MapMove(Key(TEXT("MoveLeft")), false, true);
 	Mapping->MapKey(IA_Look, EKeys::Mouse2D);
 	Mapping->MapKey(IA_Zoom, EKeys::MouseWheelAxis);
-	Mapping->MapKey(IA_Attack, EKeys::LeftMouseButton);
-	Mapping->MapKey(IA_Block, EKeys::RightMouseButton);
-	Mapping->MapKey(IA_Jump, EKeys::SpaceBar);
-	Mapping->MapKey(IA_SkillMenu, EKeys::K);
+	Mapping->MapKey(IA_Attack, Key(TEXT("Attack")));
+	Mapping->MapKey(IA_Block, Key(TEXT("Block")));
+	Mapping->MapKey(IA_Jump, Key(TEXT("Jump")));
+	Mapping->MapKey(IA_SkillMenu, Key(TEXT("Mastery")));
 	Mapping->MapKey(IA_DevMenu, EKeys::F10);
-	Mapping->MapKey(IA_Weapon1, EKeys::One);
-	Mapping->MapKey(IA_Weapon2, EKeys::Two);
-	// Teclas do jogo: quickslot-consumable-1 = 3; inventário = Tab.
-	Mapping->MapKey(IA_Potion, EKeys::Three);
-	Mapping->MapKey(IA_Inventory, EKeys::Tab);
-	Mapping->MapKey(IA_Interact, EKeys::E);
-	Mapping->MapKey(IA_Dodge, EKeys::LeftShift);
-	Mapping->MapKey(IA_Walk, EKeys::LeftControl);
-	Mapping->MapKey(IA_Abilities[0], EKeys::Q);
-	Mapping->MapKey(IA_Abilities[1], EKeys::R);
-	Mapping->MapKey(IA_Abilities[2], EKeys::F);
+	Mapping->MapKey(IA_Weapon1, Key(TEXT("Weapon1")));
+	Mapping->MapKey(IA_Weapon2, Key(TEXT("Weapon2")));
+	Mapping->MapKey(IA_Potion, Key(TEXT("Consumable1")));
+	Mapping->MapKey(IA_Inventory, Key(TEXT("Inventory")));
+	Mapping->MapKey(IA_Interact, Key(TEXT("Interact")));
+	Mapping->MapKey(IA_Dodge, Key(TEXT("Dodge")));
+	Mapping->MapKey(IA_Walk, Key(TEXT("Walk")));
+	Mapping->MapKey(IA_AutoRun, Key(TEXT("AutoRun")));
+	Mapping->MapKey(IA_Abilities[0], Key(TEXT("Ability1")));
+	Mapping->MapKey(IA_Abilities[1], Key(TEXT("Ability2")));
+	Mapping->MapKey(IA_Abilities[2], Key(TEXT("Ability3")));
+}
+
+void ANWCharacter::RebuildKeys()
+{
+	if (!Mapping)
+	{
+		return;
+	}
+	MapKeys();
+	if (const APlayerController* PC = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Sub = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Sub->RequestRebuildControlMappings();
+		}
+	}
 }
 
 void ANWCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -338,6 +367,7 @@ void ANWCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	In->BindAction(IA_Inventory, ETriggerEvent::Started, this, &ANWCharacter::InventoryPressed);
 	In->BindAction(IA_Interact, ETriggerEvent::Started, this, &ANWCharacter::InteractPressed);
 	In->BindAction(IA_Walk, ETriggerEvent::Started, this, &ANWCharacter::WalkPressed);
+	In->BindAction(IA_AutoRun, ETriggerEvent::Started, this, &ANWCharacter::AutoRunPressed);
 	In->BindAction(IA_Walk, ETriggerEvent::Completed, this, &ANWCharacter::WalkReleased);
 	In->BindAction(IA_Abilities[0], ETriggerEvent::Started, this, &ANWCharacter::Ability1);
 	In->BindAction(IA_Abilities[1], ETriggerEvent::Started, this, &ANWCharacter::Ability2);
@@ -348,6 +378,10 @@ void ANWCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D V = Value.Get<FVector2D>();
 	LastMoveInput = FVector2D(V.Y, V.X); // (frente, direita) para a esquiva
+	if (!FMath::IsNearlyZero(V.Y))
+	{
+		bAutoRun = false;   // frente ou trás cancela a corrida automática, como no jogo
+	}
 	if (!Controller || V.IsNearlyZero())
 	{
 		return;

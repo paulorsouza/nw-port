@@ -15,7 +15,7 @@ static const FLinearColor MenuGold(FColor(0xED, 0xC6, 0x3E));
 namespace
 {
 	// Ids dos botões: ações, abas e linhas de opção (linha * 10 + parte: 0 seta esquerda, 1 seta direita, 2 barra).
-	enum : int32 { IdResume = 1, IdSettings, IdExitMenu, IdExitDesktop, IdBack, IdTab = 10, IdRow = 1000 };
+	enum : int32 { IdResume = 1, IdSettings, IdExitMenu, IdExitDesktop, IdBack, IdResetKeys, IdTab = 10, IdKey = 500, IdRow = 1000 };
 	const TArray<int32> FpsSteps = {30, 60, 120, 144, 240, 0};
 
 	FString OnOff(bool b) { return NWText::Get(b ? TEXT("ui_on") : TEXT("ui_off")); }
@@ -173,10 +173,10 @@ void FNWGameMenu::DrawOptions(UCanvas* Canvas, const FVector2D& Mouse)
 	Panel = FBox2f(C - FVector2f(520.f, 400.f) * S, C + FVector2f(520.f, 400.f) * S);
 	DrawPanel(Canvas, Panel);
 	DrawText(Canvas, NWText::Get(TEXT("ui_navmenu_settings")), Panel.Min.X + 60.f * S, Panel.Min.Y + 34.f * S, 32.f, MenuTan, 1);
-	// Abas do jogo: Vídeo, Áudio, Jogo.
-	static const TCHAR* Tabs[] = {TEXT("ui_options_visuals"), TEXT("ui_options_audio"), TEXT("ui_options_gameplay")};
+	// Abas do jogo: Vídeo, Áudio, Jogo, Atalhos de Teclado e Mouse.
+	static const TCHAR* Tabs[] = {TEXT("ui_options_visuals"), TEXT("ui_options_audio"), TEXT("ui_options_gameplay"), TEXT("ui_options_kbm_controls")};
 	float TX = Panel.Min.X + 60.f * S;
-	for (int32 t = 0; t < 3; ++t)
+	for (int32 t = 0; t < 4; ++t)
 	{
 		const FString L = NWText::Get(Tabs[t]);
 		const float W = FMath::Max(150.f * S, TextWidth(L, 19.f, 1) + 40.f * S);
@@ -204,6 +204,10 @@ void FNWGameMenu::DrawOptions(UCanvas* Canvas, const FVector2D& Mouse)
 		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_musicvolume")), Percent(O.MusicVolume), O.MusicVolume, 11, Mouse); Y += Step;
 		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_sfxvolume")), Percent(O.SfxVolume), O.SfxVolume, 12, Mouse); Y += Step;
 		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_ambvolume")), Percent(O.AmbienceVolume), O.AmbienceVolume, 13, Mouse);
+	}
+	else if (Tab == 3)
+	{
+		DrawKeys(Canvas, Mouse);
 	}
 	else
 	{
@@ -261,12 +265,28 @@ FNWGameMenu::EAction FNWGameMenu::Click(const FVector2D& Mouse)
 	case IdSettings: Page = 1; return EAction::None;
 	case IdExitMenu: return EAction::ExitToMenu;
 	case IdExitDesktop: return EAction::ExitToDesktop;
-	case IdBack: Page = 0; return EAction::None;
+	case IdBack: Page = 0; WaitingKey = NAME_None; return EAction::None;
 	default: break;
 	}
-	if (B->Id >= IdTab && B->Id < IdTab + 3)
+	if (B->Id >= IdTab && B->Id < IdTab + 4)
 	{
 		Tab = B->Id - IdTab;
+		WaitingKey = NAME_None;
+		return EAction::None;
+	}
+	if (B->Id == IdResetKeys)
+	{
+		FNWOptions::Get().ResetKeys();
+		FNWOptions::Get().Save();
+		WaitingKey = NAME_None;
+		bKeysChanged = true;
+		return EAction::None;
+	}
+	if (B->Id >= IdKey && B->Id < IdRow)
+	{
+		const TArray<FNWKeyAction>& Actions = FNWOptions::KeyActions();
+		const int32 i = B->Id - IdKey;
+		WaitingKey = Actions.IsValidIndex(i) ? Actions[i].Id : NAME_None;
 		return EAction::None;
 	}
 	if (B->Id >= IdRow)
@@ -277,4 +297,47 @@ FNWGameMenu::EAction FNWGameMenu::Click(const FVector2D& Mouse)
 		return EAction::None;
 	}
 	return EAction::None;
+}
+
+void FNWGameMenu::DrawKeys(UCanvas* Canvas, const FVector2D& Mouse)
+{
+	// Duas colunas: ação (texto do jogo) e a tecla; clicar espera a próxima tecla (Esc cancela).
+	const float S = UIScale;
+	const TArray<FNWKeyAction>& Actions = FNWOptions::KeyActions();
+	const FNWOptions& O = FNWOptions::Get();
+	const int32 PerColumn = (Actions.Num() + 1) / 2;
+	const float ColW = (Panel.GetSize().X - 140.f * S) * 0.5f, H = 46.f * S, Top = Panel.Min.Y + 166.f * S;
+	for (int32 i = 0; i < Actions.Num(); ++i)
+	{
+		const float X = Panel.Min.X + 60.f * S + (i / PerColumn) * (ColW + 20.f * S);
+		const float Y = Top + (i % PerColumn) * (H + 4.f * S);
+		const FBox2f Row(FVector2f(X, Y), FVector2f(X + ColW, Y + H));
+		const bool bWaiting = WaitingKey == Actions[i].Id;
+		if (bWaiting || Row.IsInside(FVector2f(Mouse)))
+		{
+			FCanvasTileItem Hl(FVector2D(Row.Min), FVector2D(Row.GetSize()), FLinearColor(1.f, 1.f, 1.f, bWaiting ? 0.1f : 0.05f));
+			Hl.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(Hl);
+		}
+		DrawText(Canvas, NWText::Get(Actions[i].LabelKey), X + 10.f * S, Y + 12.f * S, 17.f, MenuTan);
+		const FString Key = bWaiting ? FString(TEXT("...")) : O.KeyFor(Actions[i].Id).GetDisplayName().ToString();
+		DrawText(Canvas, Key, Row.Max.X - 12.f * S - TextWidth(Key, 17.f, 1), Y + 12.f * S, 17.f, bWaiting ? MenuTan : MenuGold, 1);
+		Buttons.Add({Row, IdKey + i});
+	}
+	const float BW = 260.f * S, BH = 52.f * S;
+	Button(Canvas, FBox2f(FVector2f(Panel.Min.X + 60.f * S, Panel.Max.Y - 50.f * S - BH), FVector2f(Panel.Min.X + 60.f * S + BW, Panel.Max.Y - 50.f * S)),
+		NWText::Get(TEXT("ui_restore_defaults")), IdResetKeys, Mouse);
+}
+
+void FNWGameMenu::AssignKey(const FKey& Key)
+{
+	if (WaitingKey.IsNone())
+	{
+		return;
+	}
+	FNWOptions& O = FNWOptions::Get();
+	O.SetKey(WaitingKey, Key);
+	O.Save();
+	WaitingKey = NAME_None;
+	bKeysChanged = true;
 }

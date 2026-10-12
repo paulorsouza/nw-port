@@ -1,8 +1,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputCoreTypes.h"
 
 class UWorld;
+
+/** Ação com tecla trocável (aba Atalhos). Rótulo e tecla padrão do jogo (libs/config/defaultprofile.xml). */
+struct FNWKeyAction
+{
+	FName Id;
+	const TCHAR* LabelKey;
+	FKey Default;
+};
 
 /**
  * Configurações do jogador (tela de configurações do jogo, `lyshineui/options`, docs/hud-original.md), salvas em
@@ -27,6 +36,14 @@ struct NWPORT_API FNWOptions
 	float SensitivityX = 1.f;   // @ui_looksensitivityhorizontal
 	float SensitivityY = 1.f;   // @ui_looksensitivityvertical
 	bool bInvertY = false;      // @ui_invertlook
+	// Atalhos (@ui_options_kbm_controls): só as teclas trocadas; o resto fica no padrão.
+	TMap<FName, FKey> Keys;
+
+	static const TArray<FNWKeyAction>& KeyActions();
+	FKey KeyFor(FName Id) const;
+	/** Põe a tecla na ação; se outra ação já a usava, as duas trocam de tecla. */
+	void SetKey(FName Id, const FKey& Key);
+	void ResetKeys() { Keys.Reset(); }
 
 	static FNWOptions& Get();
 	void Load();

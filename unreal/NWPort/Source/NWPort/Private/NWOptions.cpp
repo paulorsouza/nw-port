@@ -20,6 +20,65 @@ FNWOptions& FNWOptions::Get()
 	return Options;
 }
 
+const TArray<FNWKeyAction>& FNWOptions::KeyActions()
+{
+	// Ordem e teclas do jogo (defaultprofile.xml: moveforward w, autorun equals, walk lctrl, dodge lshift,
+	// ability1-3 q/r/f, quickslot-weapon1/2 1/2, quickslot-consumable-1 3, toggleInventoryWindow tab).
+	static const TArray<FNWKeyAction> Actions = {
+		{TEXT("MoveForward"), TEXT("ui_movefoward"), EKeys::W},
+		{TEXT("MoveBack"), TEXT("ui_movebackward"), EKeys::S},
+		{TEXT("MoveLeft"), TEXT("ui_moveleft"), EKeys::A},
+		{TEXT("MoveRight"), TEXT("ui_moveright"), EKeys::D},
+		{TEXT("AutoRun"), TEXT("ui_runtoggle"), EKeys::Equals},
+		{TEXT("Walk"), TEXT("ui_walk"), EKeys::LeftControl},
+		{TEXT("Jump"), TEXT("ui_mounts_keybind_jump"), EKeys::SpaceBar},
+		{TEXT("Dodge"), TEXT("ui_rolldodge"), EKeys::LeftShift},
+		{TEXT("Attack"), TEXT("ui_attack"), EKeys::LeftMouseButton},
+		{TEXT("Block"), TEXT("ui_block"), EKeys::RightMouseButton},
+		{TEXT("Ability1"), TEXT("ui_ability1"), EKeys::Q},
+		{TEXT("Ability2"), TEXT("ui_ability2"), EKeys::R},
+		{TEXT("Ability3"), TEXT("ui_ability3"), EKeys::F},
+		{TEXT("Weapon1"), TEXT("ui_weapon1"), EKeys::One},
+		{TEXT("Weapon2"), TEXT("ui_weapon2"), EKeys::Two},
+		{TEXT("Consumable1"), TEXT("ui_consumable1"), EKeys::Three},
+		{TEXT("Interact"), TEXT("ui_interact"), EKeys::E},
+		{TEXT("Inventory"), TEXT("ui_inventory"), EKeys::Tab},
+		{TEXT("Mastery"), TEXT("ui_mastery"), EKeys::K},
+	};
+	return Actions;
+}
+
+FKey FNWOptions::KeyFor(FName Id) const
+{
+	if (const FKey* K = Keys.Find(Id))
+	{
+		return *K;
+	}
+	const FNWKeyAction* A = KeyActions().FindByPredicate([Id](const FNWKeyAction& X) { return X.Id == Id; });
+	return A ? A->Default : EKeys::Invalid;
+}
+
+void FNWOptions::SetKey(FName Id, const FKey& Key)
+{
+	const FKey Old = KeyFor(Id);
+	for (const FNWKeyAction& A : KeyActions())
+	{
+		if (A.Id != Id && KeyFor(A.Id) == Key)
+		{
+			Keys.Add(A.Id, Old);
+		}
+	}
+	Keys.Add(Id, Key);
+	// Tecla igual à padrão não precisa ficar salva.
+	for (const FNWKeyAction& A : KeyActions())
+	{
+		if (const FKey* K = Keys.Find(A.Id); K && *K == A.Default)
+		{
+			Keys.Remove(A.Id);
+		}
+	}
+}
+
 void FNWOptions::Load()
 {
 	bLoaded = true;
@@ -40,6 +99,14 @@ void FNWOptions::Load()
 	Float(TEXT("SensitivityX"), SensitivityX);
 	Float(TEXT("SensitivityY"), SensitivityY);
 	Bool(TEXT("InvertY"), bInvertY);
+	for (const FNWKeyAction& A : KeyActions())
+	{
+		FString Name;
+		if (GConfig->GetString(Section, *(TEXT("Key.") + A.Id.ToString()), Name, GGameUserSettingsIni) && FKey(*Name).IsValid())
+		{
+			Keys.Add(A.Id, FKey(*Name));
+		}
+	}
 	Quality = FMath::Clamp(Quality, 0, 3);
 	FovVertical = FMath::Clamp(FovVertical, 40.f, 80.f);
 }
@@ -60,6 +127,18 @@ void FNWOptions::Save() const
 	GConfig->SetFloat(Section, TEXT("SensitivityX"), SensitivityX, GGameUserSettingsIni);
 	GConfig->SetFloat(Section, TEXT("SensitivityY"), SensitivityY, GGameUserSettingsIni);
 	GConfig->SetBool(Section, TEXT("InvertY"), bInvertY, GGameUserSettingsIni);
+	for (const FNWKeyAction& A : KeyActions())
+	{
+		const FString Key = TEXT("Key.") + A.Id.ToString();
+		if (const FKey* K = Keys.Find(A.Id))
+		{
+			GConfig->SetString(Section, *Key, *K->GetFName().ToString(), GGameUserSettingsIni);
+		}
+		else
+		{
+			GConfig->RemoveKey(Section, *Key, GGameUserSettingsIni);
+		}
+	}
 	GConfig->Flush(false, GGameUserSettingsIni);
 }
 

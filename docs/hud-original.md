@@ -43,6 +43,16 @@ Abas: `@ui_options_visuals` (Vídeo), `@ui_options_audio` (Áudio), `@ui_options
 - Jogo: `@ui_language` (Idioma do Texto), `@ui_looksensitivityhorizontal`, `@ui_looksensitivityvertical`,
   `@ui_invertlook`, `@ui_cameraShake`, `@ui_options_damage_numbers_display_mode`.
 
+## Atalhos (`libs/config/defaultprofile.xml`)
+
+Mapa de ações do jogo (CryEngine actionmaps), com as teclas padrão por ação: `moveforward/back/left/right` W/S/A/D,
+`autorun` = (igual), `walk` Ctrl esquerdo (segurar), `jump` Espaço, `dodge` Shift esquerdo, `attack_primary` botão
+esquerdo, `block` botão direito, `ability1–3` Q/R/F, `quickslot-weapon1/2` 1/2, `quickslot-consumable-1..4` 3–6,
+`sheathe` ~, `crouch_toggle` C, `mount_summon` X, `toggleInventoryWindow` Tab (em `includes/uishared.xml`).
+Os nomes na tela vêm de `ui_movefoward`, `ui_runtoggle`, `ui_walk`, `ui_rolldodge`, `ui_attack`, `ui_block`,
+`ui_ability1..3`, `ui_weapon1/2`, `ui_consumable1`, `ui_interact`, `ui_inventory`. Conflito no jogo:
+`ui_remapPopup_rebindConflict` (a outra ação fica sem tecla); no port as duas trocam de tecla.
+
 ## Inventário, bolsa, moedas
 
 - `newinventory`: janela à direita do centro; itens em peças de 122 × 60 (`ItemDraggable/ItemLayout`): fundo
@@ -88,6 +98,7 @@ Ver a tabela de estado no fim deste arquivo, atualizada a cada etapa.
 | Câmera com os valores do jogo | feita: estados normal/sprint/inventário, zoom na roda (0,2–6 m), FOV 50° vertical, personagem vira de frente no inventário (`ANWCharacter::UpdateCamera`) |
 | Menu do Esc | feito: Continuar, Configurações, Sair para o Menu Principal, Sair para a Área de Trabalho (`FNWGameMenu`) |
 | Configurações | feitas, textos do jogo: Vídeo (qualidade, modo de janela, FPS máximo, VSync, campo de visão, desfoque, exibir FPS), Áudio (geral, música, efeitos, ambiente), Jogo (idioma, sensibilidade H/V, inverter eixo). Salvas em GameUserSettings.ini [NW.Options] (`FNWOptions`) |
+| Atalhos | feitos: aba "Atalhos de Teclado e Mouse" nas configurações, 19 ações com os textos e as teclas padrão do jogo; clicar e apertar a tecla troca (Esc cancela, conflito troca as duas), "Restaurar Padrões"; salvos em [NW.Options] `Key.<Ação>` e aplicados na hora (`ANWCharacter::RebuildKeys`). Corrida automática (=) adicionada: frente/trás cancela |
 | Bússola | feita: tira compass2048 rolando com a câmera, linha e agulha (`ANWHUD::DrawCompass`; norte do mapa em yaw −4°) |
 | Números de dano | feitos: sobem e somem sobre o alvo; vermelho = dano em mim; bloqueio/esquiva/guarda quebrada em texto (`ANWHUD::DrawDamageNumbers`) |
 | Cartão de coleta | feito: anel `marker_ringgather` no objeto, nome na faixa `unifiedinteractcardtextbg`, tecla em `hintframefilled` + ação; durante a coleta o anel de progresso enche com o tempo no meio (`ANWHUD::DrawGather`) |

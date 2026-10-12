@@ -215,6 +215,40 @@ void ANWPlayerController::ToggleDevMenu()
 	ShowMenu(Menu, Menu);
 }
 
+bool ANWPlayerController::InputKey(const FInputKeyEventArgs& Params)
+{
+	ANWHUD* HUD = GetNWHUD();
+	if (HUD && HUD->GameMenu.IsWaitingKey())
+	{
+		if (Params.Event == IE_Pressed && !Params.Key.IsAxis1D() && !Params.Key.IsAxis2D() && !Params.Key.IsGamepadKey())
+		{
+			if (Params.Key == EKeys::Escape)
+			{
+				HUD->GameMenu.CancelKey();
+			}
+			else
+			{
+				HUD->GameMenu.AssignKey(Params.Key);
+			}
+			ApplyKeyChanges();
+		}
+		return true;
+	}
+	return Super::InputKey(Params);
+}
+
+void ANWPlayerController::ApplyKeyChanges()
+{
+	ANWHUD* HUD = GetNWHUD();
+	if (HUD && HUD->GameMenu.ConsumeKeysChanged())
+	{
+		if (ANWCharacter* Me = Cast<ANWCharacter>(GetPawn()))
+		{
+			Me->RebuildKeys();
+		}
+	}
+}
+
 void ANWPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
@@ -246,6 +280,7 @@ void ANWPlayerController::OnMenuClick()
 		default: break;
 		}
 		FNWOptions::Get().Apply(GetWorld());
+		ApplyKeyChanges();
 		if (NWText::Lang() != LangBefore)
 		{
 			HUD->ReloadLanguage();
