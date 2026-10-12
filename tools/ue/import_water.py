@@ -25,6 +25,20 @@ mel = unreal.MaterialEditingLibrary
 t0 = time.time()
 
 
+def add_water_output(m):
+    """Single Layer Water exige o nó de saída próprio (sem ele não compila no SM6): espalhamento e absorção de água
+    de rio esverdeada (absorve mais o vermelho), fase levemente para a frente."""
+    mel = unreal.MaterialEditingLibrary
+    out = mel.create_material_expression(m, unreal.MaterialExpressionSingleLayerWaterMaterialOutput, 0, 650)
+    for name, value, y in (("ScatteringCoefficients", (0.02, 0.05, 0.05), 600), ("AbsorptionCoefficients", (0.35, 0.09, 0.07), 700)):
+        c = mel.create_material_expression(m, unreal.MaterialExpressionConstant3Vector, -250, y)
+        c.set_editor_property("constant", unreal.LinearColor(*value, 1))
+        mel.connect_material_expressions(c, "", out, name)
+    g = mel.create_material_expression(m, unreal.MaterialExpressionConstant, -250, 800)
+    g.set_editor_property("r", 0.2)
+    mel.connect_material_expressions(g, "", out, "PhaseG")
+
+
 def water_material():
     path = f"{P_MAT}/M_NW_Agua"
     if eal.does_asset_exist(path):
@@ -52,6 +66,7 @@ def water_material():
     mel.connect_material_expressions(rough_foam, "", lerp_r, "B")
     mel.connect_material_expressions(vc, "R", lerp_r, "Alpha")
     mel.connect_material_property(lerp_r, "", MP.MP_ROUGHNESS)
+    add_water_output(m)
     mel.recompile_material(m)
     eal.save_asset(path, only_if_is_dirty=False)
     return m
