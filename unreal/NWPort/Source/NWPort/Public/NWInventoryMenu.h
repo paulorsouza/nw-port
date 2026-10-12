@@ -43,6 +43,7 @@ private:
 	const FSlotRef* SlotAt(const FVector2D& Mouse) const;
 	void DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWItem* Item, bool bSquare, bool bHover, bool bPickedHere);
 	void DrawEquipPanel(UCanvas* Canvas, const FVector2D& Mouse);
+	void DrawStatus(UCanvas* Canvas);
 	void DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse);
 	void DrawText(UCanvas* Canvas, const FString& Text, float X, float Y, float Size, const FLinearColor& Color, int32 Style = 0) const;
 	void DrawTexture(UCanvas* Canvas, const FString& Path, const FBox2f& R, const FLinearColor& Tint = FLinearColor::White, bool bAdditive = false) const;

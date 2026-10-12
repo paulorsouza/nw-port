@@ -74,4 +74,5 @@ Ver a tabela de estado no fim deste arquivo, atualizada a cada etapa.
 | Números de dano | feitos: sobem e somem sobre o alvo; vermelho = dano em mim; bloqueio/esquiva/guarda quebrada em texto (`ANWHUD::DrawDamageNumbers`) |
 | Cartão de coleta | feito: anel `marker_ringgather` no objeto, nome na faixa `unifiedinteractcardtextbg`, tecla em `hintframefilled` + ação; durante a coleta o anel de progresso enche com o tempo no meio (`ANWHUD::DrawGather`) |
 | Bolsa e sobrecarga | feitas: bolsa na barra de ações com % do peso a partir de 80%; acima de 1000 fica vermelha com o aviso do jogo (`inv_equiploadencumberednotification`) e o personagem não corre, não esquiva e não pula |
+| Status (painel de equipamento) | feito: Pontuação do Equipamento (média das armas), Saúde, Vigor e Peso com os textos do jogo, no fundo `equipmentstatsbackdrop2023`; atributos (FOR/DES/INT/FOC/CON) dependem de um sistema que o port ainda não tem |
 | Barra de XP, durabilidade, efeitos | depende de sistemas que o port ainda não tem |

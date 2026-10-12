@@ -4,6 +4,7 @@
 #include "Engine/Canvas.h"
 #include "Engine/Font.h"
 #include "NWCharacter.h"
+#include "NWCombatComponent.h"
 #include "NWInventoryComponent.h"
 #include "NWText.h"
 
@@ -307,6 +308,39 @@ void FNWInventoryMenu::DrawEquipPanel(UCanvas* Canvas, const FVector2D& Mouse)
 	}
 }
 
+void FNWInventoryMenu::DrawStatus(UCanvas* Canvas)
+{
+	// Status no rodapé do equipamento (o "Atributos" da equipmentv3): pontuação média das armas, saúde, vigor e peso.
+	const ANWCharacter* Me = Character.Get();
+	const UNWInventoryComponent* Inv = Me->Inventory;
+	const float S = UIScale;
+	const FBox2f Box(FVector2f(EquipPanel.Min.X + 24.f * S, EquipPanel.Max.Y - 230.f * S), FVector2f(EquipPanel.Max.X - 24.f * S, EquipPanel.Max.Y - 36.f * S));
+	DrawTexture(Canvas, FString::Printf(TEXT("%sequipmentstatsbackdrop2023.dds"), EquipDir), Box, FLinearColor(1.f, 1.f, 1.f, 0.85f));
+	int32 Sum = 0, Count = 0;
+	for (int32 Slot = 0; Slot < NWEquip::FirstTool; ++Slot)
+	{
+		if (const FNWItem* I = Inv->At(ENWItemContainer::Equip, Slot); I && I->GearScore > 0)
+		{
+			Sum += I->GearScore;
+			++Count;
+		}
+	}
+	const UNWCombatComponent* C = Me->Combat;
+	const TArray<TPair<FString, FString>> Rows = {
+		{NWText::Get(TEXT("ui_buyorder_gear_score_label")), Count ? FString::FromInt(Sum / Count) : TEXT("-")},
+		{NWText::Get(TEXT("ui_health")), FString::Printf(TEXT("%.0f / %.0f"), C->Health, C->MaxHealth)},
+		{NWText::Get(TEXT("ui_stamina")), FString::Printf(TEXT("%.0f / %.0f"), C->Stamina, C->MaxStamina)},
+		{NWText::Get(TEXT("ui_encumbrance")), FString::Printf(TEXT("%.1f / %.0f"), Inv->TotalWeight(), UNWInventoryComponent::MaxWeight)},
+	};
+	float Y = Box.Min.Y + 26.f * S;
+	for (const auto& R : Rows)
+	{
+		DrawText(Canvas, R.Key, Box.Min.X + 24.f * S, Y, 17.f, InvDim);
+		DrawText(Canvas, R.Value, Box.Max.X - 24.f * S - TextWidth(R.Value, 18.f, 1), Y - 1.f * S, 18.f, R.Key == Rows[0].Key ? InvGold : InvTan, 1);
+		Y += 38.f * S;
+	}
+}
+
 void FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse)
 {
 	const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
@@ -421,6 +455,7 @@ void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 		}
 	}
 	DrawEquipPanel(Canvas, Mouse);
+	DrawStatus(Canvas);
 	if (Hover)
 	{
 		if (const FNWItem* Item = Inv->At(Hover->Container, Hover->Slot))
