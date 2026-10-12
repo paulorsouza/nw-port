@@ -1,0 +1,40 @@
+{
+  "name": "wolf",
+  "mesh_name": "SK_wolf",
+  "anim_root": "animations/gameplay/character/npc/natural/predator/wolf/",
+  "character": "objects/characters/npc/natural/predator/wolf/timberwolf.cdf",
+  "weapons": {},
+  "_comment": "Lobo (slices/characters/wolf e wolf_grey: timberwolf.cdf, npc_wolf_anims.adb, javelindata_damagetable_wolf). G3.",
+  "blendspaces": {
+    "BS_Walk": ["wolf_combat_movement_blend"]
+  },
+  "loops": {
+    "Idle": ["wolf_combat_idle"],
+    "AmbientIdle": ["wolf_idle"],
+    "Walk": ["wolf_walk"],
+    "Run": ["wolf_run"],
+    "Eat": ["wolf_eat_loop"],
+    "Sit": ["wolf_sit_loop"],
+    "LayDown": ["wolf_layon_stomach_loop"]
+  },
+  "montages": {
+    "AM_Attack1": [["wolf_single_bite_attack"]],
+    "AM_Attack2": [["wolf_single_bite_attack_v2"]],
+    "AM_Heavy": [["wolf_lunge_attack"]],
+    "AM_Leap": [["wolf_sprint_lunge_attack"]],
+    "AM_Aggro": [["wolf_alert"]],
+    "AM_Hit_F": [["wolf_r2_f"]],
+    "AM_Hit_B": [["wolf_r2_b"]],
+    "AM_Hit_L": [["wolf_r2_l"]],
+    "AM_Hit_R": [["wolf_r2_r"]],
+    "AM_Death": [["wolf_death"]]
+  },
+  "window_adbs": ["npc_wolf_anims.adb"],
+  "window_tags": "",
+  "fragments": {
+    "AM_Attack1": ["Attack_Bite"],
+    "AM_Attack2": ["Attack_Bite_Combo"],
+    "AM_Heavy": ["Attack_Lunge"],
+    "AM_Leap": ["Attack_Lunge_Run"]
+  }
+}
