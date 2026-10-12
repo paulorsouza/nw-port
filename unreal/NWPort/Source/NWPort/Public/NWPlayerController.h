@@ -72,6 +72,11 @@ public:
 
 	// Chat: o servidor valida, limita e distribui; "/" no começo é comando.
 	UFUNCTION(Server, Reliable) void ServerSendChat(const FString& Text);
+	/**
+	 * Desprender (menu do Esc), como o jogo: volta para uma posição recente em que o personagem estava no chão
+	 * ("migalhas" guardadas pelo servidor a cada segundo), depois de 5 s; recarga de 60 s; não vale morto.
+	 */
+	UFUNCTION(Server, Reliable) void ServerUnstuck();
 	UFUNCTION(Client, Reliable) void ClientChat(ENWChatChannel Channel, const FString& Sender, const FString& Text);
 	void OpenChat();
 	bool IsChatOpen() const;
@@ -136,4 +141,12 @@ private:
 
 	TSharedPtr<SWidget> OpenMenu;
 	TSharedPtr<SWidget> OpenMenuHost;
+
+private:
+	void RecordBreadcrumb();
+	void FinishUnstuck();
+	TArray<FVector> Breadcrumbs;
+	FTimerHandle BreadcrumbTimer;
+	FTimerHandle UnstuckTimer;
+	double UnstuckReadyAt = 0.0;
 };

@@ -15,7 +15,7 @@ static const FLinearColor MenuGold(FColor(0xED, 0xC6, 0x3E));
 namespace
 {
 	// Ids dos botões: ações, abas e linhas de opção (linha * 10 + parte: 0 seta esquerda, 1 seta direita, 2 barra).
-	enum : int32 { IdResume = 1, IdSettings, IdExitMenu, IdExitDesktop, IdBack, IdResetKeys, IdTab = 10, IdKey = 500, IdRow = 1000 };
+	enum : int32 { IdResume = 1, IdSettings, IdExitMenu, IdExitDesktop, IdBack, IdResetKeys, IdUnstuck, IdTab = 10, IdKey = 500, IdRow = 1000 };
 	const TArray<int32> FpsSteps = {30, 60, 120, 144, 240, 0};
 
 	FString OnOff(bool b) { return NWText::Get(b ? TEXT("ui_on") : TEXT("ui_off")); }
@@ -103,7 +103,7 @@ void FNWGameMenu::DrawMain(UCanvas* Canvas, const FVector2D& Mouse)
 	const float S = UIScale;
 	// Janela do Esc do jogo: 840 x 800 no centro; aqui só a coluna "Jogo" / "Sair do Jogo" (sem loja nem suporte).
 	const FVector2f C(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
-	Panel = FBox2f(C - FVector2f(260.f, 300.f) * S, C + FVector2f(260.f, 300.f) * S);
+	Panel = FBox2f(C - FVector2f(260.f, 335.f) * S, C + FVector2f(260.f, 335.f) * S);
 	DrawPanel(Canvas, Panel);
 	const float X = Panel.Min.X + 50.f * S, W = Panel.GetSize().X - 100.f * S, H = 56.f * S;
 	float Y = Panel.Min.Y + 50.f * S;
@@ -119,6 +119,8 @@ void FNWGameMenu::DrawMain(UCanvas* Canvas, const FVector2D& Mouse)
 	Button(Canvas, FBox2f(FVector2f(X, Y), FVector2f(X + W, Y + H)), NWText::Get(TEXT("ui_resume")), IdResume, Mouse);
 	Y += H + 12.f * S;
 	Button(Canvas, FBox2f(FVector2f(X, Y), FVector2f(X + W, Y + H)), NWText::Get(TEXT("ui_navmenu_settings")), IdSettings, Mouse);
+	Y += H + 12.f * S;
+	Button(Canvas, FBox2f(FVector2f(X, Y), FVector2f(X + W, Y + H)), NWText::Get(TEXT("ui_escapemenu_unstuck")), IdUnstuck, Mouse);
 	Y += H + 50.f * S;
 	Header(TEXT("ui_escapemenu_leave_game"));
 	Button(Canvas, FBox2f(FVector2f(X, Y), FVector2f(X + W, Y + H)), NWText::Get(TEXT("ui_escapemenu_exit_to_main_menu")), IdExitMenu, Mouse);
@@ -266,6 +268,7 @@ FNWGameMenu::EAction FNWGameMenu::Click(const FVector2D& Mouse)
 	{
 	case IdResume: return EAction::Resume;
 	case IdSettings: Page = 1; return EAction::None;
+	case IdUnstuck: return EAction::Unstuck;
 	case IdExitMenu: return EAction::ExitToMenu;
 	case IdExitDesktop: return EAction::ExitToDesktop;
 	case IdBack: Page = 0; WaitingKey = NAME_None; return EAction::None;

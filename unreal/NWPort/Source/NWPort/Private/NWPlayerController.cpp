@@ -1,4 +1,6 @@
 #include "NWPlayerController.h"
+#include "TimerManager.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "NWProgressionComponent.h"
 #include "NWText.h"
 
@@ -52,6 +54,74 @@ void ANWPlayerController::BeginPlay()
 	{
 		FNWOptions::Get().Apply(GetWorld());
 	}
+	if (HasAuthority())
+	{
+		GetWorldTimerManager().SetTimer(BreadcrumbTimer, this, &ANWPlayerController::RecordBreadcrumb, 1.f, true);
+	}
+}
+
+void ANWPlayerController::RecordBreadcrumb()
+{
+	const ACharacter* Me = Cast<ACharacter>(GetPawn());
+	if (!Me || !Me->GetCharacterMovement() || !Me->GetCharacterMovement()->IsMovingOnGround())
+	{
+		return;
+	}
+	const FVector L = Me->GetActorLocation();
+	if (Breadcrumbs.Num() == 0 || FVector::DistSquared(Breadcrumbs.Last(), L) > FMath::Square(300.f))
+	{
+		Breadcrumbs.Add(L);
+		if (Breadcrumbs.Num() > 20)
+		{
+			Breadcrumbs.RemoveAt(0);
+		}
+	}
+}
+
+void ANWPlayerController::ServerUnstuck_Implementation()
+{
+	const ANWCharacter* Me = Cast<ANWCharacter>(GetPawn());
+	const double Now = GetWorld()->GetTimeSeconds();
+	if (!Me || Me->Combat->State == ENWCombatState::Dead)
+	{
+		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_player_dead")));
+		return;
+	}
+	if (GetWorldTimerManager().IsTimerActive(UnstuckTimer))
+	{
+		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_request_already_active")));
+		return;
+	}
+	if (Now < UnstuckReadyAt)
+	{
+		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_on_cooldown"), {FString::FromInt(FMath::CeilToInt(UnstuckReadyAt - Now))}));
+		return;
+	}
+	if (Breadcrumbs.Num() == 0)
+	{
+		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_no_breadcrumbs")));
+		return;
+	}
+	SystemMessage(NWText::Key(TEXT("ui_unstuck_request_accepted"), {TEXT("5")}));
+	GetWorldTimerManager().SetTimer(UnstuckTimer, this, &ANWPlayerController::FinishUnstuck, 5.f, false);
+}
+
+void ANWPlayerController::FinishUnstuck()
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetPawn());
+	if (!Me || Breadcrumbs.Num() == 0)
+	{
+		return;
+	}
+	// A última migalha pode ser o lugar onde prendeu: usa a anterior quando há.
+	const FVector To = Breadcrumbs[FMath::Max(0, Breadcrumbs.Num() - 2)] + FVector(0.f, 0.f, 50.f);
+	if (!Me->TeleportTo(To, Me->GetActorRotation()))
+	{
+		SystemMessage(NWText::Key(TEXT("ui_unstuck_request_denied_teleport_failed")));
+		return;
+	}
+	Breadcrumbs.SetNum(FMath::Max(0, Breadcrumbs.Num() - 1));
+	UnstuckReadyAt = GetWorld()->GetTimeSeconds() + 60.0;
 }
 
 void ANWPlayerController::OnEscape()
@@ -322,6 +392,7 @@ void ANWPlayerController::OnMenuClick()
 		switch (HUD->GameMenu.Click(FVector2D(X, Y)))
 		{
 		case FNWGameMenu::EAction::Resume: CloseMenus(); break;
+		case FNWGameMenu::EAction::Unstuck: CloseMenus(); ServerUnstuck(); break;
 		case FNWGameMenu::EAction::ExitToMenu: CloseMenus(); ConsoleCommand(TEXT("disconnect")); break;
 		case FNWGameMenu::EAction::ExitToDesktop: ConsoleCommand(TEXT("quit")); break;
 		default: break;

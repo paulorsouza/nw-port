@@ -99,7 +99,22 @@ FString NWText::Format(const FString& Key, const TArray<FString>& Args)
 	FString Text = Get(Key);
 	for (int32 i = 0; i < Args.Num(); ++i)
 	{
-		Text.ReplaceInline(*FString::Printf(TEXT("{%d}"), i), *Args[i]);
+		const FString Slot = FString::Printf(TEXT("{%d}"), i);
+		if (Text.Contains(Slot))
+		{
+			Text.ReplaceInline(*Slot, *Args[i]);
+			continue;
+		}
+		// Textos do jogo com printf (%d, %s): o argumento i ocupa o próximo.
+		int32 At = Text.Find(TEXT("%d"));
+		if (At == INDEX_NONE)
+		{
+			At = Text.Find(TEXT("%s"));
+		}
+		if (At != INDEX_NONE)
+		{
+			Text = Text.Left(At) + Args[i] + Text.Mid(At + 2);
+		}
 	}
 	return Text;
 }

@@ -12,7 +12,7 @@ class UCanvas;
 class NWPORT_API FNWGameMenu
 {
 public:
-	enum class EAction : uint8 { None, Resume, ExitToMenu, ExitToDesktop };
+	enum class EAction : uint8 { None, Resume, Unstuck, ExitToMenu, ExitToDesktop };
 
 	bool IsOpen() const { return bOpen; }
 	void Open() { bOpen = true; Page = 0; }
