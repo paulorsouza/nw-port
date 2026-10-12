@@ -133,6 +133,13 @@ float UNWProgressionComponent::TradeProgress(int32 Skill) const
 	return FMath::Clamp(float(TradeXp[Skill] - T[L]) / float(FMath::Max(1, T[L + 1] - T[L])), 0.f, 1.f);
 }
 
+int32 UNWProgressionComponent::TradeXpToNext(int32 Skill) const
+{
+	const int32 L = TradeLevel(Skill);
+	const TArray<int32>& T = Skill >= 0 && Skill < NWTradeskill::Num ? FProgressionData::Get().Trade[Skill].Xp : TArray<int32>();
+	return T.IsValidIndex(L + 1) && TradeXp.IsValidIndex(Skill) ? T[L + 1] - TradeXp[Skill] : 0;
+}
+
 float UNWProgressionComponent::TradeEfficiency(int32 Skill) const
 {
 	const int32 L = TradeLevel(Skill);

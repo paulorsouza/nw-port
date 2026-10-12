@@ -390,5 +390,9 @@
   "nw.dev.give_level": {
     "pt-br": "Ganhar 1 nível",
     "en-us": "Gain 1 level"
+  },
+  "nw.dev.give_trade_levels": {
+    "pt-br": "Ofícios +1 nível",
+    "en-us": "Trade skills +1 level"
   }
 }

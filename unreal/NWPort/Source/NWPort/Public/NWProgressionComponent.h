@@ -60,6 +60,8 @@ public:
 	float TradeEfficiency(int32 Skill) const;
 	/** Servidor: XP de ofício da coleta (CategoricalProgressionReward do evento do coletável). */
 	void AddTradeXp(FName Tradeskill, int32 Amount);
+	/** XP que falta para o próximo nível do ofício (menu de dev). */
+	int32 TradeXpToNext(int32 Skill) const;
 	UFUNCTION(Client, Reliable) void ClientTradeXpGained(uint8 Skill, int32 Amount, int32 NewLevel);
 
 	int32 MaxLevel() const;

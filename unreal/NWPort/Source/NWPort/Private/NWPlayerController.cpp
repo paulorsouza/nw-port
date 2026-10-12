@@ -571,6 +571,15 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 	case ENWDevCommand::GiveTools:
 		if (Me && Me->Inventory) Me->Inventory->GiveTools();
 		break;
+	case ENWDevCommand::GiveTradeLevels:
+		if (Me && Me->Progression)
+		{
+			for (int32 t = 0; t < NWTradeskill::Num; ++t)
+			{
+				Me->Progression->AddTradeXp(NWTradeskill::Name(t), Me->Progression->TradeXpToNext(t));
+			}
+		}
+		break;
 	case ENWDevCommand::GiveLevel:
 		// XP que falta para o próximo nível (testar a barra de XP e os pontos de atributo).
 		if (Me && Me->Progression) Me->Progression->AddXp(FMath::Max<int64>(1, UNWProgressionComponent::XpForLevel(Me->Progression->Level + 1) - Me->Progression->Xp));
