@@ -13,7 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 TEX = os.path.join(ROOT, "extract", "ui", "tex")
 LISTS = [os.path.join(ROOT, "extract", "ui", n) for n in ("hud_textures.txt", "mastery_textures.txt", "login_textures.txt", "respawn_textures.txt", "group_textures.txt", "inventory_textures.txt",
                                                          "compass_textures.txt", "encumbrance_textures.txt", "interactscreen_textures.txt",
-                                                         "damagenumbers_textures.txt")]
+                                                         "damagenumbers_textures.txt", "unifiedinteract_textures.txt")]
 eal = unreal.EditorAssetLibrary
 tools = unreal.AssetToolsHelpers.get_asset_tools()
 

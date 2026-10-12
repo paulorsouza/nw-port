@@ -4,6 +4,7 @@
 #include "NWBackend.h"
 #include "NWItems.h"
 #include "NWGatherComponent.h"
+#include "NWGatherField.h"
 #include "NWOptions.h"
 #include "NWInventoryComponent.h"
 #include "GameFramework/GameStateBase.h"
@@ -430,44 +431,111 @@ void ANWHUD::DrawGameHUD()
 
 void ANWHUD::DrawGather(const APawn* Me)
 {
+	// Cartão de coleta do jogo (markers/unifiedinteract, Gatherable_UnifiedInteractCard): anel no objeto, nome numa
+	// faixa à direita e a linha com a tecla e a ação; durante a coleta o anel de progresso enche com o tempo no meio.
 	const ANWCharacter* Char = Cast<ANWCharacter>(Me);
 	const UNWGatherComponent* G = Char ? Char->Gather.Get() : nullptr;
+	const ANWGatherField* Field = ANWGatherField::Get(GetWorld());
 	UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
-	if (!G || !Font)
+	APlayerController* PC = GetOwningPlayerController();
+	if (!G || !Field || !Font || !PC)
+	{
+		return;
+	}
+	const int32 Index = G->IsGathering() ? G->GetGatherIndex() : G->FocusIndex;
+	if (Index == INDEX_NONE || Index >= Field->Num())
+	{
+		return;
+	}
+	FVector2D C;
+	const FVector World = Field->GetActorTransform().TransformPosition(Field->Node(Index).Transform.GetLocation()) + FVector(0.f, 0.f, 90.f);
+	if (!PC->ProjectWorldLocationToScreen(World, C, true))
 	{
 		return;
 	}
 	const float S = Canvas->ClipY / 1080.f;
-	const float Scale = 20.f * S / FMath::Max(1, Font->LegacyFontSize);
-	const float CX = Canvas->ClipX * 0.5f;
-	const float Y = Canvas->ClipY * 0.5f + 120.f * S;
+	auto Tex = [&](const TCHAR* Path, const FVector2D& Center, float Size, const FLinearColor& Color, bool bAdditive = false)
+	{
+		if (UTexture2D* T = FNWUILayout::GameTexture(Path))
+		{
+			FCanvasTileItem Item(Center - FVector2D(Size * 0.5f), T->GetResource(), FVector2D(Size), Color);
+			Item.BlendMode = bAdditive ? SE_BLEND_Additive : SE_BLEND_Translucent;
+			Canvas->DrawItem(Item);
+		}
+	};
+	const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6));
+	Tex(TEXT("lyshineui/images/markers/marker_ringbackground.dds"), C, 256.f * S * 0.6f, FLinearColor(1.f, 1.f, 1.f, 0.7f));
+	Tex(TEXT("lyshineui/images/markers/marker_ringgather.dds"), C, 64.f * S, G->bFocusBlocked ? FLinearColor(1.f, 0.45f, 0.4f) : FLinearColor::White);
 	if (G->IsGathering())
 	{
-		// Barra de coleta abaixo da mira.
-		const float W = 260.f * S;
-		DrawBar(CX - W * 0.5f, Y, W, 8.f * S, G->Progress(), FLinearColor(FColor(0xED, 0xC6, 0x3E)));
+		// Anel de progresso: leque de triângulos com a textura do anel, do topo no sentido horário.
+		if (UTexture2D* Ring = FNWUILayout::GameTexture(TEXT("lyshineui/images/markers/marker_ringgatherprogress.dds")))
+		{
+			const float R = 40.f * S, P = G->Progress();
+			const int32 Segs = FMath::Max(1, FMath::CeilToInt(48 * P));
+			TArray<FCanvasUVTri> Tris;
+			for (int32 i = 0; i < Segs; ++i)
+			{
+				const float A0 = -HALF_PI + TWO_PI * P * i / Segs, A1 = -HALF_PI + TWO_PI * P * (i + 1) / Segs;
+				FCanvasUVTri T;
+				T.V0_Pos = C; T.V0_UV = FVector2D(0.5f, 0.5f);
+				T.V1_Pos = C + FVector2D(FMath::Cos(A0), FMath::Sin(A0)) * R; T.V1_UV = FVector2D(0.5f + 0.5f * FMath::Cos(A0), 0.5f + 0.5f * FMath::Sin(A0));
+				T.V2_Pos = C + FVector2D(FMath::Cos(A1), FMath::Sin(A1)) * R; T.V2_UV = FVector2D(0.5f + 0.5f * FMath::Cos(A1), 0.5f + 0.5f * FMath::Sin(A1));
+				T.V0_Color = T.V1_Color = T.V2_Color = FLinearColor::White;
+				Tris.Add(T);
+			}
+			FCanvasTriangleItem Item(Tris, Ring->GetResource());
+			Item.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(Item);
+		}
+		const FString Time = FString::Printf(TEXT("%.1fs"), G->Remaining());
+		const float Scale = 15.f * S / FMath::Max(1, Font->LegacyFontSize);
+		float W = 0.f, H = 0.f;
+		Canvas->TextSize(Font, Time, W, H, Scale, Scale);
+		DrawText(Time, Tan, C.X - W * 0.5f, C.Y - H * 0.5f, Font, Scale);
 		return;
 	}
 	if (G->FocusText.IsEmpty())
 	{
 		return;
 	}
-	// [E] Ação Nome  (vermelho apagado quando falta a ferramenta).
-	float W = 0.f, H = 0.f;
-	Canvas->TextSize(Font, G->FocusText, W, H, Scale, Scale);
-	const float Key = 30.f * S, Pad = 10.f * S;
-	const float Total = Key + Pad + W;
-	const float X = CX - Total * 0.5f;
-	DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.5f), X - Pad, Y - Pad * 0.5f, Total + Pad * 2.f, Key + Pad);
+	// Faixa do nome à direita do anel (TitleFrame: +185 da âncora do cartão; aqui colada ao anel) e a linha da tecla.
+	const ANWGatherField::FVariant& V = Field->VariantOf(Index);
+	const FString Name = NWText::Get(V.NameKey);
+	const float NameScale = 19.f * S / FMath::Max(1, Font->LegacyFontSize);
+	float NW = 0.f, NH = 0.f;
+	Canvas->TextSize(Font, Name, NW, NH, NameScale, NameScale);
+	const FVector2D TitlePos(C.X + 44.f * S, C.Y - 40.f * S);
+	if (UTexture2D* Bg = FNWUILayout::GameTexture(TEXT("lyshineui/images/hud/unifiedinteractcard/unifiedinteractcardtextbg.dds")))
+	{
+		FCanvasTileItem Item(TitlePos, Bg->GetResource(), FVector2D(FMath::Max(250.f * S, NW + 40.f * S), 38.f * S), FLinearColor::White);
+		Item.BlendMode = SE_BLEND_Translucent;
+		Canvas->DrawItem(Item);
+	}
+	DrawText(Name, Tan, TitlePos.X + 15.f * S, TitlePos.Y + (38.f * S - NH) * 0.5f, Font, NameScale);
+	// Linha de ação: [E] Minerar, ou o aviso em vermelho (Requer Picareta).
+	const FString Action = G->FocusText.Contains(TEXT("·")) ? G->FocusText.Mid(G->FocusText.Find(TEXT("·")) + 1).TrimStartAndEnd()
+		: G->FocusText.Left(G->FocusText.Len() - Name.Len()).TrimStartAndEnd();
+	const float RowY = TitlePos.Y + 46.f * S;
+	float X = TitlePos.X + 4.f * S;
+	const float ActScale = 17.f * S / FMath::Max(1, Font->LegacyFontSize);
 	if (!G->bFocusBlocked)
 	{
-		DrawRect(FLinearColor(0.92f, 0.89f, 0.84f, 0.9f), X, Y, Key, Key);
+		const float Key = 30.f * S;
+		if (UTexture2D* Frame = FNWUILayout::GameTexture(TEXT("lyshineui/images/slices/hint/hintframefilled.dds")))
+		{
+			FCanvasTileItem Item(FVector2D(X, RowY), Frame->GetResource(), FVector2D(Key), FLinearColor::White);
+			Item.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(Item);
+		}
 		float KW = 0.f, KH = 0.f;
-		Canvas->TextSize(Font, TEXT("E"), KW, KH, Scale, Scale);
-		DrawText(TEXT("E"), FLinearColor(0.05f, 0.05f, 0.05f), X + (Key - KW) * 0.5f, Y + (Key - KH) * 0.5f, Font, Scale);
+		Canvas->TextSize(Font, TEXT("E"), KW, KH, ActScale, ActScale);
+		DrawText(TEXT("E"), FLinearColor(0.05f, 0.05f, 0.05f), X + (Key - KW) * 0.5f, RowY + (Key - KH) * 0.5f, Font, ActScale);
+		X += Key + 10.f * S;
 	}
-	const FLinearColor Color = G->bFocusBlocked ? FLinearColor(FColor(0xFF, 0x71, 0x71)) : FLinearColor(FColor(0xEB, 0xE3, 0xD6));
-	DrawText(G->FocusText, Color, X + Key + Pad, Y + (Key - H) * 0.5f, Font, Scale);
+	float AW = 0.f, AH = 0.f;
+	Canvas->TextSize(Font, Action, AW, AH, ActScale, ActScale);
+	DrawText(Action, G->bFocusBlocked ? FLinearColor(FColor(0xFF, 0x71, 0x71)) : Tan, X, RowY + (30.f * S - AH) * 0.5f, Font, ActScale);
 }
 
 void ANWHUD::DrawBar(float X, float Y, float W, float H, float Fraction, const FLinearColor& Fill)

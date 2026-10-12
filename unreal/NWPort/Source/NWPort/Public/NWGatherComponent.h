@@ -29,6 +29,10 @@ public:
 	bool IsGathering() const { return GatherIndex != INDEX_NONE; }
 	/** 0..1 da coleta em andamento. */
 	float Progress() const;
+	/** Segundos que faltam da coleta em andamento. */
+	float Remaining() const;
+	/** Coletável em coleta (ou INDEX_NONE). */
+	int32 GetGatherIndex() const { return GatherIndex; }
 	/** Tecla E. */
 	void InteractPressed();
 

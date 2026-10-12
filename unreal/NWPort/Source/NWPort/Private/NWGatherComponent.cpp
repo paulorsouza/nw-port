@@ -62,6 +62,11 @@ float UNWGatherComponent::Progress() const
 	return FMath::Clamp((ServerNow() - GatherStart) / (GatherEnd - GatherStart), 0.f, 1.f);
 }
 
+float UNWGatherComponent::Remaining() const
+{
+	return IsGathering() ? FMath::Max(0.f, GatherEnd - ServerNow()) : 0.f;
+}
+
 FName UNWGatherComponent::ToolType(FName Action)
 {
 	// Ação do coletável (gatherables.GatheringAction) = GatheringTypes da ferramenta, menos "None" (à mão).

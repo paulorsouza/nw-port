@@ -12,7 +12,7 @@ import subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UI = os.path.join(ROOT, "extract", "ui")
-SCREENS = ["compass", "encumbrance", "interactscreen", "damagenumbers"]
+SCREENS = ["compass", "encumbrance", "interactscreen", "damagenumbers", "unifiedinteract"]
 
 for name in SCREENS:
     src = glob.glob(os.path.join(UI, "lyshineui", "**", f"{name}.dynamicuicanvas.json"), recursive=True)[0]

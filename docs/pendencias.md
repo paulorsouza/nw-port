@@ -88,8 +88,8 @@ Anotado em 2026-10-11, depois da primeira sessão no Unreal.
 
 ## Coleta: polimento (F4/G1, 2026-10-11)
 
-- Aviso "[E] Minerar ..." e barra de coleta são desenhados à mão; trocar pelo cartão do jogo
-  (`lyshineui/hud/unifiedinteractcard`, canvas ainda não extraído) e pela barra de coleta dele.
+- Cartão de coleta já usa as peças do jogo (markers/unifiedinteract); falta o cartão de várias opções
+  (`hud/unifiedinteractcard/interactscreen`) para NPCs e estações.
 - Ofícios (Mineração, Colheita, Corte de madeira, Esfolamento) sem nível nem XP; o saque usa o dado sem bônus de
   ofício (`RollBonusSetting` = AddToRoll ignorado). Tabelas com `Conditions` (tônicos de ferramenta, temporada,
   PvP) e baldes `[LBID]` ficam de fora.
