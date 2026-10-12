@@ -12,6 +12,7 @@ novo.
 | `nwport-extract.zip` | `extract/` (assets convertidos, áudio, tabelas, projeto do Ghidra) | ~39 GB | só para converter coisa nova ou fazer engenharia reversa |
 | `nwport-local.zip` | `deploy/.env` (senhas do servidor; fora do git) | KB | sim, se for subir o servidor |
 | `nw-core-db.dump`, `deploy-db.dump` | contas e personagens de teste (nw-core) | MB | opcional |
+| `Server.pak` | pacote do servidor de uma versão antiga do jogo (2023-12), de onde saem as árvores de IA dos mobs (`docs/ia-criaturas.md`) | 9,6 MB | sim, para refazer a IA dos mobs; a Steam atual não tem |
 | `New World/` + `appmanifest_1063730.acf` | instalação do jogo | ~72 GB | opcional; evita baixar de novo |
 | `migrar-windows.md` | este roteiro | — | — |
 
@@ -20,6 +21,12 @@ Ficam de fora (o Windows refaz ou não usa): `Binaries`, `Intermediate`, `Saved`
 
 O HD precisa estar em **NTFS** ou **exFAT**. FAT32 não aceita arquivo acima de 4 GB. Espaço: ~60 GB sem o jogo, ~135 GB
 com ele.
+
+## Onde ficou (cópia feita em 2026-10-12)
+
+No HD externo de 240 GB, partição NTFS (`344E28214E27D9FE`), pasta `nwport/`: `nwport-content.zip`,
+`nwport-extract.zip`, `nwport-local.zip`, `nw-core-db.dump`, `deploy-db.dump`, `Server.pak`, `SHA256SUMS.txt` e este
+roteiro. No Windows o HD aparece com uma letra (ex.: `E:\nwport`). O jogo não foi junto: baixar pela Steam.
 
 ## Parte 1: no Linux
 
@@ -47,7 +54,12 @@ zip -r -1 -q -dg -ds 1g "$HD/nwport-content.zip" unreal/NWPort/Content unreal/NW
 zip -r -1 -q -dg -ds 1g "$HD/nwport-extract.zip" extract
 zip -q "$HD/nwport-local.zip" deploy/.env
 cp docs/migrar-windows.md "$HD/"
+cp -L /mnt/jogos/Steam/ubuntu12_32/steamapps/content/app_1063730/depot_1063731/assets/Server.pak "$HD/"
 ```
+
+O `Server.pak` veio do depot 1063731 da Steam, manifest `3129454692625577733` (versão de 2023-12). Ele também
+vai dentro do `nwport-extract.zip` (o `zip` segue o link de `extract/serverpak/game/assets/Server.pak`); a cópia
+solta é a garantia.
 
 ### 3. Banco de teste (opcional)
 
@@ -70,7 +82,7 @@ cp /mnt/jogos/Steam/steamapps/appmanifest_1063730.acf "$HD/"
 cd "$HD"
 unzip -tq nwport-content.zip
 unzip -tq nwport-extract.zip
-sha256sum $(ls | grep -E '\.(zip|dump)$') > SHA256SUMS.txt
+sha256sum $(ls | grep -E '\.(zip|dump|pak)$') > SHA256SUMS.txt
 cd ~ && sync
 ```
 
@@ -105,7 +117,7 @@ Troque `E:` pela letra do HD.
 
 ```powershell
 New-Item -ItemType Directory C:\nw-migracao
-Copy-Item E:\nwport\*.zip, E:\nwport\*.dump, E:\nwport\SHA256SUMS.txt C:\nw-migracao\
+Copy-Item E:\nwport\*.zip, E:\nwport\*.dump, E:\nwport\*.pak, E:\nwport\SHA256SUMS.txt C:\nw-migracao\
 Get-Content C:\nw-migracao\SHA256SUMS.txt | ForEach-Object {
     $h, $f = $_ -split '\s+', 2
     "{0}  {1}" -f ((Get-FileHash -Algorithm SHA256 "C:\nw-migracao\$f").Hash -eq $h), $f
@@ -150,6 +162,11 @@ O pipeline roda no Ubuntu do WSL, com o repositório dentro do Linux (no `C:` fi
 git clone https://github.com/paulorsouza/nw-port.git ~/nw-port
 cd ~/nw-port && unzip -q /mnt/c/nw-migracao/nwport-extract.zip
 ```
+
+Confira `ls -la extract/serverpak/game/assets/Server.pak` (9,6 MB). Se faltar:
+`mkdir -p extract/serverpak/game/assets && cp /mnt/c/nw-migracao/Server.pak extract/serverpak/game/assets/`.
+Para baixar de novo a versão antiga inteira (75 GB; só o `Server.pak` interessa): console da Steam
+(`steam://open/console` no navegador) → `download_depot 1063730 1063731 3129454692625577733`.
 
 Ferramentas do pipeline: `docs/SETUP.md` (seção 2) e skill `nw-wsl`. O import do WSL para a Unreal do Windows ainda
 não tem script (`ue_import_all.ps1` pendente, na skill `nw-wsl`).
