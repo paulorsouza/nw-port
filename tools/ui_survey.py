@@ -69,8 +69,7 @@ def main():
         tex = sorted({e["image"]["texture"] for e in els if e.get("image") and e["image"].get("texture")})
         if tex:
             print(f"\nTexturas ({len(tex)}): " + ", ".join(f"`{t.split('/')[-1]}`" for t in tex[:25]) + (" …" if len(tex) > 25 else ""))
-        scripts = sorted({s for e in els for s in (e.get("scripts") or []) if isinstance(s, str)}
-        scripts = sorted({s.split("\"")[0] for s in scripts}))
+        scripts = sorted({s.split('"')[0] for e in els for s in (e.get("scripts") or []) if isinstance(s, str)})
         if scripts:
             print("\nLua: " + ", ".join(f"`{s}`" for s in scripts[:15]))
         print()
