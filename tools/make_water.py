@@ -20,6 +20,32 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from make_terrain import REGION, GlbWriter, find_capital, sample  # noqa: E402
 
 
+def floating_patches(W, H, wet, shore):
+    """Máscara das células molhadas cujo trecho conexo de mesmo nível (|Δ| <= 0,5 m) não tem margem: nenhuma célula
+    com o terreno até `shore` metros abaixo da superfície. Encostar num paredão (terreno acima da água, o alto da
+    cachoeira) não conta como margem."""
+    from collections import deque
+    seen = np.zeros(W.shape, bool)
+    out = np.zeros(W.shape, bool)
+    ny, nx = W.shape
+    for y0, x0 in np.argwhere(wet & (W - H > shore)):
+        if seen[y0, x0]:
+            continue
+        seen[y0, x0] = True
+        q, cells, has_shore = deque([(y0, x0)]), [], False
+        while q:
+            y, x = q.popleft()
+            cells.append((y, x))
+            has_shore |= 0.0 <= W[y, x] - H[y, x] <= shore
+            for v, u in ((y, x + 1), (y, x - 1), (y + 1, x), (y - 1, x)):
+                if 0 <= v < ny and 0 <= u < nx and wet[v, u] and not seen[v, u] and abs(W[v, u] - W[y, x]) <= 0.5:
+                    seen[v, u] = True
+                    q.append((v, u))
+        if not has_shore:
+            out[tuple(np.array(cells).T)] = True
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("water")
@@ -50,6 +76,26 @@ def main():
     wx, wy = np.meshgrid(rx * REGION + np.minimum(xs, REGION - 0.01), ry * REGION + np.minimum(ys, REGION - 0.01))
     H, _ = sample(terrain_dir, level, wx, wy, {})
     wet = W > 0
+    # A waterqt guarda uma altura por folha da árvore: no degrau de uma cachoeira, a folha do nível de cima cobre
+    # também o trecho em que o terreno já desceu ao nível de baixo, e a água ficava como uma placa no ar.
+    # 1) Trecho de mesmo nível sem nenhuma margem (terreno a mais de 3 m abaixo da água em todas as células) é um
+    #    pedaço da cortina da cachoeira solto no ar: sai (a queda em si é efeito/malha do jogo, não a waterqt).
+    # 2) Célula do nível de cima vizinha de água mais baixa, com o terreno até 2 m acima do nível baixo, pertence ao
+    #    trecho de baixo: desce para ele (propaga até o terreno subir, onde fica a queda d'água).
+    W = W.copy()
+    loose = floating_patches(W, H, wet, shore=3.0)
+    wet &= ~loose
+    W[loose] = 0.0
+    moved = 0
+    for _ in range(64):
+        pad = np.pad(np.where(wet, W, np.inf), 1, mode="constant", constant_values=np.inf)
+        low = np.min(np.stack([pad[1:-1, :-2], pad[1:-1, 2:], pad[:-2, 1:-1], pad[2:, 1:-1]]), axis=0)
+        drop = wet & np.isfinite(low) & (low < W - 0.5) & (H < low + 2.0)
+        if not drop.any():
+            break
+        W[drop] = low[drop]
+        moved += int(drop.sum())
+    print(f"água: {moved} vértices descidos ao nível de baixo, {int(loose.sum())} soltos no ar removidos")
     # Vértice seco ao lado de molhado herda o nível do vizinho (a borda entra um pouco sob o terreno).
     Wf = np.where(wet, W, 0.0)
     for _ in range(2):
