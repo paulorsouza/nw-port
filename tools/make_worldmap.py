@@ -29,7 +29,8 @@ MARGIN = 512   # metros além da borda da região
 LEVEL = "newworld_vitaeeterna"
 SCREEN = ["map/icon/player.dds", "map/map_gradient.dds", "map/map_gradientside.dds", "map/scale_key.dds",
           "slices/button/buttonbg.dds", "slices/button/heroframedisabled2023.dds", "slices/button/focusnew.dds",
-          "icons/misc/icon_close.dds"]
+          "icons/misc/icon_close.dds", "map/icon/groupmember.dds", "map/icon/lastdeathposition.dds",
+          "map/icon/waypoint.dds", "map/icon/waypoint_compass.dds"]
 
 
 def pois():

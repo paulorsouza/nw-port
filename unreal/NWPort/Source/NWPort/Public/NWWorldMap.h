@@ -19,6 +19,12 @@ public:
 	void Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown, const APawn* Player);
 	void Click(const FVector2D& Mouse);
 	void Wheel(float Delta, const FVector2D& Mouse);
+	/** Botão direito: põe o marcador (waypoint) no ponto do mapa; de novo em cima dele, tira. */
+	void RightClick(const FVector2D& Mouse);
+	/** Marcador do jogador (mundo, m) para a bússola; não definido = não há. */
+	TOptional<FVector2D> Waypoint;
+	/** Onde o jogador morreu por último (mundo, m): ícone lastdeathposition no mapa. */
+	TOptional<FVector2D> LastDeath;
 
 	/** Posição do Unreal (cm, referencial da cidade) -> mundo do jogo (m). */
 	FVector2D ToWorld(const FVector& Location) const;

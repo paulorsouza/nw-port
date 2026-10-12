@@ -5,7 +5,9 @@
 #include "Engine/Canvas.h"
 #include "Engine/Font.h"
 #include "Engine/Texture2D.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/Pawn.h"
+#include "NWPlayerState.h"
 #include "Misc/FileHelper.h"
 #include "NWText.h"
 #include "NWUILayout.h"
@@ -247,6 +249,35 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 		}
 	}
 
+	// Marcador, último local de morte e membros do grupo (ícones do jogo).
+	{
+		const float Sz = 34.f * S;
+		if (LastDeath)
+		{
+			DrawTexture(Canvas, FString(Img) + TEXT("map/icon/lastdeathposition.dds"), WorldToScreen(*LastDeath) - FVector2D(Sz * 0.5f), FVector2D(Sz));
+		}
+		if (Waypoint)
+		{
+			DrawTexture(Canvas, FString(Img) + TEXT("map/icon/waypoint.dds"), WorldToScreen(*Waypoint) - FVector2D(Sz * 0.5f, Sz), FVector2D(Sz));
+		}
+		const ANWPlayerState* MyState = Player ? Player->GetPlayerState<ANWPlayerState>() : nullptr;
+		const AGameStateBase* GS = Player && Player->GetWorld() ? Player->GetWorld()->GetGameState() : nullptr;
+		if (MyState && GS)
+		{
+			for (const APlayerState* PS : GS->PlayerArray)
+			{
+				const ANWPlayerState* Other = Cast<ANWPlayerState>(PS);
+				const APawn* Pawn = Other ? Other->GetPawn() : nullptr;
+				if (Other && Other != MyState && Pawn && MyState->IsGroupedWith(Other))
+				{
+					const FVector2D P = WorldToScreen(ToWorld(Pawn->GetActorLocation()));
+					DrawTexture(Canvas, FString(Img) + TEXT("map/icon/groupmember.dds"), P - FVector2D(Sz * 0.4f), FVector2D(Sz * 0.8f));
+					DrawText(Canvas, Other->GetPlayerName(), P.X, P.Y + Sz * 0.45f, 14.f, MapTan, 0, true);
+				}
+			}
+		}
+	}
+
 	// Jogador: ícone do jogo virado para onde o personagem olha.
 	if (Player)
 	{
@@ -311,6 +342,16 @@ void FNWWorldMap::Click(const FVector2D& Mouse)
 	{
 		Wheel(Buttons[1].IsInside(FVector2f(Mouse)) ? 1.f : -1.f, ScreenSize * 0.5);
 	}
+}
+
+void FNWWorldMap::RightClick(const FVector2D& Mouse)
+{
+	if (Waypoint && FVector2D::Distance(WorldToScreen(*Waypoint), Mouse) < 24.f * UIScale)
+	{
+		Waypoint.Reset();
+		return;
+	}
+	Waypoint = ScreenToWorld(Mouse);
 }
 
 void FNWWorldMap::Wheel(float Delta, const FVector2D& Mouse)

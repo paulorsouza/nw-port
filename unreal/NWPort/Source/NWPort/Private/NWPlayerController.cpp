@@ -322,6 +322,12 @@ void ANWPlayerController::OnMenuRightClick()
 		GetMousePosition(X, Y);
 		HUD->Inventory.Click(FVector2D(X, Y), true);
 	}
+	else if (HUD && HUD->WorldMap.IsOpen())
+	{
+		float X = 0.f, Y = 0.f;
+		GetMousePosition(X, Y);
+		HUD->WorldMap.RightClick(FVector2D(X, Y));
+	}
 }
 
 void ANWPlayerController::ToggleDevMenu()

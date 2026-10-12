@@ -604,6 +604,14 @@ void ANWHUD::DrawTarget(const APawn* Me)
 void ANWHUD::SetDeathScreen(bool bOn)
 {
 	bDeathScreen = bOn;
+	if (bOn)
+	{
+		if (const APawn* Me = GetOwningPawn())
+		{
+			WorldMap.EnsureLoaded();
+			WorldMap.LastDeath = WorldMap.ToWorld(Me->GetActorLocation());
+		}
+	}
 	APlayerController* PC = GetOwningPlayerController();
 	if (!PC)
 	{
@@ -1010,6 +1018,28 @@ void ANWHUD::DrawCompass()
 				T.BlendMode = SE_BLEND_Translucent;
 				Canvas->DrawItem(T);
 			}
+		}
+	}
+	// Marcador do mapa na tira (waypoint_compass) com a distância embaixo; preso na ponta quando está atrás.
+	if (const APawn* Me = PC->GetPawn(); Me && WorldMap.Waypoint)
+	{
+		const FVector2D D = WorldMap.ToUnreal(*WorldMap.Waypoint) - FVector2D(Me->GetActorLocation());
+		const float Rel = FMath::Clamp(FRotator::NormalizeAxis(FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X)) - PC->GetControlRotation().Yaw), -Half, Half);
+		const float SX = CX + Rel * PxPerDeg * S;
+		const float IconSz = 30.f * S;
+		if (UTexture2D* Icon = FNWUILayout::GameTexture(TEXT("lyshineui/images/map/icon/waypoint_compass.dds")))
+		{
+			FCanvasTileItem T(FVector2D(SX - IconSz * 0.5f, 10.f * S), Icon->GetResource(), FVector2D(IconSz), FLinearColor::White);
+			T.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(T);
+		}
+		if (UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr)
+		{
+			const FString Dist = FString::Printf(TEXT("%.0f m"), D.Size() / 100.f);
+			const float Scale = 14.f * S / FMath::Max(1, Font->LegacyFontSize);
+			float TW = 0.f, TH = 0.f;
+			Canvas->TextSize(Font, Dist, TW, TH, Scale, Scale);
+			DrawText(Dist, FLinearColor(FColor(0xEB, 0xE3, 0xD6)), SX - TW * 0.5f, 52.f * S, Font, Scale);
 		}
 	}
 	// Linha de base e agulha (CompassLines / Needle).

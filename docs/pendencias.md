@@ -115,5 +115,6 @@ Feitas com o PC sozinho (sem abrir o editor nem rodar o jogo): compilam, falta c
   nível/XP/atributos/ofícios agora são salvos no nw-core (migration 0003, coluna `progression`); o compose de
   teste precisa da imagem nova do nw-core (`deploy/build_images.sh`) para aplicar a migration;
   atributos ainda não mudam dano nem vida.
-- Mapa: faltam coletáveis rastreados, NPCs, outros jogadores do grupo; névoa de áreas não descobertas.
+- Mapa: faltam coletáveis rastreados, NPCs e a névoa de áreas não descobertas. Conferir grupo, marcador (botão
+  direito no mapa, aparece na bússola) e último local de morte.
 - Atalhos: só teclado e mouse; sem controle. Conflito troca as duas teclas (o jogo apaga a outra).
