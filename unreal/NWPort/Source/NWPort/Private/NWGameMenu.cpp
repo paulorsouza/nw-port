@@ -214,7 +214,9 @@ void FNWGameMenu::DrawOptions(UCanvas* Canvas, const FVector2D& Mouse)
 		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_language")), NWText::Lang() == TEXT("pt-br") ? TEXT("Português") : TEXT("English"), -1.f, 20, Mouse); Y += Step;
 		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_looksensitivityhorizontal")), FString::Printf(TEXT("%.1f"), O.SensitivityX), (O.SensitivityX - 0.2f) / 2.8f, 21, Mouse); Y += Step;
 		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_looksensitivityvertical")), FString::Printf(TEXT("%.1f"), O.SensitivityY), (O.SensitivityY - 0.2f) / 2.8f, 22, Mouse); Y += Step;
-		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_invertlook")), OnOff(O.bInvertY), -1.f, 23, Mouse);
+		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_invertlook")), OnOff(O.bInvertY), -1.f, 23, Mouse); Y += Step;
+		OptionRow(Canvas, Y, NWText::Get(TEXT("ui_options_damage_numbers_display_mode")),
+			NWText::Get(O.DamageNumbers == 1 ? TEXT("ui_options_damage_numbers_display_mode_stacked") : TEXT("ui_options_damage_numbers_display_mode_floating")), -1.f, 24, Mouse);
 	}
 	const float BW = 220.f * S, BH = 52.f * S;
 	Button(Canvas, FBox2f(FVector2f(Panel.Max.X - 60.f * S - BW, Panel.Max.Y - 50.f * S - BH), FVector2f(Panel.Max.X - 60.f * S, Panel.Max.Y - 50.f * S)),
@@ -247,6 +249,7 @@ void FNWGameMenu::ChangeOption(int32 Id, int32 Dir, float BarValue)
 	case 21: Bar(O.SensitivityX, 0.2f, 3.f, 0.1f); break;
 	case 22: Bar(O.SensitivityY, 0.2f, 3.f, 0.1f); break;
 	case 23: O.bInvertY = !O.bInvertY; break;
+	case 24: O.DamageNumbers = O.DamageNumbers == 1 ? 0 : 1; break;
 	default: return;
 	}
 	O.Save();

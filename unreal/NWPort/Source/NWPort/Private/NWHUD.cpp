@@ -995,10 +995,18 @@ void ANWHUD::DrawDamageNumbers()
 		return;
 	}
 	const float S = Canvas->ClipY / 1080.f;
+	// Empilhado (opção do jogo): lista fixa à direita da mira, o mais novo embaixo; flutuando: sobre o alvo.
+	const bool bStacked = FNWOptions::Get().DamageNumbers == 1;
+	int32 Row = DamageNumbers.Num();
 	for (const FDamageNumber& N : DamageNumbers)
 	{
+		--Row;
 		FVector2D Screen;
-		if (!PC->ProjectWorldLocationToScreen(N.World, Screen, true))
+		if (bStacked)
+		{
+			Screen = FVector2D(Canvas->ClipX * 0.5f + 110.f * S, Canvas->ClipY * 0.5f - Row * 30.f * S);
+		}
+		else if (!PC->ProjectWorldLocationToScreen(N.World, Screen, true))
 		{
 			continue;
 		}
@@ -1010,7 +1018,8 @@ void ANWHUD::DrawDamageNumbers()
 		const float Alpha = FMath::Clamp((1.f - T) / 0.33f, 0.f, 1.f);
 		float W = 0.f, H = 0.f;
 		Canvas->TextSize(Font, N.Text, W, H, Scale, Scale);
-		const FVector2D At(Screen.X + N.Drift * S - W * 0.5f, Screen.Y - 70.f * S * T - H * 0.5f);
+		const FVector2D At = bStacked ? FVector2D(Screen.X, Screen.Y - H * 0.5f)
+			: FVector2D(Screen.X + N.Drift * S - W * 0.5f, Screen.Y - 70.f * S * T - H * 0.5f);
 		FCanvasTextItem Item(At, FText::FromString(N.Text), Font, N.Color.CopyWithNewOpacity(Alpha));
 		Item.Scale = FVector2D(Scale, Scale);
 		Item.EnableShadow(FLinearColor(0.f, 0.f, 0.f, 0.9f * Alpha));

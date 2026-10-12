@@ -36,6 +36,7 @@ struct NWPORT_API FNWOptions
 	float SensitivityX = 1.f;   // @ui_looksensitivityhorizontal
 	float SensitivityY = 1.f;   // @ui_looksensitivityvertical
 	bool bInvertY = false;      // @ui_invertlook
+	int32 DamageNumbers = 0;    // @ui_options_damage_numbers_display_mode: 0 flutuando, 1 empilhado
 	// Atalhos (@ui_options_kbm_controls): só as teclas trocadas; o resto fica no padrão.
 	TMap<FName, FKey> Keys;
 

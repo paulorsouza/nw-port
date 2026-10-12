@@ -100,6 +100,7 @@ void FNWOptions::Load()
 	Float(TEXT("SensitivityX"), SensitivityX);
 	Float(TEXT("SensitivityY"), SensitivityY);
 	Bool(TEXT("InvertY"), bInvertY);
+	Int(TEXT("DamageNumbers"), DamageNumbers);
 	for (const FNWKeyAction& A : KeyActions())
 	{
 		FString Name;
@@ -128,6 +129,7 @@ void FNWOptions::Save() const
 	GConfig->SetFloat(Section, TEXT("SensitivityX"), SensitivityX, GGameUserSettingsIni);
 	GConfig->SetFloat(Section, TEXT("SensitivityY"), SensitivityY, GGameUserSettingsIni);
 	GConfig->SetBool(Section, TEXT("InvertY"), bInvertY, GGameUserSettingsIni);
+	GConfig->SetInt(Section, TEXT("DamageNumbers"), DamageNumbers, GGameUserSettingsIni);
 	for (const FNWKeyAction& A : KeyActions())
 	{
 		const FString Key = TEXT("Key.") + A.Id.ToString();
