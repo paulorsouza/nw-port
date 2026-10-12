@@ -32,7 +32,8 @@ namespace NWTradeskill
  * Nível do personagem, XP e atributos, com as tabelas do jogo (Data/Progression/progression.json,
  * tools/make_progression.py): XP total por nível (javelindata_xpamountsbylevel), pontos de atributo ganhos a cada
  * nível e o efeito de cada valor de atributo (javelindata_attribute*). Cada atributo começa em 5.
- * O servidor é autoritativo. Ainda não é salvo no nw-core nem recebe XP de abates (docs/hud-original.md).
+ * O servidor é autoritativo e salva no nw-core (coluna progression). XP de personagem ainda não vem de coleta nem
+ * de abate (docs/hud-original.md); XP de ofício vem da coleta.
  */
 UCLASS(ClassGroup = (NW), meta = (BlueprintSpawnableComponent))
 class NWPORT_API UNWProgressionComponent : public UActorComponent
