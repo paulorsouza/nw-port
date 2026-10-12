@@ -83,6 +83,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float WalkSpeed = 165.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float RunSpeed = 400.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float SprintSpeed = 650.f;
+
+	// Câmera do jogo (DynamicCamera): foco 1,7 m acima dos pés e 0,5 m à direita, 2 m atrás; zoom de 0,2 a 6 m
+	// (1 m por clique da roda); FOV 50° vertical. Opções do jogador mudam o FOV (NW.Options).
+	UPROPERTY(EditAnywhere, Category = "NW|Câmera") float CameraFovVertical = 50.f;
+	UPROPERTY(EditAnywhere, Category = "NW|Câmera") float CameraZoom = 200.f;
+	UPROPERTY(EditAnywhere, Category = "NW|Câmera") float CameraZoomMin = 20.f;
+	UPROPERTY(EditAnywhere, Category = "NW|Câmera") float CameraZoomMax = 600.f;
 	// Velocidade de giro durante a janela Homing do ataque (graus/s).
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float HomingTurnRate = 540.f;
 	// Habilidades em Q, R e F (nomes de linha da tabela de ações).
@@ -134,6 +141,9 @@ protected:
 	void SkillMenuPressed();
 	void DevMenuPressed();
 	void UpdateCameraClipHide();
+	/** Câmera com os estados do jogo (libs/camera/gamecamera.xml, docs/hud-original.md): normal, sprint, inventário. */
+	void UpdateCamera(float DeltaSeconds);
+	void Zoom(const FInputActionValue& Value);
 	bool bHiddenForCamera = false;
 	void JumpPressed();
 	void JumpReleased();
@@ -166,6 +176,7 @@ private:
 	UPROPERTY() TObjectPtr<UInputMappingContext> Mapping;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Move;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Look;
+	UPROPERTY() TObjectPtr<UInputAction> IA_Zoom;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Attack;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Block;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Dodge;

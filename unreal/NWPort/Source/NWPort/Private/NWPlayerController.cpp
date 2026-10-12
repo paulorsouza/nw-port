@@ -32,6 +32,12 @@ ANWHUD* ANWPlayerController::GetNWHUD() const
 	return Cast<ANWHUD>(GetHUD());
 }
 
+bool ANWPlayerController::IsInventoryOpen() const
+{
+	const ANWHUD* HUD = Cast<ANWHUD>(GetHUD());
+	return HUD && HUD->Inventory.IsOpen();
+}
+
 ANWPlayerController::ANWPlayerController()
 {
 	Ambience = CreateDefaultSubobject<UNWAmbienceComponent>(TEXT("Ambience"));

@@ -15,6 +15,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Engine/GameViewportClient.h"
+#include "Camera/PlayerCameraManager.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
@@ -55,8 +57,10 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 320.f;
-	CameraBoom->SocketOffset = FVector(0.f, 55.f, 60.f);
+	// Valores iniciais da DynamicCamera do jogo; UpdateCamera troca por estado (sprint, inventário).
+	CameraBoom->SetRelativeLocation(FVector(0.f, 0.f, 170.f - 86.f));
+	CameraBoom->TargetArmLength = 200.f;
+	CameraBoom->SocketOffset = FVector(0.f, 50.f, 0.f);
 	CameraBoom->bUsePawnControlRotation = true;
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -170,6 +174,7 @@ void ANWCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	UpdateAutoSprint();
 	ApplySprint();
+	UpdateCamera(DeltaSeconds);
 	UpdateCameraClipHide();
 	if (HasAuthority() && bDummyAttacks && !IsPlayerControlled())
 	{
@@ -183,7 +188,13 @@ void ANWCharacter::Tick(float DeltaSeconds)
 	if (Controller && IsPlayerControlled())
 	{
 		const FRotator Target(0.f, Controller->GetControlRotation().Yaw, 0.f);
-		if ((!bBusy || Combat->IsCharging()) && !bSprinting)
+		const ANWPlayerController* NWPC = Cast<ANWPlayerController>(Controller);
+		if (NWPC && NWPC->IsInventoryOpen() && !bBusy && GetVelocity().Size2D() < 10.f)
+		{
+			// Inventário aberto: o personagem vira de frente para a câmera (BlendLookDirection do jogo).
+			SetActorRotation(FMath::RInterpTo(GetActorRotation(), FRotator(0.f, Target.Yaw + 180.f, 0.f), DeltaSeconds, 8.f));
+		}
+		else if ((!bBusy || Combat->IsCharging()) && !bSprinting)
 		{
 			SetActorRotation(FMath::RInterpTo(GetActorRotation(), Target, DeltaSeconds, 18.f));
 		}
@@ -241,6 +252,7 @@ void ANWCharacter::BuildInput()
 	Mapping = NewObject<UInputMappingContext>(this, TEXT("IMC_NW"));
 	IA_Move = MakeAction(this, TEXT("IA_Move"), EInputActionValueType::Axis2D);
 	IA_Look = MakeAction(this, TEXT("IA_Look"), EInputActionValueType::Axis2D);
+	IA_Zoom = MakeAction(this, TEXT("IA_Zoom"), EInputActionValueType::Axis1D);
 	IA_Attack = MakeAction(this, TEXT("IA_Attack"), EInputActionValueType::Boolean);
 	IA_Block = MakeAction(this, TEXT("IA_Block"), EInputActionValueType::Boolean);
 	IA_Dodge = MakeAction(this, TEXT("IA_Dodge"), EInputActionValueType::Boolean);
@@ -270,6 +282,7 @@ void ANWCharacter::BuildInput()
 	MapMove(EKeys::D, false, false);
 	MapMove(EKeys::A, false, true);
 	Mapping->MapKey(IA_Look, EKeys::Mouse2D);
+	Mapping->MapKey(IA_Zoom, EKeys::MouseWheelAxis);
 	Mapping->MapKey(IA_Attack, EKeys::LeftMouseButton);
 	Mapping->MapKey(IA_Block, EKeys::RightMouseButton);
 	Mapping->MapKey(IA_Jump, EKeys::SpaceBar);
@@ -304,6 +317,7 @@ void ANWCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	In->BindAction(IA_Move, ETriggerEvent::Triggered, this, &ANWCharacter::Move);
 	In->BindAction(IA_Move, ETriggerEvent::Completed, this, &ANWCharacter::Move);
 	In->BindAction(IA_Look, ETriggerEvent::Triggered, this, &ANWCharacter::Look);
+	In->BindAction(IA_Zoom, ETriggerEvent::Triggered, this, &ANWCharacter::Zoom);
 	In->BindAction(IA_Attack, ETriggerEvent::Started, this, &ANWCharacter::AttackPressed);
 	In->BindAction(IA_Attack, ETriggerEvent::Completed, this, &ANWCharacter::AttackReleased);
 	In->BindAction(IA_Block, ETriggerEvent::Started, this, &ANWCharacter::BlockPressed);
@@ -336,6 +350,58 @@ void ANWCharacter::Move(const FInputActionValue& Value)
 	const FRotator Yaw(0.f, Controller->GetControlRotation().Yaw, 0.f);
 	AddMovementInput(FRotationMatrix(Yaw).GetUnitAxis(EAxis::X), V.Y);
 	AddMovementInput(FRotationMatrix(Yaw).GetUnitAxis(EAxis::Y), V.X);
+}
+
+void ANWCharacter::Zoom(const FInputActionValue& Value)
+{
+	if (InMenu())
+	{
+		return;
+	}
+	// zoomAmount do jogo: 1 m por clique da roda; para cima aproxima.
+	CameraZoom = FMath::Clamp(CameraZoom - Value.Get<float>() * 100.f, CameraZoomMin, CameraZoomMax);
+}
+
+void ANWCharacter::UpdateCamera(float DeltaSeconds)
+{
+	if (!IsLocallyControlled() || !CameraBoom || !Camera)
+	{
+		return;
+	}
+	const ANWPlayerController* PC = Cast<ANWPlayerController>(Controller);
+	const bool bInventory = PC && PC->IsInventoryOpen();
+	// Estados do gamecamera.xml: (direita, altura acima dos pés, distância, inclinação mín./máx.).
+	float Right = 50.f, Height = 170.f, Distance = CameraZoom, PitchMin = -70.f, PitchMax = 60.f;
+	if (bInventory)
+	{
+		Right = 77.f; Height = 95.f; Distance = 275.f; PitchMin = -70.f; PitchMax = -10.f;   // UI_Inventory
+	}
+	else if (bSprinting && GetVelocity().Size2D() > RunSpeed)
+	{
+		Right = 70.f; Distance = FMath::Max(Distance, 400.f);                                   // MidCameraSprint
+	}
+	// Transição de 0,2 s (SmoothTime do jogo).
+	const float Speed = 1.f / 0.2f;
+	const float HalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	FVector Loc = CameraBoom->GetRelativeLocation();
+	Loc.Z = FMath::FInterpTo(Loc.Z, Height - HalfHeight, DeltaSeconds, Speed);
+	CameraBoom->SetRelativeLocation(Loc);
+	CameraBoom->SocketOffset.Y = FMath::FInterpTo(CameraBoom->SocketOffset.Y, Right, DeltaSeconds, Speed);
+	CameraBoom->TargetArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, Distance, DeltaSeconds, Speed);
+	if (APlayerCameraManager* PCM = PC ? PC->PlayerCameraManager.Get() : nullptr)
+	{
+		PCM->ViewPitchMin = PitchMin;
+		PCM->ViewPitchMax = PitchMax;
+	}
+	// FOV do jogo é vertical; a Unreal usa horizontal: converte pela proporção da tela.
+	FVector2D Viewport(16.f, 9.f);
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(Viewport);
+	}
+	const float Aspect = Viewport.Y > 0.f ? Viewport.X / Viewport.Y : 16.f / 9.f;
+	const float Vertical = bInventory ? 50.f : CameraFovVertical;
+	Camera->SetFieldOfView(FMath::RadiansToDegrees(2.f * FMath::Atan(FMath::Tan(FMath::DegreesToRadians(Vertical) * 0.5f) * Aspect)));
 }
 
 void ANWCharacter::Look(const FInputActionValue& Value)

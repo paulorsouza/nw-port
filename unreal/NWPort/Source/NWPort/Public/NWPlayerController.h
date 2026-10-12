@@ -60,6 +60,7 @@ public:
 	void ToggleDevMenu();
 	void CloseMenus();
 	bool IsMenuOpen() const;
+	bool IsInventoryOpen() const;
 
 	UFUNCTION(Server, Reliable) void ServerDev(ENWDevCommand Command);
 
