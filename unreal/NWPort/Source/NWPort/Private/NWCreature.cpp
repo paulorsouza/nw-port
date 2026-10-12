@@ -73,8 +73,8 @@ namespace
 	const FSetTuning* Tuning(FName Set)
 	{
 		static const TMap<FName, FSetTuning> T = {
-			{TEXT("boar"), {35.f, 35.f, 220.f, 140.f, 450.f, {TEXT("Attack1"), TEXT("Attack1"), TEXT("Heavy")}}},
-			{TEXT("wolf"), {30.f, 40.f, 210.f, 160.f, 520.f, {TEXT("Attack1"), TEXT("Attack2"), TEXT("Heavy"), TEXT("Leap")}}},
+			{TEXT("boar"), {42.f, 42.f, 240.f, 140.f, 450.f, {TEXT("Attack1"), TEXT("Attack1"), TEXT("Heavy")}}},
+			{TEXT("wolf"), {36.f, 42.f, 220.f, 160.f, 520.f, {TEXT("Attack1"), TEXT("Attack2"), TEXT("Heavy"), TEXT("Leap")}}},
 		};
 		return T.Find(Set);
 	}
@@ -154,6 +154,15 @@ void ANWCreature::ApplyAssets()
 	}
 	SetActorScale3D(FVector(D->Scale));
 	LoadMissingAssets();
+	// Quadrúpede é comprido e a cápsula é um cilindro em pé: o corpo (physics asset do import) também bloqueia quem
+	// anda (jogador) e recebe os golpes no formato do bicho. Câmera atravessa.
+	USkeletalMeshComponent* Body = GetMesh();
+	Body->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Body->SetCollisionObjectType(ECC_Pawn);
+	Body->SetCollisionResponseToAllChannels(ECR_Ignore);
+	Body->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	Body->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	Body->SetGenerateOverlapEvents(false);
 	// Blend space de andar do conjunto na variável Locomotion do ABP de criatura (como as armas do jogador).
 	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance())
 	{

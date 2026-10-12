@@ -1,5 +1,6 @@
 #include "NWHUD.h"
 #include "NWProgressionComponent.h"
+#include "NWCreature.h"
 #include "NWText.h"
 
 #include "NWBackend.h"
@@ -653,6 +654,10 @@ FString ANWHUD::DisplayName(const AActor* Actor)
 	if (Actor && Actor->IsA<ANWLost>())
 	{
 		return TEXT("Lost");
+	}
+	if (const ANWCreature* Creature = Cast<ANWCreature>(Actor); Creature && Creature->Def())
+	{
+		return NWText::Get(Creature->Def()->NameKey);   // nome do jogo ("Javali", "Lobo Grisalho")
 	}
 	if (Actor && Actor->IsA<ANWCharacter>() && !Actor->IsA<ANWLost>())
 	{

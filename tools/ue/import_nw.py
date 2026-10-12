@@ -11,6 +11,7 @@ Cria em /Game/NW/<conjunto>/:
 import json
 import math
 import os
+import re
 import sys
 
 import unreal
@@ -106,11 +107,17 @@ else:
     mel = unreal.MaterialEditingLibrary
 
 
-    def master_material():
-        path = f"{P_MAT}/M_NW_SpecGloss"
+    def master_material(masked=False):
+        # Mascarado: pelo/cabelo do jogo (cartões com recorte no alfa da textura de cor), dois lados.
+        name = "M_NW_SpecGloss_Masked" if masked else "M_NW_SpecGloss"
+        path = f"{P_MAT}/{name}"
         if eal.does_asset_exist(path):
             return load(path)
-        mat = get_or_create("M_NW_SpecGloss", P_MAT, unreal.Material, unreal.MaterialFactoryNew())
+        mat = get_or_create(name, P_MAT, unreal.Material, unreal.MaterialFactoryNew())
+        if masked:
+            mat.set_editor_property("blend_mode", unreal.BlendMode.BLEND_MASKED)
+            mat.set_editor_property("two_sided", True)
+            mat.set_editor_property("opacity_mask_clip_value", 0.4)
         def tex(name, x, y, sampler=unreal.MaterialSamplerType.SAMPLERTYPE_COLOR):
             n = mel.create_material_expression(mat, unreal.MaterialExpressionTextureSampleParameter2D, x, y)
             n.set_editor_property("parameter_name", name)
@@ -142,6 +149,8 @@ else:
         mel.connect_material_property(sat, "", unreal.MaterialProperty.MP_METALLIC)
         mel.connect_material_property(rough, "", unreal.MaterialProperty.MP_ROUGHNESS)
         mel.connect_material_property(norm, "RGB", unreal.MaterialProperty.MP_NORMAL)
+        if masked:
+            mel.connect_material_property(diff, "A", unreal.MaterialProperty.MP_OPACITY_MASK)
         mel.recompile_material(mat)
         eal.save_loaded_asset(mat)
         return mat
@@ -162,13 +171,14 @@ else:
 
 
     master = master_material()
+    master_masked = master_material(masked=True)
     instances = {}
     for mat_name, chans in m.get("materials", {}).items():
         if "Base Color" not in chans:
             continue
         mi = get_or_create(f"MI_{mat_name}", P_MAT, unreal.MaterialInstanceConstant,
                                 unreal.MaterialInstanceConstantFactoryNew())
-        mel.set_material_instance_parent(mi, master)
+        mel.set_material_instance_parent(mi, master_masked if chans.get("Alpha") else master)
         mel.set_material_instance_texture_parameter_value(mi, "Diffuse", import_texture(chans["Base Color"]))
         if chans.get("Specular IOR Level"):
             mel.set_material_instance_texture_parameter_value(mi, "Spec", import_texture(chans["Specular IOR Level"]))
@@ -178,14 +188,24 @@ else:
         instances[mat_name] = mi
 
 
+    def slot_key(name):
+        # Slot da malha x material do glb: sem diferença de caixa nem sufixo do Blender (.001) / do FBX (_skin).
+        n = re.sub(r"\.\d+$", "", str(name)).lower()
+        return re.sub(r"_skin\d*$", "", n)
+
+    by_key = {slot_key(k): v for k, v in instances.items()}
+
     def assign_materials(mesh):
         mats = mesh.get_editor_property("materials")
         changed = False
         for slot in mats:
             name = str(slot.get_editor_property("material_slot_name"))
-            if name in instances:
-                slot.set_editor_property("material_interface", instances[name])
-                changed = True
+            mi = instances.get(name) or by_key.get(slot_key(name))
+            if mi is None:
+                unreal.log_warning(f"material: slot {name} sem instância ({sorted(instances)})")
+                continue
+            slot.set_editor_property("material_interface", mi)
+            changed = True
         if changed:
             mesh.set_editor_property("materials", mats)
             eal.save_loaded_asset(mesh)
