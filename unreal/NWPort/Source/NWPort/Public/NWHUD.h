@@ -89,7 +89,8 @@ private:
 	void DrawGameHUD();
 	/** Coleta: "[E] Minerar Filão de Ferro" perto de um coletável e a barra durante a coleta. */
 	void DrawGather(const APawn* Me);
-	struct FLootLine { FString Icon; FString Text; FLinearColor Color; double Time; };
+	// Linha do aviso de saque (hud2024/lootticker): item (ícone, raridade, tier, quantidade) ou moedas.
+	struct FLootLine { FName ItemId; int32 Quantity = 0; uint8 Rarity = 0; int64 Coins = 0; double Time = 0.0; };
 	TArray<FLootLine> LootLines;
 	// Membros do grupo à esquerda, com a barra de membro do jogo (Data/UI/group_layout.json).
 	void DrawGroup(const APawn* Me);

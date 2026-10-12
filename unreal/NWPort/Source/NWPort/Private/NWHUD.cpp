@@ -739,16 +739,19 @@ void ANWHUD::ShowLoot(const TArray<FNWItem>& Gained, int64 Coins)
 	const double Now = FPlatformTime::Seconds();
 	if (Coins > 0)
 	{
-		LootLines.Add({FString(), FString::Printf(TEXT("+%lld  %s"), Coins, *NWText::Get(TEXT("nw.inv.coins"))), FLinearColor(0.93f, 0.78f, 0.25f), Now});
+		LootLines.Add({NAME_None, 0, 0, Coins, Now});
 	}
 	for (const FNWItem& I : Gained)
 	{
-		const FNWItemDef* D = FNWItemCatalog::Get().Find(I.ItemId);
-		if (D)
+		if (FNWItemCatalog::Get().Find(I.ItemId))
 		{
-			LootLines.Add({D->Icon, I.Quantity > 1 ? FString::Printf(TEXT("%s  x%d"), *D->Name, I.Quantity) : D->Name,
-				D->Type == TEXT("weapon") ? NWRarityColor(I.Rarity) : FLinearColor(0.93f, 0.88f, 0.78f), Now});
+			LootLines.Add({I.ItemId, I.Quantity, I.Rarity, 0, Now});
 		}
+	}
+	// No máximo 5 linhas, como o jogo (o resto vira "mais itens"; aqui as mais antigas saem).
+	while (LootLines.Num() > 5)
+	{
+		LootLines.RemoveAt(0);
 	}
 }
 
@@ -757,31 +760,64 @@ void ANWHUD::DrawLootTicker()
 	const double Now = FPlatformTime::Seconds();
 	LootLines.RemoveAll([Now](const FLootLine& L) { return Now - L.Time > 6.0; });
 	UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
-	if (!Font || LootLines.Num() == 0)
+	if (!Font || LootLines.Num() == 0 || !Canvas)
 	{
 		return;
 	}
-	// À direita, no meio da tela, como o aviso de saque do jogo: ícone + nome; some nos últimos 1,5 s.
+	// LootTicker2024: canto inferior direito (x de -802, y de -490 da tela 1080p), linhas de 58 px, a mais nova em cima.
 	const float S = Canvas->ClipY / 1080.f;
-	const float Scale = 20.f * S / FMath::Max(1, Font->LegacyFontSize);
-	const float IconSize = 40.f * S;
-	float Y = Canvas->ClipY * 0.42f;
+	const FVector2D O(Canvas->ClipX - 802.f * S, Canvas->ClipY - 490.f * S);
+	auto Tex = [&](const FString& Path, FVector2D Pos, FVector2D Size, float Alpha, FLinearColor Tint = FLinearColor::White)
+	{
+		if (UTexture2D* T = FNWUILayout::GameTexture(Path))
+		{
+			FCanvasTileItem Item(Pos, T->GetResource(), Size, Tint.CopyWithNewOpacity(Tint.A * Alpha));
+			Item.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(Item);
+		}
+	};
+	auto Text = [&](const FString& Str, float X, float Y, float Size, FLinearColor Color, float Alpha)
+	{
+		const float Scale = Size * S / FMath::Max(1, Font->LegacyFontSize);
+		DrawText(Str, Color.CopyWithNewOpacity(Alpha), X, Y, Font, Scale);
+	};
+	float MaxAlpha = 0.f;
 	for (const FLootLine& L : LootLines)
 	{
+		MaxAlpha = FMath::Max(MaxAlpha, FMath::Clamp(float(6.0 - (Now - L.Time)) / 1.5f, 0.f, 1.f));
+	}
+	Tex(TEXT("lyshineui/images/hud2024/lootticker/loottickerbg.dds"), O + FVector2D(28.f, 0.f) * S, FVector2D(420.f, 310.f) * S, 0.8f * MaxAlpha);
+	const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6));
+	for (int32 i = 0; i < LootLines.Num(); ++i)
+	{
+		const FLootLine& L = LootLines[LootLines.Num() - 1 - i];
 		const float Alpha = FMath::Clamp(float(6.0 - (Now - L.Time)) / 1.5f, 0.f, 1.f);
-		const float X = Canvas->ClipX - 380.f * S;
-		DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.45f * Alpha), X - 8.f * S, Y - 2.f * S, 360.f * S, IconSize + 4.f * S);
-		if (!L.Icon.IsEmpty())
+		const FVector2D Row = O + FVector2D(0.f, 12.f + i * 58.f) * S;
+		Tex(TEXT("lyshineui/images/lootticker/progressiontickeritembg.dds"), Row + FVector2D(2.f, -12.f) * S, FVector2D(385.f, 68.f) * S, Alpha);
+		if (L.Coins > 0)
 		{
-			if (UTexture2D* Tex = ResolveTexture(L.Icon))
-			{
-				DrawTexture(Tex, X, Y, IconSize, IconSize, 0.f, 0.f, 1.f, 1.f, FLinearColor(1.f, 1.f, 1.f, Alpha));
-			}
+			Tex(TEXT("lyshineui/images/icons/objectives/reward_coin_cover.dds"), Row + FVector2D(52.f, 8.f) * S, FVector2D(42.f) * S, Alpha);
+			Text(FString::Printf(TEXT("+%lld"), L.Coins), Row.X + 107.f * S, Row.Y + 14.f * S, 19.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
+			Text(NWText::Get(TEXT("nw.inv.coins")), Row.X + 175.f * S, Row.Y + 14.f * S, 18.f, Tan, Alpha);
+			continue;
 		}
-		float W = 0.f, H = 0.f;
-		Canvas->TextSize(Font, L.Text, W, H, Scale, Scale);
-		DrawText(L.Text, L.Color.CopyWithNewOpacity(Alpha), X + IconSize + 10.f * S, Y + (IconSize - H) * 0.5f, Font, Scale);
-		Y += IconSize + 8.f * S;
+		const FNWItemDef* D = FNWItemCatalog::Get().Find(L.ItemId);
+		if (!D)
+		{
+			continue;
+		}
+		// Peça do item (ItemLayoutSimple) reduzida a 92 x 46: fundo, faixa de raridade, ícone e tier.
+		const int32 Rarity = D->Type == TEXT("weapon") ? FMath::Min<int32>(L.Rarity, 4) : FMath::Clamp(D->Tier - 1, 0, 4);
+		const FVector2D Tile = Row + FVector2D(10.f, 6.f) * S;
+		const FVector2D TileSize = FVector2D(92.f, 46.f) * S;
+		Tex(TEXT("lyshineui/images/lootticker/lootticker_itembg_square.dds"), Tile - FVector2D(3.f) * S, TileSize + FVector2D(6.f) * S, Alpha);
+		Tex(FString::Printf(TEXT("lyshineui/images/slices/itemlayout/itemraritybglarge%d.dds"), Rarity), Tile, TileSize, Alpha);
+		Tex(D->Icon, Tile + FVector2D((TileSize.X - TileSize.Y) * 0.5f, 0.f), FVector2D(TileSize.Y), Alpha);
+		static const TCHAR* Roman[] = {TEXT(""), TEXT("I"), TEXT("II"), TEXT("III"), TEXT("IV"), TEXT("V")};
+		Text(Roman[FMath::Clamp(D->Tier, 0, 5)], Tile.X + 4.f * S, Tile.Y, 13.f, Tan, Alpha);
+		// "+N" e o nome à direita (ItemQuantity / ItemName), nome na cor da raridade das armas.
+		Text(FString::Printf(TEXT("+%d"), L.Quantity), Row.X + 112.f * S, Row.Y + 16.f * S, 18.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
+		Text(D->Name, Row.X + 160.f * S, Row.Y + 16.f * S, 18.f, D->Type == TEXT("weapon") ? NWRarityColor(L.Rarity) : Tan, Alpha);
 	}
 }
 
