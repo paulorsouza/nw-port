@@ -43,6 +43,7 @@ const TArray<FNWKeyAction>& FNWOptions::KeyActions()
 		{TEXT("Consumable1"), TEXT("ui_consumable1"), EKeys::Three},
 		{TEXT("Interact"), TEXT("ui_interact"), EKeys::E},
 		{TEXT("Inventory"), TEXT("ui_inventory"), EKeys::Tab},
+		{TEXT("Map"), TEXT("ui_map"), EKeys::M},
 		{TEXT("Mastery"), TEXT("ui_mastery"), EKeys::K},
 	};
 	return Actions;

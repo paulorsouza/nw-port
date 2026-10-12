@@ -61,6 +61,8 @@ public:
 
 	void ToggleSkillMenu();
 	void ToggleInventory();
+	/** Mapa do mundo (M). */
+	void ToggleMap();
 	void ToggleDevMenu();
 	void CloseMenus();
 	bool IsMenuOpen() const;
@@ -109,6 +111,8 @@ private:
 	void LeaveMenuInput();
 	void OnMenuClick();
 	void OnMenuRightClick();
+	void OnWheelUp();
+	void OnWheelDown();
 	class ANWHUD* GetNWHUD() const;
 
 	void HandleChatCommand(const FString& Text);

@@ -280,6 +280,7 @@ void ANWCharacter::BuildInput()
 	}
 
 	IA_AutoRun = MakeAction(this, TEXT("IA_AutoRun"), EInputActionValueType::Boolean);
+	IA_Map = MakeAction(this, TEXT("IA_Map"), EInputActionValueType::Boolean);
 	MapKeys();
 }
 
@@ -314,6 +315,7 @@ void ANWCharacter::MapKeys()
 	Mapping->MapKey(IA_Dodge, Key(TEXT("Dodge")));
 	Mapping->MapKey(IA_Walk, Key(TEXT("Walk")));
 	Mapping->MapKey(IA_AutoRun, Key(TEXT("AutoRun")));
+	Mapping->MapKey(IA_Map, Key(TEXT("Map")));
 	Mapping->MapKey(IA_Abilities[0], Key(TEXT("Ability1")));
 	Mapping->MapKey(IA_Abilities[1], Key(TEXT("Ability2")));
 	Mapping->MapKey(IA_Abilities[2], Key(TEXT("Ability3")));
@@ -368,6 +370,7 @@ void ANWCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	In->BindAction(IA_Interact, ETriggerEvent::Started, this, &ANWCharacter::InteractPressed);
 	In->BindAction(IA_Walk, ETriggerEvent::Started, this, &ANWCharacter::WalkPressed);
 	In->BindAction(IA_AutoRun, ETriggerEvent::Started, this, &ANWCharacter::AutoRunPressed);
+	In->BindAction(IA_Map, ETriggerEvent::Started, this, &ANWCharacter::MapPressed);
 	In->BindAction(IA_Walk, ETriggerEvent::Completed, this, &ANWCharacter::WalkReleased);
 	In->BindAction(IA_Abilities[0], ETriggerEvent::Started, this, &ANWCharacter::Ability1);
 	In->BindAction(IA_Abilities[1], ETriggerEvent::Started, this, &ANWCharacter::Ability2);
@@ -568,6 +571,14 @@ void ANWCharacter::UsePotion()
 	if (!InMenu() && Inventory)
 	{
 		Inventory->ServerUseBestPotion();
+	}
+}
+
+void ANWCharacter::MapPressed()
+{
+	if (ANWPlayerController* PC = Cast<ANWPlayerController>(Controller))
+	{
+		PC->ToggleMap();
 	}
 }
 

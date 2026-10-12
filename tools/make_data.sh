@@ -12,6 +12,7 @@ step tools/make_gatherables.py
 step tools/make_items.py
 step tools/make_abilities.py
 step tools/make_progression.py
+step tools/make_worldmap.py
 step tools/build_strings.py
 step tools/ui_build_hud.py
 step tools/ui_build_mastery.py

@@ -51,6 +51,7 @@ antes dos comandos manuais.
 | `make_gatherables.py` | coletáveis de Guardaventos: capitals + `region.distribution` → `Data/World/guardaventos_gatherables.json` |
 | `make_terrain.py` | malha do terreno (recorte em volta da cidade ou `--region` inteira) a partir do heightmap |
 | `make_abilities.py` | habilidades por arma para a HUD e a maestria |
+| `make_worldmap.py` | mapa do mundo (M): referencial da cidade, limites da região e tiles do jogo (níveis 2 e 3) em volta de Guardaventos → `Data/World/worldmap.json` e `extract/ui/worldmap_textures.txt` |
 | `make_progression.py` | nível do personagem (XP total por nível, pontos de atributo) e efeito de cada valor de atributo → `Data/Progression/progression.json` |
 | `make_datatables.py` | CSV das DataTables de dano e ações |
 | `make_sound_map.py` | liga sons às animações (passos, golpes, vozes) |

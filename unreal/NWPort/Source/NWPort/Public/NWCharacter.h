@@ -180,6 +180,8 @@ private:
 	void AutoRunPressed() { bAutoRun = !bAutoRun; }
 	bool bAutoRun = false;
 	UPROPERTY() TObjectPtr<UInputAction> IA_AutoRun;
+	UPROPERTY() TObjectPtr<UInputAction> IA_Map;
+	void MapPressed();
 
 	UPROPERTY() TObjectPtr<UInputMappingContext> Mapping;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Move;

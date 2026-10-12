@@ -13,7 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 TEX = os.path.join(ROOT, "extract", "ui", "tex")
 LISTS = [os.path.join(ROOT, "extract", "ui", n) for n in ("hud_textures.txt", "mastery_textures.txt", "login_textures.txt", "respawn_textures.txt", "group_textures.txt", "inventory_textures.txt",
                                                          "compass_textures.txt", "encumbrance_textures.txt", "interactscreen_textures.txt",
-                                                         "damagenumbers_textures.txt", "unifiedinteract_textures.txt", "lootticker2024_textures.txt", "tooltip_textures.txt")]
+                                                         "damagenumbers_textures.txt", "unifiedinteract_textures.txt", "lootticker2024_textures.txt", "tooltip_textures.txt", "worldmap_textures.txt")]
 eal = unreal.EditorAssetLibrary
 tools = unreal.AssetToolsHelpers.get_asset_tools()
 
@@ -43,7 +43,12 @@ for line in lines:
         continue
     tex = run_import(png, folder, name)
     if tex:
-        tex.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_EDITOR_ICON)
+        # Tiles do mapa (1024 px, opacos, muitos): comprimidos (DXT1, 0,5 MB cada em vez de 4 MB); o resto sem perda.
+        tile = "/worldtiles/" in path
+        tex.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_DEFAULT if tile
+                                else unreal.TextureCompressionSettings.TC_EDITOR_ICON)
+        if tile:
+            tex.set_editor_property("srgb", True)
         tex.set_editor_property("lod_group", unreal.TextureGroup.TEXTUREGROUP_UI)
         tex.set_editor_property("mip_gen_settings", unreal.TextureMipGenSettings.TMGS_NO_MIPMAPS)
         tex.set_editor_property("never_stream", True)

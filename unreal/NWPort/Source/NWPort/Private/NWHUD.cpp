@@ -372,6 +372,18 @@ void ANWHUD::DrawGameHUD()
 		Chat.Draw(Canvas);
 		return;
 	}
+	if (WorldMap.IsOpen())
+	{
+		float MX = 0.f, MY = 0.f;
+		bool bDown = false;
+		if (APlayerController* PC = GetOwningPlayerController())
+		{
+			PC->GetMousePosition(MX, MY);
+			bDown = PC->IsInputKeyDown(EKeys::LeftMouseButton);
+		}
+		WorldMap.Draw(Canvas, FVector2D(MX, MY), bDown, Me);
+		return;
+	}
 	if (Inventory.IsOpen())
 	{
 		float MX = 0.f, MY = 0.f;

@@ -78,7 +78,7 @@ bool ANWPlayerController::IsMenuOpen() const
 {
 	const ANWHUD* HUD = GetNWHUD();
 	return OpenMenu.IsValid() || (HUD && (HUD->Mastery.IsOpen() || HUD->Login.IsActive() || HUD->Chat.IsOpen() || HUD->Inventory.IsOpen()
-		|| HUD->GameMenu.IsOpen()));
+		|| HUD->GameMenu.IsOpen() || HUD->WorldMap.IsOpen()));
 }
 
 void ANWPlayerController::EnterMenuInput()
@@ -133,6 +133,7 @@ void ANWPlayerController::CloseMenus()
 		HUD->Mastery.Close();
 		HUD->Inventory.Close();
 		HUD->GameMenu.Close();
+		HUD->WorldMap.Close();
 	}
 	if (bWasOpen)
 	{
@@ -186,6 +187,50 @@ void ANWPlayerController::ToggleInventory()
 		Mode.SetHideCursorDuringCapture(false);
 		SetInputMode(Mode);
 		EnterMenuInput();
+	}
+}
+
+void ANWPlayerController::ToggleMap()
+{
+	ANWHUD* HUD = GetNWHUD();
+	if (!HUD || HUD->Login.IsActive() || HUD->IsDeathScreen())
+	{
+		return;
+	}
+	if (HUD->WorldMap.IsOpen())
+	{
+		CloseMenus();
+		return;
+	}
+	CloseMenus();
+	HUD->WorldMap.Open(GetPawn());
+	if (HUD->WorldMap.IsOpen())
+	{
+		FInputModeGameAndUI Mode;
+		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		Mode.SetHideCursorDuringCapture(false);
+		SetInputMode(Mode);
+		EnterMenuInput();
+	}
+}
+
+void ANWPlayerController::OnWheelUp()
+{
+	ANWHUD* HUD = GetNWHUD();
+	float X = 0.f, Y = 0.f;
+	if (HUD && HUD->WorldMap.IsOpen() && GetMousePosition(X, Y))
+	{
+		HUD->WorldMap.Wheel(1.f, FVector2D(X, Y));
+	}
+}
+
+void ANWPlayerController::OnWheelDown()
+{
+	ANWHUD* HUD = GetNWHUD();
+	float X = 0.f, Y = 0.f;
+	if (HUD && HUD->WorldMap.IsOpen() && GetMousePosition(X, Y))
+	{
+		HUD->WorldMap.Wheel(-1.f, FVector2D(X, Y));
 	}
 }
 
@@ -257,6 +302,8 @@ void ANWPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ANWPlayerController::OnEscape).bConsumeInput = false;
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ANWPlayerController::OpenChat).bConsumeInput = false;
 	InputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &ANWPlayerController::OnMenuRightClick).bConsumeInput = false;
+	InputComponent->BindKey(EKeys::MouseScrollUp, IE_Pressed, this, &ANWPlayerController::OnWheelUp).bConsumeInput = false;
+	InputComponent->BindKey(EKeys::MouseScrollDown, IE_Pressed, this, &ANWPlayerController::OnWheelDown).bConsumeInput = false;
 }
 
 void ANWPlayerController::OnMenuClick()
@@ -290,6 +337,11 @@ void ANWPlayerController::OnMenuClick()
 	if (HUD && HUD->Inventory.IsOpen())
 	{
 		HUD->Inventory.Click(FVector2D(X, Y), false);
+		return;
+	}
+	if (HUD && HUD->WorldMap.IsOpen())
+	{
+		HUD->WorldMap.Click(FVector2D(X, Y));
 		return;
 	}
 	if (HUD && HUD->IsDeathScreen())

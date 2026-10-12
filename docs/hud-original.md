@@ -43,6 +43,19 @@ Abas: `@ui_options_visuals` (Vídeo), `@ui_options_audio` (Áudio), `@ui_options
 - Jogo: `@ui_language` (Idioma do Texto), `@ui_looksensitivityhorizontal`, `@ui_looksensitivityvertical`,
   `@ui_invertlook`, `@ui_cameraShake`, `@ui_options_damage_numbers_display_mode`.
 
+## Mapa do mundo (`lyshineui/worldmap/magicmap`, tecla M)
+
+- Tela cheia; o conteúdo são tiles `lyshineui/worldtiles/newworld_vitaeeterna/map_l<z>_y<yyy>_x<xxx>.dds` de 1024 px.
+  Nível 1: 56 × 56 tiles de 256 m (4 px/m; o mundo tem 14 336 m). Nível z: 256·2^(z−1) m por tile, índices de
+  2^(z−1) em 2^(z−1); níveis 1 a 8. O índice y cresce para o norte (conferido sobrepondo os coletáveis: só assim
+  eles evitam o mar).
+- Guardaventos (r_+04_+01) = x 8192–10240, y 2048–4096; a cidade (`Settlement_SouthWindsward_Complete`) está em
+  (9349,6; 2702,2) com giro −94°.
+- Peças: degradê `map/map_gradient` (em cima/embaixo) e `map/map_gradientside` (lados), régua `map/scale_key` com o
+  texto da distância embaixo, botões à direita (`CenterPlayer`, `ZoomInButton`, `ZoomOutButton`: `buttonbg` +
+  `heroframedisabled2023`), ícone do jogador `map/icon/player`. Ícones de POI em `map/icon/pois` (194),
+  coletáveis em `map/icon/gatherables` e NPCs em `map/icon/npcs`.
+
 ## Atalhos (`libs/config/defaultprofile.xml`)
 
 Mapa de ações do jogo (CryEngine actionmaps), com as teclas padrão por ação: `moveforward/back/left/right` W/S/A/D,
@@ -99,6 +112,7 @@ Ver a tabela de estado no fim deste arquivo, atualizada a cada etapa.
 | Menu do Esc | feito: Continuar, Configurações, Sair para o Menu Principal, Sair para a Área de Trabalho (`FNWGameMenu`) |
 | Configurações | feitas, textos do jogo: Vídeo (qualidade, modo de janela, FPS máximo, VSync, campo de visão, desfoque, exibir FPS), Áudio (geral, música, efeitos, ambiente), Jogo (idioma, sensibilidade H/V, inverter eixo). Salvas em GameUserSettings.ini [NW.Options] (`FNWOptions`) |
 | Atalhos | feitos: aba "Atalhos de Teclado e Mouse" nas configurações, 19 ações com os textos e as teclas padrão do jogo; clicar e apertar a tecla troca (Esc cancela, conflito troca as duas), "Restaurar Padrões"; salvos em [NW.Options] `Key.<Ação>` e aplicados na hora (`ANWCharacter::RebuildKeys`). Corrida automática (=) adicionada: frente/trás cancela |
+| Mapa do mundo (M) | feito: tiles do jogo (nível 2 de perto, 3 de longe) em volta de Guardaventos, borda da região, ícone do jogador virado para onde olha, degradês, régua de escala em metros, coordenadas do jogo, botões centralizar/aproximar/afastar, roda aproxima no cursor, arrastar move (`FNWWorldMap`). Faltam POIs, coletáveis e NPCs no mapa |
 | Bússola | feita: tira compass2048 rolando com a câmera, linha e agulha (`ANWHUD::DrawCompass`; norte do mapa em yaw −4°) |
 | Números de dano | feitos: sobem e somem sobre o alvo; vermelho = dano em mim; bloqueio/esquiva/guarda quebrada em texto (`ANWHUD::DrawDamageNumbers`) |
 | Cartão de coleta | feito: anel `marker_ringgather` no objeto, nome na faixa `unifiedinteractcardtextbg`, tecla em `hintframefilled` + ação; durante a coleta o anel de progresso enche com o tempo no meio (`ANWHUD::DrawGather`) |
