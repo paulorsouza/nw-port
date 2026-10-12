@@ -56,8 +56,26 @@ Abas: `@ui_options_visuals` (Vídeo), `@ui_options_audio` (Áudio), `@ui_options
 ## Status
 
 - `hud2024/paperdollstatus`: estado do equipamento (durabilidade) na HUD.
-- `hud2024/xp`: barra de experiência (o port ainda não tem níveis de personagem).
+- `hud2024/xp`: barra de 334 × 58 no rodapé central: nível (`LevelText`, 27) em três molduras `xpmeternumberframe*`,
+  barra `xpmeterfill` com máscara e ponta `afflictionmeteredge`, XP descansado (`MeterRestedFill`, roxo),
+  multiplicador "XP x N" e o aviso "+N XP" (`DeltaXpText`).
 - `statuseffectsv2`, `afflictions2024`: efeitos ativos.
+
+## Nível, XP e atributos (tabelas do jogo)
+
+- `javelindata_xpamountsbylevel`: 70 linhas (`Level Number` 0–69). `XPToLevel` é o XP **total** acumulado
+  (150, 480, 1080…; 2,7 M na última). `AttributePoints`: 5 por nível no começo, 10 no fim; 510 no total.
+  Também `AttributeRespecCost` (moedas para redistribuir) e `Health` (vida por nível).
+  Leitura do port: nível n começa em `XPToLevel[n-1]`; ao chegar no nível n+1 ganha `AttributePoints[n]`.
+- `javelindata_attribute<força|destreza|inteligência|foco|constituição>`: uma linha por valor do atributo (5 a 500).
+  `ModifierValue` cai de 1,25 para 0,8 (retorno decrescente) e `ModifierValueSum` é o acumulado, usado no
+  escalonamento do dano das armas. Foco tem `HealScaling`. Constituição tem `Health`, já acumulado
+  (6 = 40, 14 = 360, 54 = 1908, 500 = 13769). Cada atributo começa em 5.
+- `javelindata_gameevents`: recompensas por evento. Coleta: `Gather_<Mining|Logging|Harvesting|Skinning>T<n>` com
+  `UniversalExpAmount` (3,35 a 23,45) e XP de profissão (`CategoricalProgressionReward`). Abate: `KillEvent` com
+  `UniversalExpAmount` 1. Não está nas tabelas como o servidor chega ao XP final de um abate (o valor parece ser
+  multiplicado por algo do nível da criatura) nem qual `T<n>` cada coletável usa. Por isso o port ainda não dá XP
+  por coleta ou abate: só o comando de dev "Ganhar 1 nível".
 
 ## O que o port já tem e o que foi feito agora
 
@@ -77,4 +95,7 @@ Ver a tabela de estado no fim deste arquivo, atualizada a cada etapa.
 | Aviso de saque (loot ticker) | feito: fundo `loottickerbg`, linhas de 58 px com sombra `progressiontickeritembg`, item em `lootticker_itembg_square` + raridade + ícone + tier, "+N" e nome; moedas com `reward_coin_cover`; até 5 linhas, a mais nova em cima (`ANWHUD::DrawLootTicker`) |
 | Bolsa e sobrecarga | feitas: bolsa na barra de ações com % do peso a partir de 80%; acima de 1000 fica vermelha com o aviso do jogo (`inv_equiploadencumberednotification`) e o personagem não corre, não esquiva e não pula |
 | Status (painel de equipamento) | feito: Pontuação do Equipamento (média das armas), Saúde, Vigor e Peso com os textos do jogo, no fundo `equipmentstatsbackdrop2023`; atributos (FOR/DES/INT/FOC/CON) dependem de um sistema que o port ainda não tem |
-| Barra de XP, durabilidade, efeitos | depende de sistemas que o port ainda não tem |
+| Barra de XP | feita: tela `hud2024/xp` do jogo na HUD (nível, preenchimento do nível atual, ponta que acompanha, "+N XP" por 2,5 s). Nível e XP no `UNWProgressionComponent` com a curva do jogo; sem XP descansado nem multiplicador |
+| Atributos | feitos no painel de status: Nível com XP do nível, Força/Destreza/Inteligência/Foco/Constituição (base 5), pontos livres e "+" para distribuir (servidor confere). Ainda não mudam dano nem vida |
+| Pendências de progressão | origem do XP (coleta e abate, ver acima); salvar nível/XP/atributos no nw-core (migration); efeitos dos atributos no combate |
+| Durabilidade, efeitos | dependem de sistemas que o port ainda não tem |

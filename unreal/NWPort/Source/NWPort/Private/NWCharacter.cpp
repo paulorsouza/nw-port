@@ -25,6 +25,7 @@
 #include "NWCombatComponent.h"
 #include "NWTraversalComponent.h"
 #include "NWGatherComponent.h"
+#include "NWProgressionComponent.h"
 #include "NWInventoryComponent.h"
 #include "NWOptions.h"
 #include "NWPlayerController.h"
@@ -114,6 +115,7 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Traversal = CreateDefaultSubobject<UNWTraversalComponent>(TEXT("Traversal"));
 	Inventory = CreateDefaultSubobject<UNWInventoryComponent>(TEXT("Inventory"));
 	Gather = CreateDefaultSubobject<UNWGatherComponent>(TEXT("Gather"));
+	Progression = CreateDefaultSubobject<UNWProgressionComponent>(TEXT("Progression"));
 
 	// Caminhos criados pelo tools/ue/import_nw.py (conjunto sword_shield).
 	MeshAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SK_player_male.SK_player_male")));

@@ -48,6 +48,8 @@ public:
 	bool IsDeathScreen() const { return bDeathScreen; }
 	/** Saque recebido (UNWInventoryComponent::ClientLoot): uma linha por item, à direita, por 6 s. */
 	void ShowLoot(const TArray<struct FNWItem>& Gained, int64 Coins);
+	/** XP ganho (UNWProgressionComponent::ClientXpGained): "+N XP" ao lado do nível por 2,5 s. */
+	void ShowXp(int64 Amount);
 	// Depois de trocar o idioma (NWText::SetLang): recarrega as telas.
 	void ReloadLanguage();
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -65,6 +67,10 @@ private:
 	void DrawTarget(const APawn* Me);
 	void DrawNameplates(const APawn* Me);
 	void UpdateConsumables(const class ANWCharacter* Me);
+	/** Barra de XP do jogo (hud2024/xp): nível no meio, preenchimento do nível atual. */
+	void UpdateXp(const class ANWCharacter* Me);
+	int64 XpShown = 0;
+	double XpShownAt = -100.0;
 	void DrawLootTicker();
 	/**
 	 * Bússola do jogo no topo (lyshineui/compass): tira compass2048 rolando com a câmera, linha compassbg e agulha.

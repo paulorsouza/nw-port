@@ -59,6 +59,7 @@ private:
 	FBox2f BagArea = FBox2f(ForceInit);
 	FBox2f EquipPanel = FBox2f(ForceInit);
 	FBox2f TabRects[2];
+	FBox2f PointRects[5];   // "+" dos atributos (só com pontos livres)
 	int32 EquipTab = 0;   // 0 armas e armadura, 1 ferramentas
 	bool bPicked = false;
 	ENWItemContainer PickedContainer = ENWItemContainer::Bag;

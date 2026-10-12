@@ -1,4 +1,5 @@
 #include "NWHUD.h"
+#include "NWProgressionComponent.h"
 #include "NWText.h"
 
 #include "NWBackend.h"
@@ -40,6 +41,7 @@ static TAutoConsoleVariable<int32> CVarHudDebug(TEXT("nw.HudDebug"), 0, TEXT("Mo
 static const TCHAR* VitalsCanvas = TEXT("vitals2024");
 static const TCHAR* WeaponCanvas = TEXT("weaponquickslots");
 static const TCHAR* ConsumableCanvas = TEXT("consumablequickslots");
+static const TCHAR* XpCanvas = TEXT("xp");
 
 static const TCHAR* SlotNames[3] = {TEXT("WeaponAbility"), TEXT("WeaponAbility2"), TEXT("WeaponAbility3")};
 static const TCHAR* SetNames[2] = {TEXT("WeaponQuickslots/WeaponAbilitySet"), TEXT("WeaponQuickslots/WeaponAbilitySet2")};
@@ -401,6 +403,7 @@ void ANWHUD::DrawGameHUD()
 		UpdateVitals(C, Dt);
 		UpdateAbilities(Me, Dt);
 		UpdateConsumables(Me);
+		UpdateXp(Me);
 		Layout.Draw(Canvas);
 	}
 
@@ -1026,5 +1029,42 @@ void ANWHUD::DrawEncumbrance(const APawn* Me)
 		const FVector2D BgPos(Slot.X - W - 50.f * S, Slot.Y + 6.f * S);
 		Tex(TEXT("lyshineui/images/encumbrance/encumbrance_messagebgside.dds"), BgPos, FVector2D(W + 46.f * S, 48.f * S), FLinearColor::White);
 		DrawText(Msg, FLinearColor(FColor(0xFF, 0x9A, 0x8A)), BgPos.X + 18.f * S, BgPos.Y + (48.f * S - H) * 0.5f, Font, Scale);
+	}
+}
+
+void ANWHUD::ShowXp(int64 Amount)
+{
+	const double Now = FPlatformTime::Seconds();
+	// Ganhos seguidos somam no mesmo aviso.
+	XpShown = Now - XpShownAt < 2.5 ? XpShown + Amount : Amount;
+	XpShownAt = Now;
+}
+
+void ANWHUD::UpdateXp(const ANWCharacter* Me)
+{
+	const UNWProgressionComponent* P = Me->Progression;
+	if (!P)
+	{
+		return;
+	}
+	const float Fill = P->LevelProgress();
+	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("LevelText"))) E->TextOverride = FString::FromInt(P->Level);
+	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("MeterFill"))) E->Fill = Fill;
+	// A ponta acompanha o preenchimento (no jogo o Lua move; largura da barra = 322).
+	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("MeterFillEdge")))
+	{
+		E->Translate = FVector2f(322.f * Fill, 0.f);
+		E->Visible = Fill > 0.f && Fill < 1.f;
+	}
+	const double Age = FPlatformTime::Seconds() - XpShownAt;
+	const bool bDelta = Age < 2.5;
+	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("DeltaXpBg")))
+	{
+		E->Visible = bDelta;
+		E->AlphaMul = FMath::Clamp(float(2.5 - Age) / 0.5f, 0.f, 1.f);
+	}
+	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("DeltaXpText")))
+	{
+		E->TextOverride = FString::Printf(TEXT("+%lld %s"), XpShown, *NWText::Get(TEXT("ui_xp")));
 	}
 }

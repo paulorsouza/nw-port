@@ -39,7 +39,8 @@ GAME_KEYS = ["ui_play", "ui_enter", "ui_cancel", "ui_back", "ui_characters", "ui
              "ui_buyorder_gear_score_label", "ui_health", "ui_stamina", "ui_encumbrance",
              "raritylevel0_displayname", "raritylevel1_displayname", "raritylevel2_displayname",
              "raritylevel3_displayname", "raritylevel4_displayname", "ui_equipped", "ui_tooltip_required",
-             "ui_tooltip_weight", "ui_tooltip_gatherspeed", "ui_tooltip_basedamage"]
+             "ui_tooltip_weight", "ui_tooltip_gatherspeed", "ui_tooltip_basedamage", "ui_xp",
+             "ui_level", "ui_attribute_point", "ui_strength", "ui_dexterity", "ui_intelligence", "ui_focus", "ui_constitution"]
 GATHERABLES = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "guardaventos_gatherables.json")
 
 

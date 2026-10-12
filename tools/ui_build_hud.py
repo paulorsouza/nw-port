@@ -13,10 +13,12 @@ import subprocess
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UI = os.path.join(ROOT, "extract", "ui")
 CANVASES = ["vitals/vitals2024", "weaponquickslots/weaponquickslots", "consumablequickslots/consumablequickslots",
-            "reticles/reticlescanvas"]
+            "reticles/reticlescanvas", "xp/xp"]
 # Alças do modo de edição e elementos que o Lua só liga em situações específicas.
 EXCLUDE = ["HudLayoutElementDraggable", "MountStaminaMeterLayoutElement", "ForceDismountTimerLayoutElement",
-           "AbilityChannelLayoutElement", "HeartgemLayoutElement", "ComboPointsLayoutElement"]
+           "AbilityChannelLayoutElement", "HeartgemLayoutElement", "ComboPointsLayoutElement",
+           # Barra de XP: XP descansado, multiplicador de bônus e o brilho de ganho (o port não tem).
+           "MeterRestedFill", "MultiplierBg", "IncreaseDelta"]
 # Imagens que o jogo troca por script (ícones de habilidade e de arma).
 EXTRA = ["lyshineui/images/icons/abilities/sword_ability02.dds", "lyshineui/images/icons/abilities/sword_ability04.dds",
          "lyshineui/images/icons/abilities/sword_ability05.dds", "lyshineui/images/icons/abilities/sword_ability06.dds",

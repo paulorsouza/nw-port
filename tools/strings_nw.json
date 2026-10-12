@@ -386,5 +386,9 @@
   "nw.hit.dodged": {
     "pt-br": "Esquivou",
     "en-us": "Dodged"
+  },
+  "nw.dev.give_level": {
+    "pt-br": "Ganhar 1 nível",
+    "en-us": "Gain 1 level"
   }
 }

@@ -1,4 +1,5 @@
 #include "NWPlayerController.h"
+#include "NWProgressionComponent.h"
 #include "NWText.h"
 
 #include "Engine/Engine.h"
@@ -393,6 +394,10 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		break;
 	case ENWDevCommand::GiveTools:
 		if (Me && Me->Inventory) Me->Inventory->GiveTools();
+		break;
+	case ENWDevCommand::GiveLevel:
+		// XP que falta para o próximo nível (testar a barra de XP e os pontos de atributo).
+		if (Me && Me->Progression) Me->Progression->AddXp(FMath::Max<int64>(1, UNWProgressionComponent::XpForLevel(Me->Progression->Level + 1) - Me->Progression->Xp));
 		break;
 	case ENWDevCommand::GoToOre:
 		// Veio de minério disponível mais perto: põe o personagem a 1,5 m, de frente para ele.

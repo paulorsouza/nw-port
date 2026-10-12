@@ -6,6 +6,7 @@
 #include "NWCharacter.h"
 #include "NWCombatComponent.h"
 #include "NWInventoryComponent.h"
+#include "NWProgressionComponent.h"
 #include "NWText.h"
 
 static const FLinearColor InvTan(FColor(0xEB, 0xE3, 0xD6));
@@ -310,12 +311,63 @@ void FNWInventoryMenu::DrawEquipPanel(UCanvas* Canvas, const FVector2D& Mouse)
 
 void FNWInventoryMenu::DrawStatus(UCanvas* Canvas)
 {
-	// Status no rodapé do equipamento (o "Atributos" da equipmentv3): pontuação média das armas, saúde, vigor e peso.
+	// Status no rodapé do equipamento (o "Atributos" da equipmentv3): nível e XP, os cinco atributos (com "+" quando
+	// há pontos para distribuir), pontuação média das armas, saúde, vigor e peso.
 	const ANWCharacter* Me = Character.Get();
 	const UNWInventoryComponent* Inv = Me->Inventory;
+	const UNWProgressionComponent* P = Me->Progression;
 	const float S = UIScale;
-	const FBox2f Box(FVector2f(EquipPanel.Min.X + 24.f * S, EquipPanel.Max.Y - 230.f * S), FVector2f(EquipPanel.Max.X - 24.f * S, EquipPanel.Max.Y - 36.f * S));
+	const FBox2f Box(FVector2f(EquipPanel.Min.X + 24.f * S, EquipPanel.Max.Y - 336.f * S), FVector2f(EquipPanel.Max.X - 24.f * S, EquipPanel.Max.Y - 36.f * S));
 	DrawTexture(Canvas, FString::Printf(TEXT("%sequipmentstatsbackdrop2023.dds"), EquipDir), Box, FLinearColor(1.f, 1.f, 1.f, 0.85f));
+	const float L = Box.Min.X + 24.f * S, R = Box.Max.X - 24.f * S, RowH = 27.f * S;
+	float Y = Box.Min.Y + 16.f * S;
+	auto Row = [&](const FString& Key, const FString& Value, const FLinearColor& Color)
+	{
+		DrawText(Canvas, Key, L, Y, 16.f, InvDim);
+		DrawText(Canvas, Value, R - TextWidth(Value, 17.f, 1), Y - 1.f * S, 17.f, Color, 1);
+		Y += RowH;
+	};
+	auto Separator = [&]()
+	{
+		DrawTexture(Canvas, TEXT("lyshineui/images/slices/sectionheader/sectionheaderline.dds"),
+			FBox2f(FVector2f(L, Y + 2.f * S), FVector2f(R, Y + 5.f * S)), FLinearColor(0.35f, 0.35f, 0.35f));
+		Y += 10.f * S;
+	};
+	for (FBox2f& PR : PointRects)
+	{
+		PR = FBox2f(ForceInit);
+	}
+	if (P)
+	{
+		const FString Xp = P->Level >= P->MaxLevel() ? FString(TEXT("-"))
+			: FString::Printf(TEXT("%lld / %lld"), P->Xp - P->XpForLevel(P->Level), P->XpForLevel(P->Level + 1) - P->XpForLevel(P->Level));
+		DrawText(Canvas, FString::Printf(TEXT("%s %d"), *NWText::Get(TEXT("ui_level")), P->Level), L, Y - 1.f * S, 18.f, InvTan, 1);
+		DrawText(Canvas, Xp, R - TextWidth(Xp, 15.f), Y + 1.f * S, 15.f, InvDim);
+		Y += RowH;
+		const int32 Free = P->UnspentPoints();
+		if (Free > 0)
+		{
+			DrawText(Canvas, FString::Printf(TEXT("%s: %d"), *NWText::Get(TEXT("ui_attribute_point")), Free), L, Y, 15.f, InvGold);
+			Y += RowH - 4.f * S;
+		}
+		Separator();
+		static const TCHAR* Names[] = {TEXT("ui_strength"), TEXT("ui_dexterity"), TEXT("ui_intelligence"), TEXT("ui_focus"), TEXT("ui_constitution")};
+		for (int32 a = 0; a < 5; ++a)
+		{
+			const FString Value = FString::FromInt(P->Attribute(ENWAttribute(a)));
+			const float VX = R - (Free > 0 ? 30.f * S : 0.f) - TextWidth(Value, 17.f, 1);
+			DrawText(Canvas, NWText::Get(Names[a]), L, Y, 16.f, InvDim);
+			DrawText(Canvas, Value, VX, Y - 1.f * S, 17.f, InvTan, 1);
+			if (Free > 0)
+			{
+				PointRects[a] = FBox2f(FVector2f(R - 22.f * S, Y - 1.f * S), FVector2f(R, Y + 21.f * S));
+				DrawTexture(Canvas, TEXT("lyshineui/images/slices/hint/hintframefilled.dds"), PointRects[a]);
+				DrawText(Canvas, TEXT("+"), PointRects[a].GetCenter().X - TextWidth(TEXT("+"), 17.f, 2) * 0.5f, Y, 17.f, InvGold, 2);
+			}
+			Y += RowH;
+		}
+		Separator();
+	}
 	int32 Sum = 0, Count = 0;
 	for (int32 Slot = 0; Slot < NWEquip::FirstTool; ++Slot)
 	{
@@ -326,19 +378,10 @@ void FNWInventoryMenu::DrawStatus(UCanvas* Canvas)
 		}
 	}
 	const UNWCombatComponent* C = Me->Combat;
-	const TArray<TPair<FString, FString>> Rows = {
-		{NWText::Get(TEXT("ui_buyorder_gear_score_label")), Count ? FString::FromInt(Sum / Count) : TEXT("-")},
-		{NWText::Get(TEXT("ui_health")), FString::Printf(TEXT("%.0f / %.0f"), C->Health, C->MaxHealth)},
-		{NWText::Get(TEXT("ui_stamina")), FString::Printf(TEXT("%.0f / %.0f"), C->Stamina, C->MaxStamina)},
-		{NWText::Get(TEXT("ui_encumbrance")), FString::Printf(TEXT("%.1f / %.0f"), Inv->TotalWeight(), UNWInventoryComponent::MaxWeight)},
-	};
-	float Y = Box.Min.Y + 26.f * S;
-	for (const auto& R : Rows)
-	{
-		DrawText(Canvas, R.Key, Box.Min.X + 24.f * S, Y, 17.f, InvDim);
-		DrawText(Canvas, R.Value, Box.Max.X - 24.f * S - TextWidth(R.Value, 18.f, 1), Y - 1.f * S, 18.f, R.Key == Rows[0].Key ? InvGold : InvTan, 1);
-		Y += 38.f * S;
-	}
+	Row(NWText::Get(TEXT("ui_buyorder_gear_score_label")), Count ? FString::FromInt(Sum / Count) : TEXT("-"), InvGold);
+	Row(NWText::Get(TEXT("ui_health")), FString::Printf(TEXT("%.0f / %.0f"), C->Health, C->MaxHealth), InvTan);
+	Row(NWText::Get(TEXT("ui_stamina")), FString::Printf(TEXT("%.0f / %.0f"), C->Stamina, C->MaxStamina), InvTan);
+	Row(NWText::Get(TEXT("ui_encumbrance")), FString::Printf(TEXT("%.1f / %.0f"), Inv->TotalWeight(), UNWInventoryComponent::MaxWeight), InvTan);
 }
 
 TArray<FString> FNWInventoryMenu::Wrap(const FString& Text, float Width, float Size, int32 Style) const
@@ -559,6 +602,14 @@ void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 		return;
 	}
 	UNWInventoryComponent* Inv = Me->Inventory;
+	for (int32 a = 0; a < 5; ++a)
+	{
+		if (!bRight && Me->Progression && PointRects[a].bIsValid && PointRects[a].IsInside(FVector2f(Mouse)))
+		{
+			Me->Progression->ServerSpendPoint(ENWAttribute(a));
+			return;
+		}
+	}
 	for (int32 t = 0; t < 2; ++t)
 	{
 		if (!bRight && TabRects[t].IsInside(FVector2f(Mouse)))

@@ -101,6 +101,7 @@ void SNWDevMenu::Construct(const FArguments& Args)
 		return FText::FromString(C && C->DevSpeedMultiplier > 1.f ? NWText::Get(TEXT("nw.dev.on")) : NWText::Get(TEXT("nw.dev.off")));
 	}, Dev(ENWDevCommand::ToggleFastRun)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_tools")), nullptr, Dev(ENWDevCommand::GiveTools)));
+	Add(Button(NWText::Get(TEXT("nw.dev.give_level")), nullptr, Dev(ENWDevCommand::GiveLevel)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_ore")), nullptr, Dev(ENWDevCommand::GoToOre)));
 	Add(Header(NWText::Get(TEXT("nw.dev.enemies"))), 12.f);
 	Add(Button(NWText::Get(TEXT("nw.dev.spawn_lost")), nullptr, Dev(ENWDevCommand::SpawnLost)));
