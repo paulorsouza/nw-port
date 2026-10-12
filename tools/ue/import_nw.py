@@ -287,8 +287,9 @@ AXES = {
 for bs_name, bs in m["blendspaces"].items():
     dims = [d["name"] for d in bs["dimensions"]]
     # eixo X = direção; eixo Y = a outra dimensão; amostras com inclinação diferente de 0 ficam de fora
-    x_i = dims.index("TravelAngle")
-    y_i = next(i for i, d in enumerate(dims) if d in ("MoveSpeed", "TurnSpeed"))
+    # Quadrúpedes (javali, lobo) não andam de lado: giro × velocidade (X = giro, Y = velocidade).
+    x_i = dims.index("TravelAngle") if "TravelAngle" in dims else dims.index("TurnSpeed")
+    y_i = next(i for i, d in enumerate(dims) if d in ("MoveSpeed", "TurnSpeed") and i != x_i)
     slope_i = dims.index("TravelSlope") if "TravelSlope" in dims else None
     factory = unreal.BlendSpaceFactoryNew()
     factory.set_editor_property("target_skeleton", skeleton)
@@ -296,6 +297,9 @@ for bs_name, bs in m["blendspaces"].items():
     params = []
     for i in (x_i, y_i):
         label, lo, hi, _ = AXES[dims[i]]
+        if dims[i] == "MoveSpeed":
+            # Corrida de bicho passa dos 4 m/s (lobo até 9,2): o eixo vai até o máximo do blend space do jogo.
+            hi = max(hi, bs["dimensions"][i].get("max", 0.0) * 100.0 + 50.0)
         p = unreal.BlendParameter()
         p.set_editor_property("display_name", label)
         p.set_editor_property("min", lo)

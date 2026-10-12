@@ -52,6 +52,12 @@ uma por vez, sem build em paralelo.
   água, estradas e props dos 9 POIs.
 - **G3 — Criaturas.** Conteúdo dos spawners → tabela de spawn; um conjunto (`tools/sets/*.json`) por família,
   começando por javali e lobo; IA de patrulha/vagar do jogo; saque e XP.
+  **Em andamento (2026-10-12):** `tools/make_spawns.py` (1216 spawns, 114 criaturas; spawner → AIVariantProvider →
+  `javelindata_vitals`; waypoints com tarefas; vida/dano na escala do port pelo `vitalsleveldata`), conjuntos
+  `boar` e `wolf` importados, `ANWCreature` (patrulha, perseguição, volta para casa), `ANWSpawnField` (nasce a 60 m,
+  some a 90 m, renasce em 2–5 min), carcaça para esfolar (coletáveis `Boar`/`Wolf` do jogo). Falta: o grafo do
+  `ABP_NW_Creature` (manual), testar, XP de personagem por abate (escala do `KillEvent` desconhecida), saque de
+  `CreatureLootMaster` (condições/tags), próximas famílias (peru, coelho, esqueletos, Lost, Corrompidos...).
 - **G4 — Cidade viva.** NPCs da cidade com idle, interação com E (cartão do jogo), baú da cidade, mercador,
   teleportes.
 - **G5 — Baús de saque e vegetação.** 180 baús dos POIs; floresta dos lotes `<PLOT>`.

@@ -1,7 +1,7 @@
 # Testes pendentes (G2 e telas de 2026-10-12)
 
-Antes de tudo, com o editor fechado: `tools/ue_import_all.sh 09` (texturas das telas novas). Depois abrir o editor,
-`L_SouthWindsward`, Play. Para cada item: print se algo estiver errado (de preferência com o console `stat fps`).
+Já importado (2026-10-12): texturas das telas (etapa 09) e javali/lobo (etapa 12). Abrir o editor, `L_SouthWindsward`,
+Play. Para cada item: print se algo estiver errado (de preferência com o console `stat fps`).
 
 ## G2 — terreno, água, cenário
 
@@ -33,3 +33,19 @@ Antes de tudo, com o editor fechado: `tools/ue_import_all.sh 09` (texturas das t
     com "=". Jogo > Números de dano empilhados. Vídeo > Brilho.
 14. **Combate.** Apanhar de um Lost pelos lados e por trás: seta e brilho vermelho do lado certo.
 15. **Avisos.** Encher a bolsa: faixa amarela "bolsa cheia" no alto, não no chat.
+
+## G3 — criaturas (javali e lobo)
+
+**Passo manual, uma vez** (o resto já está importado): abrir `/Game/NW/Creatures/ABP_NW_Creature` (ABP de modelo,
+classe NWAnimInstance) e montar o AnimGraph:
+`Blend Space Player` → `Slot 'DefaultSlot'` → `Output Pose`. No Blend Space Player, expor o pino *Blend Space* e
+ligar à variável **Locomotion**; eixo X = **TurnRate**, eixo Y = **Speed**. Compilar e salvar.
+
+16. **Nascem perto de você.** Sair da cidade (F10 > corrida rápida ajuda). Javalis e lobos aparecem nos POIs a até
+    60 m e somem quando você se afasta 90 m. Andam pelos waypoints e param nas tarefas (pastar...).
+17. **Combate.** Chegar perto: perseguem e atacam (javali: chifrada e investida; lobo: mordidas e bote). Indicador de
+    golpe, números de dano. Fugir para longe (40 m da casa deles): desistem e voltam.
+18. **Morte.** Morrer para um: a tela de morte diz "Javali"/"Lobo Grisalho".
+19. **Esfolar.** Matar e chegar perto da carcaça: cartão "Esfolar Javali" (sem faca: pede a faca). E: animação de
+    esfolar, saque do jogo (carne, couro) e "+95 Esfolamento" no aviso.
+20. **Escala e chão.** Tamanho certo (javali 1,4×)? Pé no chão ou flutuando/enterrado? Print se algo estiver estranho.
