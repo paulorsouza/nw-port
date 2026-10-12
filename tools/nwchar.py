@@ -174,6 +174,12 @@ def attach_armor(arm, glb):
     bpy.ops.import_scene.gltf(filepath=glb)
     new = set(scene.objects) - before
     pieces = [o for o in new if o.type == "MESH" and base(o.name) != "Icosphere"]
+    # O glb repete capa e saia em dois nós com a mesma malha: fica um objeto por malha.
+    seen = set()
+    for o in sorted(pieces, key=lambda o: o.name):
+        if o.data.name in seen:
+            pieces.remove(o)
+        seen.add(o.data.name)
     for o in [o for o in new if o not in pieces]:
         bpy.data.objects.remove(o)
     for o in pieces:
@@ -199,8 +205,9 @@ def to_centimeters(arm, meshes):
     k = 100.0
     scale = Matrix.Scale(k, 4)
     arm.data.transform(scale)
-    for o in meshes:
-        o.data.transform(scale)
+    # Uma vez por malha: objetos que dividem a malha a escalariam de novo (capa a 100x, as "formas no céu").
+    for data in {o.data for o in meshes}:
+        data.transform(scale)
     for act in bpy.data.actions:
         for fc in channelbag(act).fcurves:
             if fc.data_path.endswith(".location") or fc.data_path == "location":
