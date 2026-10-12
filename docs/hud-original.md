@@ -114,6 +114,26 @@ Os nomes na tela vêm de `ui_movefoward`, `ui_runtoggle`, `ui_walk`, `ui_rolldod
   nível no dado do saque). XP por coleta = `CategoricalProgressionReward` do evento (ex.: pedregulho pequeno 64,
   pinheiro grande 199). `RequiredTradeskillLevel` exige nível (pinheiro grande 50, planta da morte 30).
 
+## Telas do jogo que o port ainda não tem
+
+Todas extraídas em `extract/ui/lyshineui/<pasta>` (rodar `tools/ui_canvas.py` para ver a árvore). Cada uma depende
+de um sistema que o port não tem:
+
+| Tela | Canvas | Depende de |
+|---|---|---|
+| Criação (estações) | `crafting/craftingscreenv4` | receitas, estações na cidade, ofícios de refino/criação |
+| Contratos / bolsa de comércio | `contracts/contractbrowser` | economia entre jogadores no nw-core |
+| Troca | `trade/tradescreen` | troca entre jogadores (RPC + backend) |
+| Social / Companhia | `socialpane/*`, `guildmenu/guild` | amigos e companhias no nw-core |
+| Diário e objetivos | `objectives/journalscreen`, `objectiveshud` | missões (dados `javelindata_objectives*`) |
+| Efeitos ativos | `statuseffects/statuseffectsv2`, `hud2024/afflictions` | efeitos de estado (poções com duração, venenos) |
+| Moradia | `housing/*` | casas e decoração |
+| Território, projetos | `territory/*` | posse de território, impostos |
+| Pousada | `inn/inninteractmenu` | pontos de renascer/viagem rápida |
+| Quadro de missões | `missionboard/missionboard` | missões de cidade |
+| Emotes | `emoteui/emoteui` | animações de emote (há clipes no pak) |
+| Masmorras | `dungeons/dungeonenterscreen` | expedições |
+
 ## O que o port já tem e o que foi feito agora
 
 Ver a tabela de estado no fim deste arquivo, atualizada a cada etapa.
