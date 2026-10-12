@@ -4,11 +4,9 @@ previews/
 reference/
 .nwbt/
 *.nwbt/
+# Código de terceiros clonado (versões e build em docs/FERRAMENTAS.md); os binários prontos ficam em bin/.
 vendor/
-bin/
-tools/ooz-linux/
 __pycache__/
-*.so
 
 # Unreal: binários, caches e todo o Content (gerado pelos imports a partir dos assets do jogo).
 unreal/NWPort/Binaries/

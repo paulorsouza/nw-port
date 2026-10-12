@@ -29,7 +29,12 @@ sudo apt install git build-essential cmake python3 python3-numpy python3-pil win
 ```bash
 git clone https://github.com/paulorsouza/nw-port.git ~/workspace/nw-port
 cd ~/workspace/nw-port
-mkdir -p vendor bin
+```
+
+Os binários das ferramentas (Linux x86-64) já vêm em `bin/`. Só recompile se não rodarem na sua máquina:
+
+```bash
+mkdir -p vendor
 
 # nw-buddy (nwbt) com as mudanças do port: branch nw-port do repositório privado.
 git clone -b nw-port https://github.com/paulorsouza/nw-buddy.git vendor/nw-buddy
@@ -43,7 +48,14 @@ git clone https://github.com/powzix/ooz tools/ooz-linux
 curl -L -o bin/texconv.exe https://github.com/microsoft/DirectXTex/releases/latest/download/texconv.exe
 ```
 
-Áudio (wwiser, vgmstream-cli e oggenc): comandos em `docs/ASSETS.md`, seção Áudio.
+O wwiser (Python, usado pela extração de áudio) não tem binário: clone sempre.
+
+```bash
+git clone https://github.com/bnnm/wwiser vendor/wwiser && git -C vendor/wwiser checkout 08e937b
+```
+
+vgmstream-cli e oggenc do zero: `docs/ASSETS.md`, seção Áudio. Lista completa de ferramentas e versões:
+`docs/FERRAMENTAS.md`. Com o Claude Code no Windows: skill `nw-wsl`.
 
 O caminho do jogo vem de `NW_GAME` (padrão `/mnt/jogos/Steam/steamapps/common/New World`):
 
