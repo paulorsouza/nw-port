@@ -13,6 +13,8 @@ def import_tables(manifest):
     tools = unreal.AssetToolsHelpers.get_asset_tools()
     log = unreal.log
     data_dir = os.path.join(os.path.dirname(manifest), "data")
+    if not os.path.isdir(data_dir):
+        unreal.log_warning(f"sem {data_dir}: DataTables nao importadas (rode tools/make_datatables.py {manifest})")
     for csv_name in sorted(os.listdir(data_dir)) if os.path.isdir(data_dir) else []:
         table = os.path.splitext(csv_name)[0]
         struct_path = ("/Script/NWPort.NWCameraShakeRow" if "CameraShake" in table
