@@ -246,14 +246,14 @@ def sources_of(txtp):
     for line in txtp.read_text(errors="replace").splitlines():
         if line.lstrip().startswith("#"):
             continue
-        m = re.search(r"([^\s?]\S*\.bnk) #s(\d+).*?##(\d+)\.wem", line)
+        m = re.search(r'^\s*(?!\?)([^#\r\n]+?\.bnk)"?\s+#s(\d+).*?##(\d+)\.wem', line)
         if m:
-            wid, src = m.group(3), (Path(m.group(1)), int(m.group(2)))
+            wid, src = m.group(3), (Path(m.group(1).strip().strip('"')), int(m.group(2)))
         else:
-            m = re.search(r"([^\s?]\S*/(\d+)\.wem)", line)
+            m = re.search(r'^\s*(?!\?)([^#\r\n]+?[/\\](\d+)\.wem)', line)
             if not m:
                 continue
-            wid, src = m.group(2), (Path(m.group(1)), None)
+            wid, src = m.group(2), (Path(m.group(1).strip().strip('"')), None)
         if wid not in seen:
             seen.add(wid)
             out.append((wid, src))

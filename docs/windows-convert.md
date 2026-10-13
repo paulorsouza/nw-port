@@ -154,6 +154,12 @@ uma DLL explicitamente; no Windows, uma configuracao inexistente falha sem fallb
 
 ## Validacao
 
+O roteiro para o desenvolvedor esta em [setup-windows-test.md](../setup-windows-test.md).
+`tools/windows/check_migration.py` confere caches e referencias do checkout copiado do WSL;
+`--apply` corrige caminhos e bancos de audio com backup e invalida somente marcadores afetados.
+A conferencia e estrutural e nao substitui o aceite com dados reais e Unreal. O orquestrador
+de importacao e o launcher Windows continuam pendentes.
+
 MSVC x64: ooz.dll compilou; nwbt.exe e dbgwater.exe tambem compilaram nativamente. O script de build
 foi exercitado em checkout limpo e repetido com o patch ja aplicado; ambos passaram. texconv.exe
 executou diretamente no Windows. Os scripts Python alterados passaram em compilacao e --help;

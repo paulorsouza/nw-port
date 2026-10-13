@@ -28,6 +28,8 @@ tools/ue_import_all.sh     # monta o projeto Unreal (editor fechado, ~1 h 30)
 
 ## Estrutura
 
+Teste nativo e migração do WSL: [setup-windows-test.md](setup-windows-test.md).
+
 | Pasta | Conteúdo |
 |---|---|
 | `unreal/NWPort` | projeto Unreal (C++ em `Source/`, configuração em `Config/`) |
