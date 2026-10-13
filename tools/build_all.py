@@ -144,7 +144,7 @@ class Extraction:
 
     def ui(self):
         self.unpack("extract/ui", r"lyshineui/.*\.dynamicuicanvas$", 4, "--x-objects", "json", *self.objects())
-        self.unpack("extract/ui/tex", r"lyshineui/fonts/.*\.otf$", 2)
+        self.unpack("extract/ui/tex", r"lyshineui/fonts/.*\.(otf|ttf)$", 2)
         self.unpack("extract/ui/luac", r"lyshineui/.*\.luac$", 2)
 
     def terrain_data(self):
@@ -199,9 +199,15 @@ class Extraction:
                 texture = line.strip()
                 if texture and not (self.root / "extract/ui/tex" / str(Path(texture).with_suffix(".png"))).is_file():
                     wanted.add(texture)
-        if wanted:
-            pattern = "^(" + "|".join(re.escape(name) for name in sorted(wanted)) + ")$"
-            self.unpack("extract/ui/tex", pattern, 2, "--x-dds", "png")
+        # Lotes abaixo do limite de 32 KiB da linha de comando do Windows.
+        batch = []
+        for name in sorted(wanted) + [None]:
+            if batch and (name is None or sum(len(n) + 1 for n in batch) + len(name) > 20000):
+                pattern = "^(" + "|".join(batch) + ")$"
+                self.unpack("extract/ui/tex", pattern, 2, "--x-dds", "png")
+                batch = []
+            if name is not None:
+                batch.append(re.escape(name))
 
     def systems_slices(self):
         for pattern in (

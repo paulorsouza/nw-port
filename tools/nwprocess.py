@@ -38,7 +38,16 @@ def available_memory():
     raise ResourceError("MemAvailable indisponivel")
 
 
+def memory_floor(memory):
+    # NW_MIN_MEM_GIB limita os minimos de memoria em maquinas com pouca folga.
+    configured = os.environ.get("NW_MIN_MEM_GIB")
+    if memory and configured:
+        return min(memory, int(float(configured) * GIB))
+    return memory
+
+
 def require_resources(paths=(), memory=0, disk=0):
+    memory = memory_floor(memory)
     if memory and available_memory() < memory:
         raise ResourceError(f"menos de {memory / GIB:g} GiB de memoria disponivel")
     for path in paths:
@@ -199,6 +208,10 @@ def run(command, *, cwd=nwplatform.ROOT, log=None, min_memory=0, timeout=None,
     print("==", subprocess.list2cmdline(command), flush=True)
     if dry_run:
         return
+    if nwplatform.store_python():
+        raise ResourceError(f"Python da Microsoft Store ({sys.executable}) nao contem os processos filhos; "
+                            "instale o Python de python.org e rode com ele")
+    min_memory = memory_floor(min_memory)
     require_resources(memory=min_memory)
     job = None
     process = None

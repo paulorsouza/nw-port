@@ -46,6 +46,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    if not args.dry_run:
+        # Data/ e ignorado pelo Git; num checkout novo os scripts de UI gravam em Data/UI sem cria-la.
+        (nwplatform.ROOT / "unreal/NWPort/Data/UI").mkdir(parents=True, exist_ok=True)
     try:
         run_steps(steps(nwplatform.ROOT), nwplatform.ROOT, args.dry_run)
     except (OSError, subprocess.CalledProcessError) as exc:

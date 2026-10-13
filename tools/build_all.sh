@@ -87,7 +87,7 @@ s02() {  # tabelas do jogo e textos (pt-BR e en-US)
 s03() {  # telas (LyShine), fontes e scripts Lua das telas
     # shellcheck disable=SC2046
     guarded nwbt_ unpack -g "$GAME" -o extract/ui -e -w 4 $(objects_args) 'lyshineui/.*\.dynamicuicanvas$'
-    guarded nwbt_ unpack -g "$GAME" -o extract/ui/tex -e -w 2 'lyshineui/fonts/.*\.otf$'
+    guarded nwbt_ unpack -g "$GAME" -o extract/ui/tex -e -w 2 'lyshineui/fonts/.*\.(otf|ttf)$'
     guarded nwbt_ unpack -g "$GAME" -o extract/ui/luac -e -w 2 'lyshineui/.*\.luac$'
 }
 s04() {  # receitas de animação (.adb do Mannequin)

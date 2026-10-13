@@ -1,6 +1,7 @@
 """Caminhos e ferramentas compartilhados pelos scripts Linux e Windows."""
 import os
 import shutil
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,6 +28,18 @@ def executable(name):
     if bundled.is_file():
         return str(bundled)
     return shutil.which(filename) or filename
+
+
+def store_python():
+    # O Python da Microsoft Store roda empacotado: filhos fora do pacote (nwbt, Blender) saem do Job
+    # do Windows e sobrevivem a um aborto. Use o instalador de python.org.
+    return WINDOWS and any(part.casefold() == "windowsapps" for part in Path(sys.executable).parts)
+
+
+def nwbt_workers():
+    # NW_NWBT_WORKERS limita "nwbt models" sem -w (padrao 8) em maquinas com pouca RAM.
+    configured = os.environ.get("NW_NWBT_WORKERS")
+    return ["-w", configured] if configured else []
 
 
 def environment():

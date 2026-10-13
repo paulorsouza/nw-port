@@ -28,6 +28,18 @@ class ProcessTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
 
+    def test_store_python_is_refused_before_launching(self):
+        target = self.root / "must-not-exist"
+        store = r"C:\Users\x\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_abc\python.exe"
+        with patch.object(nwprocess.nwplatform, "WINDOWS", True), patch.object(sys, "executable", store):
+            self.assertTrue(nwprocess.nwplatform.store_python())
+            with self.assertRaises(nwprocess.ResourceError):
+                nwprocess.run(["unused", str(target)], log=self.root / "store.log")
+        self.assertFalse(target.exists())
+        with patch.object(nwprocess.nwplatform, "WINDOWS", True), \
+                patch.object(sys, "executable", r"C:\Users\x\AppData\Local\Programs\Python\Python313\python.exe"):
+            self.assertFalse(nwprocess.nwplatform.store_python())
+
     def test_system_memory_and_disk_read_without_external_tools(self):
         self.assertGreater(nwprocess.available_memory(), 0)
         nwprocess.require_resources([self.root / "not-created"], disk=1)

@@ -176,7 +176,8 @@ def main():
         # export_ue.py exige um laço "Idle" (pose de referência das montagens): a parada genérica dos NPCs.
         "loops": {"Idle": ["settle_stand_idle"], **{a: [a] for a in anims}},
     }
-    json.dump(spec, open(SET, "w"), indent=1)
+    # Arquivo versionado: LF tambem no Windows, para regenerar sem sujar o diff.
+    json.dump(spec, open(SET, "w", newline="\n"), indent=1)
     # Ofício de cada NPC (grupo do sorteio semanal) e cópia dos brindes para o jogo.
     rewards = json.load(open(REWARDS))
     for n in npcs:

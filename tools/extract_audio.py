@@ -469,7 +469,8 @@ def write_index():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--game", default=DEFAULT_GAME)
-    ap.add_argument("--jobs", type=int, default=os.cpu_count())
+    # Cada wwiser chega a ~1,2 GiB; NW_AUDIO_JOBS limita o paralelismo em maquinas com pouca RAM.
+    ap.add_argument("--jobs", type=int, default=int(os.environ.get("NW_AUDIO_JOBS") or os.cpu_count()))
     ap.add_argument("--quality", type=float, default=5)
     ap.add_argument("--index-only", action="store_true", help="só reescreve INDEX.md")
     args = ap.parse_args()

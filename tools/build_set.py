@@ -168,8 +168,13 @@ def main():
 
     glb_dir = os.path.join(out, "glb")
     weapon_files = [w["file"] for w in spec["weapons"].values()]
-    subprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed", "--ior", "1.5",
-                    spec["character"], *([spec["armor"]] if spec.get("armor") else []), *files, *weapon_files],
+    # Os .caf vao na mesma chamada do .cdf; a lista em arquivo evita o limite de 32 KiB do Windows.
+    os.makedirs(out, exist_ok=True)
+    arglist = os.path.join(out, "nwbt_files.txt")
+    with open(arglist, "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join([spec["character"], *([spec["armor"]] if spec.get("armor") else []), *files, *weapon_files]) + "\n")
+    subprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed", "--ior", "1.5", *nwplatform.nwbt_workers(),
+                    "@" + arglist],
                    check=True, capture_output=True)
 
     manifest["glb"] = {

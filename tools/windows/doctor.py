@@ -19,6 +19,7 @@ def main():
         os.environ["NW_GAME"] = args.game
     nwplatform.configure()
     checks = {
+        "Python fora da Microsoft Store": not nwplatform.store_python(),
         "New World assets": (Path(nwplatform.game_directory()) / "assets").is_dir(),
         "nwbt": bool(shutil.which(nwplatform.executable("nwbt"))),
         "texconv": bool(shutil.which(nwplatform.executable("texconv"))),
@@ -27,6 +28,8 @@ def main():
     if args.full:
         for name in ("dbgwater", "blender", "vgmstream-cli", "oggenc"):
             checks[name] = bool(shutil.which(nwplatform.executable(name)))
+        # tools/make_terrain.py roda "go run ./dbgheight" na etapa 07.
+        checks["go"] = bool(shutil.which("go"))
         for name in ("numpy", "PIL"):
             checks[name] = importlib.util.find_spec(name) is not None
         checks["wwiser"] = (nwplatform.ROOT / "vendor/wwiser/wwiser.py").is_file()

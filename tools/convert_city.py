@@ -63,16 +63,18 @@ def convert(name, game, dry_run=False):
 
     if not dry_run:
         deadline = time.monotonic() + 20 * 60
-        while nwprocess.available_memory() < 12 * nwprocess.GIB:
+        wanted = nwprocess.memory_floor(12 * nwprocess.GIB)
+        while nwprocess.available_memory() < wanted:
             if time.monotonic() >= deadline:
-                raise nwprocess.ResourceError("menos de 12 GiB disponiveis por 20 minutos")
+                raise nwprocess.ResourceError(f"menos de {wanted / nwprocess.GIB:g} GiB disponiveis por 20 minutos")
             print("memoria baixa; esperando para converter cidade", flush=True)
             time.sleep(2)
         nwprocess.require_resources([root, game], disk=30 * nwprocess.GIB)
         clean.parent.mkdir(parents=True, exist_ok=True)
     if not complete_glb(raw):
         temporary = cities / (".tmp_" + name)
-        nwbt("models", "slices", "-g", game, "-o", temporary, "--binary", "--embed", "--ior", "1.5", source)
+        nwbt("models", "slices", "-g", game, "-o", temporary, "--binary", "--embed", "--ior", "1.5",
+             *nwplatform.nwbt_workers(), source)
         if not dry_run:
             matches = [p for p in temporary.rglob(name + ".glb") if complete_glb(p)]
             if len(matches) != 1:
