@@ -170,9 +170,20 @@ Divergências que o port ainda tem e a esteira 1 corrige (uma vez, vale para tod
 | Regeneração no bloqueio | regenera após atraso | desligada enquanto bloqueia; volta 1 s após soltar |
 | Bloqueio | ao segurar o botão | só dentro da janela `BlockActive` da animação |
 
-Em aberto na RE (não perguntar de novo; ver `resumo-plano-a.md` "Em aberto"): dano-base por GS (A, B, passo, r, k),
-tique da regeneração de stamina, pontuação do alvo do homing, duração do tick do `BackTicks`. Dano, crítico, grit e
-mitigação são de servidor.
+Em aberto na RE (`resumo-plano-a.md` "Em aberto", `combate-cage.md` §11): dano-base por GS (A, B, passo, r, k),
+tique da regeneração de stamina, pontuação do alvo do homing, duração do tick do `BackTicks`, `Decel` da velocidade
+herdada, `SmoothTime`/`StartTime`/`HoldTimeRequired` e travas dos procclips de combo, condições nomeadas
+(`CanAttack_*`). Pode perguntar de novo, com pista nova (endereço, offset, função candidata de `simbolos.md`).
+Dano, crítico, grit e mitigação são de servidor: não perguntar.
+
+Dúvida de combate vira pergunta (`docs/analise-re/perguntas/armas-NNN.md`, ou `<arma>-NNN` nas sub-esteiras), não
+chute: regra com prova H, item em aberto ou comportamento que os dados não explicam. Enquanto a resposta não vem, o
+item fica "aguardando <id>" no doc da arma e a sessão segue com outro. Antes de abrir, procure em `perguntas/` e
+`valores/`; no máximo dois agentes `nw-re` por sessão ao mesmo tempo (o Ghidra é compartilhado).
+
+Matriz RE × port: seção de `docs/combate-armas.md`, mantida pela esteira 1. Uma linha por regra da RE, com o que o
+port faz (arquivo e função), a divergência, a prova e o id da pergunta aberta. As sub-esteiras leem antes do
+levantamento da arma.
 
 ### Sub-esteiras de arma (1a e 1b)
 
@@ -269,17 +280,32 @@ Colar numa sessão nova do Claude Code aberta em `~/workspace/nw-port`.
 ```
 Projeto: port do New World para Unreal 5.8 em ~/workspace/nw-port. Responda em pt-BR, texto direto.
 Você é a sessão da esteira 1 (Armas). Leia docs/ESTADO.md e docs/esteiras.md (regras comuns e a seção Esteira 1)
-e use as skills nw-esteira e nw-combate-arma. Outras três sessões trabalham no mesmo checkout ao mesmo tempo.
+e use as skills nw-esteira, nw-combate-arma e nw-re. As sub-esteiras 1a e 1b e outras sessões trabalham no mesmo
+checkout ao mesmo tempo.
 
-Objetivo: cada arma igual ao jogo em animação, mecânica, habilidades e maestria, som, efeitos e HUD, uma por vez,
-na ordem da Esteira 1 (manopla de gelo e espada grande estão com as sub-esteiras 1a e 1b). Leia
-docs/analise-re/resumo-plano-a.md e comece pelas divergências de "O que a RE já resolveu" (esquiva, exaustão,
-regeneração no bloqueio, janela BlockActive), depois o encadeamento pelos procclips de combo. Em seguida, polir as
-quatro que existem: rode tools/weapon_report.py e compare com docs/armas/arco.md, docs/armas/rapieira.md e
-docs/combate-armas.md; me mostre a lista do que falta em cada uma, na ordem que pretende fazer, antes de mudar código.
+Base: a RE do combate feita no Ghidra. Leia inteiros docs/analise-re/resumo-plano-a.md, combate-cage.md,
+combate-cliente.md e cage-runtime.md, e rode python3 tools/re_check.py. Fato com prova C ou R vale mais que doc
+antigo do port (combate-regras-jogo.md, plano-mecanicas.md) e que o código atual.
 
-Sem fonte nos dados: skill nw-re. Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho.
-Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da esteira.
+1. Matriz RE × port, seção nova em docs/combate-armas.md: uma linha por regra da RE (encadeamento pelos procclips
+   CAGE-Transition*, saída pela DeactivationCondition, interrupção pelo .grid, janelas CAGE-Named e
+   Default/Conditional, AnimationDrivenMotion, reação por PowerLevel e lado, empurrão nos três eixos, hit stun,
+   stamina, esquiva, bloqueio e exaustão, giro, homing, recargas e status), com o que o port faz hoje (arquivo e
+   função), a divergência, a prova e o que falta. Entram também os itens "falta" do re_check do combate.
+2. Perguntas: toda linha com prova H, item em aberto da RE ou dúvida sua vira pergunta para o agente nw-re
+   (docs/analise-re/perguntas/armas-NNN.md, uma por dúvida, com o que o port precisa e as pistas da RE). Comece
+   rodando as abertas armas-001 a 003.
+3. Me mostre a matriz e a lista de perguntas antes de mudar código. Depois corrija o que vale para todas as armas
+   (divergências da Esteira 1, encadeamento pelos procclips, janelas, giro, homing, empurrão), aplicando cada
+   resposta pela skill nw-re.
+4. Por último, o polimento das quatro armas que existem, uma por vez: tools/weapon_report.py, docs/armas/<arma>.md
+   e a matriz; me mostre o que falta na arma antes de mexer nela.
+
+Sem chute: número, janela ou comportamento sem fonte não entra no código; fica "aguardando armas-NNN" no doc e você
+segue com outro item. Mudança comum que afete a manopla de gelo (1a) ou a espada grande (1b): descreva no relatório.
+
+Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho. Trabalho pesado pela fila
+(tools/pesado.sh; no Windows, python tools/pesado.py). Commit e push só quando eu pedir, e só dos arquivos da esteira.
 ```
 
 ### Esteira 1a: Manopla de gelo
@@ -287,16 +313,33 @@ Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, 
 ```
 Projeto: port do New World para Unreal 5.8 em ~/workspace/nw-port. Responda em pt-BR, texto direto.
 Você é a sessão da sub-esteira 1a (Manopla de gelo). Leia docs/ESTADO.md e docs/esteiras.md (regras comuns,
-Esteira 1 com "O que a RE já resolveu" e "Sub-esteiras de arma") e docs/analise-re/resumo-plano-a.md, e use as skills
-nw-esteira e nw-combate-arma. A esteira 1, a 1b e outras sessões trabalham no mesmo checkout ao mesmo tempo.
+Esteira 1 e "Sub-esteiras de arma") e use as skills nw-esteira, nw-combate-arma e nw-re. A esteira 1, a 1b e
+outras sessões trabalham no mesmo checkout ao mesmo tempo.
+
+Base: a RE do combate feita no Ghidra. Leia inteiros docs/analise-re/resumo-plano-a.md, combate-cage.md,
+combate-cliente.md e cage-runtime.md, e a matriz RE × port de docs/combate-armas.md (da esteira 1; se ainda não
+existir, siga pela RE).
 
 Objetivo: manopla de gelo igual ao jogo (animação, mecânica, habilidades e maestria, som, efeitos, HUD, rede), e a
-mana, que ela traz para as armas mágicas. Comece pelo levantamento em docs/armas/manopla-gelo.md: .adb e
-actionlists da arma, procclips de combo e janelas, tabelas de habilidades e de mana, VFX e sons. Me mostre o plano,
-com o que precisa mudar em arquivo comum, antes de mudar código.
+mana, que ela traz para as armas mágicas.
 
-Sem fonte nos dados: skill nw-re. Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho.
-Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da sub-esteira.
+1. Levantamento em docs/armas/manopla-gelo.md, lendo a arma pelas regras da RE: procclips de combo
+   (CAGE-TransitionInstant/Buffered: Input, BackTicks, Condition, NewFragment/NewAction), janelas CAGE-Named e os
+   Conditional que dependem delas, saída de cada ação e entradas no .grid, Homing e CameraRelativeFacing por golpe,
+   AnimationDrivenMotion, ConsumeCharge, SetCooldownTimer, ModifyStatusEffects, PerformActiveAbility; tabelas de
+   habilidades, status de frio (lentidão, congelamento) e projéteis; VFX e sons.
+2. Mana: leia o que estiver no slice do jogador e nas tabelas. O que só o exe diz (regeneração, atraso, custo por
+   quadro na canalização, cargas) vira pergunta.
+3. Perguntas: toda dúvida, prova H ou peça sem regra lida vira pergunta para o agente nw-re
+   (docs/analise-re/perguntas/manopla-gelo-NNN.md, uma por dúvida, com as pistas da RE).
+4. Me mostre o levantamento, as perguntas abertas e o plano, com o que precisa mudar em arquivo comum, antes de
+   mudar código.
+
+Sem chute: o que não tem fonte fica "aguardando manopla-gelo-NNN" no doc e você segue com outro item.
+
+Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho. Trabalho pesado pela fila
+(tools/pesado.sh; no Windows, python tools/pesado.py). Commit e push só quando eu pedir, e só dos arquivos da
+sub-esteira.
 ```
 
 ### Esteira 1b: Espada grande
@@ -304,16 +347,32 @@ Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, 
 ```
 Projeto: port do New World para Unreal 5.8 em ~/workspace/nw-port. Responda em pt-BR, texto direto.
 Você é a sessão da sub-esteira 1b (Espada grande). Leia docs/ESTADO.md e docs/esteiras.md (regras comuns,
-Esteira 1 com "O que a RE já resolveu" e "Sub-esteiras de arma") e docs/analise-re/resumo-plano-a.md, e use as skills
-nw-esteira e nw-combate-arma. A esteira 1, a 1a e outras sessões trabalham no mesmo checkout ao mesmo tempo.
+Esteira 1 e "Sub-esteiras de arma") e use as skills nw-esteira, nw-combate-arma e nw-re. A esteira 1, a 1a e
+outras sessões trabalham no mesmo checkout ao mesmo tempo.
+
+Base: a RE do combate feita no Ghidra. Leia inteiros docs/analise-re/resumo-plano-a.md, combate-cage.md,
+combate-cliente.md e cage-runtime.md, e a matriz RE × port de docs/combate-armas.md (da esteira 1; se ainda não
+existir, siga pela RE).
 
 Objetivo: espada grande igual ao jogo (as duas posturas e a troca, combos, carga, habilidades e maestria, som,
-efeitos, HUD, rede). Comece pelo levantamento em docs/armas/espada-grande.md: .adb e actionlists da arma, procclips
-de combo e janelas, tabelas de habilidades, VFX e sons. Me mostre o plano, com o que precisa mudar em arquivo comum,
-antes de mudar código.
+efeitos, HUD, rede).
 
-Sem fonte nos dados: skill nw-re. Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho.
-Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da sub-esteira.
+1. Levantamento em docs/armas/espada-grande.md, lendo a arma pelas regras da RE: postura pelas tags
+   (SetMannequinTag/IfMannequinTag) e condições nomeadas, procclips de combo (Input, BackTicks, Condition,
+   NewFragment/NewAction, HoldTimeRequired na carga), janelas CAGE-Named e os Conditional que dependem delas, saída
+   de cada ação e entradas no .grid, Homing por golpe, AnimationDrivenMotion, stamina (Greatsword_Offense_Attack 10),
+   bloqueio na janela BlockActive, empurrão e reação de cada golpe na damagetable; tabelas de habilidades, VFX e sons.
+2. Perguntas: toda dúvida, prova H ou peça sem regra lida (HoldTimeRequired, travas SingleActivation*, onde ficam as
+   condições nomeadas) vira pergunta para o agente nw-re (docs/analise-re/perguntas/espada-grande-NNN.md, uma por
+   dúvida, com as pistas da RE).
+3. Me mostre o levantamento, as perguntas abertas e o plano, com o que precisa mudar em arquivo comum, antes de
+   mudar código.
+
+Sem chute: o que não tem fonte fica "aguardando espada-grande-NNN" no doc e você segue com outro item.
+
+Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho. Trabalho pesado pela fila
+(tools/pesado.sh; no Windows, python tools/pesado.py). Commit e push só quando eu pedir, e só dos arquivos da
+sub-esteira.
 ```
 
 ### Esteira 2: Coleta

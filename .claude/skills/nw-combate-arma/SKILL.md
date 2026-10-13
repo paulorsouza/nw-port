@@ -15,8 +15,17 @@ Sub-esteiras 1a (manopla de gelo) e 1b (espada grande): arquivos próprios por a
 Princípio: número, janela e animação saem dos dados do jogo, com a fonte (arquivo + ID) num comentário curto ou no
 `docs/armas/<arma>.md`. Nada de chute. Sem fonte nos dados: pergunte pela skill `nw-re`; sem resposta, seção "Sem fonte" do doc da arma.
 
+Dúvida vira pergunta: regra com prova H, item "em aberto" da RE ou comportamento que os dados não explicam →
+`docs/analise-re/perguntas/armas-NNN.md` (sub-esteira: `<arma>-NNN`) e agente `nw-re` em segundo plano. O item fica
+"aguardando <id>" no doc da arma e a sessão segue com outro. No máximo dois agentes `nw-re` ao mesmo tempo.
+Dano, crítico, grit e mitigação são de servidor: não perguntar.
+
 ## Passos
 
+0. RE: leia inteiros `docs/analise-re/combate-cage.md`, `combate-cliente.md` e `cage-runtime.md`, a matriz
+   "RE × port" de `docs/combate-armas.md` e rode `python3 tools/re_check.py`. O levantamento da arma (passo 2) usa
+   essas regras: procclips de combo, janelas `CAGE-Named` e `Conditional`, saída e `.grid`, homing, giro,
+   movimento por animação, stamina, reação e empurrão de cada golpe.
 1. Relatório: `python3 tools/weapon_report.py <arma>` (arma fora da lista: `--tag --adb --base --damage --cost --ability`).
    Lê só o que já foi extraído; não precisa da Unreal.
 2. Levantamento em `docs/armas/<arma>.md` (modelo: `docs/armas/arco.md`, `docs/armas/rapieira.md`): mecânica básica,
