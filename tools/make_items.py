@@ -45,6 +45,8 @@ TOOLS = [("Pick", ["2hPickT1", "2hPickT2", "2hPickT3", "2hPickT4", "2hPickT5"]),
 # Itens de saque que não entram (partituras, pesquisa de temporada).
 SKIP_LOOT = re.compile(r"_Page\d|^Gatherable_Research|_S\d+$")
 GATHERABLES = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "guardaventos_gatherables.json")
+# Receitas de refino (tools/make_crafting.py, rodar antes): saídas, ingredientes e itens das categorias entram no catálogo.
+CRAFTING = os.path.join(ROOT, "unreal", "NWPort", "Data", "Crafting", "refining.json")
 
 
 def rows(name):
@@ -163,6 +165,16 @@ def main():
     have = {r["ItemID"] for r, _ in chosen}
     for iid in sorted(loot_items - have):
         chosen.append((items[iid], ""))
+    if os.path.exists(CRAFTING):
+        cr = json.load(open(CRAFTING))
+        need = {r["out"] for r in cr["recipes"]} | {i[0] for r in cr["recipes"] for i in r["ing"] if not i[2]}
+        need |= {i for members in cr["categories"].values() for i in members}
+        have = {r["ItemID"] for r, _ in chosen}
+        for iid in sorted(need - have):
+            if iid in items:
+                chosen.append((items[iid], ""))
+            else:
+                print("item de receita ausente:", iid)
 
     catalog = []
     for r, weapon_set in chosen:

@@ -17,7 +17,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLES = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites", "datatables")
 OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "Progression")
 ATTRS = ["strength", "dexterity", "intelligence", "focus", "constitution"]
-TRADESKILLS = ["Mining", "Logging", "Harvesting", "Skinning"]
+# Coleta (0..3) e refino (4..8, esteira 4: tools/make_crafting.py); mesma ordem do NWTradeskill no C++.
+TRADESKILLS = ["Mining", "Logging", "Harvesting", "Skinning", "Smelting", "Woodworking", "Leatherworking", "Weaving",
+               "Stonecutting"]
 
 
 def rows(name):
@@ -45,7 +47,11 @@ def main():
             table.append({"xp": total, "eff": float(r.get("GatheringEfficiency") or 0), "roll": int(r.get("RollBonus") or 0)})
         tradeskills[t] = table
     os.makedirs(OUT, exist_ok=True)
-    json.dump({"base_attribute": 5, "levels": levels, "attributes": attributes, "tradeskills": tradeskills},
+    # Tutoriais de nível (esteira 4, tools/tutorials.json).
+    tutorials = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "tutorials.json")))
+    tutorials.pop("_comment", None)
+    json.dump({"base_attribute": 5, "levels": levels, "attributes": attributes, "tradeskills": tradeskills,
+               "tutorials": tutorials},
               open(os.path.join(OUT, "progression.json"), "w"), separators=(",", ":"))
     print(f"{len(levels)} níveis, {sum(l['points'] for l in levels)} pontos de atributo; {len(ATTRS)} atributos; "
           + ", ".join(f"{t} até {len(v) - 1}" for t, v in tradeskills.items()))

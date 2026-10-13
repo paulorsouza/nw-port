@@ -1,4 +1,5 @@
 #include "NWInventoryComponent.h"
+#include "NWDevRegistry.h"
 
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/Pawn.h"
@@ -20,6 +21,7 @@ void UNWInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME_CONDITION(UNWInventoryComponent, Items, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWInventoryComponent, Coins, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWInventoryComponent, PotionReadyAt, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UNWInventoryComponent, MaxWeight, COND_OwnerOnly);
 }
 
 float UNWInventoryComponent::ServerNow() const
@@ -51,6 +53,47 @@ int32 UNWInventoryComponent::CountOf(FName ItemId) const
 		N += I.ItemId == ItemId ? I.Quantity : 0;
 	}
 	return N;
+}
+
+int32 UNWInventoryComponent::Take(FName ItemId, int32 Quantity)
+{
+	int32 Left = Quantity;
+	for (FNWItem& I : Items)
+	{
+		if (Left > 0 && I.Container == ENWItemContainer::Bag && I.ItemId == ItemId)
+		{
+			const int32 T = FMath::Min(Left, I.Quantity);
+			I.Quantity -= T;
+			Left -= T;
+		}
+	}
+	Items.RemoveAll([](const FNWItem& X) { return X.Quantity <= 0; });
+	if (Left < Quantity)
+	{
+		Changed();
+	}
+	return Quantity - Left;
+}
+
+FNWItem UNWInventoryComponent::TakeAt(int32 BagSlot, int32 Quantity)
+{
+	FNWItem Out;
+	for (FNWItem& I : Items)
+	{
+		if (I.Container == ENWItemContainer::Bag && I.Slot == BagSlot && Quantity > 0)
+		{
+			Out = I;
+			Out.Quantity = FMath::Min(Quantity, I.Quantity);
+			I.Quantity -= Out.Quantity;
+			break;
+		}
+	}
+	Items.RemoveAll([](const FNWItem& X) { return X.Quantity <= 0; });
+	if (Out.Quantity > 0)
+	{
+		Changed();
+	}
+	return Out;
 }
 
 int32 UNWInventoryComponent::FreeBagSlot() const
@@ -358,3 +401,21 @@ void UNWInventoryComponent::ClientLoot_Implementation(const TArray<FNWItem>& Gai
 		HUD->ShowLoot(Gained, CoinsGained);
 	}
 }
+
+// Bolsa de dev (F10): peso máximo de 10.000.000 para testar refino e ofício sem sobrecarga. Não vai para o nw-core.
+NW_REGISTER_DEV(DevBag, TEXT("sistemas.dev_bag"), TEXT("nw.dev.dev_bag"),
+	[](ANWPlayerController* PC)
+	{
+		const ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		if (C && C->Inventory)
+		{
+			C->Inventory->MaxWeight = C->Inventory->MaxWeight > UNWInventoryComponent::BaseMaxWeight
+				? UNWInventoryComponent::BaseMaxWeight : 10000000.f;
+		}
+	},
+	[](const ANWPlayerController* PC)
+	{
+		const ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		return FText::FromString(C && C->Inventory && C->Inventory->MaxWeight > UNWInventoryComponent::BaseMaxWeight
+			? TEXT("10.000.000") : TEXT("1.000"));
+	});

@@ -41,6 +41,26 @@ Servidor de jogo (`X-NW-Server-Secret`):
 |---|---|---|---|
 | POST | `/internal/tickets/redeem` | `ticket` | `account_id`, `account_name`, `character` |
 | PUT | `/internal/characters/{id}/state` | estado completo | 204 |
+| GET | `/internal/characters/{id}/storage/{local}` | | `version`, `items` |
+| PUT | `/internal/characters/{id}/storage/{local}` | `version`, `items`, `inventory`, `coins` | `version`, `items`; 409 `storage_changed` |
+| GET | `/internal/characters/{id}/houses` | | lista |
+| POST | `/internal/characters/{id}/houses` | `territory`, `address`, `house_type`, `price`, `inventory`, `coins` | 201 casa; 409 `house_owned` |
+| POST | `/internal/characters/{id}/credits/claim` | | `amount` |
+| GET | `/internal/market/{território}/orders` | filtros `item_id`, `kind`, `character_id` | ordens abertas |
+| POST | `/internal/market/{território}/orders` | `character_id`, `kind` (`sell`/`buy`), `item_id`, `quantity`, `gear_score`, `rarity`, `unit_price`, `fee`, `duration_hours`, `inventory`, `coins` | 201 ordem |
+| POST | `/internal/market/orders/{id}/fill` | `character_id`, `quantity`, `inventory`, `coins` (compra: `gear_score`, `rarity` do item entregue) | ordem; 409 `order_closed`/`order_quantity` |
+| POST | `/internal/market/orders/{id}/cancel` | `character_id` | 204 |
+| GET | `/internal/characters/{id}/npc-rewards` | `period` (terça da semana) | `claims`: brindes já pegos (`once` + o período) |
+| POST | `/internal/characters/{id}/npc-rewards` | `npc`, `kind` (`starter`/`weekly`), `period` (`once`/`AAAA-MM-DD`), `inventory`, `coins` | 201; 409 `already_claimed` |
+
+Armazém, mercado e casas ficam fora do `state`, que regrava a bolsa inteira. Cada ação leva a bolsa e as moedas
+do personagem como ficam depois dela (`inventory`, `coins`), gravadas na mesma transação da ação.
+- `{local}`: `settlement:<território>` ou `house:<id da casa>`.
+- O armazém tem versão: o PUT com uma versão velha devolve 409 (ler de novo e refazer).
+- O mercado entrega o item comprado no armazém da cidade da ordem.
+- O vendedor recebe em `coin_credits`. O servidor de jogo resgata com `credits/claim`, soma às moedas e salva.
+- Ordem cancelada ou vencida devolve o item ao armazém (venda) ou a garantia em crédito (compra).
+- Taxas e duração vêm do servidor de jogo.
 
 Estado do personagem: `map`, `position` (`x`, `y`, `z` em cm do Unreal, ou null), `yaw`, `health`,
 `active_weapon`, `loadout` e `mastery` (JSON livre, por arma).

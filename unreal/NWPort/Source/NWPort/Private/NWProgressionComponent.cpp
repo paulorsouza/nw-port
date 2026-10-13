@@ -4,6 +4,10 @@
 #include "Misc/FileHelper.h"
 #include "Net/UnrealNetwork.h"
 #include "NWHUD.h"
+#include "NWPlayerController.h"
+#include "NWCharacter.h"
+#include "NWDevRegistry.h"
+#include "NWEvents.h"
 #include "NWText.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -20,6 +24,11 @@ namespace
 		TMap<int32, float> ConstitutionHealth;
 		struct FTrade { TArray<int32> Xp; TArray<float> Eff; TArray<int32> Roll; };
 		FTrade Trade[NWTradeskill::Num];
+		// Tutoriais de nível (tools/tutorials.json).
+		struct FTutorial { FString Id; FString Kind; FString Target; int32 Count = 0; int32 Levels = 0; TMap<FString, FString> Name; };
+		TArray<FTutorial> Tutorials;
+		float KillLevelFraction = 0.f;
+		int32 KillXpMaxLevel = 0;
 
 		static const FProgressionData& Get()
 		{
@@ -65,6 +74,27 @@ namespace
 						}
 					}
 				}
+				const TSharedPtr<FJsonObject>* Tut = nullptr;
+				if (Root->TryGetObjectField(TEXT("tutorials"), Tut))
+				{
+					for (const TSharedPtr<FJsonValue>& V : (*Tut)->GetArrayField(TEXT("missoes")))
+					{
+						const TSharedPtr<FJsonObject> M = V->AsObject();
+						FTutorial& T = D.Tutorials.AddDefaulted_GetRef();
+						T.Id = M->GetStringField(TEXT("id"));
+						T.Kind = M->GetStringField(TEXT("tipo"));
+						T.Target = M->GetStringField(TEXT("alvo"));
+						T.Count = int32(M->GetNumberField(TEXT("quantidade")));
+						T.Levels = int32(M->GetNumberField(TEXT("niveis")));
+						for (const auto& N : M->GetObjectField(TEXT("nome"))->Values)
+						{
+							T.Name.Add(*N.Key, N.Value->AsString());
+						}
+					}
+					const TSharedPtr<FJsonObject> After = (*Tut)->GetObjectField(TEXT("apos_tutoriais"));
+					D.KillLevelFraction = float(After->GetNumberField(TEXT("abate_fracao_nivel")));
+					D.KillXpMaxLevel = int32(After->GetNumberField(TEXT("nivel_max")));
+				}
 				return D;
 			}();
 			return Data;
@@ -74,7 +104,8 @@ namespace
 
 namespace NWTradeskill
 {
-	static const TCHAR* Names[Num] = {TEXT("Mining"), TEXT("Logging"), TEXT("Harvesting"), TEXT("Skinning")};
+	static const TCHAR* Names[Num] = {TEXT("Mining"), TEXT("Logging"), TEXT("Harvesting"), TEXT("Skinning"), TEXT("Smelting"),
+		TEXT("Woodworking"), TEXT("Leatherworking"), TEXT("Weaving"), TEXT("Stonecutting")};
 
 	int32 Index(FName Tradeskill)
 	{
@@ -92,7 +123,9 @@ namespace NWTradeskill
 	FString TextKey(int32 I) { return I >= 0 && I < Num ? TEXT("ui_") + FString(Names[I]).ToLower() : FString(); }
 	FString Icon(int32 I)
 	{
-		return I >= 0 && I < Num ? FString::Printf(TEXT("lyshineui/images/icons/tradeskills/icon_tradeskill_%s.dds"), *FString(Names[I]).ToLower()) : FString();
+		// Cantaria no jogo: icon_tradeskill_masonary.dds (grafia do jogo).
+		const FString File = I == Index(TEXT("Stonecutting")) ? FString(TEXT("masonary")) : FString(I >= 0 && I < Num ? Names[I] : TEXT("")).ToLower();
+		return I >= 0 && I < Num ? FString::Printf(TEXT("lyshineui/images/icons/tradeskills/icon_tradeskill_%s.dds"), *File) : FString();
 	}
 }
 
@@ -101,6 +134,7 @@ UNWProgressionComponent::UNWProgressionComponent()
 	SetIsReplicatedByDefault(true);
 	Spent.Init(0, int32(ENWAttribute::Num));
 	TradeXp.Init(0, NWTradeskill::Num);
+	TutorialCount.Init(0, FProgressionData::Get().Tutorials.Num());
 }
 
 int32 UNWProgressionComponent::TradeMaxLevel(int32 Skill) const
@@ -175,6 +209,7 @@ void UNWProgressionComponent::AddTradeXp(FName Tradeskill, int32 Amount)
 	const int32 Cap = FProgressionData::Get().Trade[Skill].Xp.Num() ? FProgressionData::Get().Trade[Skill].Xp.Last() : 0;
 	TradeXp[Skill] = FMath::Min(TradeXp[Skill] + Amount, Cap);
 	GetOwner()->ForceNetUpdate();
+	FNWEvents::Get().OnTradeXp.Broadcast(Cast<ANWCharacter>(GetOwner()), Tradeskill, Amount);
 	ClientTradeXpGained(uint8(Skill), Amount, TradeLevel(Skill));
 }
 
@@ -195,6 +230,7 @@ void UNWProgressionComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Xp, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Spent, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, TradeXp, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UNWProgressionComponent, TutorialCount, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, bFromBackend, COND_OwnerOnly);
 }
 
@@ -277,6 +313,19 @@ void UNWProgressionComponent::Load(const TSharedPtr<FJsonObject>& Json)
 	};
 	ReadInts(TEXT("spent"), Spent);
 	ReadInts(TEXT("trade"), TradeXp);
+	const TSharedPtr<FJsonObject>* Tut = nullptr;
+	if (Json->TryGetObjectField(TEXT("tut"), Tut))
+	{
+		const auto& Ts = FProgressionData::Get().Tutorials;
+		for (int32 i = 0; i < Ts.Num() && i < TutorialCount.Num(); ++i)
+		{
+			double N = 0.0;
+			if ((*Tut)->TryGetNumberField(Ts[i].Id, N))
+			{
+				TutorialCount[i] = int32(N);
+			}
+		}
+	}
 	// Pontos gastos além dos ganhos (tabela mudou): zera a distribuição.
 	int32 Used = 0;
 	for (int32 S : Spent)
@@ -312,6 +361,16 @@ TSharedRef<FJsonObject> UNWProgressionComponent::Save() const
 	};
 	WriteInts(TEXT("spent"), Spent);
 	WriteInts(TEXT("trade"), TradeXp);
+	TSharedRef<FJsonObject> Tut = MakeShared<FJsonObject>();
+	const auto& Ts = FProgressionData::Get().Tutorials;
+	for (int32 i = 0; i < Ts.Num() && i < TutorialCount.Num(); ++i)
+	{
+		if (TutorialCount[i] != 0)
+		{
+			Tut->SetNumberField(Ts[i].Id, TutorialCount[i]);
+		}
+	}
+	J->SetObjectField(TEXT("tut"), Tut);
 	return J;
 }
 
@@ -370,3 +429,154 @@ void UNWProgressionComponent::ClientXpGained_Implementation(int64 Amount, int32 
 		Hud->ShowXp(Amount);
 	}
 }
+
+
+// ---------------------------------------------------------------- tutoriais de nível (esteira 4)
+
+void UNWProgressionComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		return;
+	}
+	FNWEvents& E = FNWEvents::Get();
+	KillHandle = E.OnKill.AddUObject(this, &UNWProgressionComponent::HandleKill);
+	TradeHandle = E.OnTradeXp.AddUObject(this, &UNWProgressionComponent::HandleTradeXp);
+	RefineHandle = E.OnRefine.AddUObject(this, &UNWProgressionComponent::HandleRefine);
+}
+
+void UNWProgressionComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	FNWEvents& E = FNWEvents::Get();
+	E.OnKill.Remove(KillHandle);
+	E.OnTradeXp.Remove(TradeHandle);
+	E.OnRefine.Remove(RefineHandle);
+	Super::EndPlay(Reason);
+}
+
+int32 UNWProgressionComponent::TutorialNum() const
+{
+	return FProgressionData::Get().Tutorials.Num();
+}
+
+FString UNWProgressionComponent::TutorialName(int32 Index) const
+{
+	const auto& Ts = FProgressionData::Get().Tutorials;
+	if (!Ts.IsValidIndex(Index))
+	{
+		return FString();
+	}
+	const FString* N = Ts[Index].Name.Find(NWText::Lang());
+	return N ? *N : Ts[Index].Id;
+}
+
+int32 UNWProgressionComponent::TutorialGoal(int32 Index) const
+{
+	const auto& Ts = FProgressionData::Get().Tutorials;
+	return Ts.IsValidIndex(Index) ? Ts[Index].Count : 0;
+}
+
+bool UNWProgressionComponent::TutorialsDone() const
+{
+	for (int32 C : TutorialCount)
+	{
+		if (C >= 0)
+		{
+			return false;
+		}
+	}
+	return TutorialCount.Num() > 0;
+}
+
+void UNWProgressionComponent::AdvanceTutorials(const FString& Kind, const FString& Target, int32 Amount)
+{
+	const auto& Ts = FProgressionData::Get().Tutorials;
+	for (int32 i = 0; i < Ts.Num() && i < TutorialCount.Num(); ++i)
+	{
+		if (TutorialCount[i] < 0 || Ts[i].Kind != Kind || Ts[i].Target != Target)
+		{
+			continue;
+		}
+		TutorialCount[i] = FMath::Min(TutorialCount[i] + Amount, Ts[i].Count);
+		if (TutorialCount[i] >= Ts[i].Count)
+		{
+			// Concluída: o XP exato de N níveis pela tabela do jogo (decisão do dono: recompensa em níveis).
+			TutorialCount[i] = -1;
+			const int32 TargetLevel = FMath::Min(Level + Ts[i].Levels, MaxLevel());
+			AddXp(XpForLevel(TargetLevel) - Xp);
+			const APawn* Pawn = Cast<APawn>(GetOwner());
+			if (ANWPlayerController* PC = Pawn ? Cast<ANWPlayerController>(Pawn->GetController()) : nullptr)
+			{
+				PC->Warning(NWText::Key(TEXT("nw.tut.done"), {TutorialName(i)}));
+			}
+		}
+		GetOwner()->ForceNetUpdate();
+	}
+}
+
+void UNWProgressionComponent::HandleKill(AActor* Killer, AActor* Victim)
+{
+	const ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	const APawn* V = Cast<APawn>(Victim);
+	if (!Me || Killer != Me || !V || V->IsPlayerControlled() || !Me->WeaponSets.IsValidIndex(Me->ActiveWeapon))
+	{
+		return;
+	}
+	AdvanceTutorials(TEXT("abate"), Me->WeaponSets[Me->ActiveWeapon].Id.ToString(), 1);
+	// Depois dos tutoriais: cada abate dá uma fração do XP do nível atual, até o nível máximo da regra.
+	const FProgressionData& D = FProgressionData::Get();
+	if (TutorialsDone() && Level < D.KillXpMaxLevel && D.KillLevelFraction > 0.f)
+	{
+		AddXp(FMath::Max<int64>(1, int64((XpForLevel(Level + 1) - XpForLevel(Level)) * D.KillLevelFraction)));
+	}
+}
+
+void UNWProgressionComponent::HandleTradeXp(ANWCharacter* Who, FName Tradeskill, int32 Amount)
+{
+	const int32 Skill = NWTradeskill::Index(Tradeskill);
+	if (Who == GetOwner() && Skill >= 0 && Skill < NWTradeskill::NumGathering)
+	{
+		AdvanceTutorials(TEXT("coleta"), Tradeskill.ToString(), 1);
+	}
+}
+
+void UNWProgressionComponent::HandleRefine(ANWCharacter* Who, const FString& Station, FName Recipe, int32 Count)
+{
+	if (Who == GetOwner())
+	{
+		AdvanceTutorials(TEXT("refino"), Station, Count);
+	}
+}
+
+// Menu de dev (F10): progresso dos tutoriais até existir a tela de missões. O clique mostra as que faltam no aviso.
+NW_REGISTER_DEV(Tutorials, TEXT("sistemas.tutorials"), TEXT("nw.dev.tutorials"),
+	[](ANWPlayerController* PC)
+	{
+		const ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		const UNWProgressionComponent* P = C ? C->Progression.Get() : nullptr;
+		if (!P)
+		{
+			return;
+		}
+		TArray<FString> Left;
+		for (int32 i = 0; i < P->TutorialNum() && i < P->TutorialCount.Num(); ++i)
+		{
+			if (P->TutorialCount[i] >= 0)
+			{
+				Left.Add(FString::Printf(TEXT("%s %d/%d"), *P->TutorialName(i), P->TutorialCount[i], P->TutorialGoal(i)));
+			}
+		}
+		PC->Warning(Left.IsEmpty() ? NWText::Key(TEXT("nw.tut.all_done")) : FString::Join(Left, TEXT(" · ")));
+	},
+	[](const ANWPlayerController* PC)
+	{
+		const ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		const UNWProgressionComponent* P = C ? C->Progression.Get() : nullptr;
+		int32 Done = 0;
+		for (int32 N : P ? P->TutorialCount : TArray<int32>())
+		{
+			Done += N < 0 ? 1 : 0;
+		}
+		return FText::FromString(FString::Printf(TEXT("%d/%d"), Done, P ? P->TutorialNum() : 0));
+	});

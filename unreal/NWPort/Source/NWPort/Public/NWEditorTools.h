@@ -34,4 +34,9 @@ public:
 	// enxerga SlotAnimTracks.
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
 	static bool SetMontageSlot(class UAnimMontage* Montage, FName Slot);
+
+	// Acrescenta ao esqueleto os ossos da malha que ele não tem (NPC com osso a mais, ex. c_jaw_BND). Sem isso a
+	// Unreal acrescenta só na memória ao carregar e avisa "missing bones" toda vez. Devolve true se mudou.
+	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
+	static bool MergeMeshBonesToSkeleton(USkeleton* Skeleton, USkeletalMesh* Mesh);
 };

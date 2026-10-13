@@ -1,0 +1,176 @@
+{
+ "_comment": "Tutoriais de nível (decisão do dono 2026-10-12, docs/sistemas.md): já liberados no personagem, o jogador escolhe a ordem. tipo abate (alvo = Id do conjunto de arma ativo), coleta (alvo = ofício de coleta, conta cada ganho de XP), refino (alvo = tipo da estação). niveis = níveis inteiros dados ao concluir. Arma nova (esteira 1), montaria (esteira 3), mesas de ofício e facções entram aqui. apos_tutoriais.abate_fracao_nivel: depois de todos, cada abate dá esta fração do XP do nível atual até o 60. bonecos: campo de treino por cidade (posição do pé no mapa, achada por varredura de cápsula no editor), olhando para a praça.",
+ "missoes": [
+  {
+   "id": "arma_Sword",
+   "tipo": "abate",
+   "alvo": "Sword",
+   "quantidade": 10,
+   "niveis": 2,
+   "nome": {
+    "pt-br": "Espada e escudo: derrote 10 inimigos",
+    "en-us": "Sword and shield: defeat 10 enemies"
+   }
+  },
+  {
+   "id": "arma_Hatchet",
+   "tipo": "abate",
+   "alvo": "Hatchet",
+   "quantidade": 10,
+   "niveis": 2,
+   "nome": {
+    "pt-br": "Machadinha: derrote 10 inimigos",
+    "en-us": "Hatchet: defeat 10 enemies"
+   }
+  },
+  {
+   "id": "arma_Bow",
+   "tipo": "abate",
+   "alvo": "Bow",
+   "quantidade": 10,
+   "niveis": 2,
+   "nome": {
+    "pt-br": "Arco: derrote 10 inimigos",
+    "en-us": "Bow: defeat 10 enemies"
+   }
+  },
+  {
+   "id": "arma_Rapier",
+   "tipo": "abate",
+   "alvo": "Rapier",
+   "quantidade": 10,
+   "niveis": 2,
+   "nome": {
+    "pt-br": "Rapieira: derrote 10 inimigos",
+    "en-us": "Rapier: defeat 10 enemies"
+   }
+  },
+  {
+   "id": "coleta_Mining",
+   "tipo": "coleta",
+   "alvo": "Mining",
+   "quantidade": 10,
+   "niveis": 2,
+   "nome": {
+    "pt-br": "Mineração: colete 10 vezes",
+    "en-us": "Mining: gather 10 times"
+   }
+  },
+  {
+   "id": "coleta_Logging",
+   "tipo": "coleta",
+   "alvo": "Logging",
+   "quantidade": 10,
+   "niveis": 2,
+   "nome": {
+    "pt-br": "Corte de madeira: colete 10 vezes",
+    "en-us": "Logging: gather 10 times"
+   }
+  },
+  {
+   "id": "coleta_Harvesting",
+   "tipo": "coleta",
+   "alvo": "Harvesting",
+   "quantidade": 10,
+   "niveis": 2,
+   "nome": {
+    "pt-br": "Colheita: colete 10 vezes",
+    "en-us": "Harvesting: gather 10 times"
+   }
+  },
+  {
+   "id": "coleta_Skinning",
+   "tipo": "coleta",
+   "alvo": "Skinning",
+   "quantidade": 10,
+   "niveis": 2,
+   "nome": {
+    "pt-br": "Esfolamento: colete 10 vezes",
+    "en-us": "Skinning: gather 10 times"
+   }
+  },
+  {
+   "id": "mesa_smelting",
+   "tipo": "refino",
+   "alvo": "smelting",
+   "quantidade": 1,
+   "niveis": 1,
+   "nome": {
+    "pt-br": "Fundição: refine 1 item",
+    "en-us": "Smelter: refine 1 item"
+   }
+  },
+  {
+   "id": "mesa_carpentry",
+   "tipo": "refino",
+   "alvo": "carpentry",
+   "quantidade": 1,
+   "niveis": 1,
+   "nome": {
+    "pt-br": "Loja de madeira: refine 1 item",
+    "en-us": "Woodshop: refine 1 item"
+   }
+  },
+  {
+   "id": "mesa_tanning",
+   "tipo": "refino",
+   "alvo": "tanning",
+   "quantidade": 1,
+   "niveis": 1,
+   "nome": {
+    "pt-br": "Curtume: refine 1 item",
+    "en-us": "Tannery: refine 1 item"
+   }
+  },
+  {
+   "id": "mesa_weaving",
+   "tipo": "refino",
+   "alvo": "weaving",
+   "quantidade": 1,
+   "niveis": 1,
+   "nome": {
+    "pt-br": "Tear: refine 1 item",
+    "en-us": "Loom: refine 1 item"
+   }
+  },
+  {
+   "id": "mesa_masonry",
+   "tipo": "refino",
+   "alvo": "masonry",
+   "quantidade": 1,
+   "niveis": 1,
+   "nome": {
+    "pt-br": "Mesa de cantaria: refine 1 item",
+    "en-us": "Stonecutting table: refine 1 item"
+   }
+  }
+ ],
+ "apos_tutoriais": {
+  "abate_fracao_nivel": 0.25,
+  "nivel_max": 60
+ },
+ "bonecos": {
+  "queda_eterna": [
+   [
+    1275,
+    130,
+    1145
+   ],
+   [
+    1275,
+    430,
+    1149
+   ],
+   [
+    1275,
+    730,
+    1154
+   ],
+   [
+    1275,
+    1030,
+    1170
+   ]
+  ]
+ }
+}

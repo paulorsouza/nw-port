@@ -94,6 +94,17 @@ public:
 	using FRedeemDone = TFunction<void(TOptional<FNWCharacterRecord> Record, const FString& Error)>;
 	void RedeemTicket(const FString& Ticket, FRedeemDone Done);
 	void SaveState(const FNWCharacterRecord& Record);
+	// Brindes dos NPCs (esteira 4, NWNpcRewards.h): o que já foi pego ("<kind>:<npc>:<period>") e a coleta, gravada
+	// junto com a bolsa e as moedas do Record (Status 201 ok, 409 já pego).
+	void ListNpcRewards(const FString& CharacterId, const FString& Period, TFunction<void(bool bOk, const TArray<FString>& Keys)> Done);
+	void ClaimNpcReward(const FNWCharacterRecord& Record, const FString& Npc, const FString& Kind, const FString& Period,
+		TFunction<void(bool bOk, int32 Status)> Done);
+	// Armazém (esteira 4): ler e gravar um local ("settlement:<cidade>", "house:<id>") com a versão lida; a gravação
+	// leva junto a bolsa e as moedas do Record. Status 200 ok, 409 o armazém mudou (ler de novo).
+	void GetStorage(const FString& CharacterId, const FString& Location,
+		TFunction<void(bool bOk, int64 Version, const TArray<FNWItem>& Items)> Done);
+	void PutStorage(const FNWCharacterRecord& Record, const FString& Location, int64 Version, const TArray<FNWItem>& Items,
+		TFunction<void(int32 Status, int64 NewVersion)> Done);
 
 private:
 	using FJsonDone = TFunction<void(int32 Status, TSharedPtr<FJsonObject> Body)>;

@@ -19,8 +19,11 @@ enum class ENWAttribute : uint8
 /** Ofícios de coleta do jogo (CategoricalProgressionId). */
 namespace NWTradeskill
 {
-	constexpr int32 Num = 4;
-	/** Mining, Logging, Harvesting, Skinning -> 0..3; outro -> INDEX_NONE. */
+	constexpr int32 Num = 9;
+	/** Ofícios de coleta (0..3); os de refino vêm depois (4..8). */
+	constexpr int32 NumGathering = 4;
+	/** Mining, Logging, Harvesting, Skinning -> 0..3; Smelting, Woodworking, Leatherworking, Weaving, Stonecutting
+	 *  -> 4..8 (refino, esteira 4); outro -> INDEX_NONE. */
 	NWPORT_API int32 Index(FName Tradeskill);
 	NWPORT_API FName Name(int32 Index);
 	/** Chave do texto do jogo (ui_mining...) e ícone (icons/tradeskills/icon_tradeskill_<ofício>). */
@@ -32,8 +35,8 @@ namespace NWTradeskill
  * Nível do personagem, XP e atributos, com as tabelas do jogo (Data/Progression/progression.json,
  * tools/make_progression.py): XP total por nível (javelindata_xpamountsbylevel), pontos de atributo ganhos a cada
  * nível e o efeito de cada valor de atributo (javelindata_attribute*). Cada atributo começa em 5.
- * O servidor é autoritativo e salva no nw-core (coluna progression). XP de personagem ainda não vem de coleta nem
- * de abate (docs/hud-original.md); XP de ofício vem da coleta.
+ * O servidor é autoritativo e salva no nw-core (coluna progression). XP de personagem vem dos tutoriais de nível
+ * (níveis inteiros por missão) e, depois deles, dos abates; XP de ofício vem da coleta e do refino.
  */
 UCLASS(ClassGroup = (NW), meta = (BlueprintSpawnableComponent))
 class NWPORT_API UNWProgressionComponent : public UActorComponent
@@ -97,6 +100,23 @@ public:
 	UFUNCTION(Server, Reliable) void ServerSpendPoints(const TArray<int32>& Points);
 
 	UFUNCTION(Client, Reliable) void ClientXpGained(int64 Amount, int32 NewLevel);
+
+	// ---- tutoriais de nível (esteira 4, tools/tutorials.json; docs/sistemas.md)
+	/** Progresso de cada missão (índice do tools/tutorials.json); -1 = concluída. Só o dono recebe. */
+	UPROPERTY(Replicated) TArray<int32> TutorialCount;
+	int32 TutorialNum() const;
+	FString TutorialName(int32 Index) const;
+	int32 TutorialGoal(int32 Index) const;
+	bool TutorialsDone() const;
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+
+private:
+	void AdvanceTutorials(const FString& Kind, const FString& Target, int32 Amount);
+	void HandleKill(AActor* Killer, AActor* Victim);
+	void HandleTradeXp(class ANWCharacter* Who, FName Tradeskill, int32 Amount);
+	void HandleRefine(class ANWCharacter* Who, const FString& Station, FName Recipe, int32 Count);
+	FDelegateHandle KillHandle, TradeHandle, RefineHandle;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

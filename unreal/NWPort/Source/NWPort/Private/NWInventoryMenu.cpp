@@ -16,7 +16,6 @@ static const TCHAR* ItemLayoutDir = TEXT("lyshineui/images/slices/itemlayout/");
 static const TCHAR* EquipDir = TEXT("lyshineui/images/equipment/");
 // Peça de item do jogo (ItemDraggable/ItemLayout): 122 x 60; espaço de equipamento 72 x 72 (framesquare).
 static constexpr float TileW = 122.f, TileH = 60.f, TileGap = 10.f, EquipSize = 84.f;
-static constexpr float MaxWeight = UNWInventoryComponent::MaxWeight;
 
 namespace
 {
@@ -381,7 +380,7 @@ void FNWInventoryMenu::DrawStatus(UCanvas* Canvas)
 	Row(NWText::Get(TEXT("ui_buyorder_gear_score_label")), Count ? FString::FromInt(Sum / Count) : TEXT("-"), InvGold);
 	Row(NWText::Get(TEXT("ui_health")), FString::Printf(TEXT("%.0f / %.0f"), C->Health, C->MaxHealth), InvTan);
 	Row(NWText::Get(TEXT("ui_stamina")), FString::Printf(TEXT("%.0f / %.0f"), C->Stamina, C->MaxStamina), InvTan);
-	Row(NWText::Get(TEXT("ui_encumbrance")), FString::Printf(TEXT("%.1f / %.0f"), Inv->TotalWeight(), UNWInventoryComponent::MaxWeight), InvTan);
+	Row(NWText::Get(TEXT("ui_encumbrance")), FString::Printf(TEXT("%.1f / %.0f"), Inv->TotalWeight(), Inv->MaxWeight), InvTan);
 }
 
 TArray<FString> FNWInventoryMenu::Wrap(const FString& Text, float Width, float Size, int32 Style) const
@@ -554,18 +553,18 @@ void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 			Weight += D->Weight * I.Quantity;
 		}
 	}
-	const FString WeightText = FString::Printf(TEXT("%.1f / %.0f"), Weight, MaxWeight);
+	const FString WeightText = FString::Printf(TEXT("%.1f / %.0f"), Weight, Inv->MaxWeight);
 	const float WX = BagArea.Max.X - TextWidth(WeightText, 17.f) - 6.f * S;
 	const float WY = BagArea.Min.Y - 42.f * S;
 	DrawTexture(Canvas, TEXT("lyshineui/images/inventory/iconweight.dds"),
 		FBox2f(FVector2f(WX - 18.f * S, WY + 2.f * S), FVector2f(WX - 6.f * S, WY + 18.f * S)));
-	DrawText(Canvas, WeightText, WX, WY, 17.f, Weight > MaxWeight ? FLinearColor(FColor(0xFF, 0x71, 0x71)) : InvTan);
+	DrawText(Canvas, WeightText, WX, WY, 17.f, Weight > Inv->MaxWeight ? FLinearColor(FColor(0xFF, 0x71, 0x71)) : InvTan);
 	// Barra fina sob o cabeçalho.
 	const FBox2f Bar(FVector2f(BagArea.Min.X, BagArea.Min.Y - 14.f * S), FVector2f(BagArea.Max.X, BagArea.Min.Y - 10.f * S));
 	FCanvasTileItem BarBg(FVector2D(Bar.Min), FVector2D(Bar.GetSize()), FLinearColor(1.f, 1.f, 1.f, 0.08f));
 	BarBg.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(BarBg);
-	FCanvasTileItem BarFill(FVector2D(Bar.Min), FVector2D(Bar.GetSize().X * FMath::Clamp(Weight / MaxWeight, 0.f, 1.f), Bar.GetSize().Y), InvGold.CopyWithNewOpacity(0.8f));
+	FCanvasTileItem BarFill(FVector2D(Bar.Min), FVector2D(Bar.GetSize().X * FMath::Clamp(Weight / Inv->MaxWeight, 0.f, 1.f), Bar.GetSize().Y), InvGold.CopyWithNewOpacity(0.8f));
 	BarFill.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(BarFill);
 

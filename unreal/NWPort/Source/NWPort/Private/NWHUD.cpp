@@ -7,6 +7,10 @@
 #include "NWItems.h"
 #include "NWGatherComponent.h"
 #include "NWGatherField.h"
+#include "NWInteractable.h"
+#include "NWNpc.h"
+#include "NWCrafting.h"
+#include "NWNpcRewards.h"
 #include "NWOptions.h"
 #include "NWInventoryComponent.h"
 #include "GameFramework/GameStateBase.h"
@@ -425,6 +429,16 @@ void ANWHUD::DrawGameHUD()
 		DrawNavbar(1, FVector2D(MX, MY));
 		return;
 	}
+	if (Refining.IsOpen() || Storage.IsOpen())
+	{
+		float MX = 0.f, MY = 0.f;
+		if (APlayerController* PC = GetOwningPlayerController())
+		{
+			PC->GetMousePosition(MX, MY);
+		}
+		Refining.IsOpen() ? Refining.Draw(Canvas, FVector2D(MX, MY)) : Storage.Draw(Canvas, FVector2D(MX, MY));
+		return;
+	}
 	if (Attributes.IsOpen())
 	{
 		float MX = 0.f, MY = 0.f;
@@ -469,7 +483,9 @@ void ANWHUD::DrawGameHUD()
 	DrawNameplates(Me);
 	DrawGroup(Me);
 	DrawLootTicker();
+	DrawNpcNames(Me);
 	DrawGather(Me);
+	DrawInteract(Me);
 	DrawTarget(Me);
 	Chat.Draw(Canvas);
 	if (bShowDiagnostics || CVarHudDebug.GetValueOnGameThread())
@@ -490,6 +506,10 @@ void ANWHUD::DrawGather(const APawn* Me)
 	if (!G || !Font || !PC || !G->GetFocusLocation(World))
 	{
 		return;
+	}
+	if (!G->IsGathering() && Char->Interactor && Char->Interactor->Focus.IsValid())
+	{
+		return;   // o cartão do interagível (DrawInteract) vale; a tecla também vai para ele
 	}
 	FVector2D C;
 	World += FVector(0.f, 0.f, 90.f);
@@ -543,8 +563,23 @@ void ANWHUD::DrawGather(const APawn* Me)
 	{
 		return;
 	}
-	// Faixa do nome à direita do anel (TitleFrame: +185 da âncora do cartão; aqui colada ao anel) e a linha da tecla.
+	// Linha de ação: [E] Minerar, ou o aviso em vermelho (Requer Picareta).
 	const FString Name = G->FocusName;
+	const FString Action = G->FocusText.Contains(TEXT("·")) ? G->FocusText.Mid(G->FocusText.Find(TEXT("·")) + 1).TrimStartAndEnd()
+		: G->FocusText.Left(G->FocusText.Len() - Name.Len()).TrimStartAndEnd();
+	DrawCardText(C, Name, Action, G->bFocusBlocked);
+}
+
+void ANWHUD::DrawCardText(const FVector2D& C, const FString& Name, const FString& Action, bool bBlocked)
+{
+	UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
+	if (!Font)
+	{
+		return;
+	}
+	const float S = Canvas->ClipY / 1080.f;
+	const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6));
+	// Faixa do nome à direita do anel (TitleFrame: +185 da âncora do cartão; aqui colada ao anel) e a linha da tecla.
 	const float NameScale = 19.f * S / FMath::Max(1, Font->LegacyFontSize);
 	float NW = 0.f, NH = 0.f;
 	Canvas->TextSize(Font, Name, NW, NH, NameScale, NameScale);
@@ -556,13 +591,10 @@ void ANWHUD::DrawGather(const APawn* Me)
 		Canvas->DrawItem(Item);
 	}
 	DrawText(Name, Tan, TitlePos.X + 15.f * S, TitlePos.Y + (38.f * S - NH) * 0.5f, Font, NameScale);
-	// Linha de ação: [E] Minerar, ou o aviso em vermelho (Requer Picareta).
-	const FString Action = G->FocusText.Contains(TEXT("·")) ? G->FocusText.Mid(G->FocusText.Find(TEXT("·")) + 1).TrimStartAndEnd()
-		: G->FocusText.Left(G->FocusText.Len() - Name.Len()).TrimStartAndEnd();
 	const float RowY = TitlePos.Y + 46.f * S;
 	float X = TitlePos.X + 4.f * S;
 	const float ActScale = 17.f * S / FMath::Max(1, Font->LegacyFontSize);
-	if (!G->bFocusBlocked)
+	if (!bBlocked)
 	{
 		const float Key = 30.f * S;
 		if (UTexture2D* Frame = FNWUILayout::GameTexture(TEXT("lyshineui/images/slices/hint/hintframefilled.dds")))
@@ -578,7 +610,83 @@ void ANWHUD::DrawGather(const APawn* Me)
 	}
 	float AW = 0.f, AH = 0.f;
 	Canvas->TextSize(Font, Action, AW, AH, ActScale, ActScale);
-	DrawText(Action, G->bFocusBlocked ? FLinearColor(FColor(0xFF, 0x71, 0x71)) : Tan, X, RowY + (30.f * S - AH) * 0.5f, Font, ActScale);
+	DrawText(Action, bBlocked ? FLinearColor(FColor(0xFF, 0x71, 0x71)) : Tan, X, RowY + (30.f * S - AH) * 0.5f, Font, ActScale);
+}
+
+void ANWHUD::DrawInteract(const APawn* Me)
+{
+	// Mesmo cartão da coleta (anel + faixa do nome + [E] ação) no ponto de foco do interagível.
+	const ANWCharacter* Char = Cast<ANWCharacter>(Me);
+	const UNWInteractableComponent* I = Char && Char->Interactor ? Char->Interactor->Focus.Get() : nullptr;
+	APlayerController* PC = GetOwningPlayerController();
+	FVector2D C;
+	if (!I || !PC || !PC->ProjectWorldLocationToScreen(I->FocusLocation() + FVector(0.f, 0.f, 90.f), C, true))
+	{
+		return;
+	}
+	const float S = Canvas->ClipY / 1080.f;
+	for (const TCHAR* Path : {TEXT("lyshineui/images/markers/marker_ringbackground.dds"), TEXT("lyshineui/images/markers/marker_ringgather.dds")})
+	{
+		if (UTexture2D* T = FNWUILayout::GameTexture(Path))
+		{
+			const float Size = FCString::Strstr(Path, TEXT("background")) ? 256.f * S * 0.6f : 64.f * S;
+			FCanvasTileItem Item(C - FVector2D(Size * 0.5f), T->GetResource(), FVector2D(Size),
+				FCString::Strstr(Path, TEXT("background")) ? FLinearColor(1.f, 1.f, 1.f, 0.7f) : FLinearColor::White);
+			Item.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(Item);
+		}
+	}
+	// NPC sorteado da semana com algo a receber: "Receber" (ui_claim) no lugar de "Conversar".
+	FString Action = NWText::Get(I->ActionKey);
+	if (const ANWNpc* Npc = Cast<ANWNpc>(I->GetOwner());
+		Npc && FNWNpcRewards::Get().StateFor(Npc, Char->Interactor->RewardClaims) == FNWNpcRewards::EState::Available)
+	{
+		Action = NWText::Get(TEXT("ui_claim"));
+	}
+	DrawCardText(C, I->DisplayName.ToString(), Action, false);
+}
+
+void ANWHUD::DrawNpcNames(const APawn* Me)
+{
+	// Marcador do jogo sobre o NPC (markerdata.luac, tipo Conversation; staticworldmarker.luac): sem nome, só o ícone
+	// do estado. No port só o NPC sorteado da semana tem estado (brindes, NWNpcRewards.h): "!" com algo a receber,
+	// relógio depois. Altura 1,9 m, escala de 1 a 0,35 até 40 m, some de 125 a 250 m, aparece através de paredes.
+	APlayerController* PC = GetOwningPlayerController();
+	const ANWCharacter* Char = Cast<ANWCharacter>(Me);
+	if (!PC || !Char || !Char->Interactor)
+	{
+		return;
+	}
+	const float UIScale = Canvas->ClipY / 1080.f;
+	for (TActorIterator<ANWNpc> It(GetWorld()); It; ++It)
+	{
+		const ANWNpc* Npc = *It;
+		const FNWNpcRewards::EState State = FNWNpcRewards::Get().StateFor(Npc, Char->Interactor->RewardClaims);
+		if (State == FNWNpcRewards::EState::None)
+		{
+			continue;
+		}
+		const FVector Foot = Npc->GetActorLocation() - FVector(0.f, 0.f, 86.f);
+		const float Dist = FVector::Dist(Me->GetActorLocation(), Foot) / 100.f;
+		FVector2D Screen;
+		if (Dist > 250.f || !PC->ProjectWorldLocationToScreen(Foot + FVector(0.f, 0.f, 190.f), Screen, true))
+		{
+			continue;
+		}
+		UTexture2D* T = FNWUILayout::GameTexture(State == FNWNpcRewards::EState::Available
+			? TEXT("lyshineui/images/icons/objectives/icon_questavailable_npc.dds")
+			: TEXT("lyshineui/images/icons/objectives/icon_questcooldown_npc.dds"));
+		if (!T)
+		{
+			continue;
+		}
+		const float Scale = FMath::GetMappedRangeValueClamped(FVector2D(0.f, 40.f), FVector2D(1.f, 0.35f), Dist);
+		const float Alpha = FMath::GetMappedRangeValueClamped(FVector2D(125.f, 250.f), FVector2D(1.f, 0.f), Dist);
+		const float Size = 160.f * 0.5f * UIScale * Scale;   // 160 px no canvas do jogo (staticworldmarker), meia escala
+		FCanvasTileItem Item(Screen - FVector2D(Size * 0.5f, Size), T->GetResource(), FVector2D(Size), FLinearColor(1.f, 1.f, 1.f, Alpha));
+		Item.BlendMode = SE_BLEND_Translucent;
+		Canvas->DrawItem(Item);
+	}
 }
 
 void ANWHUD::DrawBar(float X, float Y, float W, float H, float Fraction, const FLinearColor& Fill)
@@ -1132,7 +1240,7 @@ void ANWHUD::DrawEncumbrance(const APawn* Me)
 		return;
 	}
 	const float S = Canvas->ClipY / 1080.f;
-	const float Ratio = Inv->TotalWeight() / UNWInventoryComponent::MaxWeight;
+	const float Ratio = Inv->TotalWeight() / Inv->MaxWeight;
 	const bool bOver = Ratio > 1.f;
 	// EncumbranceLayoutElement: 60 x 60 no canto inferior direito (offsets -96..-36, -113..-53 da tela 1080p).
 	const FVector2D Slot(Canvas->ClipX - 96.f * S, Canvas->ClipY - 113.f * S);
@@ -1406,4 +1514,50 @@ int32 ANWHUD::NavTabAt(const FVector2D& Mouse) const
 		}
 	}
 	return INDEX_NONE;
+}
+
+void ANWHUD::OpenRefining(ANWCharacter* Who, ANWStation* Station)
+{
+	ANWPlayerController* PC = Cast<ANWPlayerController>(GetOwningPlayerController());
+	if (!PC || !Who || !Station)
+	{
+		return;
+	}
+	PC->CloseMenus();
+	Refining.Open(Who, Station);
+	PC->EnterCanvasMenu();
+}
+
+void ANWHUD::OpenStorage(ANWCharacter* Who, ANWStation* Station)
+{
+	ANWPlayerController* PC = Cast<ANWPlayerController>(GetOwningPlayerController());
+	if (!PC || !Who || !Station || !Who->Interactor)
+	{
+		return;
+	}
+	PC->CloseMenus();
+	// Armazém da cidade: um por personagem em cada assentamento (backend: settlement:<cidade>).
+	Who->Interactor->ServerStorageOpen(TEXT("settlement:") + Station->City);
+	Storage.Open(Who, Station->Interact->DisplayName.ToString());
+	PC->EnterCanvasMenu();
+}
+
+bool ANWHUD::StationMenuWheel(float Delta)
+{
+	if (Refining.IsOpen())
+	{
+		Refining.Wheel(Delta);
+		return true;
+	}
+	if (Storage.IsOpen())
+	{
+		float MX = 0.f, MY = 0.f;
+		if (APlayerController* PC = GetOwningPlayerController())
+		{
+			PC->GetMousePosition(MX, MY);
+		}
+		Storage.Wheel(Delta, FVector2D(MX, MY));
+		return true;
+	}
+	return false;
 }

@@ -161,7 +161,16 @@ bool ANWPlayerController::IsMenuOpen() const
 {
 	const ANWHUD* HUD = GetNWHUD();
 	return OpenMenu.IsValid() || (HUD && (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->Attributes.IsOpen() || HUD->Login.IsActive() || HUD->Chat.IsOpen() || HUD->Inventory.IsOpen()
-		|| HUD->GameMenu.IsOpen() || HUD->WorldMap.IsOpen()));
+		|| HUD->GameMenu.IsOpen() || HUD->WorldMap.IsOpen() || HUD->IsStationMenuOpen()));
+}
+
+void ANWPlayerController::EnterCanvasMenu()
+{
+	FInputModeGameAndUI Mode;
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	Mode.SetHideCursorDuringCapture(false);
+	SetInputMode(Mode);
+	EnterMenuInput();
 }
 
 void ANWPlayerController::EnterMenuInput()
@@ -219,6 +228,7 @@ void ANWPlayerController::CloseMenus()
 		HUD->Inventory.Close();
 		HUD->GameMenu.Close();
 		HUD->WorldMap.Close();
+		HUD->CloseStationMenus();
 	}
 	if (bWasOpen)
 	{
@@ -303,6 +313,10 @@ void ANWPlayerController::OnWheelUp()
 {
 	ANWHUD* HUD = GetNWHUD();
 	float X = 0.f, Y = 0.f;
+	if (HUD && HUD->StationMenuWheel(1.f))
+	{
+		return;
+	}
 	if (HUD && HUD->WorldMap.IsOpen() && GetMousePosition(X, Y))
 	{
 		HUD->WorldMap.Wheel(1.f, FVector2D(X, Y));
@@ -313,6 +327,10 @@ void ANWPlayerController::OnWheelDown()
 {
 	ANWHUD* HUD = GetNWHUD();
 	float X = 0.f, Y = 0.f;
+	if (HUD && HUD->StationMenuWheel(-1.f))
+	{
+		return;
+	}
 	if (HUD && HUD->WorldMap.IsOpen() && GetMousePosition(X, Y))
 	{
 		HUD->WorldMap.Wheel(-1.f, FVector2D(X, Y));
@@ -400,12 +418,20 @@ void ANWPlayerController::SetupInputComponent()
 void ANWPlayerController::OnMenuClick()
 {
 	ANWHUD* HUD = GetNWHUD();
+	if (IsMenuOpen() || (HUD && HUD->IsDeathScreen()))
+	{
+		MenuClickFrame = GFrameCounter;
+	}
 	float X = 0.f, Y = 0.f;
 	GetMousePosition(X, Y);
 	if (HUD && HUD->Login.IsActive())
 	{
 		HUD->Login.Click(FVector2D(X, Y));
 		return;
+	}
+	if (HUD && HUD->StationMenuClick(FVector2D(X, Y)))
+	{
+		return;   // telas da esteira 4 (refino, ...): NWHUD
 	}
 	if (HUD && HUD->GameMenu.IsOpen())
 	{

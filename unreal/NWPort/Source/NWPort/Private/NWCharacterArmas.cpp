@@ -102,7 +102,9 @@ void ANWCharacter::UseBrain(uint8 Style, const TArray<FNWBrainAttack>& Attacks)
 
 void ANWCharacter::AttackPressed()
 {
-	if (InMenu())
+	// Clique de menu: nem o aperto nem a soltura viram golpe.
+	bAttackPressAccepted = !InMenu();
+	if (!bAttackPressAccepted)
 	{
 		return;
 	}
@@ -123,6 +125,11 @@ void ANWCharacter::AttackPressed()
 
 void ANWCharacter::AttackReleased()
 {
+	if (!bAttackPressAccepted)
+	{
+		return;   // aperto foi clique de menu: a soltura não vira golpe leve no servidor
+	}
+	bAttackPressAccepted = false;
 	if (bAttackFromSprint)
 	{
 		bAttackFromSprint = false;

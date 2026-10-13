@@ -78,6 +78,7 @@ bool FNWUILayout::Load(const FString& JsonFile)
 			E.Pivot = ReadVec2(O, TEXT("pivot"), E.Pivot);
 			E.Scale = ReadVec2(O, TEXT("scale"), E.Scale);
 			O->TryGetNumberField(TEXT("fade"), E.Fade);
+			O->TryGetBoolField(TEXT("fit_w"), E.bFitWidth);
 			O->TryGetBoolField(TEXT("enabled"), E.bEnabled);
 			O->TryGetBoolField(TEXT("mask"), E.bMask);
 			O->TryGetBoolField(TEXT("mask_draw"), E.bMaskDraw);
@@ -92,7 +93,7 @@ bool FNWUILayout::Load(const FString& JsonFile)
 				I->TryGetNumberField(TEXT("alpha"), A);
 				E.Color = ReadColor(I, TEXT("color"), A);
 				const FString Type = I->GetStringField(TEXT("type"));
-				E.ImageType = Type == TEXT("sliced") ? 1 : 0;
+				E.ImageType = Type == TEXT("sliced") ? 1 : Type == TEXT("stretched_fit") ? 4 : 0;
 				int32 BlendMode = 0;
 				I->TryGetNumberField(TEXT("blend"), BlendMode);
 				E.Blend = uint8(BlendMode);
@@ -117,13 +118,27 @@ bool FNWUILayout::Load(const FString& JsonFile)
 				E.bHasText = true;
 				E.Text = T->GetStringField(TEXT("text"));
 				const FString Font = T->GetStringField(TEXT("font"));
-				E.FontStyle = Font.Contains(TEXT("semibold")) ? 1 : Font.Contains(TEXT("bold")) ? 2 : 0;
+				E.FontStyle = Font.Contains(TEXT("pica_italic")) ? 4 : Font.Contains(TEXT("pica")) ? 3 : Font.Contains(TEXT("caslon")) ? 5
+					: Font.Contains(TEXT("semibold")) ? 1 : Font.Contains(TEXT("bold")) ? 2 : 0;
+				double Spacing = 0.0;
+				T->TryGetNumberField(TEXT("spacing"), Spacing);
+				E.CharSpacing = float(Spacing);
+				double Case = 0.0;
+				T->TryGetNumberField(TEXT("case"), Case);
+				E.CaseOverride = int32(Case);
 				T->TryGetNumberField(TEXT("size"), E.FontSize);
 				double A = 1.0;
 				T->TryGetNumberField(TEXT("alpha"), A);
 				E.TextColor = ReadColor(T, TEXT("color"), A);
 				T->TryGetNumberField(TEXT("halign"), E.HAlign);
 				T->TryGetNumberField(TEXT("valign"), E.VAlign);
+				E.FontFile = Font;
+				int32 Wrap = 0;
+				T->TryGetNumberField(TEXT("wrap"), Wrap);
+				E.bWrap = Wrap != 0;
+				T->TryGetNumberField(TEXT("linespacing"), E.LineSpacing);
+				T->TryGetNumberField(TEXT("shrink"), E.ShrinkToFit);
+				T->TryGetNumberField(TEXT("minshrink"), E.MinShrink);
 			}
 		}
 	}
@@ -167,14 +182,16 @@ FString FNWUILayout::AssetPathFor(const FString& GameTexture)
 
 UFont* FNWUILayout::GameFont(int32 Style)
 {
-	static UFont* Cache[3] = {nullptr, nullptr, nullptr};
-	Style = FMath::Clamp(Style, 0, 2);
+	static UFont* Cache[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+	Style = FMath::Clamp(Style, 0, 7);
 	if (Cache[Style])
 	{
 		return Cache[Style];
 	}
 	// O importador de fontes do editor pede confirmação em janela e não roda em commandlet: lê o .otf direto.
-	static const TCHAR* Files[3] = {TEXT("nimbussannov-reg.otf"), TEXT("nimbussannov-sembol.otf"), TEXT("nimbussannov-bol.otf")};
+	static const TCHAR* Files[8] = {TEXT("nimbussannov-reg.otf"), TEXT("nimbussannov-sembol.otf"), TEXT("nimbussannov-bol.otf"),
+		TEXT("imfepirm28p.ttf"), TEXT("imfepiit28p.ttf"), TEXT("caslonant.otf"), TEXT("nimbussannov-regita.otf"),
+		TEXT("nimbussannov-med.otf")};   // Pica = IM Fell (pica_regular.font)
 	const FString File = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("Data/UI/Fonts") / Files[Style]);
 	if (!FPaths::FileExists(File))
 	{
@@ -266,6 +283,14 @@ void FNWUILayout::DrawCanvas(UCanvas* Canvas, FNWUICanvasLayout& L)
 		float Top = P.Min.Y + E.Anchors.Y * PS.Y + E.Offsets.Y + E.Translate.Y;
 		float Right = P.Min.X + E.Anchors.Z * PS.X + E.Offsets.Z + E.Translate.X;
 		float Bottom = P.Min.Y + E.Anchors.W * PS.Y + E.Offsets.W + E.Translate.Y;
+		if (bExactText && E.bFitWidth && E.bHasText)
+		{
+			// UiLayoutFitter: largura do texto, em volta do pivô.
+			const float FitW = TextWidth(Canvas, E, UIScale);
+			const float PX = Left + (Right - Left) * E.Pivot.X;
+			Left = PX - FitW * E.Pivot.X;
+			Right = Left + FitW;
+		}
 		if (E.Scale.X != 1.f || E.Scale.Y != 1.f)
 		{
 			const float CX = Left + (Right - Left) * E.Pivot.X, CY = Top + (Bottom - Top) * E.Pivot.Y;
@@ -413,7 +438,9 @@ static void Tile(UCanvas* Canvas, const FTexture* Tex, const FVector2f& Pos, con
 void FNWUILayout::DrawImage(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect, float Alpha, float UIScale, const FBox2f& Clip)
 {
 	GClip = Clip;
-	GBlend = E.Blend == 1 ? SE_BLEND_Additive : SE_BLEND_Translucent;
+	// Aditivo do LyShine = (SrcAlpha, One); o da Unreal é (One, One) e acende o RGB de onde o alfa é 0. No modo fiel vai como
+	// translúcido, que para brilhos de alfa baixo fica perto do original.
+	GBlend = E.Blend == 1 && !bExactText ? SE_BLEND_Additive : SE_BLEND_Translucent;
 	const FString& TexPath = E.TextureOverride.IsEmpty() ? E.Texture : E.TextureOverride;
 	if (E.CachedFor != TexPath)
 	{
@@ -429,6 +456,14 @@ void FNWUILayout::DrawImage(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect
 	}
 
 	FBox2f R = Rect;
+	if (bExactText && E.ImageType == 4 && E.CachedTexture && E.CachedTexture->GetSizeY() > 0)
+	{
+		// StretchedToFit: mantém a proporção da textura, centrada no retângulo.
+		const float TA = float(E.CachedTexture->GetSizeX()) / float(E.CachedTexture->GetSizeY());
+		const FVector2f S = Rect.GetSize(), C = Rect.GetCenter();
+		const FVector2f Fit = S.X / FMath::Max(1.f, S.Y) > TA ? FVector2f(S.Y * TA, S.Y) : FVector2f(S.X, S.X / TA);
+		R = FBox2f(C - Fit * 0.5f, C + Fit * 0.5f);
+	}
 	FVector2f UV0(0.f, 0.f), UV1(1.f, 1.f);
 	const float Amount = FMath::Clamp(E.Fill.Get(E.FillAmount), 0.f, 1.f);
 	if (E.FillType == 1 && Amount < 1.f)
@@ -504,28 +539,317 @@ void FNWUILayout::DrawImage(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect
 	Tile(Canvas, Tex, R.Min, R.GetSize(), UV0, UV1, Color);
 }
 
+UFont* FNWUILayout::TextFont(const FNWUIElement& E) const
+{
+	int32 Style = E.FontStyle;
+	if (bExactText)
+	{
+		// Família do canvas: Nimbus itálico e médio têm arquivo próprio (GameFont 6 e 7).
+		const FString& F = E.FontFile;
+		Style = F.Contains(TEXT("pica_italic")) ? 4 : F.Contains(TEXT("pica")) ? 3 : F.Contains(TEXT("caslon")) ? 5
+			: F.Contains(TEXT("italic")) ? 6 : F.Contains(TEXT("semibold")) ? 1 : F.Contains(TEXT("bold")) ? 2
+			: F.Contains(TEXT("medium")) ? 7 : 0;
+	}
+	return !bExactText && Style <= 2 ? Fonts[FMath::Clamp(Style, 0, 2)] : GameFont(Style);
+}
+
+float FNWUILayout::TextScale(UCanvas* Canvas, const FNWUIElement& E, UFont* Font, float UIScale) const
+{
+	// Tamanho do LyShine = altura da linha (ascendente + descendente) em pixels da tela de referência. No modo fiel, a
+	// escala sai da altura de linha da própria fonte (medida a 1); senão, do tamanho nominal (24).
+	if (bExactText)
+	{
+		float W1 = 0.f, H1 = 0.f;
+		Canvas->TextSize(Font, TEXT("Ag"), W1, H1, 1.f, 1.f);
+		return E.FontSize * UIScale / FMath::Max(1.f, H1);
+	}
+	return E.FontSize * UIScale / FMath::Max(1, Font->LegacyFontSize);
+}
+
+float FNWUILayout::TextWidth(UCanvas* Canvas, const FNWUIElement& E, float UIScale) const
+{
+	const FString& Raw = E.TextOverride.IsSet() ? E.TextOverride.GetValue() : E.Text;
+	UFont* Font = TextFont(E);
+	if (Raw.IsEmpty() || !Font)
+	{
+		return 0.f;
+	}
+	const FString Str = E.CaseOverride == 2 ? Raw.ToUpper() : E.CaseOverride == 1 ? Raw.ToLower() : Raw;
+	const float S = TextScale(Canvas, E, Font, UIScale);
+	const float Extra = FMath::Abs(E.CharSpacing) > 1.f ? E.CharSpacing * 0.001f * E.FontSize * UIScale : 0.f;
+	TArray<FString> Lines;
+	Str.ParseIntoArray(Lines, TEXT("\n"), false);
+	float Widest = 0.f;
+	for (const FString& L : Lines)
+	{
+		float W = 0.f, H = 0.f;
+		Canvas->TextSize(Font, L, W, H, S, S);
+		Widest = FMath::Max(Widest, W + Extra * FMath::Max(0, L.Len() - 1));
+	}
+	return Widest / UIScale;
+}
+
 void FNWUILayout::DrawText(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect, float Alpha, float UIScale, const FBox2f& Clip)
 {
 	if (!Clip.Intersect(Rect))
 	{
 		return;
 	}
-	const FString& Str = E.TextOverride.IsSet() ? E.TextOverride.GetValue() : E.Text;
-	UFont* Font = Fonts[FMath::Clamp(E.FontStyle, 0, 2)];
+	const FString& Raw = E.TextOverride.IsSet() ? E.TextOverride.GetValue() : E.Text;
+	const FString Str = E.CaseOverride == 2 ? Raw.ToUpper() : E.CaseOverride == 1 ? Raw.ToLower() : Raw;
+	UFont* Font = TextFont(E);
 	if (Str.IsEmpty() || !Font)
 	{
 		return;
 	}
-	// Tamanho do LyShine = altura em pixels da tela de referência; a fonte de execução é desenhada a 24.
-	const float S = E.FontSize * UIScale / FMath::Max(1, Font->LegacyFontSize);
-	float W = 0.f, H = 0.f;
-	Canvas->TextSize(Font, Str, W, H, S, S);
-	const float X = E.HAlign == 1 ? Rect.GetCenter().X - W * 0.5f : E.HAlign == 2 ? Rect.Max.X - W : Rect.Min.X;
-	const float Y = E.VAlign == 1 ? Rect.GetCenter().Y - H * 0.5f : E.VAlign == 2 ? Rect.Max.Y - H : Rect.Min.Y;
+	float S = TextScale(Canvas, E, Font, UIScale);
+	const float Extra = FMath::Abs(E.CharSpacing) > 1.f ? E.CharSpacing * 0.001f * E.FontSize * UIScale : 0.f;
+	auto Width = [&](const FString& Line, float Scale)
+	{
+		float W = 0.f, H = 0.f;
+		Canvas->TextSize(Font, Line, W, H, Scale, Scale);
+		return W + (Extra != 0.f ? Extra * FMath::Max(0, Line.Len() - 1) * Scale / S : 0.f);
+	};
+	const float MaxW = Rect.GetSize().X;
+	TArray<FString> Lines;
+	if (bExactText)
+	{
+		Str.ParseIntoArray(Lines, TEXT("\n"), false);
+	}
+	else
+	{
+		Lines.Add(Str);
+	}
+	if (bExactText && E.bWrap && !E.bFitWidth && MaxW > 1.f)
+	{
+		// Quebra por palavra na largura do elemento (wraptextsetting).
+		TArray<FString> Wrapped;
+		for (const FString& L : Lines)
+		{
+			TArray<FString> Words;
+			L.ParseIntoArray(Words, TEXT(" "), true);
+			FString Cur;
+			for (const FString& W : Words)
+			{
+				const FString Try = Cur.IsEmpty() ? W : Cur + TEXT(" ") + W;
+				if (!Cur.IsEmpty() && Width(Try, S) > MaxW)
+				{
+					Wrapped.Add(Cur);
+					Cur = W;
+				}
+				else
+				{
+					Cur = Try;
+				}
+			}
+			Wrapped.Add(Cur);
+		}
+		Lines = MoveTemp(Wrapped);
+	}
+	else if (bExactText && E.ShrinkToFit != 0 && !E.bFitWidth && MaxW > 1.f)
+	{
+		// Encolher para caber na largura (shrinktofit), até minshrinkscale.
+		float Widest = 0.f;
+		for (const FString& L : Lines)
+		{
+			Widest = FMath::Max(Widest, Width(L, S));
+		}
+		if (Widest > MaxW)
+		{
+			S *= FMath::Max(E.MinShrink, MaxW / Widest);
+		}
+	}
+	float LW = 0.f, LH = 0.f;
+	Canvas->TextSize(Font, bExactText ? FString(TEXT("Ag")) : Str, LW, LH, S, S);
+	const float Step = LH + (bExactText ? E.LineSpacing * UIScale : 0.f);
+	const float BlockH = Step * (Lines.Num() - 1) + LH;
+	float Y = E.VAlign == 1 ? Rect.GetCenter().Y - BlockH * 0.5f : E.VAlign == 2 ? Rect.Max.Y - BlockH : Rect.Min.Y;
 	FLinearColor Color = E.Tint.Get(E.TextColor);
 	Color.A *= Alpha;
-	FCanvasTextItem Item(FVector2D(X, Y), FText::FromString(Str), Font, Color);
-	Item.Scale = FVector2D(S, S);
-	Item.EnableShadow(FLinearColor(0.f, 0.f, 0.f, 0.75f * Color.A));
-	Canvas->DrawItem(Item);
+	for (const FString& Line : Lines)
+	{
+		const float W = Width(Line, S);
+		float X = E.HAlign == 1 ? Rect.GetCenter().X - W * 0.5f : E.HAlign == 2 ? Rect.Max.X - W : Rect.Min.X;
+		if (Extra != 0.f)
+		{
+			// Espaçamento entre letras (títulos do jogo: "S M E L T E R"): letra a letra.
+			for (int32 i = 0; i < Line.Len(); ++i)
+			{
+				const FString Ch = Line.Mid(i, 1);
+				FCanvasTextItem Item(FVector2D(X, Y), FText::FromString(Ch), Font, Color);
+				Item.Scale = FVector2D(S, S);
+				Item.EnableShadow(FLinearColor(0.f, 0.f, 0.f, 0.75f * Color.A));
+				Canvas->DrawItem(Item);
+				float CW = 0.f, CH = 0.f;
+				Canvas->TextSize(Font, Ch, CW, CH, S, S);
+				X += CW + Extra;
+			}
+		}
+		else
+		{
+			FCanvasTextItem Item(FVector2D(X, Y), FText::FromString(Line), Font, Color);
+			Item.Scale = FVector2D(S, S);
+			Item.EnableShadow(FLinearColor(0.f, 0.f, 0.f, 0.75f * Color.A));
+			Canvas->DrawItem(Item);
+		}
+		Y += Step;
+	}
+}
+
+int32 FNWUILayout::IndexOf(const FString& CanvasName, const FNWUIElement* Element) const
+{
+	for (const FNWUICanvasLayout& L : Canvases)
+	{
+		if (L.Name == CanvasName && Element >= L.Elements.GetData() && Element < L.Elements.GetData() + L.Elements.Num())
+		{
+			return int32(Element - L.Elements.GetData());
+		}
+	}
+	return INDEX_NONE;
+}
+
+FBox2f FNWUILayout::DrawSubtree(UCanvas* Canvas, const FString& CanvasName, const FNWUIElement* Root, const FVector2f& Offset)
+{
+	FNWUICanvasLayout* LP = Canvases.FindByPredicate([&CanvasName](const FNWUICanvasLayout& X) { return X.Name == CanvasName; });
+	const int32 R = IndexOf(CanvasName, Root);
+	if (!LP || R == INDEX_NONE || !LP->LastRects.IsValidIndex(R))
+	{
+		return FBox2f(ForceInit);
+	}
+	FNWUICanvasLayout& L = *LP;
+	const float UIScale = Canvas->ClipY / L.Size.Y;
+	// Fim da subárvore: os elementos estão em pré-ordem; a subárvore vai até o primeiro que não descende de Root.
+	int32 End = R;
+	for (int32 i = R + 1; i < L.Elements.Num(); ++i)
+	{
+		int32 P = L.Elements[i].Parent;
+		while (P > R)
+		{
+			P = L.Elements[P].Parent;
+		}
+		if (P != R)
+		{
+			break;
+		}
+		End = i;
+	}
+	const int32 Parent = L.Elements[R].Parent;
+	const FBox2f ParentRect = L.LastRects.IsValidIndex(Parent)
+		? FBox2f(L.LastRects[Parent].Min / UIScale, L.LastRects[Parent].Max / UIScale)
+		: FBox2f(FVector2f(0.f, 0.f), FVector2f(Canvas->ClipX / UIScale, L.Size.Y));
+	// Alfa herdado dos pais (o Root está escondido, então a cadeia acima dele vale).
+	float BaseAlpha = 1.f;
+	for (int32 P = Parent; L.Elements.IsValidIndex(P); P = L.Elements[P].Parent)
+	{
+		BaseAlpha *= L.Elements[P].Fade * L.Elements[P].AlphaMul;
+	}
+	TMap<int32, FBox2f> Rects;
+	TMap<int32, float> Alphas;
+	TArray<TPair<int32, FBox2f>> Clips;
+	const FBox2f RootClip = L.LastClips[R];
+	FBox2f RowRect(ForceInit);
+	for (int32 i = R; i <= End; ++i)
+	{
+		while (Clips.Num() > 0 && i > Clips.Last().Key)
+		{
+			Clips.Pop();
+		}
+		FNWUIElement& E = L.Elements[i];
+		const bool bRoot = i == R;
+		const FBox2f P = bRoot ? ParentRect : Rects.FindRef(E.Parent);
+		const FVector2f PS = P.GetSize();
+		const FVector2f T = E.Translate + (bRoot ? Offset : FVector2f(0.f, 0.f));
+		float Left = P.Min.X + E.Anchors.X * PS.X + E.Offsets.X + T.X;
+		float Top = P.Min.Y + E.Anchors.Y * PS.Y + E.Offsets.Y + T.Y;
+		float Right = P.Min.X + E.Anchors.Z * PS.X + E.Offsets.Z + T.X;
+		float Bottom = P.Min.Y + E.Anchors.W * PS.Y + E.Offsets.W + T.Y;
+		if (bExactText && E.bFitWidth && E.bHasText)
+		{
+			// UiLayoutFitter: largura do texto, em volta do pivô.
+			const float FitW = TextWidth(Canvas, E, UIScale);
+			const float PX = Left + (Right - Left) * E.Pivot.X;
+			Left = PX - FitW * E.Pivot.X;
+			Right = Left + FitW;
+		}
+		if (E.Scale.X != 1.f || E.Scale.Y != 1.f)
+		{
+			const float CX = Left + (Right - Left) * E.Pivot.X, CY = Top + (Bottom - Top) * E.Pivot.Y;
+			Left = CX - (CX - Left) * E.Scale.X; Right = CX + (Right - CX) * E.Scale.X;
+			Top = CY - (CY - Top) * E.Scale.Y; Bottom = CY + (Bottom - CY) * E.Scale.Y;
+		}
+		const FBox2f Rect(FVector2f(Left, Top), FVector2f(Right, Bottom));
+		Rects.Add(i, Rect);
+		const FBox2f Px(Rect.Min * UIScale, Rect.Max * UIScale);
+		if (bRoot)
+		{
+			RowRect = Px;
+		}
+		// O Root desenha mesmo escondido no layout (é o item-modelo); os filhos seguem o próprio estado.
+		const bool bShown = bRoot ? true : E.Visible.Get(E.bEnabled);
+		if (!bShown)
+		{
+			// Filho escondido: a subárvore dele também some (marca o fim como recorte vazio).
+			int32 SubEnd = i;
+			for (int32 j = i + 1; j <= End; ++j)
+			{
+				int32 PP = L.Elements[j].Parent;
+				while (PP > i)
+				{
+					PP = L.Elements[PP].Parent;
+				}
+				if (PP != i)
+				{
+					break;
+				}
+				SubEnd = j;
+			}
+			Clips.Add({SubEnd, FBox2f(FVector2f(0.f, 0.f), FVector2f(0.f, 0.f))});
+			continue;
+		}
+		const float A = (bRoot ? BaseAlpha : Alphas.FindRef(E.Parent)) * E.Fade * E.AlphaMul;
+		Alphas.Add(i, A);
+		FBox2f Clip = Clips.Num() > 0 ? Clips.Last().Value : RootClip;
+		if (E.bMask)
+		{
+			FBox2f Inner(FVector2f(FMath::Max(Px.Min.X, Clip.Min.X), FMath::Max(Px.Min.Y, Clip.Min.Y)),
+				FVector2f(FMath::Min(Px.Max.X, Clip.Max.X), FMath::Min(Px.Max.Y, Clip.Max.Y)));
+			Clips.Add({E.EndIndex >= i ? E.EndIndex : i, Inner});
+			if (!E.bMaskDraw)
+			{
+				continue;
+			}
+		}
+		if (A <= 0.005f || Clip.Max.X <= Clip.Min.X || Clip.Max.Y <= Clip.Min.Y)
+		{
+			continue;
+		}
+		if (E.bHasImage)
+		{
+			DrawImage(Canvas, E, Px, A, UIScale, Clip);
+		}
+		if (E.bHasText)
+		{
+			DrawText(Canvas, E, Px, A, UIScale, Clip);
+		}
+	}
+	return RowRect;
+}
+
+void FNWUILayout::Dump(const FString& Filter) const
+{
+	for (const FNWUICanvasLayout& C : Canvases)
+	{
+		for (const FNWUIElement& El : C.Elements)
+		{
+			if (!El.Path.Contains(Filter))
+			{
+				continue;
+			}
+			const FBox2f R = RectOf(&El);
+			UE_LOG(LogTemp, Display, TEXT("NWUIDump %s shown=%d rect=(%.0f,%.0f)-(%.0f,%.0f) fade=%.2f text='%s' tex=%s"), *El.Path,
+				WasShown(&El) ? 1 : 0, R.Min.X, R.Min.Y, R.Max.X, R.Max.Y, El.Fade * El.AlphaMul,
+				El.TextOverride.IsSet() ? *El.TextOverride.GetValue() : *El.Text,
+				El.TextureOverride.IsEmpty() ? *El.Texture : *El.TextureOverride);
+		}
+	}
 }

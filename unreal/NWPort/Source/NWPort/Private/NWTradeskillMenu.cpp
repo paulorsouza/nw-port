@@ -49,8 +49,8 @@ void FNWTradeskillMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	FCanvasTileItem Dim(FVector2D::ZeroVector, FVector2D(Canvas->ClipX, Canvas->ClipY), FLinearColor(0.f, 0.f, 0.f, 0.5f));
 	Dim.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(Dim);
-	static const TCHAR* Cells[NWTradeskill::Num] = {TEXT("MiningCell"), TEXT("LoggingCell"), TEXT("HarvestingCell"), TEXT("SkinningCell")};
-	for (int32 t = 0; t < NWTradeskill::Num; ++t)
+	static const TCHAR* Cells[NWTradeskill::NumGathering] = {TEXT("MiningCell"), TEXT("LoggingCell"), TEXT("HarvestingCell"), TEXT("SkinningCell")};
+	for (int32 t = 0; t < NWTradeskill::NumGathering; ++t)
 	{
 		const FString Cell = FString(TEXT("GatheringSection/")) + Cells[t];
 		if (FNWUIElement* E = Layout.FindOne(TEXT("tradeskills"), Cell + TEXT("/SkillLevelCircleProgress/TextContainer/LevelText")))

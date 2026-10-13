@@ -310,6 +310,112 @@ void UNWBackend::SaveState(const FNWCharacterRecord& Record)
 		});
 }
 
+void UNWBackend::ListNpcRewards(const FString& CharacterId, const FString& Period, TFunction<void(bool, const TArray<FString>&)> Done)
+{
+	Request(TEXT("GET"), FString::Printf(TEXT("/internal/characters/%s/npc-rewards?period=%s"), *CharacterId, *Period), FString(), true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			TArray<FString> Keys;
+			const TArray<TSharedPtr<FJsonValue>>* Claims = nullptr;
+			if (Status != 200 || !Json || !Json->TryGetArrayField(TEXT("claims"), Claims))
+			{
+				Done(false, Keys);
+				return;
+			}
+			for (const TSharedPtr<FJsonValue>& V : *Claims)
+			{
+				const TSharedPtr<FJsonObject> C = V->AsObject();
+				Keys.Add(C->GetStringField(TEXT("kind")) + TEXT(":") + C->GetStringField(TEXT("npc")) + TEXT(":") + C->GetStringField(TEXT("period")));
+			}
+			Done(true, Keys);
+		});
+}
+
+void UNWBackend::ClaimNpcReward(const FNWCharacterRecord& Record, const FString& Npc, const FString& Kind, const FString& Period,
+	TFunction<void(bool, int32)> Done)
+{
+	// Corpo = estado do personagem (a rota usa só inventory e coins) + npc, kind, period.
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		Done(false, 0);
+		return;
+	}
+	Body->SetStringField(TEXT("npc"), Npc);
+	Body->SetStringField(TEXT("kind"), Kind);
+	Body->SetStringField(TEXT("period"), Period);
+	FString Out;
+	FJsonSerializer::Serialize(Body.ToSharedRef(), TJsonWriterFactory<>::Create(&Out));
+	Request(TEXT("POST"), FString::Printf(TEXT("/internal/characters/%s/npc-rewards"), *Record.Id), Out, true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject>) { Done(Status == 201, Status); });
+}
+
+namespace
+{
+	TArray<FNWItem> StorageItemsFrom(const TSharedPtr<FJsonObject>& Json)
+	{
+		TArray<FNWItem> Out;
+		const TArray<TSharedPtr<FJsonValue>>* Arr = nullptr;
+		if (Json && Json->TryGetArrayField(TEXT("items"), Arr))
+		{
+			for (const TSharedPtr<FJsonValue>& V : *Arr)
+			{
+				const TSharedPtr<FJsonObject> I = V->AsObject();
+				FNWItem Item;
+				Item.ItemId = FName(*I->GetStringField(TEXT("item_id")));
+				Item.Quantity = int32(I->GetNumberField(TEXT("quantity")));
+				Item.Slot = int32(I->GetNumberField(TEXT("slot")));
+				Item.GearScore = int32(I->GetNumberField(TEXT("gear_score")));
+				Item.Rarity = uint8(I->GetNumberField(TEXT("rarity")));
+				Out.Add(Item);
+			}
+		}
+		return Out;
+	}
+}
+
+void UNWBackend::GetStorage(const FString& CharacterId, const FString& Location,
+	TFunction<void(bool, int64, const TArray<FNWItem>&)> Done)
+{
+	Request(TEXT("GET"), FString::Printf(TEXT("/internal/characters/%s/storage/%s"), *CharacterId, *Location), FString(), true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			const bool bOk = Status == 200 && Json;
+			Done(bOk, bOk ? int64(Json->GetNumberField(TEXT("version"))) : 0, StorageItemsFrom(Json));
+		});
+}
+
+void UNWBackend::PutStorage(const FNWCharacterRecord& Record, const FString& Location, int64 Version, const TArray<FNWItem>& Items,
+	TFunction<void(int32, int64)> Done)
+{
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		Done(0, 0);
+		return;
+	}
+	Body->SetNumberField(TEXT("version"), double(Version));
+	TArray<TSharedPtr<FJsonValue>> Arr;
+	for (const FNWItem& Item : Items)
+	{
+		TSharedRef<FJsonObject> I = MakeShared<FJsonObject>();
+		I->SetStringField(TEXT("item_id"), Item.ItemId.ToString());
+		I->SetNumberField(TEXT("quantity"), Item.Quantity);
+		I->SetNumberField(TEXT("slot"), Item.Slot);
+		I->SetNumberField(TEXT("gear_score"), Item.GearScore);
+		I->SetNumberField(TEXT("rarity"), Item.Rarity);
+		Arr.Add(MakeShared<FJsonValueObject>(I));
+	}
+	Body->SetArrayField(TEXT("items"), Arr);
+	FString Out;
+	FJsonSerializer::Serialize(Body.ToSharedRef(), TJsonWriterFactory<>::Create(&Out));
+	Request(TEXT("PUT"), FString::Printf(TEXT("/internal/characters/%s/storage/%s"), *Record.Id, *Location), Out, true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			Done(Status, Status == 200 && Json ? int64(Json->GetNumberField(TEXT("version"))) : 0);
+		});
+}
+
 // ---------------------------------------------------------------- cliente
 
 void UNWBackend::OpenSession(const TSharedPtr<FJsonObject>& Json)

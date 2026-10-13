@@ -20,7 +20,9 @@ public:
 
 	static constexpr int32 BagSize = 40;
 	// Peso máximo sem sobrecarga (inventário base do jogo); acima disso não corre, não esquiva, não pula.
-	static constexpr float MaxWeight = 1000.f;
+	static constexpr float BaseMaxWeight = 1000.f;
+	// Peso máximo deste personagem: o base, ou 10.000.000 com a bolsa de dev (F10, não salva).
+	UPROPERTY(Replicated) float MaxWeight = BaseMaxWeight;
 	// Vida máxima do jogo no nível 60, para escalar a cura das poções à nossa (MaxHealth).
 	static constexpr float GameMaxHealth = 7000.f;
 
@@ -31,6 +33,10 @@ public:
 
 	const FNWItem* At(ENWItemContainer Container, int32 Slot) const;
 	int32 CountOf(FName ItemId) const;
+	/** Servidor: tira até Quantity do item das pilhas da bolsa (refino, NWCrafting); devolve quanto tirou. */
+	int32 Take(FName ItemId, int32 Quantity);
+	/** Servidor: tira até Quantity da pilha no espaço BagSlot da bolsa (armazém); devolve o que saiu (Quantity 0 = nada). */
+	FNWItem TakeAt(int32 BagSlot, int32 Quantity);
 	/** Poção de vida de maior tier na bolsa (espaço) ou INDEX_NONE. */
 	int32 BestPotionSlot() const;
 	/** Multiplicador de dano da arma equipada do conjunto (Sword/Hatchet) pelo gear score; 1 sem arma. */

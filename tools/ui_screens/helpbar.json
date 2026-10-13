@@ -1,0 +1,8 @@
+{
+ "_comment": "Rodapé de atalhos das telas cheias (helpbar). O C++ desenha as ações com o modelo ActionDisplay (docs/hud/refino.md §7).",
+ "canvas": "lyshineui/helpbar/helpbar",
+ "name": "helpbar",
+ "keep": [],
+ "hide": ["/FullBackground"],
+ "extra_textures": ["lyshineui/images/slices/hint/hintframefilled.dds"]
+}

@@ -224,6 +224,46 @@
     "nw.inv.weight": {
       "pt-br": "Peso",
       "en-us": "Weight"
+    },
+    "nw.dev.dev_bag": {
+      "pt-br": "Bolsa de dev (peso)",
+      "en-us": "Dev bag (weight)"
+    },
+    "nw.craft.too_far": {
+      "pt-br": "Chegue mais perto da estação.",
+      "en-us": "Get closer to the station."
+    },
+    "nw.craft.level": {
+      "pt-br": "Nível de ofício insuficiente.",
+      "en-us": "Trade skill level too low."
+    },
+    "nw.craft.missing": {
+      "pt-br": "Faltam materiais ou moedas.",
+      "en-us": "Missing materials or coins."
+    },
+    "nw.tut.done": {
+      "pt-br": "Missão concluída: {0}",
+      "en-us": "Mission complete: {0}"
+    },
+    "nw.dev.tutorials": {
+      "pt-br": "Missões",
+      "en-us": "Missions"
+    },
+    "nw.tut.all_done": {
+      "pt-br": "Todas as missões concluídas.",
+      "en-us": "All missions complete."
+    },
+    "nw.craft.bonus_chance": {
+      "pt-br": "Chance de itens adicionais",
+      "en-us": "Chance to craft additional items"
+    },
+    "nw.storage.open": {
+      "pt-br": "Abrir",
+      "en-us": "Open"
+    },
+    "nw.storage.bag": {
+      "pt-br": "Bolsa",
+      "en-us": "Bag"
     }
   },
   "chaves_do_jogo": [
@@ -272,6 +312,38 @@
     "ui_trade_skills",
     "ui_glory_to_level",
     "ui_available_points",
-    "ui_attributes"
+    "ui_attributes",
+    "ui_talk",
+    "ui_claim",
+    "ui_prefab_refinery_interact",
+    "ui_materials",
+    "ui_quantity",
+    "ui_max",
+    "ui_crafting_fee",
+    "ui_smelting",
+    "ui_woodworking",
+    "ui_leatherworking",
+    "ui_weaving",
+    "ui_stonecutting",
+    "ui_storage_is_full",
+    "ui_global_storage",
+    "cr_tier",
+    "ui_has_resources",
+    "crafting_tree_learned",
+    "ui_back",
+    "crafting_set_max",
+    "ui_chat",
+    "ui_craft",
+    "ui_tier",
+    "cr_levelrequired",
+    "smelting_station",
+    "weaving_station",
+    "ui_craft_fee",
+    "ui_craft_bonus",
+    "ui_pin_recipe",
+    "ui_bracket_amount",
+    "carpentry_station",
+    "tanning_station",
+    "masonry_station"
   ]
 }

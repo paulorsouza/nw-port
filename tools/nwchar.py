@@ -21,9 +21,10 @@ def bone_of(fc):
     return m.group(1) if m else None
 
 
-def import_character(glb, name="player_male"):
+def import_character(glb, name="player_male", drop=None):
     """Importa o glb do nwbt e deixa um esqueleto só.
 
+    drop: malhas a remover pelo nome (padrão DROP_MESHES, do jogador; os NPCs usam shirt2 como roupa).
     O glb traz uma cópia do esqueleto por malha (sufixos .001, .002...). Fica a cópia
     que as animações animam; vertex groups e curvas passam a usar os nomes sem sufixo.
     """
@@ -33,7 +34,7 @@ def import_character(glb, name="player_male"):
     arm.name = name
 
     for o in list(scene.objects):
-        if o.type == "MESH" and base(o.name) in DROP_MESHES:
+        if o.type == "MESH" and base(o.name) in (DROP_MESHES if drop is None else drop):
             bpy.data.objects.remove(o)
 
     used = set()

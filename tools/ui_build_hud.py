@@ -60,7 +60,9 @@ def main():
     import shutil
     fonts = os.path.join(out, "Fonts")
     os.makedirs(fonts, exist_ok=True)
-    for f in ("nimbussannov-reg.otf", "nimbussannov-sembol.otf", "nimbussannov-bol.otf"):
+    # Pica (pica_regular.font = IM Fell, títulos do jogo) e Caslon: estilos 3, 4 e 5 do FNWUILayout::GameFont.
+    for f in ("nimbussannov-reg.otf", "nimbussannov-sembol.otf", "nimbussannov-bol.otf", "imfepirm28p.ttf", "imfepiit28p.ttf",
+              "caslonant.otf", "nimbussannov-regita.otf", "nimbussannov-med.otf"):
         shutil.copy(os.path.join(UI, "tex", "lyshineui", "fonts", f), fonts)
     print(f"{sum(len(c['elements']) for c in canvases)} elementos em {len(canvases)} telas; {len(textures)} texturas")
 

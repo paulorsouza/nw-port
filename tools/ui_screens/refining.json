@@ -1,0 +1,142 @@
+{
+ "_comment": "Tela de refino (craftingscreenv4 no modo refino). Estados e caminhos: docs/hud/refino.md. Gerar: python3 tools/ui_build_screen.py tools/ui_screens/refining.json FrameMultiBg: o Lua aplica FRAME_STYLE_DEFAULT_2023 (framebgdefault2023.dds) no OnInit (slices/framemultibg.lua). Estilos de texto: SetTextStyle do Lua (crafting/*.lua) com tools/ui_styles.py; botões: slices/button.lua.",
+ "canvas": "lyshineui/crafting/craftingscreenv4",
+ "name": "refining",
+ "keep": [
+  "_root/CraftingScreen/BackgroundStep1",
+  "_root/CraftingScreen/CraftingContainer/CraftingPanel",
+  "_root/CraftingScreen/CraftingContainer/CraftRoll",
+  "_root/CraftingScreen/CraftingContainer/CraftDone"
+ ],
+ "exclude": [
+  "PerkItemSelector",
+  "CategoryItemSelector",
+  "OptionalResourceSelector",
+  "ResourceSelectorBlocker",
+  "CraftingTreeFilterPopup",
+  "RequiredStats",
+  "VersionRequirement",
+  "HeaderTooltip"
+ ],
+ "show": [
+  "/CraftingStatsPanel/Refining",
+  "/Modifiers/NoPerksText"
+ ],
+ "hide": [
+  "/QualityComplex/QualityBar",
+  "/QualityComplex/TopInfo",
+  "/StatsScrollBox/StatContainer",
+  "/OffsetContainer/AchievementRecipeDesc",
+  "/Modifiers/AddPerkItem",
+  "/Modifiers/AddPerkItem2",
+  "/Modifiers/AddPerkItem3",
+  "/Modifiers/AddPerkItem4",
+  "/Modifiers/AddAzoth",
+  "/Refining/GlobalBonus",
+  "/OffsetContainer/CooldownCount",
+  "/Header/ItemRarity",
+  "/ItemName/BonusHintLayout",
+  "/Stats/Weapons",
+  "/Stats/Armor",
+  "/Stats/Trinket",
+  "/Stats/PerkContainer",
+  "/CraftRoll/QualityInfo",
+  "/SortDropdown/DropdownText/SelectedImage",
+  "/FilterButton/buttonText/buttonIconHolder",
+  "/CraftingStatsPanel/PinRecipeButton",
+  "/RarityOffset/QualityInfo",
+  "/RarityOffset/Header/QualityBar",
+  "/Stats/Achievement",
+  "/RarityOffset/FixedItemCelebrationSequence",
+  "/CraftRoll/Background/Mask/Mask"
+ ],
+ "extra_textures": [
+  "lyshineui/images/slices/button/heroframe2023.dds",
+  "lyshineui/images/slices/button/heroframedisabled2023.dds",
+  "lyshineui/images/slices/button/heroborder.dds",
+  "lyshineui/images/slices/button/buttonbottomglow2023.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_00.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_01.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_02.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_03.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_04.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_05.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_06.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_07.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_08.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_09.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_10.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_11.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_12.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_13.dds",
+  "lyshineui/images/slices/button/blue_loop/blue_14.dds",
+  "lyshineui/images/slices/listitembg/selectedsequence/listitem_long17.dds",
+  "lyshineui/images/crafting/crafting_tier_1.dds",
+  "lyshineui/images/crafting/crafting_tier_2.dds",
+  "lyshineui/images/crafting/crafting_tier_3.dds",
+  "lyshineui/images/crafting/crafting_tier_4.dds",
+  "lyshineui/images/crafting/crafting_tier_5.dds",
+  "lyshineui/images/crafting/crafting_itemraritybglarge0.dds",
+  "lyshineui/images/crafting/crafting_itemraritybglarge1.dds",
+  "lyshineui/images/crafting/crafting_itemraritybglarge2.dds",
+  "lyshineui/images/crafting/crafting_itemraritybglarge3.dds",
+  "lyshineui/images/crafting/crafting_itemraritybglarge4.dds",
+  "lyshineui/images/icons/misc/icon_requirement_check.dds",
+  "lyshineui/images/icons/misc/icon_requirement_x.dds",
+  "lyshineui/images/icons/misc/dropdownarrowwhite.dds",
+  "lyshineui/images/icons/misc/dropdownarrowwhiteright.dds",
+  "lyshineui/images/slices/itemlayout/itembgsquare0.dds",
+  "lyshineui/images/slices/itemlayout/itembgsquare1.dds",
+  "lyshineui/images/slices/itemlayout/itembgsquare2.dds",
+  "lyshineui/images/slices/itemlayout/itemraritybgsquare0.dds",
+  "lyshineui/images/icons/tradeskills/icon_tradeskill_smelting.dds",
+  "lyshineui/images/icons/tradeskills/icon_tradeskill_woodworking.dds",
+  "lyshineui/images/icons/tradeskills/icon_tradeskill_leatherworking.dds",
+  "lyshineui/images/icons/tradeskills/icon_tradeskill_weaving.dds",
+  "lyshineui/images/icons/tradeskills/icon_tradeskill_masonary.dds",
+  "lyshineui/images/icons/crafting/icon_crafting_plus.dds",
+  "lyshineui/images/icons/crafting/icon_crafting_minus.dds",
+  "lyshineui/images/icons/stations/smelter.dds",
+  "lyshineui/images/icons/stations/woodshop.dds",
+  "lyshineui/images/icons/stations/tanning.dds",
+  "lyshineui/images/icons/stations/loom.dds",
+  "lyshineui/images/icons/stations/mason.dds"
+ ],
+ "set": {
+  "/CraftingStatsPanel/FrameMultiBg/FrameBg": {
+   "texture": "lyshineui/images/slices/framemultibg/framestyles/framebgdefault2023.dds"
+  },
+  "/CraftingTreeView/FrameMultiBg/FrameBg": {
+   "texture": "lyshineui/images/slices/framemultibg/framestyles/framebgdefault2023.dds"
+  },
+  "/FilterHeader/FilterButton/buttonText": {
+   "text": "@ui_add_filter"
+  },
+  "/SortDropdown/DropdownText": {
+   "text": "@crafting_sort_level"
+  }
+ },
+ "buttons": {
+  "/FilterHeader/FilterButton": "default",
+  "/Quantity/MinusButton": "default",
+  "/Quantity/PlusButton": "default",
+  "/OffsetContainer/CraftButton": "hero"
+ },
+ "styles": {
+  "/Header/ItemTier": "FONT_STYLE_TOOLTIP_TIER",
+  "/Header/ItemName/Description": "FONT_STYLE_FLAVOR_TEXT",
+  "/Modifiers/NoPerksText": "FONT_STYLE_CRAFTING_NO_PERKS",
+  "/ResourceSourceNotification/ResourceOriginText": "FONT_STYLE_CRAFTING_RESOURCE_ORIGIN_NOTICE",
+  "/CraftingRequirements/Container/RequirementsHeaderLeft": "FONT_STYLE_BODY_NEW",
+  "/CraftingTreeViewItem/EntryText": "FONT_STYLE_BUTTON_VERTICAL_TAB_SMALL",
+  "/CraftingTreeViewItem/GearScoreText": "FONT_STYLE_CRAFTING_FILTER_ENTRY",
+  "/Quantity/IngredientName": "FONT_STYLE_NIMBUS_MEDIUM_GRAY_50",
+  "/IngredientRow1/Quantity": "FONT_STYLE_CRAFTING_INGREDIENT_AMOUNT",
+  "/IngredientRow2/Quantity": "FONT_STYLE_CRAFTING_INGREDIENT_AMOUNT",
+  "/IngredientRow3/Quantity": "FONT_STYLE_CRAFTING_INGREDIENT_AMOUNT",
+  "/IngredientRow4/Quantity": "FONT_STYLE_CRAFTING_INGREDIENT_AMOUNT",
+  "/IngredientRow5/Quantity": "FONT_STYLE_CRAFTING_INGREDIENT_AMOUNT",
+  "/IngredientRow6/Quantity": "FONT_STYLE_CRAFTING_INGREDIENT_AMOUNT",
+  "/IngredientRow7/Quantity": "FONT_STYLE_CRAFTING_INGREDIENT_AMOUNT"
+ }
+}

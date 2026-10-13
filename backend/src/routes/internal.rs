@@ -74,13 +74,7 @@ pub async fn save_state(
     Json(s): Json<CharacterState>,
 ) -> ApiResult<StatusCode> {
     if let Some(items) = &s.inventory {
-        let mut seen = std::collections::HashSet::new();
-        for it in items {
-            it.validate().map_err(|e| ApiError::bad_request("invalid_inventory", e))?;
-            if !seen.insert((it.container.as_str(), it.slot)) {
-                return Err(ApiError::bad_request("invalid_inventory", format!("slot repetido: {} {}", it.container, it.slot)));
-            }
-        }
+        validate_inventory(items)?;
     }
     if s.coins.is_some_and(|c| c < 0) {
         return Err(ApiError::bad_request("invalid_coins", "Moedas negativas."));
@@ -114,24 +108,42 @@ pub async fn save_state(
         return Err(ApiError::not_found("Personagem"));
     }
     if let Some(items) = &s.inventory {
-        sqlx::query("delete from items where character_id = $1").bind(id).execute(&mut *tx).await?;
-        for it in items {
-            sqlx::query(
-                "insert into items (id, character_id, item_id, quantity, container, slot, gear_score, rarity)
-                 values ($1, $2, $3, $4, $5, $6, $7, $8)",
-            )
-            .bind(Uuid::new_v4())
-            .bind(id)
-            .bind(&it.item_id)
-            .bind(it.quantity)
-            .bind(&it.container)
-            .bind(it.slot)
-            .bind(it.gear_score)
-            .bind(it.rarity)
-            .execute(&mut *tx)
-            .await?;
-        }
+        write_inventory(&mut tx, id, items).await?;
     }
     tx.commit().await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Bolsa e equipado: item válido e sem slot repetido.
+pub(crate) fn validate_inventory(items: &[ItemInstance]) -> ApiResult<()> {
+    let mut seen = std::collections::HashSet::new();
+    for it in items {
+        it.validate().map_err(|e| ApiError::bad_request("invalid_inventory", e))?;
+        if !seen.insert((it.container.as_str(), it.slot)) {
+            return Err(ApiError::bad_request("invalid_inventory", format!("slot repetido: {} {}", it.container, it.slot)));
+        }
+    }
+    Ok(())
+}
+
+/// Substitui o inventário inteiro do personagem (dentro da transação de quem chama).
+pub(crate) async fn write_inventory(tx: &mut sqlx::PgConnection, id: Uuid, items: &[ItemInstance]) -> ApiResult<()> {
+    sqlx::query("delete from items where character_id = $1").bind(id).execute(&mut *tx).await?;
+    for it in items {
+        sqlx::query(
+            "insert into items (id, character_id, item_id, quantity, container, slot, gear_score, rarity)
+             values ($1, $2, $3, $4, $5, $6, $7, $8)",
+        )
+        .bind(Uuid::new_v4())
+        .bind(id)
+        .bind(&it.item_id)
+        .bind(it.quantity)
+        .bind(&it.container)
+        .bind(it.slot)
+        .bind(it.gear_score)
+        .bind(it.rarity)
+        .execute(&mut *tx)
+        .await?;
+    }
+    Ok(())
 }

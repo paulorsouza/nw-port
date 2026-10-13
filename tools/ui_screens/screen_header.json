@@ -1,0 +1,20 @@
+{
+ "_comment": "Barra de título das telas cheias (estação, armazém...): stationproperties/ScreenHeader (docs/hud/refino.md §7). O C++ troca HeaderText e CurrencyAmount.",
+ "canvas": "lyshineui/stationproperties/stationproperties",
+ "name": "screen_header",
+ "keep": [
+  "_root/StationProperties/ScreenHeader"
+ ],
+ "hide": [
+  "/RightSideHolder/SkillHolder",
+  "/RightSideHolder/TransmogTokenHolder",
+  "/CurrencyAzothData"
+ ],
+ "extra_textures": [
+  "lyshineui/images/icon_crowns.dds",
+  "lyshineui/images/icons/misc/icon_back_dropshadow.dds"
+ ],
+ "show": [
+  "/RightSideHolder/CurrencyHolder"
+ ]
+}

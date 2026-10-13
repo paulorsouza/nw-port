@@ -1,0 +1,519 @@
+{
+ "_comment": "Brindes dos NPCs (docs/sistemas.md). Até 6 ofícios: por semana um NPC de cada ofício, sorteado igual para todos, entrega na cidade. inicial: uma vez por personagem por ofício, [ItemID, mín, máx]. semanal: uma vez por semana por cidade e ofício; sorteia 1 item de cada lista (material + argueiro). Renova terça 05:00 BRT (08:00 UTC).",
+ "renovacao_utc": {
+  "dia": "terca",
+  "hora": 8
+ },
+ "tipos": {
+  "guarda": {
+   "nome": "Guarda",
+   "inicial": [
+    [
+     "OreT1",
+     1000,
+     1000
+    ],
+    [
+     "StoneT1",
+     500,
+     500
+    ]
+   ],
+   "semanal": {
+    "material": [
+     [
+      "OreT1",
+      500,
+      1000
+     ],
+     [
+      "StoneT1",
+      500,
+      1000
+     ],
+     [
+      "FlintT1",
+      100,
+      300
+     ],
+     [
+      "SaltpeterT1",
+      100,
+      300
+     ]
+    ],
+    "argueiro": [
+     [
+      "AlchemyAirT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyDeathT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyEarthT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyFireT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyLifeT1",
+      100,
+      300
+     ],
+     [
+      "AlchemySpiritT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyWaterT1",
+      100,
+      300
+     ]
+    ]
+   }
+  },
+  "mineiro": {
+   "nome": "Minério e metais",
+   "inicial": [
+    [
+     "OreT1",
+     1000,
+     1000
+    ],
+    [
+     "OrePreciousT1",
+     200,
+     200
+    ]
+   ],
+   "semanal": {
+    "material": [
+     [
+      "OrePreciousT1",
+      200,
+      400
+     ],
+     [
+      "OrePreciousT2",
+      100,
+      200
+     ],
+     [
+      "OrePreciousT3",
+      50,
+      100
+     ],
+     [
+      "OreT4",
+      50,
+      100
+     ]
+    ],
+    "argueiro": [
+     [
+      "AlchemyAirT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyDeathT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyEarthT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyFireT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyLifeT1",
+      100,
+      300
+     ],
+     [
+      "AlchemySpiritT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyWaterT1",
+      100,
+      300
+     ]
+    ]
+   }
+  },
+  "artesao": {
+   "nome": "Alfaiate e caçador",
+   "inicial": [
+    [
+     "FiberT1",
+     1000,
+     1000
+    ],
+    [
+     "RawhideT1",
+     500,
+     500
+    ]
+   ],
+   "semanal": {
+    "material": [
+     [
+      "FiberT1",
+      500,
+      1000
+     ],
+     [
+      "RawhideT1",
+      500,
+      1000
+     ],
+     [
+      "TallowT2",
+      50,
+      100
+     ],
+     [
+      "PhasefiberT1",
+      20,
+      50
+     ]
+    ],
+    "argueiro": [
+     [
+      "AlchemyAirT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyDeathT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyEarthT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyFireT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyLifeT1",
+      100,
+      300
+     ],
+     [
+      "AlchemySpiritT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyWaterT1",
+      100,
+      300
+     ]
+    ]
+   }
+  },
+  "taverna": {
+   "nome": "Taverna",
+   "inicial": [
+    [
+     "BerryT1",
+     50,
+     100
+    ],
+    [
+     "HoneyT1",
+     20,
+     50
+    ],
+    [
+     "PotatoT1",
+     50,
+     100
+    ],
+    [
+     "CarrotT1",
+     50,
+     100
+    ]
+   ],
+   "semanal": {
+    "material": [
+     [
+      "HoneyT1",
+      50,
+      100
+     ],
+     [
+      "BerryT1",
+      100,
+      200
+     ],
+     [
+      "PotatoT1",
+      100,
+      200
+     ],
+     [
+      "BeeswaxT1",
+      50,
+      100
+     ]
+    ],
+    "argueiro": [
+     [
+      "AlchemyAirT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyDeathT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyEarthT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyFireT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyLifeT1",
+      100,
+      300
+     ],
+     [
+      "AlchemySpiritT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyWaterT1",
+      100,
+      300
+     ]
+    ]
+   }
+  },
+  "alquimia": {
+   "nome": "Alquimia e ervas",
+   "inicial": [
+    [
+     "AlchemyAirT1",
+     100,
+     300
+    ],
+    [
+     "AlchemyDeathT1",
+     100,
+     300
+    ],
+    [
+     "AlchemyEarthT1",
+     100,
+     300
+    ],
+    [
+     "AlchemyFireT1",
+     100,
+     300
+    ],
+    [
+     "AlchemyLifeT1",
+     100,
+     300
+    ],
+    [
+     "AlchemySpiritT1",
+     100,
+     300
+    ],
+    [
+     "AlchemyWaterT1",
+     100,
+     300
+    ]
+   ],
+   "semanal": {
+    "material": [
+     [
+      "AzaleaNectarT1",
+      50,
+      100
+     ],
+     [
+      "VerbenaT1",
+      50,
+      100
+     ],
+     [
+      "BriarBudsT1",
+      50,
+      100
+     ],
+     [
+      "HerbT1",
+      100,
+      200
+     ]
+    ],
+    "argueiro": [
+     [
+      "AlchemyAirT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyDeathT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyEarthT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyFireT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyLifeT1",
+      100,
+      300
+     ],
+     [
+      "AlchemySpiritT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyWaterT1",
+      100,
+      300
+     ]
+    ]
+   }
+  },
+  "madeira": {
+   "nome": "Madeira e porto",
+   "inicial": [
+    [
+     "WoodT1",
+     1000,
+     1000
+    ]
+   ],
+   "semanal": {
+    "material": [
+     [
+      "WoodT1",
+      500,
+      1000
+     ],
+     [
+      "WoodT2",
+      500,
+      1000
+     ],
+     [
+      "ResinT1",
+      50,
+      100
+     ],
+     [
+      "EbonwoodT1",
+      20,
+      50
+     ]
+    ],
+    "argueiro": [
+     [
+      "AlchemyAirT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyDeathT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyEarthT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyFireT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyLifeT1",
+      100,
+      300
+     ],
+     [
+      "AlchemySpiritT1",
+      100,
+      300
+     ],
+     [
+      "AlchemyWaterT1",
+      100,
+      300
+     ]
+    ]
+   }
+  }
+ },
+ "npcs": {
+  "0404a_Constable": "guarda",
+  "0450a_TownGuard": "guarda",
+  "npc_1607_commander": "guarda",
+  "0430_PVPArena": "guarda",
+  "0402a_Magistrate": "mineiro",
+  "0443a_OuShen": "mineiro",
+  "0438a_JacobEvans_01": "mineiro",
+  "npc_1609_adjudicator": "mineiro",
+  "04_Outfitter": "artesao",
+  "9801_Florina_01": "artesao",
+  "0403a_HuntsmanLee": "artesao",
+  "0439a_AnwirHughes_02": "artesao",
+  "0410a_BarkeepPolly": "taverna",
+  "0442a_ConcettaSacco": "taverna",
+  "npc_1225_giacomo_ef": "taverna",
+  "npc_1608_alchemist": "alquimia",
+  "99A_HaplessHowe02": "alquimia",
+  "0441a_SairaYangandul": "alquimia",
+  "99A_Captain": "madeira",
+  "9804_Feldan": "madeira",
+  "0440a_AtticusDelphi_02": "madeira",
+  "0428_Jones": "madeira"
+ }
+}

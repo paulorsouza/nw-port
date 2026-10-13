@@ -79,6 +79,11 @@ public:
 	void ToggleDevMenu();
 	void CloseMenus();
 	bool IsMenuOpen() const;
+	/** Entra no modo de menu para uma tela desenhada no canvas (cliques pelo OnMenuClick), ex. telas da esteira 4. */
+	void EnterCanvasMenu();
+	/** Quadro em que um clique foi de menu (o controlador processa antes do personagem: um clique que fecha a tela não
+	 *  pode virar ataque no mesmo quadro). ANWCharacter::InMenu confere. */
+	uint64 MenuClickFrame = 0;
 	bool IsInventoryOpen() const;
 
 	UFUNCTION(Server, Reliable) void ServerDev(ENWDevCommand Command);

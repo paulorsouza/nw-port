@@ -10,6 +10,8 @@
 #include "NWInventoryMenu.h"
 #include "NWWorldMap.h"
 #include "NWTradeskillMenu.h"
+#include "NWRefiningMenu.h"
+#include "NWStorageMenu.h"
 #include "NWAttributesMenu.h"
 #include "NWGameMenu.h"
 #include "NWHUD.generated.h"
@@ -47,6 +49,16 @@ public:
 	FNWWorldMap WorldMap;
 	FNWTradeskillMenu Tradeskills;
 	FNWAttributesMenu Attributes;
+	// Telas da esteira 4 abertas a partir do mundo (estação de refino; depois armazém, posto de trocas, casas). O
+	// ANWPlayerController só pergunta por estas quatro funções, sem conhecer cada tela.
+	FNWRefiningMenu Refining;
+	FNWStorageMenu Storage;
+	void OpenRefining(class ANWCharacter* Who, class ANWStation* Station);
+	void OpenStorage(class ANWCharacter* Who, class ANWStation* Station);
+	bool IsStationMenuOpen() const { return Refining.IsOpen() || Storage.IsOpen(); }
+	void CloseStationMenus() { Refining.Close(); if (Storage.IsOpen()) { Storage.Close(); } }
+	bool StationMenuClick(const FVector2D& Mouse) { return (Refining.IsOpen() && Refining.Click(Mouse)) || (Storage.IsOpen() && Storage.Click(Mouse)); }
+	bool StationMenuWheel(float Delta);
 	/** Números de dano (lyshineui/hud/damagenumbers): sobem e somem sobre o alvo em 1,2 s. */
 	void AddDamageNumber(const FVector& World, const FString& Text, const FLinearColor& Color, bool bBig);
 	/** Golpe recebido (lyshineui/hitindicator): seta em volta da mira e brilho vermelho na borda do lado do atacante. */
@@ -127,6 +139,11 @@ private:
 	void DrawGameHUD();
 	/** Coleta: "[E] Minerar Filão de Ferro" perto de um coletável e a barra durante a coleta. */
 	void DrawGather(const APawn* Me);
+	/** Cartão de interagir (NPC, estação...: NWInteractable.h) e o ícone do jogo sobre o NPC com brinde. */
+	void DrawInteract(const APawn* Me);
+	void DrawNpcNames(const APawn* Me);
+	/** Faixa do nome à direita do anel e a linha [E] ação (ou aviso em vermelho), do cartão unifiedinteract. */
+	void DrawCardText(const FVector2D& Ring, const FString& Name, const FString& Action, bool bBlocked);
 	// Linha do aviso de saque (hud2024/lootticker): item (ícone, raridade, tier, quantidade) ou moedas.
 	// Linha do aviso: item, moedas ou XP de ofício (Trade = NWTradeskill, Quantity = XP).
 	struct FLootLine { FName ItemId; int32 Quantity = 0; uint8 Rarity = 0; int64 Coins = 0; double Time = 0.0; int32 Trade = -1; };

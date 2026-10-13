@@ -38,6 +38,7 @@ static float ShakeScale()
 #include "NWCombatComponent.h"
 #include "NWTraversalComponent.h"
 #include "NWGatherComponent.h"
+#include "NWInteractable.h"
 #include "NWProgressionComponent.h"
 #include "NWInventoryComponent.h"
 #include "NWMountComponent.h"
@@ -117,6 +118,7 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Gather = CreateDefaultSubobject<UNWGatherComponent>(TEXT("Gather"));
 	Progression = CreateDefaultSubobject<UNWProgressionComponent>(TEXT("Progression"));
 	Mount = CreateDefaultSubobject<UNWMountComponent>(TEXT("Mount"));
+	Interactor = CreateDefaultSubobject<UNWInteractorComponent>(TEXT("Interactor"));
 	Brain = CreateDefaultSubobject<UNWBrainComponent>(TEXT("Brain"));
 	Brain->bAutoActivate = false;
 
@@ -620,7 +622,7 @@ void ANWCharacter::Look(const FInputActionValue& Value)
 bool ANWCharacter::InMenu() const
 {
 	const ANWPlayerController* PC = Cast<ANWPlayerController>(Controller);
-	return PC && PC->IsMenuOpen();
+	return PC && (PC->IsMenuOpen() || PC->MenuClickFrame == GFrameCounter);
 }
 
 bool ANWCharacter::CanAct() const
@@ -695,7 +697,10 @@ void ANWCharacter::InventoryPressed()
 
 void ANWCharacter::InteractPressed()
 {
-	Gather->InteractPressed();
+	if (!Interactor->InteractPressed())
+	{
+		Gather->InteractPressed();
+	}
 }
 
 void ANWCharacter::DevMenuPressed()

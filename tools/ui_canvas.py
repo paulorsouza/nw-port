@@ -152,11 +152,17 @@ def main():
                 "fill_edge_origin": img.get("filledgeorigin", 0), "fill_center": img.get("fillcenter", True),
                 "borders": sprite_borders(a.tex, tex),
             }
+        fitter = find(ent, "UiLayoutFitterComponent")
+        if fitter and fitter.get("horizontalfit"):
+            item["fit_w"] = True   # largura = a do texto (UiLayoutFitter); filhos ancorados na borda acompanham
         txt = find(ent, "UiTextComponent")
         if txt:
             item["text"] = {"text": txt.get("text", ""), "font": (txt.get("fontfilename") or {}).get("baseclass1", {}).get("assetpath", ""),
                             "size": txt.get("fontsize", 16), "color": txt.get("color"), "alpha": txt.get("alpha", 1),
-                            "halign": txt.get("texthalignment", 0), "valign": txt.get("textvalignment", 0)}
+                            "halign": txt.get("texthalignment", 0), "valign": txt.get("textvalignment", 0),
+                            "spacing": txt.get("characterspacing", 0), "case": txt.get("caseoverride", 0),
+                            "wrap": txt.get("wraptextsetting", 0), "linespacing": txt.get("linespacing", 0),
+                            "shrink": txt.get("shrinktofit", 0), "minshrink": txt.get("minshrinkscale", 0)}
         scripts = [c for c in components(ent) if c.get("__type") == "AzFramework::ScriptComponent"]
         if scripts:
             item["scripts"] = [re.sub(r".*hint\"?:\s*\"?", "", json.dumps(s.get("script", s)))[:120] for s in scripts]

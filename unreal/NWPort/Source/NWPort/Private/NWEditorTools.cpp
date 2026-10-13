@@ -148,3 +148,27 @@ bool UNWEditorTools::SetMontageSlot(UAnimMontage* Montage, FName Slot)
 	Montage->MarkPackageDirty();
 	return true;
 }
+
+bool UNWEditorTools::MergeMeshBonesToSkeleton(USkeleton* Skeleton, USkeletalMesh* Mesh)
+{
+#if WITH_EDITOR
+	if (!Skeleton || !Mesh)
+	{
+		return false;
+	}
+	const int32 Before = Skeleton->GetReferenceSkeleton().GetRawBoneNum();
+	Skeleton->Modify();
+	if (!Skeleton->MergeAllBonesToBoneTree(Mesh))
+	{
+		return false;
+	}
+	const bool bChanged = Skeleton->GetReferenceSkeleton().GetRawBoneNum() != Before;
+	if (bChanged)
+	{
+		Skeleton->MarkPackageDirty();
+	}
+	return bChanged;
+#else
+	return false;
+#endif
+}

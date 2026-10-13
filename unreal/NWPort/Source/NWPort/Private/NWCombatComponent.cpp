@@ -1,4 +1,5 @@
 #include "NWCombatComponent.h"
+#include "NWEvents.h"
 #include "NWRules.h"
 #include "GameFramework/RootMotionSource.h"
 #include "Curves/CurveFloat.h"
@@ -1731,6 +1732,7 @@ void UNWCombatComponent::Die(AActor* Killer)
 	Statuses.Reset();
 	KilledBy = KillerName(Killer);
 	State = ENWCombatState::Dead;
+	FNWEvents::Get().OnKill.Broadcast(Killer, GetOwner());   // tutoriais de nível (esteira 4, NWEvents.h)
 	// Lost morto por jogador: saque para quem matou (e o grupo).
 	if (GetOwner()->GetClass()->GetName().Contains(TEXT("Lost")))
 	{

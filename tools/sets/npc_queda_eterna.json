@@ -1,0 +1,62 @@
+{
+ "name": "NpcQuedaEterna",
+ "mesh_name": "SK_NpcQuedaEterna",
+ "character": "objects/characters/npc/settlements/9804_feldan.cdf",
+ "_comment": "Gerado por tools/make_npcs.py: anima\u00e7\u00f5es paradas dos NPCs de Queda Eterna (timelines IdleTimeline).",
+ "weapons": {},
+ "blendspaces": {},
+ "montages": {},
+ "loops": {
+  "Idle": [
+   "settle_stand_idle"
+  ],
+  "settle_barkeep_ambient_01": [
+   "settle_barkeep_ambient_01"
+  ],
+  "settle_commander_ambient_02": [
+   "settle_commander_ambient_02"
+  ],
+  "settle_guard_convo_lookaround": [
+   "settle_guard_convo_lookaround"
+  ],
+  "settle_overseer_ambient_01": [
+   "settle_overseer_ambient_01"
+  ],
+  "settle_stand_convo_disappointed": [
+   "settle_stand_convo_disappointed"
+  ],
+  "settle_stand_convo_lookaround": [
+   "settle_stand_convo_lookaround"
+  ],
+  "settle_stand_drinker_ambient_idle": [
+   "settle_stand_drinker_ambient_idle"
+  ],
+  "settle_stand_idle": [
+   "settle_stand_idle"
+  ],
+  "settle_strgr_gildon_ambient_01": [
+   "settle_strgr_gildon_ambient_01"
+  ],
+  "settle_warden_ambient": [
+   "settle_warden_ambient"
+  ],
+  "settle_watcher_ambient_01": [
+   "settle_watcher_ambient_01"
+  ],
+  "settlement_idle_01": [
+   "settlement_idle_01"
+  ],
+  "tool_hammer_brush_polishing_loop": [
+   "tool_hammer_brush_polishing_loop"
+  ],
+  "unarmed_cooking_campfire_loop": [
+   "unarmed_cooking_campfire_loop"
+  ],
+  "unarmed_idle_cold_loop": [
+   "unarmed_idle_cold_loop"
+  ],
+  "unarmed_idle_fidget_lookaround": [
+   "unarmed_idle_fidget_lookaround"
+  ]
+ }
+}

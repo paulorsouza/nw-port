@@ -94,6 +94,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWProgressionComponent> Progression;
 	// Montaria (esteira 3, NWMountComponent).
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWMountComponent> Mount;
+	/** Foco e tecla de interagir com NPC, estação, armazém (esteira 4, NWInteractable.h). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWInteractorComponent> Interactor;
 	// IA de combate (inimigos). Criado desligado; ligado (UseBrain), substitui o TickDummy.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWBrainComponent> Brain;
 	/** Liga o cérebro com o estilo e os ataques dados (servidor). */
@@ -291,4 +293,7 @@ private:
 	float DummyTimer = 0.f;
 	int32 DummyHitsLeft = 0;
 	bool bAttackFromSprint = false;
+	// O aperto do ataque não foi clique de menu: só então a soltura vai ao servidor. Soltar sem carga vira golpe
+	// leve no servidor (ServerAttackInput); um clique de menu não pode virar ataque na soltura.
+	bool bAttackPressAccepted = false;
 };

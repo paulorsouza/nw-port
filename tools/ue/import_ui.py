@@ -5,15 +5,15 @@
 Textura lyshineui/images/a/b.dds -> /Game/NW/UI/lyshineui/images/a/T_b (o ANWHUD resolve o mesmo caminho).
 Fontes Nimbus Sans Novus (.otf do jogo) -> /Game/NW/UI/Fonts/FF_* (face) e F_Nimbus* (fonte de execução).
 """
+import glob
 import os
 
 import unreal
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEX = os.path.join(ROOT, "extract", "ui", "tex")
-LISTS = [os.path.join(ROOT, "extract", "ui", n) for n in ("hud_textures.txt", "mastery_textures.txt", "login_textures.txt", "respawn_textures.txt", "group_textures.txt", "inventory_textures.txt",
-                                                         "compass_textures.txt", "encumbrance_textures.txt", "interactscreen_textures.txt",
-                                                         "damagenumbers_textures.txt", "unifiedinteract_textures.txt", "lootticker2024_textures.txt", "tooltip_textures.txt", "worldmap_textures.txt", "levelup_textures.txt", "tradeskills_textures.txt", "attributes_textures.txt")]
+# Todas as listas de texturas das telas (extract/ui/*_textures.txt: ui_build_*.py e ui_build_screen.py).
+LISTS = sorted(glob.glob(os.path.join(ROOT, "extract", "ui", "*_textures.txt")))
 eal = unreal.EditorAssetLibrary
 tools = unreal.AssetToolsHelpers.get_asset_tools()
 

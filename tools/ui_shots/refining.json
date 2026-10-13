@@ -1,0 +1,84 @@
+{
+ "screen": "refining",
+ "station": {
+  "type": "smelting",
+  "tier": 3,
+  "name": "Smelter Tier 3"
+ },
+ "coins": 77914,
+ "trade": {
+  "Smelting": 250
+ },
+ "items": [
+  [
+   "OreT1",
+   24
+  ],
+  [
+   "IngotT2",
+   844
+  ],
+  [
+   "IngotT3",
+   342
+  ],
+  [
+   "IngotT4",
+   29
+  ],
+  [
+   "IngotT5",
+   999
+  ],
+  [
+   "IngotT51",
+   9
+  ],
+  [
+   "FluxT5",
+   9
+  ],
+  [
+   "CharcoalT1",
+   40
+  ],
+  [
+   "IngotPreciousT1",
+   73
+  ],
+  [
+   "IngotPreciousT2",
+   89
+  ]
+ ],
+ "shots": [
+  {
+   "name": "select",
+   "recipe": "IngotT2",
+   "w": 2470,
+   "h": 1069
+  },
+  {
+   "name": "hd",
+   "recipe": "IngotT2"
+  },
+  {
+   "name": "falta",
+   "recipe": "VoidbentIngot"
+  },
+  {
+   "name": "roll",
+   "recipe": "IngotT2",
+   "count": 6,
+   "craft": true,
+   "t": 1.0
+  },
+  {
+   "name": "fim",
+   "recipe": "IngotT2",
+   "count": 6,
+   "craft": true,
+   "t": 3.0
+  }
+ ]
+}
