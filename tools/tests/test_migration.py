@@ -19,7 +19,7 @@ class MigrationTests(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory(prefix="nw migrated project ")
         self.addCleanup(directory.cleanup)
-        self.root = Path(directory.name)
+        self.root = Path(directory.name).resolve()
         self.old = "/home/dev/old project/nw-port"
         self.markers = self.root / "extract/.etapas"
         self.markers.mkdir(parents=True)

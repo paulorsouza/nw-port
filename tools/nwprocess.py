@@ -127,6 +127,10 @@ class WindowsJob:
         self.api.OpenProcess.restype = wintypes.HANDLE
         self.api.CloseHandle.argtypes = [wintypes.HANDLE]
         self.api.CloseHandle.restype = wintypes.BOOL
+        self.api.TerminateJobObject.argtypes = [wintypes.HANDLE, wintypes.UINT]
+        self.api.TerminateJobObject.restype = wintypes.BOOL
+        self.api.QueryInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p]
+        self.api.QueryInformationJobObject.restype = wintypes.BOOL
         self.handle = self.api.CreateJobObjectW(None, None)
         if not self.handle:
             raise ctypes.WinError(ctypes.get_last_error())
@@ -149,8 +153,28 @@ class WindowsJob:
 
     def close(self):
         if self.handle:
-            self.api.CloseHandle(self.handle)
-            self.handle = None
+            # Encerramento do Job e assincrono. Espere tambem os filhos liberarem
+            # arquivos, mesmo quando o wrapper pai ja terminou.
+            try:
+                if not self.api.TerminateJobObject(self.handle, 1):
+                    raise ctypes.WinError(ctypes.get_last_error())
+                accounting = (ctypes.c_uint64 * 4)()
+                counts = (ctypes.c_uint32 * 4)()
+                class Accounting(ctypes.Structure):
+                    _fields_ = [("times", type(accounting)), ("counts", type(counts))]
+                info = Accounting()
+                deadline = time.monotonic() + 5
+                while True:
+                    if not self.api.QueryInformationJobObject(self.handle, 1, ctypes.byref(info), ctypes.sizeof(info), None):
+                        raise ctypes.WinError(ctypes.get_last_error())
+                    if info.counts[2] == 0:  # ActiveProcesses
+                        break
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError("processos do Job Windows nao encerraram em 5 segundos")
+                    time.sleep(.01)
+            finally:
+                self.api.CloseHandle(self.handle)
+                self.handle = None
 
 
 def stop_group(process):
