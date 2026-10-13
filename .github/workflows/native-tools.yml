@@ -1,0 +1,45 @@
+name: Native tools without game assets
+
+on:
+  push:
+    branches: [windows-convert]
+  pull_request:
+    paths:
+      - 'tools/**'
+      - 'patches/**'
+      - '.github/workflows/native-tools.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Compile Windows ooz.dll with MSVC x64
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vsRoot = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vsRoot) { throw 'MSVC x64 not found' }
+          $devCmd = Join-Path $vsRoot 'Common7/Tools/VsDevCmd.bat'
+          & cmd.exe /d /c "`"$devCmd`" -arch=x64 -host_arch=x64 && powershell -NoProfile -ExecutionPolicy Bypass -File tools\windows\build_ooz.ps1"
+          if ($LASTEXITCODE -ne 0) { throw 'ooz.dll build failed' }
+      - name: Native fixture tests
+        run: python -m unittest discover -s tools/tests -v
+      - name: Preview complete extraction without assets
+        run: python tools/build_all.py --dry-run

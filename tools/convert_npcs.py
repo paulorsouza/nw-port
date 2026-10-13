@@ -9,10 +9,12 @@ As animações vêm do conjunto tools/sets/npc_queda_eterna.json (build_set.py),
 """
 import json
 import os
-import subprocess
+import nwplatform
+import nwprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GAME = os.environ.get("GAME", os.environ.get("NW_GAME", "/mnt/jogos/Steam/steamapps/common/New World"))
+nwplatform.configure()
+GAME = nwplatform.game_directory()
 NPCS = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "queda_eterna_npcs.json")
 OUT = os.path.join(ROOT, "extract", "ue", "npcs")
 CDFS = os.path.join(ROOT, "extract", "npcs")  # .cdf extraídos (Flags dos encaixes); ver docs/sistemas.md
@@ -26,8 +28,8 @@ def main():
     glb_dir = os.path.join(OUT, "glb")
     todo = [c for c in by_mesh.values() if not os.path.exists(os.path.join(glb_dir, c + ".glb"))]
     if todo:
-        subprocess.run(["nice", "nwbt", "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed",
-                        "--ior", "1.5", *todo], check=True, cwd=ROOT)
+        nwprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed",
+                       "--ior", "1.5", *todo], cwd=ROOT, min_memory=10 * nwprocess.GIB)
     lista = [{"glb": os.path.join(glb_dir, c + ".glb"), "mesh": m, "cdf": os.path.join(CDFS, c)}
              for m, c in sorted(by_mesh.items())
              if not os.path.exists(os.path.join(OUT, m, m + ".fbx"))]
@@ -37,10 +39,11 @@ def main():
     if lista:
         path = os.path.join(OUT, "lista.json")
         json.dump(lista, open(path, "w"), indent=1)
-        subprocess.run(["nice", "blender", "-b", "-P", os.path.join(ROOT, "tools", "export_npcs.py"), "--", path],
-                       check=True)
+        nwprocess.run([nwplatform.executable("blender"), "-b", "-P", os.path.join(ROOT, "tools", "export_npcs.py"), "--", path],
+                      cwd=ROOT, min_memory=10 * nwprocess.GIB)
     print(f"ok: {len(by_mesh)} aparências em {OUT}")
 
 
 if __name__ == "__main__":
-    main()
+    with nwprocess.heavy_lock():
+        main()

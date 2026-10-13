@@ -33,6 +33,7 @@ def environment():
     env = dict(os.environ)
     env["PATH"] = str(BIN) + os.pathsep + env.get("PATH", "")
     env.setdefault("NWBT_OODLE", str(BIN / ("ooz.dll" if WINDOWS else "libooz.so")))
+    env.setdefault("PYTHONUTF8", "1")
     return env
 
 

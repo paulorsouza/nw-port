@@ -32,10 +32,11 @@ Estimativa inicial: 6–11 dias uteis, a revisar depois de extrair assets reais 
 - [x] Audio no Windows sem exigir privilegios de symlink.
 - [x] Diagnostico das ferramentas Windows.
 - [ ] Extracao real de JSON, textura, audio, malha e animacao no Windows.
-- [ ] Orquestrador completo e importacao Unreal Windows.
+- [x] Orquestrador de extracao portado (validado com fixtures e --dry-run).
+- [ ] Importacao Unreal Windows.
 
-Os scripts Bash continuam sendo o fluxo completo existente. Esta primeira entrega prepara os binarios
-e os scripts Python; ainda nao substitui build_all.sh nem ue_import_all.sh no Windows.
+Os scripts Bash continuam disponiveis para o fluxo Linux existente. build_all.py agora cobre as etapas
+de extracao, incluindo sistemas-01/02/03. ue_import_all.sh ainda precisa de uma entrada Windows nativa.
 
 ## Segunda entrega: trabalho sem os assets
 
@@ -68,6 +69,64 @@ Esses testes validam o comportamento dos scripts, mas nao garantem fidelidade do
 O aceite que precisa de outra maquina fica delimitado: descompactar os paks da build do time,
 comparar JSON/texturas/malhas/animacoes/audio, montar o projeto na Unreal, verificar renderizacao
 e colisao, jogar com persistencia/rede e medir memoria/tempo no volume real de dados.
+
+## Terceira entrega: fila, supervisao e extracao
+
+- [x] nwprocess.py: memoria fisica disponivel e espaco em disco sem ferramentas Linux externas.
+- [x] pesado.py: lock de trabalho pesado, compartilhado entre processos e herdado por filhos.
+- [x] Windows Job Objects: toda a arvore do trabalho e encerrada ao falhar/cancelar. Um wrapper
+  aguarda a atribuicao ao Job antes de iniciar o comando, evitando filhos fora da supervisao.
+- [x] Steps: etapas concluídas sao puladas; uma etapa forcada que falha perde o marcador e fica
+  pendente. --dry-run nao cria locks, logs, caches ou marcadores.
+- [x] build_all.py: 14 etapas principais e tres de Queda Eterna, com logs por etapa, versao do jogo,
+  RTTI, validacao de processos abertos, extracao e conversao. Esteiras Bash futuras desconhecidas
+  provocam erro explicito, para nao sumirem do fluxo Windows.
+- [x] convert_city.py, convert_gatherables.py e render_ambient.py substituem os auxiliares Bash
+  correspondentes. convert_npcs.py usa ferramentas nativas e supervisao.
+- [x] Manifesto CSV do nwbt preserva nomes com espacos. GLBs truncados nao sao reutilizados;
+  saídas limpas/terreno/audio sao promovidas depois de sucesso.
+- [x] Patch incremental nwbt-platform-path.patch corrige AppendToPATH: separador do sistema e
+  preservacao das entradas existentes. O build aplica ambos os patches e aceita o patch anterior
+  ja instalado, permitindo atualizar um checkout usado pela primeira entrega.
+
+```powershell
+python tools/build_all.py --dry-run
+python tools/build_all.py 07 --dry-run
+python tools/convert_city.py settlement_southwindsward_complete --dry-run
+python tools/convert_gatherables.py tools/arena/meshes.txt extract/ue/arena --dry-run
+python tools/pesado.py python -c "print('fila nativa')"
+python -m unittest discover -s tools/tests -v
+```
+
+NW_BUDDY permite indicar o checkout das tabelas RTTI quando ele nao esta em vendor/nw-buddy.
+Depois de configurar as dependencias e NW_GAME, a entrada de extracao e:
+
+```powershell
+python tools/build_all.py
+python tools/build_all.py 07           # refaz uma etapa, mesmo se ja tinha marcador
+python tools/build_all.py sistemas-02
+```
+
+Os limites de memoria conservadores do fluxo original continuam: 10 GiB durante trabalhos pesados;
+cidade espera 12 GiB e interrompe abaixo de 8 GiB; coletaveis usam lotes de oito com dois workers,
+exigem 16000 MiB antes do lote e interrompem abaixo de 10000 MiB. Conversores conferem 30 GiB
+livres nos discos envolvidos. Windows usa prioridade de CPU abaixo do normal; Linux usa nice 19.
+
+Validacao nesta maquina: 18 testes Python passaram, incluindo concorrencia real entre processos,
+timeout, falta de memoria, encerramento de neto sem afetar processo independente, retomada,
+modo simulado sem escrita, regioes do terreno, manifesto CSV e limpeza real de GLB sintetico.
+O pipeline de audio foi testado com programas sinteticos de decoder/encoder, inclusive falha;
+isso nao valida codecs reais. Quatro testes Go passaram e os binarios foram recompilados com
+os dois patches. A extracao de assets reais e a importacao Unreal seguem pendentes.
+
+O workflow `.github/workflows/native-tools.yml` repete os testes com Python 3.13 em Windows e Linux,
+sem jogo, Unreal ou acesso ao fork privado. No Windows tambem compila ooz.dll com MSVC e testa a
+ABI, um bloco sem compressao, cabecalho invalido e limites do buffer. No Linux esse teste de DLL e
+pulado. O workflow roda nos pushes de windows-convert e nos PRs que alteram as ferramentas.
+
+Algumas falhas antes toleradas agora deixam a etapa pendente: capital ambiguo, heightmap ausente,
+conversao de camada com erro de processo, GLB de capitals ausente e malhas com nomes de saida
+iguais. Esses casos ficam explicitos nos logs, evitando considerar concluida uma geracao incompleta.
 
 ## Compilar e conferir a primeira entrega
 
