@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Ponto de partida para quem chega (pessoa ou sessão nova de IA). Atualizado em 2026-10-12.
+Ponto de partida para quem chega (pessoa ou sessão nova de IA). Atualizado em 2026-10-13.
 
 ## O que é
 
@@ -8,7 +8,7 @@ Port do New World para Unreal 5.8.3 para o clã jogar num servidor próprio. Ass
 (nada do jogo no repositório). Cliente principal Windows, servidor Linux, desenvolvimento no Linux. Só pt-BR e
 en-US. Escopo atual: o território de Guardaventos inteiro (região `r_+04_+01`) e a capital de Queda Eterna
 (só a cidade, para os sistemas). O trabalho corre em quatro esteiras paralelas (armas, coleta, montarias, sistemas):
-`docs/esteiras.md`.
+`docs/esteiras.md` (armas com as sub-esteiras manopla de gelo e espada grande).
 
 Decisões fechadas: Unreal é o plano principal; o cliente original com servidor emulado (Discord OpenWorld) é um
 plano paralelo do dono (agora no repo cliente original (fora deste repositório): https://github.com/paulorsouza/cliente original (fora deste repositório)); Lumberyard/O3DE descartado. Tema jurídico encerrado.
@@ -26,6 +26,7 @@ plano paralelo do dono (agora no repo cliente original (fora deste repositório)
 | Inventário com itens do jogo, raridade, peso, equipamento de armas e ferramentas | `NWInventoryComponent`, `NWInventoryMenu` |
 | Coleta: 100 mil coletáveis da paisagem (minério, árvores, plantas, alquimia, pedras), ferramentas, saque das tabelas do jogo, respawn | `NWGatherField`, `NWGatherComponent`, `tools/make_gatherables.py` |
 | Cidade de Guardaventos, terreno da região (2 km), cenário pré-gerado (penhascos, ruínas) | `tools/ue/import_*.py` |
+| Capital de Queda Eterna em `L_QuedaEterna` (cidade, terreno de 768 m, ponto de partida) com 30 NPCs vestidos e em pose parada do jogo, brindes semanais e itens iniciais por ofício; estações de refino com a tela do jogo (receitas, chance de item extra, XP, contagem); armazém da cidade no nw-core; nível pelos tutoriais. Backend do posto de trocas e das casas pronto, ainda sem tela | esteira 4: `docs/sistemas.md`, `tools/etapas/sistemas.*`, `NWNpc`, `backend/` |
 | Música e ambiente de Guardaventos | `NWAmbienceComponent` |
 | Telas do jogo: menu do Esc (com Desprender), configurações (vídeo, áudio, jogo, atalhos), barra de navegação, mapa (M) com POIs, bússola com POIs, tooltip de item com comparação, aviso de saque, faixa de aviso, indicador de golpe, sobrecarga, barra de XP, banner de nível, atributos, aba de ofícios na janela K | `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWHUD`, `NWInventoryMenu`, `NWTradeskillMenu`; pesquisa e estado em `docs/hud-original.md` |
 | Nível, XP e atributos com as tabelas do jogo (XP de personagem ainda sem fonte; "Ganhar 1 nível" no F10); ofícios de coleta com XP, nível, velocidade, bônus no saque e nível mínimo dos coletáveis; tudo salvo no nw-core | `NWProgressionComponent`, `tools/make_progression.py`, migration 0003 |
@@ -48,10 +49,13 @@ Lista completa em `docs/pendencias.md`. Os principais agora:
 
 - Montar do zero: `docs/SETUP.md` (`tools/build_all.sh` + `tools/ue_import_all.sh`).
 - Mudou uma tabela ou script de dados: `tools/make_data.sh`. Mudou C++: compilar (passo 01 do `ue_import_all.sh`).
+- Tela do jogo: captura sem abrir o jogo (`tools/ui_shot.sh`) e comparação com o print do original; roteiro em
+  `docs/hud/README.md`.
 - Verificar algo visual: abrir o editor e olhar (ou pedir o print a quem está com o editor). Não automatizar
   "rodar o jogo e tirar print": consumiu horas sem mostrar o que importa.
 - Várias sessões ao mesmo tempo: regras, donos dos arquivos e fila de trabalho pesado (`tools/pesado.sh`) em
-  `docs/esteiras.md`. Engenharia reversa sob demanda: skill `nw-re`.
+  `docs/esteiras.md`. Engenharia reversa sob demanda: skill `nw-re`; o que já foi lido do cliente (combate, ações,
+  montarias, telas): `docs/analise-re/resumo-plano-a.md`.
 - Commits e push só quando o dono pedir.
 
 ## Armadilhas (já custaram horas)

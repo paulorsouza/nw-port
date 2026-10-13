@@ -7,6 +7,8 @@ description: Esteira 3 — porta as montarias do New World (cavalo, lobo, felino
 
 Regras de trabalho: skill `nw-esteira` e `docs/esteiras.md`. Estado e levantamento: `docs/montarias.md` (crie no
 primeiro item). Testes: `docs/testes/montarias.md`, mapa `L_SouthWindsward`.
+RE já feita: `docs/analise-re/montarias.md` (velocidade por nível em 5 faixas, galope e stamina, giro montado) e as
+regras de ações em `docs/analise-re/resumo-plano-a.md`.
 
 ## Fontes do jogo
 

@@ -7,10 +7,12 @@ description: Esteira 4 — sistemas do New World na capital de Queda Eterna (map
 
 Regras de trabalho: skill `nw-esteira` e `docs/esteiras.md`. Estado e levantamento: `docs/sistemas.md` (crie no
 primeiro item). Testes: `docs/testes/sistemas.md`, mapa `L_QuedaEterna`.
+Telas: `docs/hud/README.md` (spec da tela, captura sem o jogo com `tools/ui_shot.sh`, comparação com o print do
+original, regras do LyShine, anotações do dono para a próxima sessão).
 
 ## Escopo
 
-Só a capital de Queda Eterna (`settlement_everfall`, slice `*_complete`) e o recorte de terreno em volta, num mapa
+Só a capital de Queda Eterna (slice `settlement_northwindsward_complete`) e o recorte de terreno em volta, num mapa
 próprio. Outras cidades e o território inteiro de Queda Eterna, só com pedido do dono. Guardaventos continua.
 
 ## Ordem

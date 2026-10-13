@@ -6,6 +6,7 @@ description: Regras de trabalho de qualquer esteira do port (armas, coleta, mont
 # Trabalhar numa esteira
 
 Referência completa: `docs/esteiras.md` (regras comuns, donos dos arquivos, escopo de cada esteira). Leia antes.
+O que a RE já leu do cliente, para todas as esteiras: `docs/analise-re/resumo-plano-a.md`. Telas: `docs/hud/README.md`.
 
 ## Sempre
 

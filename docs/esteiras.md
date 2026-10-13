@@ -1,13 +1,15 @@
 # Esteiras de trabalho
 
-Quatro frentes do port. Cada uma pode ser uma sessão na mesma máquina (mesmo checkout) ou uma pessoa na própria
-máquina, num branch (seção "Várias pessoas").
+Quatro frentes do port; a de armas tem duas sub-esteiras (1a, 1b). Cada uma pode ser uma sessão na mesma máquina
+(mesmo checkout) ou uma pessoa na própria máquina, num branch (seção "Várias pessoas").
 A engenharia reversa (RE) do `NewWorld.exe` não é uma esteira: qualquer sessão pede uma pergunta específica pela
 skill `nw-re`, que roda o agente `nw-re` em segundo plano.
 
 | Esteira | Skill | Doc de estado | Testes | Mapa de teste |
 |---|---|---|---|---|
 | 1. Armas | `nw-combate-arma` | `docs/combate-armas.md`, `docs/armas/<arma>.md` | `docs/testes/armas.md` | `L_Arena` |
+| 1a. Manopla de gelo | `nw-combate-arma` | `docs/armas/manopla-gelo.md` | `docs/testes/manopla-gelo.md` | `L_Arena` |
+| 1b. Espada grande | `nw-combate-arma` | `docs/armas/espada-grande.md` | `docs/testes/espada-grande.md` | `L_Arena` |
 | 2. Coleta | `nw-coleta` | `docs/coleta.md` | `docs/testes/coleta.md` | `L_SouthWindsward` |
 | 3. Montarias | `nw-montaria` | `docs/montarias.md` | `docs/testes/montarias.md` | `L_SouthWindsward` |
 | 4. Sistemas e Queda Eterna | `nw-sistemas` | `docs/sistemas.md` | `docs/testes/sistemas.md` | `L_QuedaEterna` |
@@ -46,8 +48,17 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 
 - Número, janela, animação e som saem dos dados do jogo, com a fonte (arquivo e ID) no doc da esteira ou em
   comentário curto. Sem fonte nos dados: pergunte pela `nw-re`. Sem resposta: seção "Sem fonte" do doc.
+- Antes de implementar regra de combate, ação, montaria ou tela, leia `docs/analise-re/resumo-plano-a.md`: o que a RE
+  já leu do `NewWorld.exe` (encadeamento das actionlists, janelas, combos, reação, stamina, giro, homing, montarias,
+  inventário, atributos), com a lista de divergências do port. Fato lido ali vale mais que doc antigo do port.
 - Valor vindo da RE entra pelo `FNWRules::Num("id")` (`docs/analise-re/valores/<área>.json`), regra vinda da RE cita o id
   em comentário. `python3 tools/re_check.py` mostra o que falta aplicar.
+
+### Telas
+
+- Tela do jogo nova ou refeita: roteiro de `docs/hud/README.md` (spec da tela, captura sem o jogo com
+  `tools/ui_shot.sh`, comparação com o print do original). O print ao dono fica para o fim.
+- `FNWUILayout` é compartilhado: o modo fiel ao LyShine (`bExactText`) é ligado por tela, sem mudar as outras.
 
 ### Entrega
 
@@ -60,12 +71,12 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 
 | Esteira | Arquivos |
 |---|---|
-| Armas | `NWCharacterArmas.cpp`, `tools/sets/player/armas.json`, `tools/etapas/armas.*`, `tools/strings/armas.json`, `docs/analise-re/perguntas/armas-*`; `NWCombatComponent`, `NWProjectile`, `NWFxActor`, `NWBrainComponent`; `tools/make_datatables.py`, `make_abilities.py`, `weapon_report.py`, `tools/ue/make_test_map.py`, `make_fx.py`; `docs/armas/`, `docs/combate-*.md` |
+| Armas (1, 1a, 1b) | `NWCharacterArmas.cpp`, `tools/sets/player/armas.json`, `tools/etapas/armas.*`, `tools/strings/armas.json`, `docs/analise-re/perguntas/armas-*`; `NWCombatComponent`, `NWProjectile`, `NWFxActor`, `NWBrainComponent`; `tools/make_datatables.py`, `make_abilities.py`, `weapon_report.py`, `tools/ue/make_test_map.py`, `make_fx.py`; `docs/armas/`, `docs/combate-*.md`. Sub-esteiras: código novo da arma em `NWArma<Nome>.cpp` próprio, parte do conjunto em `tools/sets/player/armas_<arma>.json` (listada em `parts`), doc e testes da arma; o resto da esteira 1 é compartilhado entre as três |
 | Coleta | `tools/sets/player/coleta.json`, `tools/etapas/coleta.*`, `docs/analise-re/perguntas/coleta-*`, `tools/strings/coleta.json`; `NWGatherComponent`, `NWGatherField`; `tools/make_gatherables.py`, `convert_gatherables.sh`, `tools/ue/import_gatherables.py`; `docs/coleta.md` |
 | Montarias | `NWMountComponent` (já criado, vazio), `tools/sets/player/montaria.json`, `tools/etapas/montarias.*`, `tools/strings/montarias.json`; `NWMount*`; `tools/sets/mount_*.json`; `docs/montarias.md` |
-| Sistemas | `NWCharacterSave.cpp`, `tools/strings/sistemas.json`, `tools/etapas/sistemas.*`; `NWHUD`, `NWInventory*`, `NWProgression*`, `NWItems`, `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWTradeskillMenu`, `NWAttributesMenu`; `backend/`; `tools/make_items.py`, `make_progression.py`, `ui_build_*.py`, `convert_city.sh`, `tools/ue/import_city.py`, `fix_city.py`; `docs/hud-*.md`, `docs/sistemas.md` |
+| Sistemas | `NWCharacterSave.cpp`, `tools/strings/sistemas.json`, `tools/etapas/sistemas.*`; `NWHUD`, `NWInventory*`, `NWProgression*`, `NWItems`, `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWTradeskillMenu`, `NWAttributesMenu`; `backend/`; `tools/make_items.py`, `make_progression.py`, `ui_build_*.py`, `convert_city.sh`, `tools/ue/import_city.py`, `fix_city.py`; `NWRefiningMenu`, `NWStorageMenu`, `NWCrafting`, `NWInteractable`, `NWNpc*`, `NWEvents`, `NWUIShotCommandlet`; `tools/ui_screens/`, `ui_shots/`, `ui_shot.sh`, `ui_styles.py`, `ui_compare.py`, `make_crafting.py`, `make_npcs.py`; `docs/hud/`, `docs/hud-*.md`, `docs/sistemas.md` |
 | RE (agente `nw-re`) | `docs/analise-re/`, `tools/re/` |
-| Compartilhados | `NWCharacter.h`, `NWCharacter.cpp`, `NWPlayerController`, `SNWDevMenu`, `NWCombatTypes.h`, `NWMasteryMenu`, `NWRules`, `NWInputRegistry`, `NWDevRegistry`, `NWAnimInstance`, `ABP_NW` (dono único, abaixo); `tools/sets/sword_shield.json`, `tools/strings/geral.json`, `build_all.sh`, `ue_import_all.sh`, `make_data.sh`; `docs/ESTADO.md` |
+| Compartilhados | `NWCharacter.h`, `NWCharacter.cpp`, `NWPlayerController`, `SNWDevMenu`, `NWCombatTypes.h`, `NWMasteryMenu`, `NWRules`, `NWInputRegistry`, `NWDevRegistry`, `NWUILayout`, `tools/ui_canvas.py`, `NWAnimInstance`, `ABP_NW` (dono único, abaixo); `tools/sets/sword_shield.json`, `tools/strings/geral.json`, `build_all.sh`, `ue_import_all.sh`, `make_data.sh`; `docs/ESTADO.md` |
 
 ## Pontos de extensão (para não mexer no que é compartilhado)
 
@@ -133,6 +144,57 @@ teste) e depois o polimento:
 A arma está pronta quando os testes dela passam com o dono, o doc da arma não tem pendência que dependa só de RE e
 o `re_check` não mostra nada da arma.
 
+### O que a RE já resolveu para o combate
+
+Fonte: `docs/analise-re/resumo-plano-a.md` (regras), `combate-cage.md`, `cage-runtime.md`, `combate-cliente.md`.
+Vale para toda arma, inclusive as das sub-esteiras:
+
+- **Encadeamento**: o combo do jogador vem dos procclips `CAGE-TransitionInstant` / `CAGE-TransitionBuffered` do `.adb`
+  do fragmento (`Input`, `BackTicks`, `Condition`, `NewFragment`/`NewAction`), não das condições da actionlist.
+  Ação sai pela `DeactivationCondition` (em geral `IfFragmentDone ExitOffsetSeconds`), nunca pelo fim da animação.
+  Interrupção pelo `.grid` (`Never`/`Always`/`Sometimes`).
+- **Janelas**: procclip `CAGE-Named` liga o marcador pelo nome; parâmetros com `<Conditional Name>` valem dentro da
+  janela, senão `<Default>`.
+- **Movimento por animação** (`AnimationDrivenMotion`), **giro** (linear ou exponencial `1 − (1 − r)^(30·dt)`) e
+  **homing** do ataque (procclip `Homing`: raio, ângulo, `MoveToDistance`, `MaxMoveDistance`, `MoveToDuration`).
+- **Reação**: primeira entrada da tabela com o `PowerLevel` do golpe e o lado; empurrão e hit stun em quadros de
+  1/30 s; hit stop não existe.
+- **Stamina** 100, regeneração 33,33/s, esquiva 45 (50 rolagem lenta), bloqueio 10.
+
+Divergências que o port ainda tem e a esteira 1 corrige (uma vez, vale para todas as armas):
+
+| Ponto | Port hoje | Jogo |
+|---|---|---|
+| Esquiva | precisa ter 45 de stamina | entra com qualquer stamina > 0 |
+| Exaustão | sem esquiva e sem bloqueio até recuperar parte | efeito de 10 s (sem esquiva, sprint −15%), sai com stamina ≥ 1 |
+| Regeneração no bloqueio | regenera após atraso | desligada enquanto bloqueia; volta 1 s após soltar |
+| Bloqueio | ao segurar o botão | só dentro da janela `BlockActive` da animação |
+
+Em aberto na RE (não perguntar de novo; ver `resumo-plano-a.md` "Em aberto"): dano-base por GS (A, B, passo, r, k),
+tique da regeneração de stamina, pontuação do alvo do homing, duração do tick do `BackTicks`. Dano, crítico, grit e
+mitigação são de servidor.
+
+### Sub-esteiras de arma (1a e 1b)
+
+Uma sessão por arma, ao mesmo tempo que a esteira 1 (que segue polindo as quatro armas que existem e corrige as
+divergências acima). Cada sub-esteira faz o ciclo inteiro da arma dela (tabela acima) e só ela.
+
+- Arquivos próprios: `NWArma<Nome>.cpp`/`.h`, `tools/sets/player/armas_<arma>.json` (acrescentar em `parts` do
+  `tools/sets/sword_shield.json`, mudança mínima), `docs/armas/<arma>.md`, `docs/testes/<arma>.md`, perguntas
+  `docs/analise-re/perguntas/<arma>-NNN.md`. Prefixo de commit: `armas(<arma>):`.
+- O que é de todas as armas (`NWCombatComponent`, `NWCharacterArmas.cpp`, `NWProjectile`, `make_abilities.py`,
+  maestria): mudança mínima, descrita no relatório, avisando a esteira 1. Mecânica comum nova (ex.: mana) nasce
+  num componente ou arquivo novo, para não brigar com a esteira 1.
+- `build_set.py` monta o conjunto inteiro: quem roda leva o que as outras sub-esteiras mudaram; combinar pelo
+  relatório antes de rodar.
+
+**1a. Manopla de gelo** (`IceGauntlet`). Primeira arma mágica do port: traz a **mana** (recurso, regeneração, custo
+por golpe e habilidade, HUD) para as outras mágicas usarem depois. Projéteis de gelo, canalização, status de frio
+(lentidão, congelamento) e as habilidades da árvore.
+
+**1b. Espada grande** (`Greatsword`). Duas posturas (ofensiva e defensiva) com troca e as habilidades de cada uma,
+combos longos, carga do pesado, empurrões e o bloqueio da arma.
+
 ## Esteira 2: Coleta
 
 Ofícios de coleta: Mineração, Corte de madeira, Colheita, Esfolamento; Pesca por último (sistema próprio).
@@ -148,6 +210,8 @@ Por ofício:
 | Visual | coletável no chão (sem flutuar), folhagem e copas corretas, sem estalo de LOD |
 
 Esfolar depende de criatura morta (IA e criaturas são da esteira 1 hoje); combine pelo relatório.
+Coletar é uma ação de actionlist como as de combate: começo, laço e fim saem pelas regras de `cage-runtime.md`
+(saída pela `DeactivationCondition`, `NoAutoBlendOut`, interrupção pelo `.grid`), não por tempo fixo.
 Pendências conhecidas: `docs/pendencias.md`, seção "Coleta: polimento".
 
 ## Esteira 3: Montarias
@@ -166,9 +230,15 @@ e tinturas em `javelindata_itemdefinitions_mount*`. Ordem: cavalo, lobo, felino 
 | HUD | ícone, recarga, recurso do galope |
 | Rede | outro jogador vê montaria e cavaleiro iguais |
 
+Já lido pela RE (`docs/analise-re/montarias.md`, resumo em `resumo-plano-a.md`): velocidade só pelo nível de
+montaria em 5 faixas (0, 50, 100, 150, 200+, `javelindata_tradeskillriding`) e por superfície, galope ×1,12 (as
+linhas por espécie não são usadas); galope exige stamina da montaria ≥ 15, gasta 20/s e recupera 10/s; giro montado
+com taxa interpolada pela velocidade (cavalo 0,11 → 0,09 entre 0 e 15 m/s), fórmula exponencial do giro do
+jogador. Em aberto: aceleração montada.
+
 ## Esteira 4: Sistemas e Queda Eterna
 
-Escopo: só a capital de Queda Eterna (assentamento `settlement_everfall`, slice `*_complete`) com o recorte de
+Escopo: só a capital de Queda Eterna (slice `settlement_northwindsward_complete`, capital `ef_persistence` em `r_+04_+02`) com o recorte de
 terreno em volta, num mapa próprio `L_QuedaEterna`. Guardaventos continua como está. Ordem:
 
 1. Converter a cidade e montar o mapa jogável (skill `nw-convert-city`).
@@ -183,6 +253,13 @@ terreno em volta, num mapa próprio `L_QuedaEterna`. Guardaventos continua como 
 Cada sistema está pronto quando funciona de ponta a ponta com o servidor dedicado e o nw-core (persistência), tem
 as telas do jogo e o dono testou. Mudança de banco é migration nova no `backend/` (`docs/plano-servidor.md`).
 
+Estado (2026-10-13): itens 1–4 feitos e testados pelo dono (cidade, NPCs com brindes, estações de refino com a tela
+do jogo, armazém); nível pelos tutoriais (item 8, parte). Backend do mercado e das casas pronto, sem tela. Detalhe em
+`docs/sistemas.md`.
+
+Telas: roteiro, regras do LyShine e anotações do dono para a próxima sessão em `docs/hud/README.md`. Próximo de
+telas: acertos do refino anotados lá, depois armazém, atributos, ofícios, inventário e maestria (com a esteira 1).
+
 ## Prompts das sessões
 
 Colar numa sessão nova do Claude Code aberta em `~/workspace/nw-port`.
@@ -195,12 +272,48 @@ Você é a sessão da esteira 1 (Armas). Leia docs/ESTADO.md e docs/esteiras.md 
 e use as skills nw-esteira e nw-combate-arma. Outras três sessões trabalham no mesmo checkout ao mesmo tempo.
 
 Objetivo: cada arma igual ao jogo em animação, mecânica, habilidades e maestria, som, efeitos e HUD, uma por vez,
-na ordem da Esteira 1. Comece polindo as quatro que existem: rode tools/weapon_report.py e compare com
-docs/armas/arco.md, docs/armas/rapieira.md e docs/combate-armas.md; me mostre a lista do que falta em cada uma,
-na ordem que pretende fazer, antes de mudar código.
+na ordem da Esteira 1 (manopla de gelo e espada grande estão com as sub-esteiras 1a e 1b). Leia
+docs/analise-re/resumo-plano-a.md e comece pelas divergências de "O que a RE já resolveu" (esquiva, exaustão,
+regeneração no bloqueio, janela BlockActive), depois o encadeamento pelos procclips de combo. Em seguida, polir as
+quatro que existem: rode tools/weapon_report.py e compare com docs/armas/arco.md, docs/armas/rapieira.md e
+docs/combate-armas.md; me mostre a lista do que falta em cada uma, na ordem que pretende fazer, antes de mudar código.
 
 Sem fonte nos dados: skill nw-re. Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho.
 Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da esteira.
+```
+
+### Esteira 1a: Manopla de gelo
+
+```
+Projeto: port do New World para Unreal 5.8 em ~/workspace/nw-port. Responda em pt-BR, texto direto.
+Você é a sessão da sub-esteira 1a (Manopla de gelo). Leia docs/ESTADO.md e docs/esteiras.md (regras comuns,
+Esteira 1 com "O que a RE já resolveu" e "Sub-esteiras de arma") e docs/analise-re/resumo-plano-a.md, e use as skills
+nw-esteira e nw-combate-arma. A esteira 1, a 1b e outras sessões trabalham no mesmo checkout ao mesmo tempo.
+
+Objetivo: manopla de gelo igual ao jogo (animação, mecânica, habilidades e maestria, som, efeitos, HUD, rede), e a
+mana, que ela traz para as armas mágicas. Comece pelo levantamento em docs/armas/manopla-gelo.md: .adb e
+actionlists da arma, procclips de combo e janelas, tabelas de habilidades e de mana, VFX e sons. Me mostre o plano,
+com o que precisa mudar em arquivo comum, antes de mudar código.
+
+Sem fonte nos dados: skill nw-re. Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho.
+Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da sub-esteira.
+```
+
+### Esteira 1b: Espada grande
+
+```
+Projeto: port do New World para Unreal 5.8 em ~/workspace/nw-port. Responda em pt-BR, texto direto.
+Você é a sessão da sub-esteira 1b (Espada grande). Leia docs/ESTADO.md e docs/esteiras.md (regras comuns,
+Esteira 1 com "O que a RE já resolveu" e "Sub-esteiras de arma") e docs/analise-re/resumo-plano-a.md, e use as skills
+nw-esteira e nw-combate-arma. A esteira 1, a 1a e outras sessões trabalham no mesmo checkout ao mesmo tempo.
+
+Objetivo: espada grande igual ao jogo (as duas posturas e a troca, combos, carga, habilidades e maestria, som,
+efeitos, HUD, rede). Comece pelo levantamento em docs/armas/espada-grande.md: .adb e actionlists da arma, procclips
+de combo e janelas, tabelas de habilidades, VFX e sons. Me mostre o plano, com o que precisa mudar em arquivo comum,
+antes de mudar código.
+
+Sem fonte nos dados: skill nw-re. Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho.
+Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da sub-esteira.
 ```
 
 ### Esteira 2: Coleta
@@ -249,9 +362,10 @@ mesmo checkout ao mesmo tempo.
 
 Objetivo: só a capital de Queda Eterna, num mapa próprio L_QuedaEterna, com os sistemas do jogo funcionando nela:
 NPCs, estações de refino e ofício, armazém, lojas, mercado, casas, nível e XP, e as telas de cada um. Ordem da
-Esteira 4. Comece convertendo a cidade (confirme o slice do assentamento de Queda Eterna e a região do terreno) e
-montando o mapa; em paralelo, levante em docs/sistemas.md o que o jogo define para cada sistema e o que o port já
-tem. Me mostre o plano antes de mexer no backend.
+Esteira 4. Cidade, NPCs, refino e armazém já estão feitos (docs/sistemas.md). Telas: siga docs/hud/README.md
+(captura sem o jogo com tools/ui_shot.sh, comparação com o print do original) e comece pelas anotações do dono lá
+(slider da quantidade, Espaço, botão que pisca). Depois lojas, mercado e casas. Me mostre o plano antes de mexer no
+backend.
 
 Sem fonte nos dados: skill nw-re. Teste: abra o editor no mapa e me peça o print; nunca rode o jogo sozinho.
 Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da esteira.

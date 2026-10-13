@@ -7,7 +7,10 @@ description: Esteira 1 — porta ou refina o combate de uma arma do New World (l
 
 Esteira 1 (`docs/esteiras.md`: ordem das armas, tabela de polimento, regras com as outras sessões; skill
 `nw-esteira`). Roteiro completo: `docs/combate-armas.md`. Regras gerais do jogo: `docs/combate-regras-jogo.md`.
-Leia os três antes.
+Leia os três antes, e `docs/analise-re/resumo-plano-a.md` (o que a RE já leu do cliente: combos pelos procclips
+`CAGE-Transition*`, janelas `CAGE-Named`, saída das ações, reação, stamina, giro, homing, e as divergências do port).
+Sub-esteiras 1a (manopla de gelo) e 1b (espada grande): arquivos próprios por arma, seção "Sub-esteiras de arma" de
+`docs/esteiras.md`.
 
 Princípio: número, janela e animação saem dos dados do jogo, com a fonte (arquivo + ID) num comentário curto ou no
 `docs/armas/<arma>.md`. Nada de chute. Sem fonte nos dados: pergunte pela skill `nw-re`; sem resposta, seção "Sem fonte" do doc da arma.
