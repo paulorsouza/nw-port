@@ -1,0 +1,14 @@
+diff --git a/tools/nwbt/nwfs/pak_archive.go b/tools/nwbt/nwfs/pak_archive.go
+index c6bb6cf6..b56bea52 100644
+--- a/tools/nwbt/nwfs/pak_archive.go
++++ b/tools/nwbt/nwfs/pak_archive.go
+@@ -70,7 +70,8 @@ func (it *pakFile) String() string {
+ 
+ // NewPackedArchive creates a new file system using pak files from the given game directory.
+ func NewPackedArchive(gameDir string) (Archive, error) {
+-	gameDir = path.Clean(gameDir)
++	// fileglob trata '\' como escape; use '/' no caminho do jogo no Windows.
++	gameDir = path.Clean(filepath.ToSlash(gameDir))
+ 	if !strings.HasSuffix(gameDir, "assets") {
+ 		gameDir = path.Join(gameDir, "assets")
+ 	}

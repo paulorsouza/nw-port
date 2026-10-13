@@ -19,7 +19,7 @@ $actual = & git -C $Source rev-parse HEAD
 if ($LASTEXITCODE -ne 0 -or $actual -ne $revision) {
     throw "Use nw-buddy no commit $revision; encontrado: $actual"
 }
-foreach ($patchName in @('nwbt-windows.patch', 'nwbt-platform-path.patch')) {
+foreach ($patchName in @('nwbt-windows.patch', 'nwbt-platform-path.patch', 'nwbt-pak-root-slash.patch', 'nwbt-files-argfile.patch')) {
     $patch = Join-Path $repoRoot "patches/$patchName"
     # O fork contem fontes CRLF; aceite tambem checkouts normalizados para LF.
     & git -C $Source apply --ignore-space-change --check $patch 2>$null
