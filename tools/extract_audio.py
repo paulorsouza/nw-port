@@ -21,6 +21,8 @@ import os
 import re
 import subprocess
 import sys
+import shutil
+import nwplatform
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -35,7 +37,7 @@ WWNAMES = RAW / "wwnames.txt"
 TXTP = RAW / "txtp"
 OUT = ROOT / "extract" / "audio"
 WWISER = ROOT / "vendor" / "wwiser" / "wwiser.py"
-DEFAULT_GAME = "/mnt/jogos/Steam/steamapps/common/New World"
+DEFAULT_GAME = nwplatform.game_directory()
 
 # Bancos de (b) combate/movimento. Todos levam -gra (um .txtp por variação aleatória).
 SFX_GROUPS = ["wpn_1h_sword", "wpn_1h_shield", "impacts", "player_mvts",
@@ -87,8 +89,8 @@ def log(*a):
 
 # ---------------------------------------------------------------- 1. unpack
 def unpack(game):
-    nwbt = BIN / "nwbt"
-    env = dict(os.environ, NWBT_OODLE=str(BIN / "libooz.so"))
+    nwbt = nwplatform.executable("nwbt")
+    env = nwplatform.environment()
     if not any(SND.glob("*.bnk")):
         log("unpack: bancos")
         run([nwbt, "unpack", "-g", game, "-o", RAW, "-e", r"^sounds/wwise/[^/]+\.(bnk|csv)$"], env=env)
@@ -99,15 +101,19 @@ def unpack(game):
     for b in SND.glob("*.bnk"):
         link = MEDIA / b.name
         if not link.exists():
-            link.symlink_to(Path("..") / b.name)
+            if nwplatform.WINDOWS:
+                # Evita exigir modo desenvolvedor ou privilegio de symlink.
+                shutil.copy2(b, link)
+            else:
+                link.symlink_to(Path("..") / b.name)
 
 
 # ---------------------------------------------------------------- 2. nomes
 def build_names(game):
     if WWNAMES.exists():
         return
-    nwbt = BIN / "nwbt"
-    env = dict(os.environ, NWBT_OODLE=str(BIN / "libooz.so"))
+    nwbt = nwplatform.executable("nwbt")
+    env = nwplatform.environment()
     if not NAMESRC.is_dir():
         log("names: unpack de arquivos de texto do jogo")
         for rx in [r"\.(adb|xml|json|luac|actionlist|chrparams|cdf|aliasasset|musicsheetc)$",
@@ -322,7 +328,7 @@ def render(job, quality):
     (src, subsong), dest, title, max_s = job
     status = "ok"
     if max_s:
-        info = subprocess.run([BIN / "vgmstream-cli", "-m", "-i", src],
+        info = subprocess.run([nwplatform.executable("vgmstream-cli"), "-m", "-i", src],
                               capture_output=True, text=True).stdout
         n = re.search(r"play duration: (\d+) samples", info)
         r = re.search(r"sample rate: (\d+) Hz", info)
@@ -338,9 +344,9 @@ def render(job, quality):
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".part")
     sel = ["-s", str(subsong)] if subsong else []
-    vgm = subprocess.Popen([BIN / "vgmstream-cli", "-i", "-p", *sel, src],
+    vgm = subprocess.Popen([nwplatform.executable("vgmstream-cli"), "-i", "-p", *sel, src],
                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    enc = subprocess.run([BIN / "oggenc", "-Q", "-q", str(quality), "-t", title,
+    enc = subprocess.run([nwplatform.executable("oggenc"), "-Q", "-q", str(quality), "-t", title,
                           "-c", f"source={src.name}" + (f"#{subsong}" if subsong else ""),
                           "-o", tmp, "-"],
                          stdin=vgm.stdout, stderr=subprocess.PIPE)
@@ -360,7 +366,7 @@ def ambient_index(jobs):
         base, var = readable(t.stem)
         srcs = sources_of(t)
         banks = sorted({src[0].stem if src[1] else "media" for _, src in srcs})
-        info = subprocess.run([BIN / "vgmstream-cli", "-m", "-i", t], capture_output=True, text=True).stdout
+        info = subprocess.run([nwplatform.executable("vgmstream-cli"), "-m", "-i", t], capture_output=True, text=True).stdout
         n = re.search(r"play duration: (\d+) samples", info)
         r = re.search(r"sample rate: (\d+) Hz", info)
         dur = f"{int(n.group(1)) / int(r.group(1)):.1f}" if n and r else ""
@@ -462,7 +468,7 @@ def write_index():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--game", default=os.environ.get("GAME", DEFAULT_GAME))
+    ap.add_argument("--game", default=DEFAULT_GAME)
     ap.add_argument("--jobs", type=int, default=os.cpu_count())
     ap.add_argument("--quality", type=float, default=5)
     ap.add_argument("--index-only", action="store_true", help="só reescreve INDEX.md")

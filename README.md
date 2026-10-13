@@ -5,6 +5,8 @@ do New World de cada um: nada do jogo entra neste repositório.
 
 ## Começar
 
+Windows nativo (em andamento): [plano, builds e validacao](docs/windows-convert.md).
+
 | Para | Leia |
 |---|---|
 | montar tudo do zero (ferramentas, extração, Unreal) | [docs/SETUP.md](docs/SETUP.md) |

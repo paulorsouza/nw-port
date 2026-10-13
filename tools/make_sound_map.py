@@ -14,11 +14,13 @@ import csv
 import json
 import os
 import subprocess
+import nwplatform
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AUDIO = os.path.join(ROOT, "extract", "audio")
-GAME = os.environ.get("GAME", "/mnt/jogos/Steam/steamapps/common/New World")
+nwplatform.configure()
+GAME = nwplatform.game_directory()
 ANIMEVENTS = "animations/gameplay/character/player/male/temp_male.animevents"
 
 # Troca de voz do Wwise -> pasta de voz extraída.
@@ -99,7 +101,7 @@ def main():
     set_name = os.path.basename(os.path.dirname(os.path.abspath(a.manifest)))
     creature = CREATURES.get(set_name)
     events_file = CREATURE_ANIMEVENTS.format(set_name) if creature else ANIMEVENTS
-    xml = subprocess.run(["nwbt", "cat", "-g", GAME, events_file], capture_output=True, check=True).stdout
+    xml = subprocess.run([nwplatform.executable("nwbt"), "cat", "-g", GAME, events_file], capture_output=True, check=True).stdout
     steps = {}
     for anim in ET.fromstring(xml):
         name = os.path.splitext(os.path.basename(anim.get("name", "")))[0].lower()

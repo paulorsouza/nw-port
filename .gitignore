@@ -7,6 +7,10 @@ reference/
 # Código de terceiros clonado (versões e build em docs/FERRAMENTAS.md); os binários prontos ficam em bin/.
 vendor/
 __pycache__/
+# Ferramentas Windows geradas pelos scripts de build (fontes e patch no Git).
+bin/ooz.dll
+bin/nwbt.exe
+bin/dbgwater.exe
 
 # Unreal: binários, caches e todo o Content (gerado pelos imports a partir dos assets do jogo).
 unreal/NWPort/Binaries/

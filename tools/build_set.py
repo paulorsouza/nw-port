@@ -19,10 +19,13 @@ import xml.etree.ElementTree as ET
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import adb_windows  # noqa: E402
 import setspec  # noqa: E402
+import nwplatform  # noqa: E402
+
+nwplatform.configure()
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ANIM_ROOT = "animations/gameplay/character/player/male/"
-GAME = os.environ.get("GAME", "/mnt/jogos/Steam/steamapps/common/New World")
+GAME = nwplatform.game_directory()
 
 
 def index(paths_file, anim_root=ANIM_ROOT):
@@ -38,7 +41,7 @@ def index(paths_file, anim_root=ANIM_ROOT):
 
 
 def nwbt_cat(path):
-    return subprocess.run(["nwbt", "cat", "-g", GAME, path], capture_output=True, check=True).stdout
+    return subprocess.run([nwplatform.executable("nwbt"), "cat", "-g", GAME, path], capture_output=True, check=True).stdout
 
 
 def read_bspace(path):
@@ -165,7 +168,7 @@ def main():
 
     glb_dir = os.path.join(out, "glb")
     weapon_files = [w["file"] for w in spec["weapons"].values()]
-    subprocess.run(["nwbt", "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed", "--ior", "1.5",
+    subprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed", "--ior", "1.5",
                     spec["character"], *([spec["armor"]] if spec.get("armor") else []), *files, *weapon_files],
                    check=True, capture_output=True)
 
@@ -177,7 +180,7 @@ def main():
     mpath = os.path.join(out, "manifest.json")
     json.dump(manifest, open(mpath, "w"), indent=1)
 
-    subprocess.run(["blender", "-b", "-P", os.path.join(ROOT, "tools", "export_ue.py"), "--", mpath], check=True)
+    subprocess.run([nwplatform.executable("blender"), "-b", "-P", os.path.join(ROOT, "tools", "export_ue.py"), "--", mpath], check=True)
     print(f"ok: {out}")
 
 
