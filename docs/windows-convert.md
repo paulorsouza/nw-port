@@ -37,6 +37,38 @@ Estimativa inicial: 6–11 dias uteis, a revisar depois de extrair assets reais 
 Os scripts Bash continuam sendo o fluxo completo existente. Esta primeira entrega prepara os binarios
 e os scripts Python; ainda nao substitui build_all.sh nem ue_import_all.sh no Windows.
 
+## Segunda entrega: trabalho sem os assets
+
+- [x] tools/jogo_versao.py: manifesto Steam e hash SHA256 sem awk/sha256sum; aceita NW_GAME,
+  --game, --exe e NW_IGNORA_VERSAO. Sem manifesto, exige o hash do executavel.
+- [x] tools/make_data.py: sequencia de geracao de Data/, incluindo etapas opcionais e telas;
+  usa o mesmo Python que iniciou o comando, diretorio do repositorio e argumentos sem shell.
+- [x] --dry-run lista as etapas sem iniciar subprocessos nem escrever Data/.
+- [x] Testes com arquivos sinteticos: bloqueio de build/hash incorretos, hash obrigatorio sem
+  manifesto, codigo de saida e override explicito; caminhos com espacos/acentos, cwd correto e
+  interrupcao na primeira falha do gerador.
+
+```powershell
+python -m unittest discover -s tools/tests -v
+python tools/make_data.py --dry-run
+# Quando os assets estiverem disponiveis:
+python tools/jogo_versao.py --exe
+python tools/make_data.py
+```
+
+Os quatro testes passaram em Windows com Python 3.13; a sequencia real do repositorio tambem foi
+conferida com --dry-run. O gerador completo nao foi executado sem os arquivos de entrada.
+O verificador usa hashlib.file_digest, disponivel no Python 3.11 ou mais recente.
+
+Ainda podemos migrar e testar sem o jogo: fila/lock de trabalho, retomada e marcadores de etapas,
+monitoramento de memoria/disco, encerramento de filhos, comandos Unreal e launcher local usando
+processos de teste. Fixtures conhecidas podem exercitar mais caminhos dos conversores.
+Esses testes validam o comportamento dos scripts, mas nao garantem fidelidade dos assets.
+
+O aceite que precisa de outra maquina fica delimitado: descompactar os paks da build do time,
+comparar JSON/texturas/malhas/animacoes/audio, montar o projeto na Unreal, verificar renderizacao
+e colisao, jogar com persistencia/rede e medir memoria/tempo no volume real de dados.
+
 ## Compilar e conferir a primeira entrega
 
 Pre-requisitos: Python, Git, Go e Visual Studio com C++/SDK Windows. No Developer PowerShell **x64**:
