@@ -4,7 +4,7 @@ Este roteiro testa a extração nativa e o reaproveitamento dos arquivos gerados
 
 ## 1. Preparar a máquina
 
-Use Windows x64, Python 3.11 ou superior (CI usa 3.13), Git, Go e Visual Studio com C++ e Windows SDK. Abra o **Developer PowerShell x64** para compilar. Consulte [SETUP](docs/SETUP.md) para as versões de Blender e Unreal usadas pelo projeto e o dimensionamento da máquina; use a mesma versão da Unreal que gerou o `Content` antigo.
+Use Windows x64, Python 3.11 ou superior de [python.org](https://www.python.org/downloads/windows/) (CI usa 3.13), Git, Go no `PATH` e Visual Studio com C++ e Windows SDK. Não use o Python da Microsoft Store: ele roda empacotado e os processos filhos (nwbt, Blender) saem do Job do Windows, sobrevivendo a um aborto; o pipeline e o `doctor.py` recusam esse Python. Abra o **Developer PowerShell x64** para compilar. Consulte [SETUP](docs/SETUP.md) para as versões de Blender e Unreal usadas pelo projeto e o dimensionamento da máquina; use a mesma versão da Unreal que gerou o `Content` antigo.
 
 ```powershell
 git clone --branch windows-convert https://github.com/paulorsouza/nw-port.git C:\dev\nw-port
@@ -120,7 +120,14 @@ python tools/build_all.py
 
 Não apague todos os `.ok`. Use as indicações `REFAZER` do relatório para diagnosticar uma etapa específica. Arquivos ausentes ainda precisam ser copiados da origem ou gerados novamente; `--apply` não substitui essa geração. Logs do pipeline ficam em `extract/logs/<etapa>.log`; conversores também mantêm logs próprios nas pastas de saída.
 
-Durante a extração, feche o jogo e o editor. Mantenha os limites de memória e disco do pipeline. Se houver interrupção ou falha, a etapa não deve receber `.ok`; corrija a causa e retome. Para uma instalação nova, sem caches, todas as etapas serão executadas.
+Durante a extração, feche o jogo e o editor. Mantenha os limites de memória e disco do pipeline. Em máquinas com pouca folga (32 GB com outros programas abertos), estas variáveis opcionais ajustam o consumo; sem elas, o comportamento padrão não muda:
+
+| Variável | Efeito | Valor testado |
+|---|---|---|
+| `NW_MIN_MEM_GIB` | teto para os mínimos de memória exigidos pelos scripts (`0` desliga a trava) | `4` na extração, `0` na importação Unreal |
+| `NW_AUDIO_JOBS` | processos wwiser/vgmstream em paralelo na etapa 05 (~1,2 GiB cada) | `6` |
+| `NW_NWBT_WORKERS` | workers de `nwbt models` sem `-w` (cidade, personagens, NPCs) | `3` |
+| `GOMEMLIMIT` | limite de memória do Go no nwbt; a cidade da etapa 07 cai de ~13 GB para ~7 GB | `7GiB` | Se houver interrupção ou falha, a etapa não deve receber `.ok`; corrija a causa e retome. Para uma instalação nova, sem caches, todas as etapas serão executadas.
 
 ## 6. Testar o projeto Unreal reaproveitado
 
@@ -139,7 +146,15 @@ Somente após código 0, abra:
 
 Confira no editor materiais, terreno, colisões, animações e áudio; compare com o projeto WSL. Verifique também o reimport de um asset cujo caminho mudou.
 
-Para `Content` novo, a importação completa automática ainda está pendente. Não execute `ue_import_all.sh` em PowerShell. Alguns helpers Unreal ainda têm caminhos Linux, incluindo `import_audio.py`, `import_region_scene.py`, `make_test_map.py` e `remote.py`; precisam de ajustes antes do fluxo completo. O check não remove essa pendência.
+Para `Content` novo, use o orquestrador nativo (equivale ao `ue_import_all.sh`; não execute o `.sh` em PowerShell):
+
+```powershell
+$env:NW_UE = 'C:\UnrealEngine'
+python tools/ue_import_all.py --dry-run
+python tools/ue_import_all.py
+```
+
+Antes, gere as entradas que o `build_all.py` ainda não produz: `build_set.py tools/sets/boar.json` e `wolf.json` (etapa ue_12); os `.cdf` dos NPCs com `bin/nwbt.exe unpack -g $env:NW_GAME -o extract/npcs -e -w 2 'objects/characters/npc/.*\.cdf$'`, depois `make_npcs.py`, `build_set.py tools/sets/npc_queda_eterna.json` e `convert_npcs.py` (etapa ue_sistemas-03). O cenário (ue_07) e os materiais (ue_08) chegam a ~15,5 GB no editor; com 32 GB de RAM, rode a importação com `NW_MIN_MEM_GIB=0`.
 
 ## 7. Registrar o resultado
 
