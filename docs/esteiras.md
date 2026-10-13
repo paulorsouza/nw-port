@@ -74,7 +74,7 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 | Armas (1, 1a, 1b) | `NWCharacterArmas.cpp`, `tools/sets/player/armas.json`, `tools/etapas/armas.*`, `tools/strings/armas.json`, `docs/analise-re/perguntas/armas-*`; `NWCombatComponent`, `NWProjectile`, `NWFxActor`, `NWBrainComponent`; `tools/make_datatables.py`, `make_abilities.py`, `weapon_report.py`, `tools/ue/make_test_map.py`, `make_fx.py`; `docs/armas/`, `docs/combate-*.md`. Sub-esteiras: código novo da arma em `NWArma<Nome>.cpp` próprio, parte do conjunto em `tools/sets/player/armas_<arma>.json` (listada em `parts`), doc e testes da arma; o resto da esteira 1 é compartilhado entre as três |
 | Coleta | `tools/sets/player/coleta.json`, `tools/etapas/coleta.*`, `docs/analise-re/perguntas/coleta-*`, `tools/strings/coleta.json`; `NWGatherComponent`, `NWGatherField`; `tools/make_gatherables.py`, `convert_gatherables.sh`, `tools/ue/import_gatherables.py`; `docs/coleta.md` |
 | Montarias | `NWMountComponent` (já criado, vazio), `tools/sets/player/montaria.json`, `tools/etapas/montarias.*`, `tools/strings/montarias.json`; `NWMount*`; `tools/sets/mount_*.json`; `docs/montarias.md` |
-| Sistemas | `NWCharacterSave.cpp`, `tools/strings/sistemas.json`, `tools/etapas/sistemas.*`; `NWHUD`, `NWInventory*`, `NWProgression*`, `NWItems`, `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWTradeskillMenu`, `NWAttributesMenu`; `backend/`; `tools/make_items.py`, `make_progression.py`, `ui_build_*.py`, `convert_city.sh`, `tools/ue/import_city.py`, `fix_city.py`; `NWRefiningMenu`, `NWStorageMenu`, `NWCrafting`, `NWInteractable`, `NWNpc*`, `NWEvents`, `NWUIShotCommandlet`; `tools/ui_screens/`, `ui_shots/`, `ui_shot.sh`, `ui_styles.py`, `ui_compare.py`, `make_crafting.py`, `make_npcs.py`; `docs/hud/`, `docs/hud-*.md`, `docs/sistemas.md` |
+| Sistemas | `NWCharacterSave.cpp`, `tools/strings/sistemas.json`, `tools/etapas/sistemas.*`; `NWHUD`, `NWInventory*`, `NWProgression*`, `NWItems`, `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWTradeskillMenu`, `NWAttributesMenu`; `backend/`; `tools/make_items.py`, `make_progression.py`, `ui_build_*.py`, `convert_city.sh`, `tools/ue/import_city.py`, `fix_city.py`; `NWRefiningMenu`, `NWStorageMenu`, `NWShop*`, `tools/shops.json`, `NWCrafting`, `NWInteractable`, `NWNpc*`, `NWEvents`, `NWUIShotCommandlet`; `tools/ui_screens/`, `ui_shots/`, `ui_shot.sh`, `ui_styles.py`, `ui_compare.py`, `make_crafting.py`, `make_npcs.py`; `docs/hud/`, `docs/hud-*.md`, `docs/sistemas.md` |
 | RE (agente `nw-re`) | `docs/analise-re/`, `tools/re/` |
 | Compartilhados | `NWCharacter.h`, `NWCharacter.cpp`, `NWPlayerController`, `SNWDevMenu`, `NWCombatTypes.h`, `NWMasteryMenu`, `NWRules`, `NWInputRegistry`, `NWDevRegistry`, `NWUILayout`, `tools/ui_canvas.py`, `NWAnimInstance`, `ABP_NW` (dono único, abaixo); `tools/sets/sword_shield.json`, `tools/strings/geral.json`, `build_all.sh`, `ue_import_all.sh`, `make_data.sh`; `docs/ESTADO.md` |
 
@@ -271,6 +271,26 @@ do jogo, armazém); nível pelos tutoriais (item 8, parte). Backend do mercado e
 Telas: roteiro, regras do LyShine e anotações do dono para a próxima sessão em `docs/hud/README.md`. Próximo de
 telas: acertos do refino anotados lá, depois armazém, atributos, ofícios, inventário e maestria (com a esteira 1).
 
+Estado (2026-10-13, fim da sessão): inventário com arrastar, dividir, largar no chão e busca; itemização nova
+(`docs/itens.md`) e ofício (`docs/oficio.md`) feitos e testados pelo dono: fabricar arma, escudo e ferramenta nas
+mesas de Queda Eterna com a tela de resultado do jogo, aba "Melhorar itens" (sortear atributo, sortear GS,
+desvincular), registro de número de série no nw-core. Testes 41–54 de `docs/testes/sistemas.md`.
+
+Próximos passos da esteira 4, nesta ordem (o dono pediu terminar as mecânicas antes de refinar filtros e telas):
+
+1. Gemas e vidros rúnicos: itens e receitas (T1–T5, 1–5%), encaixar e retirar no slot (vidro exige gema), efeito no
+   tooltip e na tela de resultado (`GemPerkSlot` com o ícone da gema). Regras em `docs/itens.md`.
+2. Armaduras e joias fabricadas: receitas de alfaiataria/armoraria e joalharia, resistência base por material, perks
+   por equipamento (`tools/itens.json`). Na tela de resultado faltam os painéis `Stats/Armor` e `Stats/Trinket`
+   (`docs/analise-re/craftroll-equipamento.md` §6).
+3. Efeito das perks e do atributo no personagem (chance e dano crítico, recarga, roubo de vida, regen de vigor, vida
+   máxima, amplificação, escudo no lugar do Fortalecer). Fica junto com a esteira 1 (combate): combinar antes de mexer.
+4. Balanceamento (provisórios em `docs/itens.md` e `docs/oficio.md` "Pendente"): curva GS → atributo, custos das
+   melhorias, faixas das perks, material e XP do treino, evolução das mesas com material investido.
+5. Lojas, mercado e casas (itens 5–7 acima); o mercado já recusa item vinculado e confere o número de série.
+6. Polimento da tela de resultado: flipbooks de raridade (`RarityEffect1..4`, texturas fora do layout), sons do roll,
+   botões do fim (Equipar, Sair da estação), filtros da lista de receitas.
+
 ## Prompts das sessões
 
 Colar numa sessão nova do Claude Code aberta em `~/workspace/nw-port`.
@@ -420,11 +440,11 @@ seção Esteira 4) e use as skills nw-esteira, nw-sistemas e nw-convert-city. Ou
 mesmo checkout ao mesmo tempo.
 
 Objetivo: só a capital de Queda Eterna, num mapa próprio L_QuedaEterna, com os sistemas do jogo funcionando nela:
-NPCs, estações de refino e ofício, armazém, lojas, mercado, casas, nível e XP, e as telas de cada um. Ordem da
-Esteira 4. Cidade, NPCs, refino e armazém já estão feitos (docs/sistemas.md). Telas: siga docs/hud/README.md
-(captura sem o jogo com tools/ui_shot.sh, comparação com o print do original) e comece pelas anotações do dono lá
-(slider da quantidade, Espaço, botão que pisca). Depois lojas, mercado e casas. Me mostre o plano antes de mexer no
-backend.
+NPCs, estações de refino e ofício, armazém, lojas, mercado, casas, nível e XP, e as telas de cada um. Cidade, NPCs,
+refino, armazém, inventário e fabricar já estão feitos (docs/sistemas.md). Comece pelos "Próximos passos da esteira 4"
+na seção Esteira 4 de docs/esteiras.md; regras de item e ofício em docs/itens.md e docs/oficio.md. Telas: siga
+docs/hud/README.md (captura sem o jogo com tools/ui_shot.sh, comparação com o print do original). Me mostre o plano
+antes de mexer no backend.
 
 Sem fonte nos dados: skill nw-re. Teste: abra o editor no mapa e me peça o print; nunca rode o jogo sozinho.
 Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da esteira.

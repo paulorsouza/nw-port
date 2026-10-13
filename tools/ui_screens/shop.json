@@ -1,0 +1,26 @@
+{
+ "_comment": "Loja (lyshineui/shop/shop): lista em grade (ShopListingsPanel, shopgriditem.lua) e detalhe do item (ShopItemDetailPanel, shopitemdetailpanel.lua). O port não tem rank de loja nem prévia 3D: some o painel de rank e o botão de prévia. Barra de título: screen_header.json. Gerar: python3 tools/ui_build_screen.py tools/ui_screens/shop.json",
+ "canvas": "lyshineui/shop/shop",
+ "name": "shop",
+ "keep": ["_root/Window/MasterContainer"],
+ "exclude": ["TabbedList", "ProgressRadialPanel", "ShopCooldownContainer", "BundleContainer", "StartStopPreviewButton", "HeaderContainer"],
+ "hide": ["/GridItemContainer/LockIcon", "/GridItemContainer/UnlockedText", "/CurrencyContainer/Currency2", "/CurrencyContainer/Currency3",
+          "/InfoPanel/ButtonDisabledText", "/InfoPanel/CooldownContainer", "/SliderWithTextInput/ExtraCurrentValueText"],
+ "set": {
+  "/ShopListingsPanel/Window/FrameMultiBg/FrameBg": {"texture": "lyshineui/images/slices/framemultibg/framestyles/framebgdefault2023.dds"},
+  "/ShopItemDetailPanel/Window/FrameMultiBg/FrameBg": {"texture": "lyshineui/images/slices/framemultibg/framestyles/framebgdefault2023.dds"},
+  "/CurrencyContainer/Currency1/Icon": {"texture": "lyshineui/images/icon_crowns.dds"}
+ },
+ "extra_textures": [
+  "lyshineui/images/icon_crowns.dds",
+  "lyshineui/images/icons/objectives/icon_npcshop.dds",
+  "lyshineui/images/slices/button/heroframe2023.dds",
+  "lyshineui/images/slices/button/heroframedisabled2023.dds"
+ ],
+ "buttons": {"/InfoPanel/ConfirmButton": "hero"},
+ "styles": {
+  "/InfoPanel/Title": "FONT_STYLE_STORE_OFFER_ITEM_TITLE_V2",
+  "/InfoPanel/Category": "FONT_STYLE_STORE_OFFER_REWARD_INFO_V2",
+  "/InfoPanel/Description": "FONT_STYLE_NIMBUS_MEDIUM_BODY_TAN_DARKER"
+ }
+}

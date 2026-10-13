@@ -17,9 +17,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLES = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites", "datatables")
 OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "Progression")
 ATTRS = ["strength", "dexterity", "intelligence", "focus", "constitution"]
-# Coleta (0..3) e refino (4..8, esteira 4: tools/make_crafting.py); mesma ordem do NWTradeskill no C++.
+# Coleta (0..3), refino (4..8) e fabricar (9..11; esteira 4: tools/make_crafting.py, docs/oficio.md); mesma ordem do
+# NWTradeskill no C++.
 TRADESKILLS = ["Mining", "Logging", "Harvesting", "Skinning", "Smelting", "Woodworking", "Leatherworking", "Weaving",
-               "Stonecutting"]
+               "Stonecutting", "Weaponsmithing", "Engineering", "Arcana"]
 
 
 def rows(name):
@@ -44,7 +45,11 @@ def main():
             if lv > cap:
                 break
             total += int(r.get("InfluenceCost") or 0)
-            table.append({"xp": total, "eff": float(r.get("GatheringEfficiency") or 0), "roll": int(r.get("RollBonus") or 0)})
+            row = {"xp": total, "eff": float(r.get("GatheringEfficiency") or 0), "roll": int(r.get("RollBonus") or 0)}
+            if r.get("MaxGearScoreBonusT5") is not None:
+                # Bônus de GS do artesão por tier do item (T2..T5), mínimo e máximo (docs/itens.md).
+                row["gs"] = [[int(r.get(f"MinGearScoreBonusT{n}") or 0), int(r.get(f"MaxGearScoreBonusT{n}") or 0)] for n in range(2, 6)]
+            table.append(row)
         tradeskills[t] = table
     os.makedirs(OUT, exist_ok=True)
     # Tutoriais de nível (esteira 4, tools/tutorials.json).

@@ -87,8 +87,12 @@ void SNWDevMenu::Construct(const FArguments& Args)
 		return FText::FromString(W && UGameplayStatics::GetGlobalTimeDilation(W) < 0.99f ? NWText::Get(TEXT("nw.dev.on")) : NWText::Get(TEXT("nw.dev.off")));
 	};
 
-	TSharedRef<SVerticalBox> List = SNew(SVerticalBox);
-	auto Add = [&List](TSharedRef<SWidget> W, float Top = 3.f) { List->AddSlot().AutoHeight().Padding(0.f, Top, 0.f, 0.f)[W]; };
+	// Duas colunas (personagem, inimigos e arena | mundo, extras e depuração): numa só, o menu passava da altura da tela
+	// e os botões do fim ficavam cortados.
+	TSharedRef<SVerticalBox> Left = SNew(SVerticalBox);
+	TSharedRef<SVerticalBox> Right = SNew(SVerticalBox);
+	TSharedRef<SVerticalBox>* List = &Left;
+	auto Add = [&List](TSharedRef<SWidget> W, float Top = 3.f) { (*List)->AddSlot().AutoHeight().Padding(0.f, Top, 0.f, 0.f)[W]; };
 	Add(Header(NWText::Get(TEXT("nw.dev.character"))), 0.f);
 	Add(Button(NWText::Get(TEXT("nw.dev.no_cooldowns")), Flag(&UNWCombatComponent::bNoCooldowns), Dev(ENWDevCommand::ToggleNoCooldowns)));
 	Add(Button(NWText::Get(TEXT("nw.dev.god")), Flag(&UNWCombatComponent::bGodMode), Dev(ENWDevCommand::ToggleGodMode)));
@@ -118,6 +122,8 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.give_tools")), nullptr, Dev(ENWDevCommand::GiveTools)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_level")), nullptr, Dev(ENWDevCommand::GiveLevel)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_trade_levels")), nullptr, Dev(ENWDevCommand::GiveTradeLevels)));
+	Add(Button(NWText::Get(TEXT("nw.dev.give_craft_levels")), nullptr, Dev(ENWDevCommand::GiveCraftLevels)));
+	Add(Button(NWText::Get(TEXT("nw.dev.give_craft_materials")), nullptr, Dev(ENWDevCommand::GiveCraftMaterials)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_ore")), nullptr, Dev(ENWDevCommand::GoToOre)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_creature")), nullptr, Dev(ENWDevCommand::GoToCreature)));
 	Add(Header(NWText::Get(TEXT("nw.dev.enemies"))), 12.f);
@@ -135,7 +141,8 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.arena_archer")), nullptr, Dev(ENWDevCommand::ArenaArcher)));
 	Add(Button(NWText::Get(TEXT("nw.dev.arena_rapier")), nullptr, Dev(ENWDevCommand::ArenaRapier)));
 	Add(Button(NWText::Get(TEXT("nw.dev.arena_mixed")), nullptr, Dev(ENWDevCommand::ArenaMixed)));
-	Add(Header(NWText::Get(TEXT("nw.dev.world"))), 12.f);
+	List = &Right;
+	Add(Header(NWText::Get(TEXT("nw.dev.world"))), 0.f);
 	Add(Button(NWText::Get(TEXT("nw.dev.slow_motion")), SlowMo, Dev(ENWDevCommand::ToggleSlowMotion)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_arena")), nullptr, Dev(ENWDevCommand::TravelArena)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_city")), nullptr, Dev(ENWDevCommand::TravelCity)));
@@ -172,24 +179,31 @@ void SNWDevMenu::Construct(const FArguments& Args)
 		}
 	}), 12.f);
 
+	// Altura limitada à tela (margem de 40) e rolagem se ainda assim não couber.
 	ChildSlot
 	.HAlign(HAlign_Left)
 	.VAlign(VAlign_Center)
-	.Padding(40.f, 0.f)
+	.Padding(40.f, 40.f)
 	[
 		SNew(SBorder)
 		.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
 		.BorderBackgroundColor(FLinearColor(0.015f, 0.015f, 0.018f, 0.92f))
 		.Padding(20.f)
 		[
-			SNew(SBox).WidthOverride(380.f)
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)
 			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)
+				SNew(STextBlock).Font(DevFont(2, 22)).ColorAndOpacity(DevTan).Text(FText::FromString(NWText::Get(TEXT("nw.dev.title"))))
+			]
+			+ SVerticalBox::Slot().FillHeight(1.f)
+			[
+				SNew(SScrollBox)
+				+ SScrollBox::Slot()
 				[
-					SNew(STextBlock).Font(DevFont(2, 22)).ColorAndOpacity(DevTan).Text(FText::FromString(NWText::Get(TEXT("nw.dev.title"))))
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot().AutoWidth()[SNew(SBox).WidthOverride(360.f)[Left]]
+					+ SHorizontalBox::Slot().AutoWidth().Padding(20.f, 0.f, 0.f, 0.f)[SNew(SBox).WidthOverride(360.f)[Right]]
 				]
-				+ SVerticalBox::Slot().AutoHeight()[SNew(SScrollBox) + SScrollBox::Slot()[List]]
 			]
 		]
 	];

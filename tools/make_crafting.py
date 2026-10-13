@@ -30,7 +30,17 @@ OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "Crafting", "refining.json"
 # estações do tipo "storage" (armazém da cidade).
 STATIONS = {"smelting": ("smelting", "Smelting"), "carpentry": ("carpentry", "Woodworking"),
             "tanning": ("tanning", "Leatherworking"), "weaving": ("weaving", "Weaving"),
-            "masonry": ("masonry", "Stonecutting")}
+            "masonry": ("masonry", "Stonecutting"),
+            # Mesas de fabricar (docs/oficio.md): ferraria, engenharia e alquimia. Cozinha e alfaiataria entram quando
+            # houver comida com efeito e armadura.
+            "blacksmithing": ("blacksmith", "Weaponsmithing"), "engineering": ("engineering", "Engineering"),
+            "alchemy": ("alchemy", "Arcana")}
+# Receitas de fabricar do port (docs/oficio.md): armas, escudos e ferramentas T2–T5, poção de vida T5 e reagentes de
+# alquimia T2.
+CRAFT_SOURCES = ("javelindata_crafting_weapon", "javelindata_crafting_engineer", "javelindata_crafting_arcana")
+CRAFT_GEAR = re.compile(r"^Procedural_(Longsword|ShieldRound|ShieldKite|ShieldTower|Hatchet|LoggingAxe|MiningPick|"
+                        r"SkinningKnife|Sickle)T[2-5]$")
+CRAFT_INSTANT = re.compile(r"^(Procedural_PotionHealthT5|Alchemy[A-Za-z]+T2)$")
 
 
 def load_loc(language):
@@ -108,20 +118,41 @@ def main():
         keys = [cat_text.get(cid, "").lstrip("@").lower(), f"{cid}_groupname".lower(), f"{cid}_categoryname".lower()]
         return {lang: next((loc[k] for k in keys if k and k in loc), cid) for lang, loc in locs.items()}
 
+    # Ordem da árvore: CategorySortOrder e GroupSortOrder de lyshineui/crafting/craftingsortinfo.lua; o que não está
+    # na lista vem depois (craftingtreeview.lua ordena por sortingIndex, sem índice por último).
+    sort_lua = open(os.path.join(ROOT, "extract/lua/lyshineui/crafting/craftingsortinfo.lua")).read()
+    cut = sort_lua.index("L0_1.CategorySortOrder")
+    cat_order = {c: i for i, c in enumerate(re.findall(r'"([^"]+)"', sort_lua[:cut]))}
+    grp_part = sort_lua[cut:sort_lua.index("L0_1.GroupSortOrder")]
+    grp_order = {g: i for i, g in reversed(list(enumerate(re.findall(r'"([^"]+)"', grp_part))))}
+
     recipes, used_cats = [], set()
-    for r in rows("javelindata_crafting_refining"):
-        if r.get("Tradeskill") not in skills or str(r.get("StationType1", "")).startswith("Runeglass"):
+    source = [(r, False) for r in rows("javelindata_crafting_refining")]
+    for name in CRAFT_SOURCES:
+        source += [(r, True) for r in rows(name) if CRAFT_GEAR.match(r["RecipeID"]) or CRAFT_INSTANT.match(r["RecipeID"])]
+    refining_skills = {"Smelting", "Woodworking", "Leatherworking", "Weaving", "Stonecutting"}
+    for r, crafted in source:
+        if r.get("Tradeskill") not in (skills if crafted else refining_skills):
+            continue
+        if str(r.get("StationType1", "")).startswith("Runeglass"):
             continue
         if not r.get("bKnownByDefault"):
             continue   # variantes de evento/conquista (ex. CharcoalT1_WoodenCoin)
         if r["RecipeID"].startswith("TerritoryStandingSupplies"):
             continue   # suprimentos de projeto do território (pedem azoth), não refino
         ing = []
+        gear = crafted and CRAFT_GEAR.match(r["RecipeID"])
         for i in range(1, 8):
             iid, qty = r.get(f"Ingredient{i}"), r.get(f"Qty{i}")
             if not iid or not qty:
                 continue
             cat = r.get(f"Type{i}") == "Category_Only"
+            if gear and cat:
+                # Fabricar no port (docs/oficio.md): só material refinado, um por espaço, do tier do item (o jogo deixa
+                # escolher entre vários da categoria, inclusive raros).
+                tier = int(r.get("BaseTier") or 2)
+                iid = {"Timber": f"TimberT{tier}", "Leather": f"LeatherT{tier}"}.get(iid, re.sub(r"^MetalT(\d)$", r"IngotT\1", iid))
+                cat = False
             if cat:
                 used_cats.add(iid)
             ing.append([iid, int(qty), cat])
@@ -134,11 +165,19 @@ def main():
             "fee": int(r.get("CraftingFee") or 0), "group": r.get("CraftingGroup") or "",
             "category": r.get("CraftingCategory") or "",
             "category_name": tree_name(r.get("CraftingCategory") or ""), "group_name": tree_name(r.get("CraftingGroup") or ""),
+            "category_order": cat_order.get(r.get("CraftingCategory") or "", 9999),
+            "group_order": grp_order.get(r.get("CraftingGroup") or "", 9999),
+            # Bônus de primeira confecção só para receita com conquista (crafting.primeira_confeccao_xp_mult).
+            "first_craft": bool(r.get("FirstCraftAchievementId")),
             "xp": int(ev.get("CategoricalProgressionReward") or 0), "char_xp": int(ev.get("UniversalExpAmount") or 0),
             # Chance de item extra (docs/analise-re/crafting-refino.md, ids crafting.bonus_*).
             "bonus": float(r.get("BonusItemChance") or 0),
             "inc": [float(x) for x in str(r.get("BonusItemChanceIncrease") or "").split(",") if x.strip()],
             "dec": [float(x) for x in str(r.get("BonusItemChanceDecrease") or "").split(",") if x.strip()],
+            # Arma, escudo, ferramenta (item com GS, qualidade e perks; docs/oficio.md): tier do item e GS base.
+            "gear": bool(crafted and CRAFT_GEAR.match(r["RecipeID"])),
+            "item_tier": int(r.get("BaseTier") or 0),
+            "gs_base": int(r.get("BaseGearScore") or 0),
         })
     st = stations()
     # Nome da estação no jogo: <Tipo>T<tier>_MasterName (ex. SmeltingT5_MasterName = "Fundição Escala 5").
@@ -150,6 +189,12 @@ def main():
            "categories": {c: sorted(categories.get(c, [])) for c in sorted(used_cats)}}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(out, open(OUT, "w"), ensure_ascii=False, indent=1)
+    # Lojas do port (tools/shops.json); os itens vendidos têm que estar no catálogo (make_items.py).
+    shops = json.load(open(os.path.join(ROOT, "tools/shops.json")))
+    shops.pop("_comment", None)
+    world = os.path.join(ROOT, "unreal/NWPort/Data/World")
+    os.makedirs(world, exist_ok=True)
+    json.dump(shops, open(os.path.join(world, "shops.json"), "w"), ensure_ascii=False, indent=1)
     by_skill = {}
     for r in recipes:
         by_skill[r["skill"]] = by_skill.get(r["skill"], 0) + 1

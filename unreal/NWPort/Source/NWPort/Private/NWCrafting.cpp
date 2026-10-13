@@ -1,4 +1,5 @@
 #include "NWCrafting.h"
+#include "NWRules.h"
 
 #include "Dom/JsonObject.h"
 #include "EngineUtils.h"
@@ -10,11 +11,26 @@
 #include "NWInteractable.h"
 #include "NWInventoryComponent.h"
 #include "NWItems.h"
+#include "NWItemRules.h"
 #include "NWPlayerController.h"
 #include "NWProgressionComponent.h"
 #include "NWText.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+
+int32 FNWRecipe::XpFor(int32 Count, bool bFirst) const
+{
+	int32 Units = 0;
+	for (const FIngredient& I : Ingredients)
+	{
+		Units += I.Qty;
+	}
+	const double Base = double(Xp) * Units * Count;
+	// craftingstatspanel.lua: base + floor(base × (mult − 1)) quando a conquista de primeira confecção não foi obtida.
+	const bool bBonus = bFirst && bFirstCraft && FNWRules::Num(TEXT("crafting.primeira_confeccao_ativa"), 1.0) > 0.0;
+	const double Mult = bBonus ? FNWRules::Num(TEXT("crafting.primeira_confeccao_xp_mult"), 3.0) : 1.0;
+	return int32(Base + FMath::FloorToDouble(Base * (Mult - 1.0)));
+}
 
 FNWCrafting& FNWCrafting::Get()
 {
@@ -62,6 +78,12 @@ FNWCrafting::FNWCrafting()
 		Rec.Xp = int32(R->GetNumberField(TEXT("xp")));
 		Rec.Group = R->GetStringField(TEXT("group"));
 		R->TryGetStringField(TEXT("category"), Rec.Category);
+		R->TryGetNumberField(TEXT("category_order"), Rec.CategoryOrder);
+		R->TryGetNumberField(TEXT("group_order"), Rec.GroupOrder);
+		R->TryGetBoolField(TEXT("first_craft"), Rec.bFirstCraft);
+		R->TryGetBoolField(TEXT("gear"), Rec.bGear);
+		R->TryGetNumberField(TEXT("item_tier"), Rec.ItemTier);
+		R->TryGetNumberField(TEXT("gs_base"), Rec.GsBase);
 		for (const TPair<const TCHAR*, TMap<FString, FString>*>& N : {TPair<const TCHAR*, TMap<FString, FString>*>(TEXT("category_name"), &Rec.CategoryName),
 			TPair<const TCHAR*, TMap<FString, FString>*>(TEXT("group_name"), &Rec.GroupName)})
 		{
@@ -267,8 +289,220 @@ FString FNWCrafting::Refine(ANWCharacter* Who, const FString& StationType, FName
 	Out.ItemId = R->Out;
 	Out.Quantity = R->Qty * (Count + Extra);
 	Who->Inventory->Grant({Out}, -int64(R->Fee) * Count);
-	Who->Progression->AddTradeXp(R->Skill, R->Xp * Count);
+	Who->Progression->AddTradeXp(R->Skill, R->XpFor(Count, !Who->Progression->HasCrafted(R->Id)));   // crafting.xp_oficio
+	Who->Progression->MarkCrafted(R->Id);
 	FNWEvents::Get().OnRefine.Broadcast(Who, StationType, RecipeId, Count);
+	return FString();
+}
+
+const ANWStation* FNWCrafting::NearStation(const ANWCharacter* Who, const FString& StationType) const
+{
+	for (TActorIterator<ANWStation> It(Who->GetWorld()); It; ++It)
+	{
+		if (It->Type == StationType && FVector::Dist2D(It->GetActorLocation(), Who->GetActorLocation()) < 500.f)
+		{
+			return *It;
+		}
+	}
+	return nullptr;
+}
+
+TArray<FNWItem> FNWCrafting::Spend(ANWCharacter* Who, const FNWRecipe& R, int32 Count) const
+{
+	TArray<FNWItem> Spent;
+	auto Took = [&Spent](FName Id, int32 N)
+	{
+		if (N > 0)
+		{
+			FNWItem I;
+			I.ItemId = Id;
+			I.Quantity = N;
+			Spent.Add(I);
+		}
+	};
+	for (const FNWRecipe::FIngredient& I : R.Ingredients)
+	{
+		int32 Need = I.Qty * Count;
+		if (!I.bCategory)
+		{
+			Took(I.Id, Who->Inventory->Take(I.Id, Need));
+			continue;
+		}
+		TArray<FName> Members = Category(I.Id);
+		Members.Sort([Inv = Who->Inventory.Get()](FName A, FName B) { return Inv->CountOf(A) > Inv->CountOf(B); });
+		for (FName M : Members)
+		{
+			const int32 N = Who->Inventory->Take(M, Need);
+			Took(M, N);
+			Need -= N;
+		}
+	}
+	return Spent;
+}
+
+FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName RecipeId, FNWItem* OutItem) const
+{
+	if (!Who || !Who->Inventory || !Who->Progression)
+	{
+		return TEXT("nw.craft.missing");
+	}
+	const FNWRecipe* R = Find(RecipeId);
+	const ANWStation* Station = NearStation(Who, StationType);
+	if (!Station || !R || !R->bGear || R->Station != StationType || R->Tier > Station->Tier)
+	{
+		return TEXT("nw.craft.too_far");
+	}
+	if (Who->Progression->MissingTradeLevel(R->Skill, R->Level) > 0)
+	{
+		return TEXT("nw.craft.level");
+	}
+	if (MaxCount(Who->Inventory, *R) < 1)
+	{
+		return TEXT("nw.craft.missing");
+	}
+	const FNWItemRules& Rules = FNWItemRules::Get();
+	const int32 Skill = NWTradeskill::Index(R->Skill);
+	const int32 Level = Who->Progression->TradeLevel(Skill);
+	const int32 Xp = R->XpFor(1, !Who->Progression->HasCrafted(R->Id));
+	const bool bTraining = Level < Rules.CraftLevel;
+	if (!bTraining)
+	{
+		// O item precisa de um espaço livre na bolsa (não se perde nada).
+		int32 Used = 0;
+		for (const FNWItem& I : Who->Inventory->Items)
+		{
+			Used += I.Container == ENWItemContainer::Bag ? 1 : 0;
+		}
+		if (Used >= UNWInventoryComponent::BagSize)
+		{
+			return TEXT("nw.inv.bag_full");
+		}
+	}
+	Spend(Who, *R, 1);
+	FNWItem Out;
+	if (!bTraining)
+	{
+		const FIntPoint Range = GsRange(Who, *R);
+		FString Crafter = Who->GetName();
+		if (const ANWPlayerController* PC = Cast<ANWPlayerController>(Who->GetController()); PC && PC->Record)
+		{
+			Crafter = PC->Record->Name;
+		}
+		Out = Rules.Roll(R->Out, Range.X, Range.Y, Rules.QualityMin(Level, Who->Progression->TradeMaxLevel(Skill)), Crafter);
+	}
+	// Treino (abaixo do nível de fabricar): só XP, sem item. Com OutItem quem chamou põe na bolsa (e pede o número de
+	// série do item assinado ao nw-core).
+	const bool bHold = !bTraining && OutItem;
+	if (bHold)
+	{
+		*OutItem = Out;
+	}
+	Who->Inventory->Grant(bTraining || bHold ? TArray<FNWItem>() : TArray<FNWItem>{Out}, -int64(R->Fee));
+	Who->Progression->AddTradeXp(R->Skill, Xp);
+	Who->Progression->MarkCrafted(R->Id);
+	return FString();
+}
+
+const FNWRecipe* FNWCrafting::RecipeFor(FName ItemId, const FString& StationType) const
+{
+	return Recipes.FindByPredicate([&](const FNWRecipe& R) { return R.bGear && R.Out == ItemId && R.Station == StationType; });
+}
+
+FIntPoint FNWCrafting::GsRange(const ANWCharacter* Who, const FNWRecipe& R) const
+{
+	// Faixa do item do catálogo mais o bônus do artesão pelo nível (tabela do ofício do jogo), com o teto do port.
+	const FNWItemDef* D = FNWItemCatalog::Get().Find(R.Out);
+	const FIntPoint Bonus = Who && Who->Progression ? Who->Progression->TradeGsBonus(NWTradeskill::Index(R.Skill), R.ItemTier) : FIntPoint::ZeroValue;
+	const int32 Cap = FNWItemRules::Get().GsMax;
+	const int32 Min = (D && D->GearScoreMin > 0 ? D->GearScoreMin : R.GsBase) + Bonus.X;
+	const int32 Max = (D && D->GearScoreMax > 0 ? D->GearScoreMax : R.GsBase) + Bonus.Y;
+	return FIntPoint(FMath::Min(Min, Cap), FMath::Min(FMath::Max(Min, Max), Cap));
+}
+
+FNWRecipe::FIngredient FNWCrafting::ImproveCost(const FNWRecipe& R, const FNWItem& Item, ENWImprove Kind) const
+{
+	FNWRecipe::FIngredient Cost;
+	const FNWItemRules& Rules = FNWItemRules::Get();
+	if (R.Ingredients.Num() == 0)
+	{
+		return Cost;
+	}
+	Cost.Id = R.Ingredients[0].Id;
+	switch (Kind)
+	{
+	case ENWImprove::Attribute:
+		Cost.Qty = Item.Attr != 255 && Rules.Attributes.Num() > 1 ? 2 : 0;
+		break;
+	case ENWImprove::GearScore:
+		Cost.Qty = Item.Quality >= 0.f ? 2 : 0;
+		break;
+	case ENWImprove::Unbind:
+		Cost.Qty = Item.Bind == 2 ? 2 + FMath::FloorToInt(FMath::Max(0.f, Item.Quality) / 10.f) : 0;
+		break;
+	default:
+		break;
+	}
+	return Cost;
+}
+
+FString FNWCrafting::Improve(ANWCharacter* Who, const FString& StationType, int32 BagSlot, ENWImprove Kind, FNWItem* Before,
+	FNWItem* After) const
+{
+	if (!Who || !Who->Inventory || !NearStation(Who, StationType))
+	{
+		return TEXT("nw.craft.too_far");
+	}
+	auto At = [Who, BagSlot]() { return Who->Inventory->Items.FindByPredicate([BagSlot](const FNWItem& I) { return I.Container == ENWItemContainer::Bag && I.Slot == BagSlot; }); };
+	FNWItem* Item = At();
+	const FNWRecipe* R = Item ? RecipeFor(Item->ItemId, StationType) : nullptr;
+	if (!R)
+	{
+		return TEXT("nw.craft.missing");
+	}
+	const FNWRecipe::FIngredient Cost = ImproveCost(*R, *Item, Kind);
+	if (Cost.Qty <= 0 || Who->Inventory->CountOf(Cost.Id) < Cost.Qty)
+	{
+		return TEXT("nw.craft.missing");
+	}
+	Who->Inventory->Take(Cost.Id, Cost.Qty);
+	Item = At();   // o Take pode ter mexido no array
+	if (!Item)
+	{
+		return TEXT("nw.craft.missing");
+	}
+	if (Before)
+	{
+		*Before = *Item;
+	}
+	const FNWItemRules& Rules = FNWItemRules::Get();
+	switch (Kind)
+	{
+	case ENWImprove::Attribute:
+	{
+		// Outro atributo, nunca o mesmo. GS, qualidade e perks ficam.
+		const int32 Next = FMath::RandRange(0, Rules.Attributes.Num() - 2);
+		Item->Attr = uint8(Next >= Item->Attr ? Next + 1 : Next);
+		break;
+	}
+	case ENWImprove::GearScore:
+	{
+		// Sorteia o GS de novo na faixa da fabricação (pode subir ou descer); com ele muda o atributo. Qualidade e perks
+		// ficam.
+		const FIntPoint Range = GsRange(Who, *R);
+		Item->GearScore = FMath::RandRange(Range.X, Range.Y);
+		break;
+	}
+	case ENWImprove::Unbind:
+		Item->Bind = 1;   // volta a vincular ao equipar
+		break;
+	default:
+		break;
+	}
+	if (After)
+	{
+		*After = *Item;
+	}
+	Who->ForceNetUpdate();
 	return FString();
 }
 

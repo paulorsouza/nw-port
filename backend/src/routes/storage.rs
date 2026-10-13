@@ -7,9 +7,12 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::auth::GameServer;
+use serde_json::Value;
+
 use crate::error::{ApiError, ApiResult};
-use crate::routes::characters::ItemInstance;
+use crate::routes::characters::{empty_props, ItemInstance};
 use crate::routes::internal::{validate_inventory, write_inventory};
+use crate::routes::serials;
 use crate::AppState;
 
 pub(crate) const MAX_STORAGE_SLOTS: i32 = 2000;
@@ -27,6 +30,11 @@ impl Snapshot {
             return Err(ApiError::bad_request("invalid_coins", "Moedas negativas."));
         }
         validate_inventory(&self.inventory)
+    }
+
+    /// Números de série dos itens da bolsa (para `serials::verify` no fim da transação).
+    pub(crate) fn serials(&self) -> Vec<String> {
+        serials::serials(self.inventory.iter().map(|i| &i.props))
     }
 
     pub(crate) async fn apply(&self, tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<()> {
@@ -51,6 +59,8 @@ pub struct StorageItem {
     pub gear_score: i32,
     #[serde(default)]
     pub rarity: i16,
+    #[serde(default = "empty_props")]
+    pub props: Value,
 }
 
 #[derive(Serialize, Debug)]
@@ -106,7 +116,8 @@ async fn bump(tx: &mut sqlx::PgConnection, character_id: Uuid, location: &str) -
     Ok(version)
 }
 
-/// Entrega um item no armazém (mercado): soma na pilha igual ou ocupa o próximo slot.
+/// Entrega um item no armazém (mercado): soma na pilha igual (mesmos `props`) ou ocupa o próximo slot.
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn deliver(
     tx: &mut sqlx::PgConnection,
     character_id: Uuid,
@@ -115,12 +126,14 @@ pub(crate) async fn deliver(
     quantity: i32,
     gear_score: i32,
     rarity: i16,
+    props: &Value,
 ) -> ApiResult<()> {
     lock_storage(tx, character_id, location).await?;
     let merged = sqlx::query(
         "update storage_items set quantity = quantity + $6
           where id = (select id from storage_items
                        where character_id = $1 and location = $2 and item_id = $3 and gear_score = $4 and rarity = $5
+                         and props = $7
                        order by slot limit 1)",
     )
     .bind(character_id)
@@ -129,6 +142,7 @@ pub(crate) async fn deliver(
     .bind(gear_score)
     .bind(rarity)
     .bind(quantity)
+    .bind(props)
     .execute(&mut *tx)
     .await?;
     if merged.rows_affected() == 0 {
@@ -140,8 +154,8 @@ pub(crate) async fn deliver(
         .fetch_one(&mut *tx)
         .await?;
         sqlx::query(
-            "insert into storage_items (id, character_id, location, item_id, quantity, slot, gear_score, rarity)
-             values ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "insert into storage_items (id, character_id, location, item_id, quantity, slot, gear_score, rarity, props)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(Uuid::new_v4())
         .bind(character_id)
@@ -151,6 +165,7 @@ pub(crate) async fn deliver(
         .bind(slot)
         .bind(gear_score)
         .bind(rarity)
+        .bind(props)
         .execute(&mut *tx)
         .await?;
     }
@@ -170,7 +185,7 @@ pub async fn get(
         .fetch_optional(&state.db)
         .await?;
     let items: Vec<StorageItem> = sqlx::query_as(
-        "select item_id, quantity, slot, gear_score, rarity from storage_items
+        "select item_id, quantity, slot, gear_score, rarity, props from storage_items
           where character_id = $1 and location = $2 order by slot",
     )
     .bind(id)
@@ -197,6 +212,7 @@ pub async fn put(
             slot: 0,
             gear_score: it.gear_score,
             rarity: it.rarity,
+            props: it.props.clone(),
         };
         item.validate().map_err(|e| ApiError::bad_request("invalid_storage", e))?;
         if !(0..MAX_STORAGE_SLOTS).contains(&it.slot) || !seen.insert(it.slot) {
@@ -225,8 +241,8 @@ pub async fn put(
         .await?;
     for it in &w.items {
         sqlx::query(
-            "insert into storage_items (id, character_id, location, item_id, quantity, slot, gear_score, rarity)
-             values ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "insert into storage_items (id, character_id, location, item_id, quantity, slot, gear_score, rarity, props)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(Uuid::new_v4())
         .bind(id)
@@ -236,10 +252,13 @@ pub async fn put(
         .bind(it.slot)
         .bind(it.gear_score)
         .bind(it.rarity)
+        .bind(&it.props)
         .execute(&mut *tx)
         .await?;
     }
     let version = bump(&mut tx, id, &location).await?;
+    serials::verify(&mut tx, id, "bag", &w.snapshot.serials()).await?;
+    serials::verify(&mut tx, id, &location, &serials::serials(w.items.iter().map(|i| &i.props))).await?;
     tx.commit().await?;
     Ok(Json(StorageView { version, items: w.items }))
 }

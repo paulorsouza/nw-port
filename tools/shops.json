@@ -1,0 +1,17 @@
+{
+ "_comment": "Lojas do port (decisão do dono 2026-10-13; o jogo não tem vendedor com preço em moedas). preco em centavos. limite_semanal: por personagem, renova com os brindes (terça 08:00 UTC). Copiado para Data/World/shops.json pelo make_crafting.py.",
+ "lojas": {
+  "queda_eterna_mercador": {
+   "cidade": "queda_eterna",
+   "npc": "EF_Ambient_Merchant_00",
+   "itens": [
+    {"id": "PotionHealthT5", "preco": 200},
+    {"id": "FluxT5", "preco": 20, "limite_semanal": 100},
+    {"id": "SandpaperT5", "preco": 20, "limite_semanal": 100},
+    {"id": "TanninT5", "preco": 20, "limite_semanal": 100},
+    {"id": "SolventT5", "preco": 20, "limite_semanal": 100},
+    {"id": "ClothWeaveT5", "preco": 20, "limite_semanal": 100}
+   ]
+  }
+ }
+}

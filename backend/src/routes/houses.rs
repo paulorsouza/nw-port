@@ -57,6 +57,7 @@ pub async fn buy(
     b.snapshot.validate()?;
     let mut tx = state.db.begin().await?;
     b.snapshot.apply(&mut tx, id).await?;
+    crate::routes::serials::verify(&mut tx, id, "bag", &b.snapshot.serials()).await?;
     let house: House = sqlx::query_as(
         "insert into houses (id, character_id, territory, address, house_type, price) values ($1, $2, $3, $4, $5, $6)
          returning id, territory, address, house_type, price, purchased_at",

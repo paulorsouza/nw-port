@@ -19,11 +19,12 @@ enum class ENWAttribute : uint8
 /** Ofícios de coleta do jogo (CategoricalProgressionId). */
 namespace NWTradeskill
 {
-	constexpr int32 Num = 9;
+	constexpr int32 Num = 12;
 	/** Ofícios de coleta (0..3); os de refino vêm depois (4..8). */
 	constexpr int32 NumGathering = 4;
 	/** Mining, Logging, Harvesting, Skinning -> 0..3; Smelting, Woodworking, Leatherworking, Weaving, Stonecutting
-	 *  -> 4..8 (refino, esteira 4); outro -> INDEX_NONE. */
+	 *  -> 4..8 (refino, esteira 4); Weaponsmithing, Engineering, Arcana -> 9..11 (fabricar, docs/oficio.md); outro ->
+	 *  INDEX_NONE. */
 	NWPORT_API int32 Index(FName Tradeskill);
 	NWPORT_API FName Name(int32 Index);
 	/** Chave do texto do jogo (ui_mining...) e ícone (icons/tradeskills/icon_tradeskill_<ofício>). */
@@ -104,6 +105,18 @@ public:
 	// ---- tutoriais de nível (esteira 4, tools/tutorials.json; docs/sistemas.md)
 	/** Progresso de cada missão (índice do tools/tutorials.json); -1 = concluída. Só o dono recebe. */
 	UPROPERTY(Replicated) TArray<int32> TutorialCount;
+	/** Receitas já confeccionadas (bônus de primeira confecção; salvo em progression.crafted). Só o dono recebe. */
+	UPROPERTY(Replicated) TArray<FName> Crafted;
+	bool HasCrafted(FName Recipe) const { return Crafted.Contains(Recipe); }
+	void MarkCrafted(FName Recipe);
+	/** Compras da semana nas lojas (limite semanal; salvo em progression.shop). Período = FNWNpcRewards::Period. */
+	UPROPERTY(Replicated) FString ShopPeriod;
+	UPROPERTY(Replicated) TArray<FName> ShopBoughtIds;
+	UPROPERTY(Replicated) TArray<int32> ShopBoughtQty;
+	int32 ShopBought(FName Item, const FString& Period) const;
+	/** Bônus de GS do artesão (mínimo, máximo) no nível atual do ofício para um item do tier (2..5). */
+	FIntPoint TradeGsBonus(int32 Skill, int32 ItemTier) const;
+	void AddShopBought(FName Item, int32 Quantity, const FString& Period);
 	int32 TutorialNum() const;
 	FString TutorialName(int32 Index) const;
 	int32 TutorialGoal(int32 Index) const;

@@ -22,7 +22,7 @@ namespace
 		TArray<int64> LevelXp;      // [n] = XP total para chegar ao nível n+1
 		TArray<int32> LevelPoints;  // [n] = pontos ganhos ao chegar ao nível n+1
 		TMap<int32, float> ConstitutionHealth;
-		struct FTrade { TArray<int32> Xp; TArray<float> Eff; TArray<int32> Roll; };
+		struct FTrade { TArray<int32> Xp; TArray<float> Eff; TArray<int32> Roll; TArray<TArray<FIntPoint>> Gs; };
 		FTrade Trade[NWTradeskill::Num];
 		// Tutoriais de nível (tools/tutorials.json).
 		struct FTutorial { FString Id; FString Kind; FString Target; int32 Count = 0; int32 Levels = 0; TMap<FString, FString> Name; };
@@ -70,6 +70,16 @@ namespace
 								D.Trade[t].Xp.Add(int32(R->AsObject()->GetNumberField(TEXT("xp"))));
 								D.Trade[t].Eff.Add(float(R->AsObject()->GetNumberField(TEXT("eff"))));
 								D.Trade[t].Roll.Add(int32(R->AsObject()->GetNumberField(TEXT("roll"))));
+								TArray<FIntPoint>& Gs = D.Trade[t].Gs.AddDefaulted_GetRef();
+								const TArray<TSharedPtr<FJsonValue>>* GsRows = nullptr;
+								if (R->AsObject()->TryGetArrayField(TEXT("gs"), GsRows))
+								{
+									for (const TSharedPtr<FJsonValue>& G : *GsRows)
+									{
+										const TArray<TSharedPtr<FJsonValue>>& P = G->AsArray();
+										Gs.Add(FIntPoint(int32(P[0]->AsNumber()), int32(P[1]->AsNumber())));
+									}
+								}
 							}
 						}
 					}
@@ -105,7 +115,8 @@ namespace
 namespace NWTradeskill
 {
 	static const TCHAR* Names[Num] = {TEXT("Mining"), TEXT("Logging"), TEXT("Harvesting"), TEXT("Skinning"), TEXT("Smelting"),
-		TEXT("Woodworking"), TEXT("Leatherworking"), TEXT("Weaving"), TEXT("Stonecutting")};
+		TEXT("Woodworking"), TEXT("Leatherworking"), TEXT("Weaving"), TEXT("Stonecutting"), TEXT("Weaponsmithing"),
+		TEXT("Engineering"), TEXT("Arcana")};
 
 	int32 Index(FName Tradeskill)
 	{
@@ -123,8 +134,11 @@ namespace NWTradeskill
 	FString TextKey(int32 I) { return I >= 0 && I < Num ? TEXT("ui_") + FString(Names[I]).ToLower() : FString(); }
 	FString Icon(int32 I)
 	{
-		// Cantaria no jogo: icon_tradeskill_masonary.dds (grafia do jogo).
-		const FString File = I == Index(TEXT("Stonecutting")) ? FString(TEXT("masonary")) : FString(I >= 0 && I < Num ? Names[I] : TEXT("")).ToLower();
+		// Ícones com o nome da mesa no jogo: masonary (cantaria, grafia do jogo), blacksmithing (armeiro), alchemy (arcano).
+		const FString File = I == Index(TEXT("Stonecutting")) ? FString(TEXT("masonary"))
+			: I == Index(TEXT("Weaponsmithing")) ? FString(TEXT("blacksmithing"))
+			: I == Index(TEXT("Arcana")) ? FString(TEXT("alchemy"))
+			: FString(I >= 0 && I < Num ? Names[I] : TEXT("")).ToLower();
 		return I >= 0 && I < Num ? FString::Printf(TEXT("lyshineui/images/icons/tradeskills/icon_tradeskill_%s.dds"), *File) : FString();
 	}
 }
@@ -176,6 +190,18 @@ int32 UNWProgressionComponent::MissingTradeLevel(FName Tradeskill, int32 Require
 		return 0;
 	}
 	return TradeLevel(Skill) >= Required ? 0 : Required;
+}
+
+FIntPoint UNWProgressionComponent::TradeGsBonus(int32 Skill, int32 ItemTier) const
+{
+	if (Skill < 0 || Skill >= NWTradeskill::Num)
+	{
+		return FIntPoint::ZeroValue;
+	}
+	const TArray<TArray<FIntPoint>>& Gs = FProgressionData::Get().Trade[Skill].Gs;
+	const int32 L = TradeLevel(Skill);
+	const int32 T = ItemTier - 2;   // colunas T2..T5
+	return Gs.IsValidIndex(L) && Gs[L].IsValidIndex(T) ? Gs[L][T] : FIntPoint::ZeroValue;
 }
 
 int32 UNWProgressionComponent::TradeXpToNext(int32 Skill) const
@@ -231,6 +257,10 @@ void UNWProgressionComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Spent, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, TradeXp, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, TutorialCount, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Crafted, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UNWProgressionComponent, ShopPeriod, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UNWProgressionComponent, ShopBoughtIds, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UNWProgressionComponent, ShopBoughtQty, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, bFromBackend, COND_OwnerOnly);
 }
 
@@ -326,6 +356,32 @@ void UNWProgressionComponent::Load(const TSharedPtr<FJsonObject>& Json)
 			}
 		}
 	}
+	const TArray<TSharedPtr<FJsonValue>>* Done = nullptr;
+	Crafted.Reset();
+	if (Json->TryGetArrayField(TEXT("crafted"), Done))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *Done)
+		{
+			Crafted.AddUnique(FName(*V->AsString()));
+		}
+	}
+	const TSharedPtr<FJsonObject>* Shop = nullptr;
+	ShopBoughtIds.Reset();
+	ShopBoughtQty.Reset();
+	ShopPeriod.Reset();
+	if (Json->TryGetObjectField(TEXT("shop"), Shop))
+	{
+		(*Shop)->TryGetStringField(TEXT("period"), ShopPeriod);
+		const TSharedPtr<FJsonObject>* Bought = nullptr;
+		if ((*Shop)->TryGetObjectField(TEXT("bought"), Bought))
+		{
+			for (const auto& B : (*Bought)->Values)
+			{
+				ShopBoughtIds.Add(FName(*B.Key));
+				ShopBoughtQty.Add(int32(B.Value->AsNumber()));
+			}
+		}
+	}
 	// Pontos gastos além dos ganhos (tabela mudou): zera a distribuição.
 	int32 Used = 0;
 	for (int32 S : Spent)
@@ -371,7 +427,63 @@ TSharedRef<FJsonObject> UNWProgressionComponent::Save() const
 		}
 	}
 	J->SetObjectField(TEXT("tut"), Tut);
+	TArray<TSharedPtr<FJsonValue>> Done;
+	for (FName R : Crafted)
+	{
+		Done.Add(MakeShared<FJsonValueString>(R.ToString()));
+	}
+	J->SetArrayField(TEXT("crafted"), Done);
+	TSharedRef<FJsonObject> Shop = MakeShared<FJsonObject>();
+	Shop->SetStringField(TEXT("period"), ShopPeriod);
+	TSharedRef<FJsonObject> Bought = MakeShared<FJsonObject>();
+	for (int32 i = 0; i < ShopBoughtIds.Num() && i < ShopBoughtQty.Num(); ++i)
+	{
+		Bought->SetNumberField(ShopBoughtIds[i].ToString(), ShopBoughtQty[i]);
+	}
+	Shop->SetObjectField(TEXT("bought"), Bought);
+	J->SetObjectField(TEXT("shop"), Shop);
 	return J;
+}
+
+int32 UNWProgressionComponent::ShopBought(FName Item, const FString& Period) const
+{
+	const int32 i = ShopPeriod == Period ? ShopBoughtIds.IndexOfByKey(Item) : INDEX_NONE;
+	return i != INDEX_NONE && ShopBoughtQty.IsValidIndex(i) ? ShopBoughtQty[i] : 0;
+}
+
+void UNWProgressionComponent::AddShopBought(FName Item, int32 Quantity, const FString& Period)
+{
+	if (GetOwnerRole() != ROLE_Authority || Quantity <= 0)
+	{
+		return;
+	}
+	if (ShopPeriod != Period)
+	{
+		// Semana nova: o limite volta a zero.
+		ShopPeriod = Period;
+		ShopBoughtIds.Reset();
+		ShopBoughtQty.Reset();
+	}
+	const int32 i = ShopBoughtIds.IndexOfByKey(Item);
+	if (i == INDEX_NONE)
+	{
+		ShopBoughtIds.Add(Item);
+		ShopBoughtQty.Add(Quantity);
+	}
+	else
+	{
+		ShopBoughtQty[i] += Quantity;
+	}
+	GetOwner()->ForceNetUpdate();
+}
+
+void UNWProgressionComponent::MarkCrafted(FName Recipe)
+{
+	if (GetOwnerRole() == ROLE_Authority && !Crafted.Contains(Recipe))
+	{
+		Crafted.Add(Recipe);
+		GetOwner()->ForceNetUpdate();
+	}
 }
 
 void UNWProgressionComponent::AddXp(int64 Amount)

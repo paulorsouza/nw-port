@@ -47,11 +47,19 @@ Servidor de jogo (`X-NW-Server-Secret`):
 | POST | `/internal/characters/{id}/houses` | `territory`, `address`, `house_type`, `price`, `inventory`, `coins` | 201 casa; 409 `house_owned` |
 | POST | `/internal/characters/{id}/credits/claim` | | `amount` |
 | GET | `/internal/market/{território}/orders` | filtros `item_id`, `kind`, `character_id` | ordens abertas |
-| POST | `/internal/market/{território}/orders` | `character_id`, `kind` (`sell`/`buy`), `item_id`, `quantity`, `gear_score`, `rarity`, `unit_price`, `fee`, `duration_hours`, `inventory`, `coins` | 201 ordem |
-| POST | `/internal/market/orders/{id}/fill` | `character_id`, `quantity`, `inventory`, `coins` (compra: `gear_score`, `rarity` do item entregue) | ordem; 409 `order_closed`/`order_quantity` |
+| POST | `/internal/market/{território}/orders` | `character_id`, `kind` (`sell`/`buy`), `item_id`, `quantity`, `gear_score`, `rarity`, `props`, `unit_price`, `fee`, `duration_hours`, `inventory`, `coins` | 201 ordem; 400 `item_bound` |
+| POST | `/internal/market/orders/{id}/fill` | `character_id`, `quantity`, `inventory`, `coins` (compra: `gear_score`, `rarity`, `props` do item entregue) | ordem; 409 `order_closed`/`order_quantity`; 400 `item_bound` |
 | POST | `/internal/market/orders/{id}/cancel` | `character_id` | 204 |
+| POST | `/internal/characters/{id}/serials` | | 201 `serial` (número de série do item assinado; o personagem é o artesão) |
 | GET | `/internal/characters/{id}/npc-rewards` | `period` (terça da semana) | `claims`: brindes já pegos (`once` + o período) |
 | POST | `/internal/characters/{id}/npc-rewards` | `npc`, `kind` (`starter`/`weekly`), `period` (`once`/`AAAA-MM-DD`), `inventory`, `coins` | 201; 409 `already_claimed` |
+
+Item (bolsa, armazém e ordem): `item_id`, `quantity`, `slot` (bolsa: `container`), `gear_score`, `rarity` e `props`
+(objeto até 2 KB com atributo, qualidade, perks, gema, vínculo e assinatura; `docs/itens.md`). O banco não interpreta
+`props`; só `bound: true` impede o posto de trocas. No armazém, só empilha item com `props` igual.
+Item assinado leva `props.serial` (emitido por `/serials`): toda gravação confere que o número existe (400
+`unknown_serial`) e aparece uma vez só somando bolsa, armazém e ordens abertas (409 `item_duplicate`); o registro
+(`item_serials`) guarda o dono e o local atuais.
 
 Armazém, mercado e casas ficam fora do `state`, que regrava a bolsa inteira. Cada ação leva a bolsa e as moedas
 do personagem como ficam depois dela (`inventory`, `coins`), gravadas na mesma transação da ação.

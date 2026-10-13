@@ -455,3 +455,86 @@ async fn brindes_de_npc_uma_vez_por_periodo(db: PgPool) {
     let kinds: Vec<_> = list["claims"].as_array().unwrap().iter().map(|c| (c["kind"].as_str().unwrap(), c["period"].as_str().unwrap())).collect();
     assert_eq!(kinds, vec![("starter", "once"), ("weekly", "2026-10-13")]);
 }
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn item_com_props(db: PgPool) {
+    let api = Api::new(db.clone());
+    let id = character(&api, &db, "Paulo", "Aranha").await;
+    let url = format!("/internal/characters/{id}/storage/settlement:4");
+    let props = json!({ "attr": 4, "quality": 87.5, "perks": ["ChanceCritica"], "bind": "equip", "signed": "Aranha" });
+
+    // Armazém com props: volta igual.
+    let put = json!({ "version": 0, "coins": 0, "inventory": [],
+                      "items": [{ "item_id": "1hSwordT5", "quantity": 1, "slot": 0, "gear_score": 512, "props": props }] });
+    let (status, s) = api.call("PUT", &url, None, true, Some(put)).await;
+    assert_eq!(status, StatusCode::OK, "{s}");
+    let (_, s) = api.call("GET", &url, None, true, None).await;
+    assert_eq!(s["items"][0]["props"], props);
+
+    // Bolsa com props: grava igual.
+    let base = json!({ "map": "L_QuedaEterna", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "yaw": 0.0, "health": 100.0,
+                       "active_weapon": "Sword", "loadout": {}, "mastery": {} });
+    let mut state = base.clone();
+    state["inventory"] = json!([{ "item_id": "1hSwordT5", "quantity": 1, "container": "equip", "slot": 0, "props": props }]);
+    let (status, _) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state)).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (props_db,): (Value,) = sqlx::query_as("select props from items where character_id = $1::uuid").bind(&id).fetch_one(&db).await.unwrap();
+    assert_eq!(props_db, props);
+
+    // props que não é objeto: recusa.
+    let mut bad = base.clone();
+    bad["inventory"] = json!([{ "item_id": "OreT1", "quantity": 1, "container": "bag", "slot": 0, "props": [1] }]);
+    let (status, _) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(bad)).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+
+    // Item vinculado não vai ao posto de trocas.
+    let sell = json!({ "character_id": id, "kind": "sell", "item_id": "1hSwordT5", "quantity": 1, "unit_price": 5,
+                       "duration_hours": 24, "props": { "bound": true }, "coins": 0, "inventory": [] });
+    let (status, err) = api.call("POST", "/internal/market/4/orders", None, true, Some(sell)).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(err["error"], "item_bound");
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn item_assinado_nao_duplica(db: PgPool) {
+    let api = Api::new(db.clone());
+    let id = character(&api, &db, "Paulo", "Aranha").await;
+    let other = character(&api, &db, "Joao", "Besouro").await;
+    let (status, s) = api.call("POST", &format!("/internal/characters/{id}/serials"), None, true, None).await;
+    assert_eq!(status, StatusCode::CREATED, "{s}");
+    let serial = s["serial"].as_str().unwrap().to_string();
+    let (_, s2) = api.call("POST", &format!("/internal/characters/{id}/serials"), None, true, None).await;
+    assert_ne!(s2["serial"], s["serial"]);
+    let sword = |slot: i32| json!({ "item_id": "1hSwordT5", "quantity": 1, "container": "bag", "slot": slot,
+                                    "props": { "serial": serial, "quality": 91.0 } });
+    let base = json!({ "map": "L_QuedaEterna", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "yaw": 0.0, "health": 100.0,
+                       "active_weapon": "Sword", "loadout": {}, "mastery": {} });
+    let state = |items: Value| { let mut b = base.clone(); b["inventory"] = items; b };
+
+    // Na bolsa: ok.
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state(json!([sword(0)])))).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
+    // Duas vezes na mesma bolsa: recusa.
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state(json!([sword(0), sword(1)])))).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(e["error"], "item_duplicate");
+    // Número inventado: recusa.
+    let fake = json!([{ "item_id": "1hSwordT5", "quantity": 1, "container": "bag", "slot": 0, "props": { "serial": "x-1" } }]);
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state(fake))).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(e["error"], "unknown_serial");
+    // Outro personagem com o mesmo item enquanto ele está na bolsa do primeiro: recusa.
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{other}/state"), None, true, Some(state(json!([sword(0)])))).await;
+    assert_eq!(status, StatusCode::CONFLICT, "{e}");
+
+    // Guardar: sai da bolsa e entra no armazém na mesma gravação: ok; no armazém e na bolsa ao mesmo tempo: recusa.
+    let url = format!("/internal/characters/{id}/storage/settlement:4");
+    let stored = json!([{ "item_id": "1hSwordT5", "quantity": 1, "slot": 0, "props": { "serial": serial, "quality": 91.0 } }]);
+    let (status, e) = api.call("PUT", &url, None, true, Some(json!({ "version": 0, "coins": 0, "inventory": [], "items": stored }))).await;
+    assert_eq!(status, StatusCode::OK, "{e}");
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state(json!([sword(0)])))).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(e["error"], "item_duplicate");
+    let (loc,): (String,) = sqlx::query_as("select location from item_serials where serial = $1").bind(&serial).fetch_one(&db).await.unwrap();
+    assert_eq!(loc, "settlement:4");
+}

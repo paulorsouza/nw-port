@@ -1,0 +1,242 @@
+{
+ "_comment": "Regras de item e de ofício do port (docs/itens.md, docs/oficio.md). Números marcados como provisórios em docs/itens.md 'Pendente' são de balanceamento e podem mudar. tools/make_itens.py gera unreal/NWPort/Data/Items/regras_itens.json.",
+ "nivel_fabricar": 50,
+ "assinatura_qualidade": 80,
+ "qualidade_min_oficio_max": 20,
+ "qualidade_min_tudo_max": 50,
+ "_atributo": "provisório: atributo = GS × atributo_por_gs (GS 800 dá 40)",
+ "atributo_por_gs": 0.05,
+ "atributos": [
+  "strength",
+  "dexterity",
+  "intelligence",
+  "focus",
+  "constitution"
+ ],
+ "perks_por_item": 3,
+ "perks_por_item_anel": 2,
+ "perks_habilidade_max": 1,
+ "_gs": "provisório (balanceamento): teto de GS de qualquer item; sortear GS de novo usa a faixa da fabricação",
+ "gs_maximo": 800,
+ "_custos": "provisório: sortear atributo = 2, sortear GS = 2, desvincular = 2 + qualidade/10 do primeiro material da receita",
+ "chance_critica_teto": 50,
+ "gema_por_tier": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "equipamento": {
+  "arma": [
+   "ChanceCritica",
+   "DanoCritico",
+   "ReducaoRecarga",
+   "RouboVida"
+  ],
+  "escudo": [
+   "ChanceCritica",
+   "DanoCritico",
+   "ReducaoRecarga",
+   "RegenVigor",
+   "RouboVida"
+  ],
+  "armadura": [
+   "AmpFisica",
+   "AmpMagica",
+   "VidaMaxima",
+   "ReducaoRecarga",
+   "RegenVigor",
+   "RouboVida"
+  ],
+  "amuleto": [
+   "VidaMaxima",
+   "ReducaoRecarga",
+   "RegenVigor",
+   "PerkID_Amulet_FortifyOnLow",
+   "PerkID_Amulet_LowCooldown"
+  ],
+  "anel": [
+   "ChanceCritica",
+   "DanoCritico",
+   "CuraCausada",
+   "PerkID_Ring_OnHealHot",
+   "RegenVigor"
+  ],
+  "brinco": [
+   "ReducaoRecarga",
+   "RegenVigor",
+   "PerkID_Earring_OnPotionFort",
+   "PerkID_Earring_HealthRegen"
+  ],
+  "ferramenta": [
+   "ColetaVelocidade",
+   "ColetaRendimento",
+   "ColetaExperiencia"
+  ]
+ },
+ "_cura_causada": "cajado da vida e manopla do vácuo também rolam Cura causada",
+ "arma_cura": [
+  "LifeStaff",
+  "VoidGauntlet"
+ ],
+ "perks": {
+  "AmpFisica": {
+   "nome": {
+    "pt-br": "Amplificação física",
+    "en-us": "Physical amplification"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de dano físico",
+    "en-us": "+{v}% physical damage"
+   },
+   "min": 1.0,
+   "max": 3.0,
+   "icone": "lyshineui/images/icons/perks/damagebasic1.dds"
+  },
+  "AmpMagica": {
+   "nome": {
+    "pt-br": "Amplificação mágica",
+    "en-us": "Magic amplification"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de dano mágico",
+    "en-us": "+{v}% magic damage"
+   },
+   "min": 1.0,
+   "max": 3.0,
+   "icone": "lyshineui/images/icons/perks/arcanedmg1.dds"
+  },
+  "ChanceCritica": {
+   "nome": {
+    "pt-br": "Chance crítica",
+    "en-us": "Critical chance"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de chance de acerto crítico",
+    "en-us": "+{v}% critical hit chance"
+   },
+   "min": 1.5,
+   "max": 3.0,
+   "icone": "lyshineui/images/icons/perks/critical1.dds"
+  },
+  "DanoCritico": {
+   "nome": {
+    "pt-br": "Dano crítico",
+    "en-us": "Critical damage"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de dano crítico",
+    "en-us": "+{v}% critical damage"
+   },
+   "min": 1.5,
+   "max": 3.5,
+   "icone": "lyshineui/images/icons/perks/keen1.dds"
+  },
+  "ReducaoRecarga": {
+   "nome": {
+    "pt-br": "Redução de recarga",
+    "en-us": "Cooldown reduction"
+   },
+   "efeito": {
+    "pt-br": "{v}% de redução de recarga",
+    "en-us": "{v}% cooldown reduction"
+   },
+   "min": 1.0,
+   "max": 2.0,
+   "icone": "lyshineui/images/icons/perks/cdr1.dds"
+  },
+  "RegenVigor": {
+   "nome": {
+    "pt-br": "Regeneração de vigor",
+    "en-us": "Stamina regeneration"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de regeneração de vigor",
+    "en-us": "+{v}% stamina regeneration"
+   },
+   "min": 3.0,
+   "max": 5.0,
+   "icone": "lyshineui/images/icons/perks/stamina1.dds"
+  },
+  "VidaMaxima": {
+   "nome": {
+    "pt-br": "Vida máxima",
+    "en-us": "Max health"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de vida máxima",
+    "en-us": "+{v}% max health"
+   },
+   "min": 1.0,
+   "max": 3.0,
+   "icone": "lyshineui/images/icons/perks/health1.dds"
+  },
+  "CuraCausada": {
+   "nome": {
+    "pt-br": "Cura causada",
+    "en-us": "Outgoing healing"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de cura causada",
+    "en-us": "+{v}% outgoing healing"
+   },
+   "min": 2.0,
+   "max": 3.0,
+   "icone": "lyshineui/images/icons/perks/cleric1.dds"
+  },
+  "RouboVida": {
+   "nome": {
+    "pt-br": "Roubo de vida",
+    "en-us": "Lifesteal"
+   },
+   "efeito": {
+    "pt-br": "Cura {v}% do dano causado",
+    "en-us": "Heals {v}% of damage dealt"
+   },
+   "min": 0.5,
+   "max": 1.0,
+   "icone": "lyshineui/images/icons/perks/lifeleech1.dds"
+  },
+  "ColetaVelocidade": {
+   "nome": {
+    "pt-br": "Velocidade de coleta",
+    "en-us": "Gathering speed"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de velocidade de coleta",
+    "en-us": "+{v}% gathering speed"
+   },
+   "min": 10.0,
+   "max": 20.0,
+   "icone": "lyshineui/images/icons/perks/exhilarate1.dds"
+  },
+  "ColetaRendimento": {
+   "nome": {
+    "pt-br": "Rendimento de coleta",
+    "en-us": "Gathering yield"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de recursos por coleta",
+    "en-us": "+{v}% resources per gather"
+   },
+   "min": 5.0,
+   "max": 10.0,
+   "icone": "lyshineui/images/icons/perks/yield1.dds"
+  },
+  "ColetaExperiencia": {
+   "nome": {
+    "pt-br": "Experiência de coleta",
+    "en-us": "Gathering experience"
+   },
+   "efeito": {
+    "pt-br": "+{v}% de XP do ofício de coleta",
+    "en-us": "+{v}% gathering skill XP"
+   },
+   "min": 1.5,
+   "max": 3.0,
+   "icone": "lyshineui/images/icons/perks/bonusxp1.dds"
+  }
+ },
+ "_icones": "ícones das perks do port: ícone do jogo da perk equivalente (javelindata_perks IconPath)"
+}

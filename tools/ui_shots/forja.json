@@ -1,0 +1,68 @@
+{
+ "screen": "refining",
+ "station": {
+  "type": "blacksmith",
+  "tier": 5,
+  "name": "Forja Escala 5"
+ },
+ "coins": 77914,
+ "trade": {
+  "Weaponsmithing": 120
+ },
+ "items": [
+  [
+   "IngotT2",
+   40
+  ],
+  [
+   "IngotT3",
+   40
+  ],
+  [
+   "IngotT4",
+   40
+  ],
+  [
+   "IngotT5",
+   40
+  ],
+  [
+   "TimberT2",
+   20
+  ],
+  [
+   "TimberT3",
+   20
+  ],
+  [
+   "LeatherT2",
+   10
+  ],
+  [
+   "LeatherT3",
+   10
+  ]
+ ],
+ "shots": [
+  {
+   "name": "fabricar",
+   "recipe": "Procedural_LongswordT3"
+  },
+  {
+   "name": "espada_t5",
+   "recipe": "Procedural_LongswordT5"
+  },
+  {
+   "name": "roll_meio",
+   "recipe": "Procedural_LongswordT3",
+   "craft": true,
+   "t": 0.6
+  },
+  {
+   "name": "roll_fim",
+   "recipe": "Procedural_LongswordT3",
+   "craft": true,
+   "t": 3.0
+  }
+ ]
+}

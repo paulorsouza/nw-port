@@ -72,6 +72,12 @@ void FNWItemCatalog::Load()
 			O->TryGetStringField(TEXT("name"), D.Name);
 			O->TryGetStringField(TEXT("description"), D.Description);
 			O->TryGetStringField(TEXT("type_name"), D.TypeName);
+			FString UiClass;
+			if (O->TryGetStringField(TEXT("ui_class"), UiClass))
+			{
+				D.UiClass = FName(*UiClass);
+			}
+			O->TryGetBoolField(TEXT("round"), D.bRound);
 			Items.Add(D.Id, D);
 		}
 	}
@@ -263,4 +269,118 @@ FLinearColor NWRarityColor(uint8 Rarity)
 	case 4: return FLinearColor(FColor(0xE0, 0x8A, 0x2C));   // lendário (laranja)
 	default: return FLinearColor(FColor(0x8C, 0x8C, 0x8C));  // comum
 	}
+}
+
+TSharedRef<FJsonObject> NWItemProps::Write(const FNWItem& Item)
+{
+	TSharedRef<FJsonObject> P = MakeShared<FJsonObject>();
+	if (Item.Attr != 255)
+	{
+		P->SetNumberField(TEXT("attr"), Item.Attr);
+	}
+	if (Item.Quality >= 0.f)
+	{
+		P->SetNumberField(TEXT("quality"), Item.Quality);
+	}
+	if (Item.Perks.Num() > 0)
+	{
+		TArray<TSharedPtr<FJsonValue>> Arr;
+		for (FName Perk : Item.Perks)
+		{
+			Arr.Add(MakeShared<FJsonValueString>(Perk.ToString()));
+		}
+		P->SetArrayField(TEXT("perks"), Arr);
+	}
+	if (!Item.Gem.IsNone())
+	{
+		P->SetStringField(TEXT("gem"), Item.Gem.ToString());
+	}
+	if (Item.Bind == 1)
+	{
+		P->SetStringField(TEXT("bind"), TEXT("equip"));
+	}
+	else if (Item.Bind == 2)
+	{
+		P->SetBoolField(TEXT("bound"), true);   // o nw-core recusa item vinculado no posto de trocas
+	}
+	if (!Item.Signer.IsEmpty())
+	{
+		P->SetStringField(TEXT("signed"), Item.Signer);
+	}
+	if (!Item.Serial.IsEmpty())
+	{
+		P->SetStringField(TEXT("serial"), Item.Serial);
+	}
+	return P;
+}
+
+void NWItemProps::Read(FNWItem& Item, const TSharedPtr<FJsonObject>& Props)
+{
+	if (!Props.IsValid())
+	{
+		return;
+	}
+	double N = 0.0;
+	if (Props->TryGetNumberField(TEXT("attr"), N))
+	{
+		Item.Attr = uint8(FMath::Clamp(int32(N), 0, 255));
+	}
+	if (Props->TryGetNumberField(TEXT("quality"), N))
+	{
+		Item.Quality = float(N);
+	}
+	const TArray<TSharedPtr<FJsonValue>>* Arr = nullptr;
+	if (Props->TryGetArrayField(TEXT("perks"), Arr))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *Arr)
+		{
+			Item.Perks.Add(FName(*V->AsString()));
+		}
+	}
+	FString S;
+	if (Props->TryGetStringField(TEXT("gem"), S))
+	{
+		Item.Gem = FName(*S);
+	}
+	bool bBound = false;
+	if (Props->TryGetBoolField(TEXT("bound"), bBound) && bBound)
+	{
+		Item.Bind = 2;
+	}
+	else if (Props->TryGetStringField(TEXT("bind"), S) && S == TEXT("equip"))
+	{
+		Item.Bind = 1;
+	}
+	Props->TryGetStringField(TEXT("signed"), Item.Signer);
+	Props->TryGetStringField(TEXT("serial"), Item.Serial);
+}
+
+TSharedRef<FJsonObject> NWItemProps::WriteItem(const FNWItem& Item)
+{
+	TSharedRef<FJsonObject> J = MakeShared<FJsonObject>();
+	J->SetStringField(TEXT("item_id"), Item.ItemId.ToString());
+	J->SetNumberField(TEXT("quantity"), Item.Quantity);
+	J->SetNumberField(TEXT("gear_score"), Item.GearScore);
+	J->SetNumberField(TEXT("rarity"), Item.Rarity);
+	J->SetObjectField(TEXT("props"), Write(Item));
+	return J;
+}
+
+FNWItem NWItemProps::ReadItem(const TSharedPtr<FJsonObject>& Json)
+{
+	FNWItem Item;
+	if (!Json.IsValid())
+	{
+		return Item;
+	}
+	Item.ItemId = FName(*Json->GetStringField(TEXT("item_id")));
+	Item.Quantity = int32(Json->GetNumberField(TEXT("quantity")));
+	Item.GearScore = int32(Json->GetNumberField(TEXT("gear_score")));
+	Item.Rarity = uint8(Json->GetNumberField(TEXT("rarity")));
+	const TSharedPtr<FJsonObject>* Props = nullptr;
+	if (Json->TryGetObjectField(TEXT("props"), Props))
+	{
+		Read(Item, *Props);
+	}
+	return Item;
 }

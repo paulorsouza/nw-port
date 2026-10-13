@@ -18,7 +18,8 @@ from ui_build_mastery import LANGS, load_loc  # noqa: E402
 
 C = "_root/Inventory/Content"
 KEEP = [f"{C}/FrameMultiBg", f"{C}/FrameHeader", f"{C}/InventoryIcon", f"{C}/InventoryTitle", f"{C}/CurrencyText"]
-EXCLUDE = ["FrameHeaderSecondary"]
+# Efeitos do ganho de moedas (o Lua só liga na animação) e o azoth, que o port não tem.
+EXCLUDE = ["FrameHeaderSecondary", "WhooshAnim1", "WhooshAnim2", "BurstParticle", "RepairPartsGlow", "Flash", "CurrencyText2"]
 # Peças que o C++ desenha (FNWInventoryMenu): item retangular e quadrado do jogo, painel, abas e espaços do equipamento.
 IL = "lyshineui/images/slices/itemlayout/"
 EQ = "lyshineui/images/equipment/"
@@ -27,7 +28,26 @@ SLOT_TEXTURES = ([f"{IL}{k}{shape}{r}.dds" for k in ("itembg", "itemraritybg") f
                  + [f"{EQ}{n}.dds" for n in ("framesquare", "equipmentbg", "tabweaponsarmorselected", "tabweaponsarmorunselected",
                                              "tabtoolsselected", "tabtoolsunselected", "iconweapon", "iconshield", "iconpickaxe",
                                              "iconsickle", "iconlogging", "iconskinning", "equipmentstatsbackdrop2023")]
-                 + [f"lyshineui/images/inventory/{n}.dds" for n in ("contentbg", "headerbg", "iconweight", "icon_inventory")])
+                 + [f"lyshineui/images/inventory/{n}.dds" for n in ("contentbg", "headerbg", "iconweight", "icon_inventory")]
+                 # Armazém dentro do inventário (catcontainer.lua STORAGE_ICON_PATH).
+                 + ["lyshineui/images/catcontainer/icon_storage_shed.dds"]
+                 # Tela no estilo do jogo (docs/hud/inventario.md): peças redondas, equipamento, ordenação, arrasto.
+                 + [f"{IL}{k}circle{r}.dds" for k in ("itembg", "itemraritybg") for r in range(5)]
+                 + [f"{IL}itemhighlightcircle.dds"]
+                 + [f"{EQ}{n}.dds" for n in ("iconhead", "iconchest", "iconhand", "iconlegs", "iconfeet", "iconrune", "iconamulet",
+                                             "iconring", "icontoken", "iconfishing", "equipmentstatsbackdrop")]
+                 + [f"lyshineui/images/icons/misc/{n}.dds" for n in ("icon_weight", "icon_filter_chrono", "icon_filter_gearscore",
+                                                                    "icon_filter_tier", "dropdownarrowwhite", "icon_smallarrownarrow",
+                                                                    "icon_gearscore_dropshadow")]
+                 + ["lyshineui/images/inventory/dropzoneglow.dds", "lyshineui/images/icon_item_selected.dds",
+                    "lyshineui/images/frame_lootticker.dds", "lyshineui/images/slices/button/buttonbg.dds",
+                    "lyshineui/images/slices/button/primarybuttonframe.dds", "lyshineui/images/icons/objectives/reward_xp.dds",
+                    "lyshineui/images/slices/hint/hintframefilled.dds",
+                    "lyshineui/images/inventory/dropitemtrim.dds", "lyshineui/images/popup/popupbg.dds",
+                    "lyshineui/images/slices/slider/sliderhandle2023.dds", "lyshineui/images/slices/slider/sliderhandlefocus.dds",
+                    "lyshineui/images/slices/textinputsearch/primarysearchbg.dds",
+                    "lyshineui/images/slices/textinputsearch/primarysearchbgfocus.dds",
+                    "lyshineui/images/socialpane/icon_magnifying_glass.dds"])
 
 
 def main():

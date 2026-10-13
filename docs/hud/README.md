@@ -1,6 +1,7 @@
 # Telas do jogo no port
 
-Como portar uma tela do LyShine (canvas + Lua do jogo) e testar sem abrir o jogo. Exemplo completo: a tela de refino
+Como portar uma tela do LyShine (canvas + Lua do jogo) e testar sem abrir o jogo. Prints do jogo original para
+comparar e se inspirar: `inspiracao/` (índice em `inspiracao/README.md`). Exemplo completo: a tela de refino
 (`docs/hud/refino.md`, `tools/ui_screens/refining.json`, `FNWRefiningMenu`). Pesquisa de todas as telas:
 `docs/hud-original.md`, `docs/hud-levantamento.md`; RE das telas: `docs/analise-re/hud-*.md`.
 
@@ -59,14 +60,22 @@ captura. Telas novas precisam de um ramo no `UNWUIShotCommandlet` (hoje só `ref
 ## Anotado para a próxima sessão de HUD (dono, 2026-10-13)
 
 Refino:
-- A barra de quantidade (slider) é ruim de usar: só clique e sem arrastar; o jogo arrasta o marcador e repete − e +
-  ao segurar (`repeatEnabled`).
-- Espaço (Quantidade máxima) não funciona.
-- O botão CONFECCIONAR às vezes pisca.
-- Ordem das famílias e grupos da árvore (no jogo: Recursos Refinados > Metais primeiro).
-- Taxa como no jogo: "<Território> Fee: <moeda> 0,01" (depende da unidade das moedas, centavos) e XP com os bônus.
-- Barra de título: só moedas (o jogo mostra azoth, moedas, facção e nível).
-- Botão Pin Recipe escondido (o port não tem receitas fixadas).
+- Feito (2026-10-13), falta o teste do dono: arrastar o marcador e repetir − e + segurando (`button.lua`
+  `repeatParamsDefault`); Espaço = ação `tryskip` (`uishared.xml`): máximo na escolha, pula a contagem, volta à estação;
+  botão CONFECCIONAR piscava porque o laço do jogo tem 30 quadros a 30 fps e o port tocava 15 a 15 fps (agora
+  `blue_00..29` e `gray_00..29` no apagado, carregados na abertura).
+- Feito (2026-10-13): ordem da árvore pela `CategorySortOrder`/`GroupSortOrder` de `craftingsortinfo.lua`
+  (`make_crafting.py` grava `category_order`/`group_order`).
+- Feito (2026-10-13): taxa com `@ui_craft_fee` ("Taxa de Queda Eterna: 0,26") e moedas em centavos em todas as telas
+  (`UNWInventoryComponent::FormatCoins`, ÷100 como `GetLocalizedCurrency`); XP com `@ui_craft_bonus` = reward × Σ Qty dos
+  ingredientes × quantidade (`sistemas-005`). Primeira confecção ×3 (receitas feitas em `progression.crafted`); o port não tem buffs de facção nem boosts.
+- Barra de título: só moedas. O jogo (`stationproperties.lua` → `screenheader.lua`) mostra azoth, moedas e o círculo
+  do ofício da estação (`SetSkill1Circle`: nível, anel de progresso, ícone). O círculo é o slice 300×300 dentro de
+  `SkillContainer1` (60×60), escalado pelo Lua: fazer com um print do original para comparar. Azoth o port não tem.
+- Pin Recipe: já escondido no layout.
+- Caixa-alta com acento ("FUNDIçãO"): `caseoverride` passa a usar `FText::ToUpper` (`FNWUILayout`, compartilhado).
+
+Inventário, equipamento e armazém: spec em `docs/hud/inventario.md` (arrastar e soltar, seções, armazém).
 
 Ordem das telas depois do refino: armazém (`catcontainer.lua`), atributos, ofícios, inventário (atalhos de
 `docs/analise-re/hud-inventario.md`) e maestria (com a esteira 1).

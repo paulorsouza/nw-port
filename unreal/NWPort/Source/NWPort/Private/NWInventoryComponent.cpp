@@ -8,6 +8,7 @@
 #include "NWHUD.h"
 #include "NWPlayerController.h"
 #include "NWText.h"
+#include "Internationalization/Internationalization.h"
 #include "Net/UnrealNetwork.h"
 
 UNWInventoryComponent::UNWInventoryComponent()
@@ -164,7 +165,7 @@ int32 UNWInventoryComponent::AddItem(const FNWItem& In)
 	// Junta nas pilhas que já existem (armas não empilham: Stack = 1).
 	for (FNWItem& I : Items)
 	{
-		if (Left > 0 && I.Container == ENWItemContainer::Bag && I.ItemId == In.ItemId && I.Quantity < D->Stack)
+		if (Left > 0 && I.Container == ENWItemContainer::Bag && I.SameKind(In) && I.Quantity < D->Stack)
 		{
 			const int32 Take = FMath::Min(Left, D->Stack - I.Quantity);
 			I.Quantity += Take;
@@ -187,6 +188,15 @@ int32 UNWInventoryComponent::AddItem(const FNWItem& In)
 	}
 	Changed();
 	return Left;
+}
+
+FString UNWInventoryComponent::FormatCoins(int64 Cents)
+{
+	FNumberFormattingOptions O;
+	O.MinimumFractionalDigits = 2;
+	O.MaximumFractionalDigits = 2;
+	const FCulturePtr Culture = FInternationalization::Get().GetCulture(NWText::Lang() == TEXT("pt-br") ? TEXT("pt-BR") : TEXT("en-US"));
+	return FText::AsNumber(double(Cents) / 100.0, &O, Culture).ToString();
 }
 
 void UNWInventoryComponent::AddCoins(int64 Amount)
@@ -227,7 +237,7 @@ void UNWInventoryComponent::GiveStarterKit()
 	Equip(TEXT("1hShieldAT2"), NWEquip::Shield, 250);
 	GiveTools();
 	FNWItem Potions;
-	Potions.ItemId = TEXT("PotionHealthT1");
+	Potions.ItemId = TEXT("PotionHealthT5");
 	Potions.Quantity = 5;
 	AddItem(Potions);
 	AddCoins(50);
@@ -302,7 +312,7 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 		return;
 	}
 	// Mesma pilha na bolsa: junta.
-	if (To && To->ItemId == From->ItemId && ToContainer == ENWItemContainer::Bag && FromContainer == ENWItemContainer::Bag)
+	if (To && To->SameKind(*From) && ToContainer == ENWItemContainer::Bag && FromContainer == ENWItemContainer::Bag)
 	{
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(From->ItemId);
 		const int32 Take = D ? FMath::Min(From->Quantity, D->Stack - To->Quantity) : 0;
@@ -325,6 +335,11 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 	}
 	From->Container = ToContainer;
 	From->Slot = ToSlot;
+	// Vincula ao equipar (docs/itens.md): equipado uma vez, fica preso ao personagem.
+	if (ToContainer == ENWItemContainer::Equip && From->Bind == 1)
+	{
+		From->Bind = 2;
+	}
 	Changed();
 }
 
@@ -358,9 +373,21 @@ void UNWInventoryComponent::ServerUse_Implementation(int32 BagSlot)
 	Changed();
 }
 
-void UNWInventoryComponent::ServerDestroy_Implementation(int32 BagSlot)
+void UNWInventoryComponent::ServerDestroy_Implementation(int32 BagSlot, int32 Quantity)
 {
-	Items.RemoveAll([&](const FNWItem& X) { return X.Container == ENWItemContainer::Bag && X.Slot == BagSlot; });
+	FNWItem* Item = Items.FindByPredicate([&](const FNWItem& X) { return X.Container == ENWItemContainer::Bag && X.Slot == BagSlot; });
+	if (!Item || Quantity <= 0)
+	{
+		return;
+	}
+	if (Quantity < Item->Quantity)
+	{
+		Item->Quantity -= Quantity;
+	}
+	else
+	{
+		Items.RemoveAll([&](const FNWItem& X) { return X.Container == ENWItemContainer::Bag && X.Slot == BagSlot; });
+	}
 	Changed();
 }
 
@@ -401,6 +428,22 @@ void UNWInventoryComponent::ClientLoot_Implementation(const TArray<FNWItem>& Gai
 		HUD->ShowLoot(Gained, CoinsGained);
 	}
 }
+
+// Moedas de dev (F10): +100,00 (10.000 centavos) para testar loja, refino e mercado. Grava com o estado (PUT state).
+NW_REGISTER_DEV(DevCoins, TEXT("sistemas.dev_coins"), TEXT("nw.dev.dev_coins"),
+	[](ANWPlayerController* PC)
+	{
+		const ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		if (C && C->Inventory)
+		{
+			C->Inventory->AddCoins(10000);
+		}
+	},
+	[](const ANWPlayerController* PC)
+	{
+		const ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		return FText::FromString(C && C->Inventory ? UNWInventoryComponent::FormatCoins(C->Inventory->Coins) : FString());
+	});
 
 // Bolsa de dev (F10): peso máximo de 10.000.000 para testar refino e ofício sem sobrecarga. Não vai para o nw-core.
 NW_REGISTER_DEV(DevBag, TEXT("sistemas.dev_bag"), TEXT("nw.dev.dev_bag"),

@@ -50,6 +50,8 @@ public:
 	/** Põe na bolsa (junta pilhas, depois espaços livres). Devolve o que não coube. */
 	int32 AddItem(const FNWItem& Item);
 	void AddCoins(int64 Amount);
+	/** Moedas em centavos como no jogo (common.lua GetLocalizedCurrency: ÷100, 2 casas, separadores do idioma). */
+	static FString FormatCoins(int64 Cents);
 	/** Entrega um saque: põe na bolsa, avisa se não coube e mostra o aviso de saque ao dono. */
 	void Grant(const TArray<FNWItem>& Gained, int64 Coins);
 	void Load(const TArray<FNWItem>& InItems, int64 InCoins);
@@ -63,7 +65,8 @@ public:
 	UFUNCTION(Server, Reliable) void ServerMove(ENWItemContainer FromContainer, int32 FromSlot, ENWItemContainer ToContainer, int32 ToSlot);
 	UFUNCTION(Server, Reliable) void ServerUse(int32 BagSlot);
 	UFUNCTION(Server, Reliable) void ServerUseBestPotion();
-	UFUNCTION(Server, Reliable) void ServerDestroy(int32 BagSlot);
+	/** Destrói Quantity da pilha (largar no chão: o port não tem saco de saque). */
+	UFUNCTION(Server, Reliable) void ServerDestroy(int32 BagSlot, int32 Quantity);
 	/** Saque recebido (para o aviso na tela). */
 	UFUNCTION(Client, Reliable) void ClientLoot(const TArray<FNWItem>& Gained, int64 CoinsGained);
 

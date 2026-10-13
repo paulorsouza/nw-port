@@ -53,9 +53,33 @@ pub struct ItemInstance {
     pub gear_score: i32,
     #[serde(default)]
     pub rarity: i16,
+    /// Atributo, qualidade, perks, gema, vínculo e assinatura (docs/itens.md); o banco não interpreta.
+    #[serde(default = "empty_props")]
+    pub props: Value,
 }
 
 pub(crate) const MAX_BAG_SLOTS: i32 = 200;
+pub(crate) const MAX_PROPS_BYTES: usize = 2048;
+
+pub(crate) fn empty_props() -> Value {
+    Value::Object(Default::default())
+}
+
+/// `props` tem que ser um objeto pequeno.
+pub(crate) fn validate_props(props: &Value, item_id: &str) -> Result<(), String> {
+    if !props.is_object() {
+        return Err(format!("props de {item_id} tem que ser um objeto"));
+    }
+    if props.to_string().len() > MAX_PROPS_BYTES {
+        return Err(format!("props de {item_id} grande demais"));
+    }
+    Ok(())
+}
+
+/// Item vinculado ao personagem (não vai ao posto de trocas).
+pub(crate) fn is_bound(props: &Value) -> bool {
+    props.get("bound").and_then(Value::as_bool).unwrap_or(false)
+}
 pub(crate) const MAX_EQUIP_SLOTS: i32 = 16;
 
 impl ItemInstance {
@@ -74,7 +98,7 @@ impl ItemInstance {
         if !(0..max).contains(&self.slot) {
             return Err(format!("slot {} fora de {}", self.slot, self.container));
         }
-        Ok(())
+        validate_props(&self.props, &self.item_id)
     }
 }
 

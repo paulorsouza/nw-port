@@ -11,7 +11,7 @@
 #include "NWWorldMap.h"
 #include "NWTradeskillMenu.h"
 #include "NWRefiningMenu.h"
-#include "NWStorageMenu.h"
+#include "NWShopMenu.h"
 #include "NWAttributesMenu.h"
 #include "NWGameMenu.h"
 #include "NWHUD.generated.h"
@@ -52,12 +52,13 @@ public:
 	// Telas da esteira 4 abertas a partir do mundo (estação de refino; depois armazém, posto de trocas, casas). O
 	// ANWPlayerController só pergunta por estas quatro funções, sem conhecer cada tela.
 	FNWRefiningMenu Refining;
-	FNWStorageMenu Storage;
+	FNWShopMenu Shop;
 	void OpenRefining(class ANWCharacter* Who, class ANWStation* Station);
 	void OpenStorage(class ANWCharacter* Who, class ANWStation* Station);
-	bool IsStationMenuOpen() const { return Refining.IsOpen() || Storage.IsOpen(); }
-	void CloseStationMenus() { Refining.Close(); if (Storage.IsOpen()) { Storage.Close(); } }
-	bool StationMenuClick(const FVector2D& Mouse) { return (Refining.IsOpen() && Refining.Click(Mouse)) || (Storage.IsOpen() && Storage.Click(Mouse)); }
+	void OpenShop(class ANWCharacter* Who, const FString& ShopId, const FString& Title);
+	bool IsStationMenuOpen() const { return Refining.IsOpen() || Shop.IsOpen(); }
+	void CloseStationMenus() { Refining.Close(); Shop.Close(); }
+	bool StationMenuClick(const FVector2D& Mouse) { return (Refining.IsOpen() && Refining.Click(Mouse)) || (Shop.IsOpen() && Shop.Click(Mouse)); }
 	bool StationMenuWheel(float Delta);
 	/** Números de dano (lyshineui/hud/damagenumbers): sobem e somem sobre o alvo em 1,2 s. */
 	void AddDamageNumber(const FVector& World, const FString& Text, const FLinearColor& Color, bool bBig);

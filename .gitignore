@@ -2,6 +2,9 @@
 extract/
 previews/
 reference/
+# Prints do jogo original para inspiração das telas (fica só o índice no git).
+inspiracao/*
+!inspiracao/README.md
 .nwbt/
 *.nwbt/
 # Código de terceiros clonado (versões e build em docs/FERRAMENTAS.md); os binários prontos ficam em bin/.

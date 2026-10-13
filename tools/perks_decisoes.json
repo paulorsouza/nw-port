@@ -1,0 +1,1111 @@
+{
+ "_comment": "Decisões das perks do jogo (docs/itens.md), exportadas da página Corte de Perks em 2026-10-13. v: fica|sai; nova: perk do port que absorve esta; nota: ajuste do efeito.",
+ "decisoes": {
+  "PerkID_Ability_Blunderbuss_AzothShrapnelBlast": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Blunderbuss_ClawShot": {
+   "v": "fica",
+   "nota": "Energizado não existe: vira +5% de dano no próximo acerto"
+  },
+  "PerkID_Ability_Blunderbuss_MortarCharge": {
+   "v": "fica",
+   "nota": "Energizado não existe: tirar o bônus de dano, fica só a recarga da cápsula"
+  },
+  "PerkID_Ability_Blunderbuss_NetShot": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Blunderbuss_ScatterGrenade": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Blunderbuss_VortexShot": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Bow_EvadeShot": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Bow_PenetratingShot": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Bow_PoisonShot": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Bow_RainOfArrows": {
+   "v": "fica",
+   "nota": "Sem debuff: tira a duração de Lentidão e Hemorragia, fica o +2% de dano a 20 m"
+  },
+  "PerkID_Ability_Bow_RapidShot": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Bow_SplinterShot": {
+   "v": "fica",
+   "nota": "Energizado não existe: vira +4% de dano no próximo acerto"
+  },
+  "PerkID_Ability_FireStaff_BurnOut": {
+   "v": "fica",
+   "nota": "Reforço não existe: cada alvo atingido dá um acúmulo de escudo baseado na Constituição (máx. 3)"
+  },
+  "PerkID_Ability_FireStaff_Fireball": {
+   "v": "fica"
+  },
+  "PerkID_Ability_FireStaff_Flamethrower": {
+   "v": "fica",
+   "nota": "Sem velocidade e sem debuff: a Pressa vira +4% de dano por 2 s (proposta); tira a duração da Queimadura"
+  },
+  "PerkID_Ability_FireStaff_Incinerate": {
+   "v": "fica"
+  },
+  "PerkID_Ability_FireStaff_MeteorShower": {
+   "v": "fica",
+   "nota": "Energizado não existe: vira acúmulo de +1% de dano por 6 s (máx. 10)"
+  },
+  "PerkID_Ability_FireStaff_PillarOfFire": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Flail_Blast": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Flail_Burst": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Flail_Charge": {
+   "v": "fica",
+   "nota": "Sem velocidade: a Pressa vira escudo baseado na Constituição (proposta)"
+  },
+  "PerkID_Ability_Flail_DefensiveStrike": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Flail_Slam": {
+   "v": "sai",
+   "nota": "Efeito só de PvP"
+  },
+  "PerkID_Ability_Flail_Trip": {
+   "v": "fica"
+  },
+  "PerkID_Ability_GreatAxe_Charge": {
+   "v": "fica"
+  },
+  "PerkID_Ability_GreatAxe_Execute": {
+   "v": "fica"
+  },
+  "PerkID_Ability_GreatAxe_GravityWell": {
+   "v": "fica"
+  },
+  "PerkID_Ability_GreatAxe_Maelstrom": {
+   "v": "sai"
+  },
+  "PerkID_Ability_GreatAxe_Reap": {
+   "v": "sai"
+  },
+  "PerkID_Ability_GreatAxe_Whirlwind": {
+   "v": "fica",
+   "nota": "Reforço não existe: acúmulos de escudo baseado na Constituição; o +3% de dano cortante vira dano físico"
+  },
+  "PerkID_Ability_Greatsword_Burst": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Greatsword_Combo": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Greatsword_Counter": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Greatsword_DashAttack": {
+   "v": "fica",
+   "nota": "Sem debuff: tira a remoção de Enraizamento e Lentidão, fica o +5% de chance crítica"
+  },
+  "PerkID_Ability_Greatsword_DefenseBreak": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Greatsword_DrainAttack": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Hammer_ArmorBreaker": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Hammer_ClearOut": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Hammer_MightyGavel": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Hammer_PathOfDestiny": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Hammer_Shockwave": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Hammer_WreckingBall": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Hatchet_Berserk": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Hatchet_DistancingThrow": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Hatchet_FeralRush": {
+   "v": "fica",
+   "nota": "Sem debuff: tira a Lentidão, fica o +5% de dano"
+  },
+  "PerkID_Ability_Hatchet_InfectedThrow": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Hatchet_RagingTorrent": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Hatchet_Rending_Throw": {
+   "v": "fica"
+  },
+  "PerkID_Ability_IceGauntlet_DeadlyFrost": {
+   "v": "fica"
+  },
+  "PerkID_Ability_IceGauntlet_HealingTomb": {
+   "v": "fica"
+  },
+  "PerkID_Ability_IceGauntlet_IcedRefresh": {
+   "v": "fica"
+  },
+  "PerkID_Ability_IceGauntlet_PylonBurst": {
+   "v": "fica"
+  },
+  "PerkID_Ability_IceGauntlet_UnbrokenWinds": {
+   "v": "fica",
+   "nota": "Sem debuff: tira o Enraizado, fica o +10% de dano"
+  },
+  "PerkID_Ability_IceGauntlet_UnendingThaw": {
+   "v": "fica"
+  },
+  "PerkID_Ability_LifeStaff_Beacon": {
+   "v": "fica"
+  },
+  "PerkID_Ability_LifeStaff_DivineEmbrance": {
+   "v": "fica"
+  },
+  "PerkID_Ability_LifeStaff_LightsEmbrace": {
+   "v": "fica",
+   "nota": "Sem velocidade: aliados feridos ganham escudo baseado na Constituição de quem cura (proposta)"
+  },
+  "PerkID_Ability_LifeStaff_OrbOfProtection": {
+   "v": "fica"
+  },
+  "PerkID_Ability_LifeStaff_SacredGround": {
+   "v": "fica",
+   "nota": "Reforço não existe: aliados curados ganham escudo baseado na Constituição de quem cura"
+  },
+  "PerkID_Ability_LifeStaff_SplashOfLight": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Musket_PowderBurn": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Musket_PowerShot": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Musket_ShootersStance": {
+   "v": "fica",
+   "nota": "Energizado não existe: vira acúmulo de +4% de dano enquanto na posição"
+  },
+  "PerkID_Ability_Musket_StickyBomb": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Musket_StoppingPower": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Musket_Traps": {
+   "v": "sai",
+   "nota": "Sem velocidade e sem debuff: não sobra efeito"
+  },
+  "PerkID_Ability_Rapier_Evade": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Rapier_Fleche": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Rapier_FlourishAndFinish": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Rapier_Flurry": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Rapier_Riposte": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Rapier_Tondo": {
+   "v": "fica",
+   "nota": "Sem debuff: tira o Enfraquecido, fica o +2% de chance crítica"
+  },
+  "PerkID_Ability_Shield_FinalStand": {
+   "v": "fica",
+   "nota": "Sem velocidade: tira o +3% de velocidade, fica o +2% de cura recebida"
+  },
+  "PerkID_Ability_Shield_ShieldBash": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Shield_ShieldRush": {
+   "v": "fica",
+   "nota": "Reforço não existe: acertar dá escudo baseado na Constituição"
+  },
+  "PerkID_Ability_Spear_Cyclone": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Spear_Javelin": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Spear_Perforate": {
+   "v": "fica",
+   "nota": "Reforço não existe: acúmulos de escudo baseado na Constituição (máx. 3)"
+  },
+  "PerkID_Ability_Spear_Skewer": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Spear_Sweep": {
+   "v": "sai"
+  },
+  "PerkID_Ability_Spear_VaultKick": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Sword_LeapingStrike": {
+   "v": "fica"
+  },
+  "PerkID_Ability_Sword_ReverseStab": {
+   "v": "fica",
+   "nota": "Sem debuff: tira a transferência de debuffs, fica o +5% de dano"
+  },
+  "PerkID_Ability_Sword_WhirlingBlade": {
+   "v": "fica"
+  },
+  "PerkID_Ability_VoidGauntlet_DecayingOrb_ReduceBuffs": {
+   "v": "fica"
+  },
+  "PerkID_Ability_VoidGauntlet_DrainingTether_Slow": {
+   "v": "fica",
+   "nota": "Sem debuff: tira a Lentidão, fica o resto do efeito"
+  },
+  "PerkID_Ability_VoidGauntlet_EssenceRupture_Empower": {
+   "v": "fica"
+  },
+  "PerkID_Ability_VoidGauntlet_NullChamber_Nullify": {
+   "v": "fica"
+  },
+  "PerkID_Ability_VoidGauntlet_Scream_Disease": {
+   "v": "sai"
+  },
+  "PerkID_Ability_VoidGauntlet_VoidBlade_Lifesteal": {
+   "v": "fica"
+  },
+  "PerkID_Amulet_DefArcane": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DefFire": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DefIce": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DefLightning": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DefNature": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DefSlash": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DefStrike": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DefThurst": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DefVoid": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DodgeBurn_DurRed": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DodgeSuccess_CleanseDebilitate": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DodgeSuccess_CleanseDoT": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DurEmpower": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DurFortify": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_DurHaste": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_FortifyOnLow": {
+   "v": "fica",
+   "nota": "Reforço não existe: abaixo de 50% de saúde, ganha escudo baseado na Constituição (recarga 30 s)"
+  },
+  "PerkID_Amulet_HP": {
+   "v": "sai",
+   "nova": "Vida máxima"
+  },
+  "PerkID_Amulet_HarvestingLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Amulet_Healing": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_LoggingLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Amulet_LowCooldown": {
+   "v": "fica"
+  },
+  "PerkID_Amulet_MiningLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Amulet_PotionHeal": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_RemoveOnLow": {
+   "v": "sai"
+  },
+  "PerkID_Amulet_SkinningLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Amulet_StamOnLow": {
+   "v": "sai",
+   "nova": "Regeneração de vigor"
+  },
+  "PerkID_Armor_Conditioning_Fire": {
+   "v": "sai"
+  },
+  "PerkID_Armor_Conditioning_Ice": {
+   "v": "sai"
+  },
+  "PerkID_Armor_Conditioning_Nature": {
+   "v": "sai"
+  },
+  "PerkID_Armor_Conditioning_Slash": {
+   "v": "sai"
+  },
+  "PerkID_Armor_Conditioning_Strike": {
+   "v": "sai"
+  },
+  "PerkID_Armor_Conditioning_Thrust": {
+   "v": "sai"
+  },
+  "PerkID_Armor_Conditioning_Void": {
+   "v": "sai"
+  },
+  "PerkID_Armor_ConsumableHealing": {
+   "v": "sai"
+  },
+  "PerkID_Armor_DefBasic": {
+   "v": "sai"
+  },
+  "PerkID_Armor_DefGrit": {
+   "v": "sai"
+  },
+  "PerkID_Armor_DmgArcane": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Armor_DmgFire": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Armor_DmgIce": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Armor_DmgLightning": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Armor_DmgNature": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Armor_DmgVoid": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Armor_DodgeSuccess_Fortify": {
+   "v": "sai",
+   "nota": "Reforço não existe: esquivar dá escudo baseado na Constituição"
+  },
+  "PerkID_Armor_DurCC": {
+   "v": "sai"
+  },
+  "PerkID_Armor_DurDebuff": {
+   "v": "sai"
+  },
+  "PerkID_Armor_DurDot": {
+   "v": "sai"
+  },
+  "PerkID_Armor_ExhaustPotencyRed": {
+   "v": "sai"
+  },
+  "PerkID_Armor_HarvestingLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Armor_HastePotencyInc": {
+   "v": "sai"
+  },
+  "PerkID_Armor_Health": {
+   "v": "sai",
+   "nova": "Vida máxima"
+  },
+  "PerkID_Armor_HercyneRaid_1": {
+   "v": "sai"
+  },
+  "PerkID_Armor_LifestealHealing": {
+   "v": "sai",
+   "nova": "Roubo de vida"
+  },
+  "PerkID_Armor_LoggingLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Armor_MiningLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Armor_PvPZone_1": {
+   "v": "sai"
+  },
+  "PerkID_Armor_RangeDefense_Elemental": {
+   "v": "sai"
+  },
+  "PerkID_Armor_RangeDefense_Physical": {
+   "v": "sai"
+  },
+  "PerkID_Armor_SkinningLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Bags_AlchemistWeight": {
+   "v": "sai"
+  },
+  "PerkID_Bags_ArmorWeight": {
+   "v": "sai"
+  },
+  "PerkID_Bags_AzothYield": {
+   "v": "sai"
+  },
+  "PerkID_Bags_BonusTown": {
+   "v": "sai"
+  },
+  "PerkID_Bags_CookingWeight": {
+   "v": "sai"
+  },
+  "PerkID_Bags_FactionGain": {
+   "v": "sai"
+  },
+  "PerkID_Bags_FoodUtilityDur": {
+   "v": "sai"
+  },
+  "PerkID_Bags_HarestingWeight": {
+   "v": "sai"
+  },
+  "PerkID_Bags_LoggingWeight": {
+   "v": "sai"
+  },
+  "PerkID_Bags_MiningOre": {
+   "v": "sai"
+  },
+  "PerkID_Bags_SkinningWeight": {
+   "v": "sai"
+  },
+  "PerkID_Bags_StoneWeight": {
+   "v": "sai"
+  },
+  "PerkID_Bags_WeaponWeight": {
+   "v": "sai"
+  },
+  "PerkID_Bags_WeightAdd": {
+   "v": "sai"
+  },
+  "PerkID_Chest_HealthStam_Synergy": {
+   "v": "sai",
+   "nova": "Regeneração de vigor"
+  },
+  "PerkID_Chest_OnBlockedHitTaken_StaminaRegen": {
+   "v": "sai",
+   "nova": "Regeneração de vigor"
+  },
+  "PerkID_Common_CDR": {
+   "v": "sai",
+   "nova": "Redução de recarga"
+  },
+  "PerkID_Common_Luck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Earring_Arcanist": {
+   "v": "sai"
+  },
+  "PerkID_Earring_Armorer": {
+   "v": "sai"
+  },
+  "PerkID_Earring_Cook": {
+   "v": "sai"
+  },
+  "PerkID_Earring_Engineer": {
+   "v": "sai"
+  },
+  "PerkID_Earring_GainOnPotion": {
+   "v": "sai"
+  },
+  "PerkID_Earring_HealthOnPotion": {
+   "v": "sai"
+  },
+  "PerkID_Earring_HealthRegen": {
+   "v": "fica",
+   "nota": "Vira \"Regeneração de vida\""
+  },
+  "PerkID_Earring_Jeweler": {
+   "v": "sai"
+  },
+  "PerkID_Earring_OnHeartHeal": {
+   "v": "sai"
+  },
+  "PerkID_Earring_OnPotionDmg": {
+   "v": "sai"
+  },
+  "PerkID_Earring_OnPotionFort": {
+   "v": "fica",
+   "nota": "Reforço não existe: beber poção dá escudo baseado na Constituição (recarga 10 s)"
+  },
+  "PerkID_Earring_PotionCDR": {
+   "v": "sai"
+  },
+  "PerkID_Earring_RemoveOnPotion": {
+   "v": "sai"
+  },
+  "PerkID_Earring_StaminaRegen": {
+   "v": "sai",
+   "nova": "Regeneração de vigor"
+  },
+  "PerkID_Earring_ThreatAdd": {
+   "v": "sai",
+   "nota": "Ameaça não é perk: vai para a classe de tanque"
+  },
+  "PerkID_Earring_Weaponsmith": {
+   "v": "sai"
+  },
+  "PerkID_Feet_HasteOnVault": {
+   "v": "sai"
+  },
+  "PerkID_Hands_OnBlockedHit_EmpowerStack": {
+   "v": "sai"
+  },
+  "PerkID_Head_OnCritTaken_CritChance": {
+   "v": "sai"
+  },
+  "PerkID_Jewelry_HercyneRaid_1": {
+   "v": "sai"
+  },
+  "PerkID_Jewelry_PvPZone_1": {
+   "v": "sai"
+  },
+  "PerkID_Legs_DodgeSuccess_Stamina": {
+   "v": "sai",
+   "nova": "Regeneração de vigor"
+  },
+  "PerkID_LifeStaff_LowManaBonusHeal": {
+   "v": "sai"
+  },
+  "PerkID_LifeStaff_OnLowBonusHeal": {
+   "v": "sai"
+  },
+  "PerkID_LifeStaff_OnRemoveHeal": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Amulet_DodgeSuccess_DMG": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Armor_DodgeSuccess_Heal": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Ring_DmgPerTargetBuff": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Ring_OnKill_EmpowerStack": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Shield_FortifyStackOnBlock": {
+   "v": "sai",
+   "nota": "Reforço não existe: se ficar, cada bloqueio dá acúmulo de escudo baseado na Constituição"
+  },
+  "PerkID_PvP_WeaponMagic_DmgToHaste": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Weapon_ArmorPenetration_OnBackstab": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Weapon_ArmorPenetration_OnHeadshot": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Weapon_BlockBreak_Rend": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Weapon_CleanseBuff_Crits": {
+   "v": "sai"
+  },
+  "PerkID_PvP_Weapon_ExhaustedTarget_Slow": {
+   "v": "sai"
+  },
+  "PerkID_Ring_Crit": {
+   "v": "sai",
+   "nova": "Chance crítica"
+  },
+  "PerkID_Ring_DmgArcane": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Ring_DmgFire": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Ring_DmgIce": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Ring_DmgLightning": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Ring_DmgNature": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Ring_DmgSlash": {
+   "v": "sai",
+   "nova": "Amplificação física"
+  },
+  "PerkID_Ring_DmgStrike": {
+   "v": "sai",
+   "nova": "Amplificação física"
+  },
+  "PerkID_Ring_DmgThurst": {
+   "v": "sai",
+   "nova": "Amplificação física"
+  },
+  "PerkID_Ring_DmgVoid": {
+   "v": "sai",
+   "nova": "Amplificação mágica"
+  },
+  "PerkID_Ring_DurBleed": {
+   "v": "sai"
+  },
+  "PerkID_Ring_DurBurning": {
+   "v": "sai"
+  },
+  "PerkID_Ring_DurDisease": {
+   "v": "sai"
+  },
+  "PerkID_Ring_DurPosion": {
+   "v": "sai"
+  },
+  "PerkID_Ring_DurSlow": {
+   "v": "sai"
+  },
+  "PerkID_Ring_DurWeaken": {
+   "v": "sai"
+  },
+  "PerkID_Ring_Healing": {
+   "v": "sai",
+   "nova": "Cura causada"
+  },
+  "PerkID_Ring_HealperDmg": {
+   "v": "sai",
+   "nova": "Roubo de vida"
+  },
+  "PerkID_Ring_MaxStamina": {
+   "v": "sai"
+  },
+  "PerkID_Ring_OnHealHot": {
+   "v": "fica"
+  },
+  "PerkID_Ring_OnHeartRemoveBuffs": {
+   "v": "sai"
+  },
+  "PerkID_Ring_OnRemoveHeal": {
+   "v": "sai"
+  },
+  "PerkID_Shield_DefArcane": {
+   "v": "sai"
+  },
+  "PerkID_Shield_DefFire": {
+   "v": "sai"
+  },
+  "PerkID_Shield_DefIce": {
+   "v": "sai"
+  },
+  "PerkID_Shield_DefLightning": {
+   "v": "sai"
+  },
+  "PerkID_Shield_DefNature": {
+   "v": "sai"
+  },
+  "PerkID_Shield_DefSlash": {
+   "v": "sai"
+  },
+  "PerkID_Shield_DefStrike": {
+   "v": "sai"
+  },
+  "PerkID_Shield_DefThurst": {
+   "v": "sai"
+  },
+  "PerkID_Shield_DefVoid": {
+   "v": "sai"
+  },
+  "PerkID_Shield_Kite_OnBlockDmg": {
+   "v": "sai"
+  },
+  "PerkID_Shield_Kite_OnBlockHeal": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorArtificer": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorAssassin": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorBarbarian": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorBrigand": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorCavalier": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorCleric": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorMonk": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorOccultist": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorPriest": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorRanger": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorSage": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorScholar": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorSentry": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorSoldier": {
+   "v": "sai"
+  },
+  "PerkID_Stat_ArmorSpellsword": {
+   "v": "sai"
+  },
+  "PerkID_Stat_KiteShield": {
+   "v": "sai",
+   "nova": "Redução de recarga"
+  },
+  "PerkID_Stat_RoundShield": {
+   "v": "sai",
+   "nova": "Amplificação física"
+  },
+  "PerkID_Stat_TowerShield": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandArtificer": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandAssassin": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandBarbarian": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandBrigand": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandCavalier": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandCleric": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandMonk": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandPriest": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandRanger": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandSage": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandScholar": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandSentry": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandSoldier": {
+   "v": "sai"
+  },
+  "PerkID_Stat_TwoHandSpellsword": {
+   "v": "sai"
+  },
+  "PerkID_Tools_AzothGain": {
+   "v": "sai"
+  },
+  "PerkID_Tools_Efficiency_Harvesting": {
+   "v": "sai",
+   "nova": "Velocidade de coleta"
+  },
+  "PerkID_Tools_Efficiency_Logging": {
+   "v": "sai",
+   "nova": "Velocidade de coleta"
+  },
+  "PerkID_Tools_Efficiency_Mining": {
+   "v": "sai",
+   "nova": "Velocidade de coleta"
+  },
+  "PerkID_Tools_Efficiency_Skinning": {
+   "v": "sai",
+   "nova": "Velocidade de coleta"
+  },
+  "PerkID_Tools_GatherProc_Regen": {
+   "v": "sai"
+  },
+  "PerkID_Tools_HarvestingLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Tools_HarvestingXP": {
+   "v": "sai",
+   "nova": "Experiência de coleta"
+  },
+  "PerkID_Tools_HarvestingYield": {
+   "v": "sai",
+   "nova": "Rendimento de coleta"
+  },
+  "PerkID_Tools_HasteOnGather": {
+   "v": "sai"
+  },
+  "PerkID_Tools_LoggingLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Tools_LoggingXP": {
+   "v": "sai",
+   "nova": "Experiência de coleta"
+  },
+  "PerkID_Tools_LoggingYield": {
+   "v": "sai",
+   "nova": "Rendimento de coleta"
+  },
+  "PerkID_Tools_MiningLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Tools_MiningXP": {
+   "v": "sai",
+   "nova": "Experiência de coleta"
+  },
+  "PerkID_Tools_MiningYield": {
+   "v": "sai",
+   "nova": "Rendimento de coleta"
+  },
+  "PerkID_Tools_MoteAir": {
+   "v": "sai"
+  },
+  "PerkID_Tools_MoteDeath": {
+   "v": "sai"
+  },
+  "PerkID_Tools_MoteEarth": {
+   "v": "sai"
+  },
+  "PerkID_Tools_MoteFire": {
+   "v": "sai"
+  },
+  "PerkID_Tools_MoteLife": {
+   "v": "sai"
+  },
+  "PerkID_Tools_MoteSpirit": {
+   "v": "sai"
+  },
+  "PerkID_Tools_MoteWater": {
+   "v": "sai"
+  },
+  "PerkID_Tools_SkinningLuck": {
+   "v": "sai",
+   "nota": "Sorte só nos troféus"
+  },
+  "PerkID_Tools_SkinningXP": {
+   "v": "sai",
+   "nova": "Experiência de coleta"
+  },
+  "PerkID_Tools_SkinningYield": {
+   "v": "sai",
+   "nova": "Rendimento de coleta"
+  },
+  "PerkID_WeaponLife_HealOutgoing": {
+   "v": "sai",
+   "nova": "Cura causada"
+  },
+  "PerkID_WeaponMelee_BlockingMove": {
+   "v": "sai"
+  },
+  "PerkID_WeaponMelee_BlockingStam": {
+   "v": "sai"
+  },
+  "PerkID_WeaponMelee_DmgBack": {
+   "v": "sai"
+  },
+  "PerkID_WeaponRng_DmgHeatshot": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_Attunement_Fire": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_Attunement_Ice": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_Attunement_Nature": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_Attunement_Void": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_BleedonCrit": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_CDRBasic": {
+   "v": "sai",
+   "nova": "Redução de recarga"
+  },
+  "PerkID_Weapon_CritChance": {
+   "v": "sai",
+   "nova": "Chance crítica"
+  },
+  "PerkID_Weapon_Disease_OnLowHP_Crit": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_Disease_OnLowHP_Heavy": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_DmgAgainstGrit": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_DmgBasic": {
+   "v": "sai",
+   "nova": "Amplificação física"
+  },
+  "PerkID_Weapon_DmgCrit": {
+   "v": "sai",
+   "nova": "Dano crítico"
+  },
+  "PerkID_Weapon_DmgWithGrit": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_DodgeSuccess_ArcaneDMG": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_DodgeSuccess_FireDMG": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_DodgeSuccess_IceDMG": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_DodgeSuccess_LightningDMG": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_DodgeSuccess_NatureDMG": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_DodgeSuccess_VoidDMG": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_EmpowerOnCrit": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_FortifyOnCrit": {
+   "v": "sai",
+   "nota": "Reforço não existe: acerto crítico dá escudo baseado na Constituição (recarga 7 s)"
+  },
+  "PerkID_Weapon_HasteOnCrit": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_HealOnDmg": {
+   "v": "sai",
+   "nova": "Roubo de vida"
+  },
+  "PerkID_Weapon_HercyneRaid_1": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_Melee_AlternateAttacks": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_Melee_ChargedHeavy_Crit": {
+   "v": "sai",
+   "nova": "Dano crítico"
+  },
+  "PerkID_Weapon_Melee_ChargedHeavy_DMG": {
+   "v": "sai",
+   "nova": "Amplificação física"
+  },
+  "PerkID_Weapon_Melee_ChargedHeavy_Heal": {
+   "v": "sai",
+   "nova": "Roubo de vida"
+  },
+  "PerkID_Weapon_Melee_ChargedHeavy_Rend": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_OnExhaustDmg": {
+   "v": "sai",
+   "nota": "Sem velocidade: se ficar, só o +5% de dano sob Exaustão"
+  },
+  "PerkID_Weapon_OnKillCDR": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_OnKillEmpower": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_OnKillFortify": {
+   "v": "sai",
+   "nota": "Reforço não existe: abate dá escudo baseado na Constituição"
+  },
+  "PerkID_Weapon_OnKillHeal": {
+   "v": "sai",
+   "nova": "Roubo de vida"
+  },
+  "PerkID_Weapon_OnKillStamina": {
+   "v": "sai",
+   "nova": "Regeneração de vigor"
+  },
+  "PerkID_Weapon_PvPZone_1": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_RendingStacks": {
+   "v": "sai"
+  },
+  "PerkID_Weapon_ThreatAdd": {
+   "v": "sai",
+   "nota": "Ameaça não é perk: vai para a classe de tanque"
+  }
+ }
+}

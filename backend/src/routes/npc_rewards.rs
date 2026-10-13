@@ -104,6 +104,7 @@ pub async fn claim(
         }
     })?;
     c.snapshot.apply(&mut tx, id).await?;
+    crate::routes::serials::verify(&mut tx, id, "bag", &c.snapshot.serials()).await?;
     tx.commit().await?;
     Ok((StatusCode::CREATED, Json(claim)))
 }

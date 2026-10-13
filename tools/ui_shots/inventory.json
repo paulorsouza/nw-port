@@ -1,0 +1,31 @@
+{
+ "screen": "inventory",
+ "coins": 1234567,
+ "storage_title": "Despensa",
+ "storage_capacity": 1000,
+ "items": [
+  ["1hSwordT3", 1, 310, 2], ["1hLongswordDropT2", 1, 250, 1], ["1hHatchetT3", 1, 300, 3], ["1hShieldAT3", 1, 295, 1],
+  ["2hPickT3", 1, 280, 1], ["1hSickleT1", 1, 100, 0],
+  ["PotionHealthT5", 12], ["BerryT1", 25], ["CarrotT1", 8], ["BaitFreshFireflyT3", 5],
+  ["OreT1", 240], ["OrePreciousT2", 12], ["WoodT1", 180], ["WoodT2", 40], ["FiberT1", 95], ["RawhideT1", 40],
+  ["LeatherT2", 18], ["StoneT1", 300], ["FlintT1", 22], ["AlchemyAirT1", 6], ["AmberT2", 3], ["BoarTuskT1", 9],
+  ["FluxT5", 30], ["SaltpeterT1", 14], ["PigmentTurquoise", 2], ["RuneBeastModeT2", 1], ["BreachDrop1", 1],
+  ["Prospect_PreciousOre_T2", 1]
+ ],
+ "equip": [["1hSwordT2", 0, 200, 0], ["1hHatchetT2", 1, 200, 0], ["1hShieldAT2", 2, 200, 0], ["2hPickT2", 3, 0, 0]],
+ "storage": [["OreT1", 1000], ["IngotT2", 320], ["FluxT5", 150], ["2hPickT3", 1, 280, 1], ["PotionHealthT5", 30], ["WoodT2", 500]],
+ "shots": [
+  {"name": "bolsa", "mouse": [1700, 330]},
+  {"name": "busca", "search": "madeira", "mouse": [1700, 330]},
+  {"name": "bolsa_peso", "sort": 2, "mouse": [1700, 330]},
+  {"name": "arrasto_equipar", "drag": {"from": "bag", "item": "1hSwordT3"}, "mouse": [890, 248]},
+  {"name": "arrasto_desequipar", "drag": {"from": "equip", "item": "1hShieldAT2"}, "mouse": [1300, 500]},
+  {"name": "armazem", "storage": true, "mouse": [960, 1060]},
+  {"name": "arrasto_chao", "drag": {"from": "bag", "item": "StoneT1"}, "mouse": [1700, 700]},
+  {"name": "dividir", "popup": {"kind": "split", "from": "bag", "item": "OreT1"}, "mouse": [1100, 700]},
+  {"name": "destruir", "popup": {"kind": "destroy", "from": "bag", "item": "StoneT1"}, "mouse": [1100, 700]},
+  {"name": "destruir_parte", "popup": {"kind": "destroy", "from": "bag", "item": "WoodT1", "qty": 60}, "mouse": [1100, 700]},
+  {"name": "dividir_armazem", "storage": true, "popup": {"kind": "split", "from": "storage", "item": "IngotT2"}, "mouse": [1100, 700]},
+  {"name": "arrasto_guardar", "storage": true, "drag": {"from": "bag", "item": "OreT1"}, "mouse": [1600, 500]}
+ ]
+}

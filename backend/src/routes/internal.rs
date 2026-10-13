@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::auth::{self, GameServer};
 use crate::error::{ApiError, ApiResult};
 use crate::routes::characters::{character_columns, Character, CharacterRow, CharacterState, ItemInstance};
+use crate::routes::serials;
 use crate::AppState;
 
 #[derive(Deserialize)]
@@ -56,7 +57,7 @@ pub async fn redeem_ticket(State(state): State<AppState>, _server: GameServer, J
     .await?;
     let mut character: Character = row.ok_or_else(|| ApiError::not_found("Personagem"))?.into();
     let items: Vec<ItemInstance> = sqlx::query_as(
-        "select item_id, quantity, container, slot, gear_score, rarity from items where character_id = $1 order by container, slot",
+        "select item_id, quantity, container, slot, gear_score, rarity, props from items where character_id = $1 order by container, slot",
     )
     .bind(character_id)
     .fetch_all(&mut *tx)
@@ -109,6 +110,7 @@ pub async fn save_state(
     }
     if let Some(items) = &s.inventory {
         write_inventory(&mut tx, id, items).await?;
+        serials::verify(&mut tx, id, "bag", &serials::serials(items.iter().map(|i| &i.props))).await?;
     }
     tx.commit().await?;
     Ok(StatusCode::NO_CONTENT)
@@ -131,8 +133,8 @@ pub(crate) async fn write_inventory(tx: &mut sqlx::PgConnection, id: Uuid, items
     sqlx::query("delete from items where character_id = $1").bind(id).execute(&mut *tx).await?;
     for it in items {
         sqlx::query(
-            "insert into items (id, character_id, item_id, quantity, container, slot, gear_score, rarity)
-             values ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "insert into items (id, character_id, item_id, quantity, container, slot, gear_score, rarity, props)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(Uuid::new_v4())
         .bind(id)
@@ -142,6 +144,7 @@ pub(crate) async fn write_inventory(tx: &mut sqlx::PgConnection, id: Uuid, items
         .bind(it.slot)
         .bind(it.gear_score)
         .bind(it.rarity)
+        .bind(&it.props)
         .execute(&mut *tx)
         .await?;
     }

@@ -31,6 +31,8 @@ enum class ENWDevCommand : uint8
 	ToggleFastRun,
 	GiveLevel,
 	GiveTradeLevels,
+	GiveCraftLevels,
+	GiveCraftMaterials,
 	GoToCreature,
 	ToggleFly,
 	// Arena de testes: ondas em volta do jogador (UNWBrainComponent).

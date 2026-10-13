@@ -4,6 +4,7 @@ mod houses;
 mod internal;
 mod market;
 mod npc_rewards;
+mod serials;
 mod storage;
 
 use axum::routing::{delete, get, post, put};
@@ -31,6 +32,7 @@ pub fn router() -> Router<AppState> {
         .route("/internal/characters/{id}/houses", get(houses::list).post(houses::buy))
         .route("/internal/characters/{id}/credits/claim", post(market::claim_credits))
         .route("/internal/characters/{id}/npc-rewards", get(npc_rewards::list).post(npc_rewards::claim))
+        .route("/internal/characters/{id}/serials", post(serials::issue))
         .route("/internal/market/{territory}/orders", get(market::list).post(market::create))
         .route("/internal/market/orders/{id}/fill", post(market::fill))
         .route("/internal/market/orders/{id}/cancel", post(market::cancel))

@@ -165,6 +165,10 @@
       "pt-br": "Você não está em um grupo.",
       "en-us": "You are not in a group."
     },
+    "nw.shop.weekly_limit": {
+      "pt-br": "Limite da semana: {0} de {1}.",
+      "en-us": "Weekly limit: {0} of {1}."
+    },
     "nw.inv.bag_full": {
       "pt-br": "Bolsa cheia: parte do saque ficou para trás.",
       "en-us": "Bag full: some loot was left behind."
@@ -225,6 +229,10 @@
       "pt-br": "Peso",
       "en-us": "Weight"
     },
+    "nw.dev.dev_coins": {
+      "pt-br": "Ganhar 100,00 moedas",
+      "en-us": "Get 100.00 coins"
+    },
     "nw.dev.dev_bag": {
       "pt-br": "Bolsa de dev (peso)",
       "en-us": "Dev bag (weight)"
@@ -264,9 +272,85 @@
     "nw.storage.bag": {
       "pt-br": "Bolsa",
       "en-us": "Bag"
+    },
+    "nw.craft.start": {
+      "pt-br": "Fabricar",
+      "en-us": "Craft"
+    },
+    "nw.craft.training": {
+      "pt-br": "Treino até o nível {0}: só XP, sem item",
+      "en-us": "Training until level {0}: XP only, no item"
+    },
+    "nw.craft.gs_range": {
+      "pt-br": "Gear score {0}–{1}",
+      "en-us": "Gear score {0}–{1}"
+    },
+    "nw.craft.quality_min": {
+      "pt-br": "Qualidade {0}–100%",
+      "en-us": "Quality {0}–100%"
+    },
+    "nw.item.quality": {
+      "pt-br": "Qualidade {0}%",
+      "en-us": "Quality {0}%"
+    },
+    "nw.item.bind_equip": {
+      "pt-br": "Vincula ao equipar",
+      "en-us": "Binds on equip"
+    },
+    "nw.item.bound": {
+      "pt-br": "Vinculado",
+      "en-us": "Bound"
+    },
+    "nw.item.signed": {
+      "pt-br": "Feito por {0}",
+      "en-us": "Crafted by {0}"
+    },
+    "nw.item.gem_empty": {
+      "pt-br": "Slot de gema vazio",
+      "en-us": "Empty gem slot"
+    },
+    "nw.dev.give_craft_levels": {
+      "pt-br": "+50 níveis nos ofícios de fabricar",
+      "en-us": "+50 levels in crafting skills"
+    },
+    "nw.dev.give_craft_materials": {
+      "pt-br": "Materiais de fabricar (T2–T5) e 1.000 moedas",
+      "en-us": "Crafting materials (T2–T5) and 1,000 coins"
+    },
+    "nw.craft.recipes": {
+      "pt-br": "Receitas",
+      "en-us": "Recipes"
+    },
+    "nw.craft.reroll_none": {
+      "pt-br": "Nenhum item fabricado deste ofício na bolsa.",
+      "en-us": "No crafted item from this trade in your bag."
+    },
+    "nw.craft.improve": {
+      "pt-br": "Melhorar itens",
+      "en-us": "Improve items"
+    },
+    "nw.craft.improve_attr": {
+      "pt-br": "Sortear atributo",
+      "en-us": "Reroll attribute"
+    },
+    "nw.craft.improve_gs": {
+      "pt-br": "Sortear GS",
+      "en-us": "Reroll GS"
+    },
+    "nw.craft.improve_unbind": {
+      "pt-br": "Desvincular",
+      "en-us": "Unbind"
     }
   },
   "chaves_do_jogo": [
+    "everfall",
+    "ui_shop_default_name",
+    "ui_consumable",
+    "ui_buy",
+    "ui_inventoryfull",
+    "ui_insufficient_funds",
+    "owg_single_item_purchased",
+    "owg_multiple_items_purchased",
     "ui_play",
     "ui_enter",
     "ui_characters",
@@ -344,6 +428,47 @@
     "ui_bracket_amount",
     "carpentry_station",
     "tanning_station",
-    "masonry_station"
+    "masonry_station",
+    "owg_rewards_title",
+    "ui_weapons",
+    "inv_apparrel",
+    "inv_runes",
+    "inv_utilities",
+    "inv_cooking",
+    "inv_baits",
+    "inv_crafting_modifiers",
+    "inv_resources",
+    "inv_tools",
+    "inv_tuningorbs",
+    "inv_jewelcrafting",
+    "inv_refining",
+    "inv_smelting",
+    "inv_leatherworking",
+    "inv_weaving",
+    "inv_woodworking",
+    "inv_stonecutting",
+    "inv_alchemy",
+    "inv_dyes",
+    "interact_takeall",
+    "ui_strength_short",
+    "ui_dexterity_short",
+    "ui_intelligence_short",
+    "ui_focus_short",
+    "ui_constitution_short",
+    "inv_droptargetmessage",
+    "ui_split_stack",
+    "ui_cancel",
+    "ui_confirm",
+    "ui_move",
+    "ui_tooltip_take",
+    "ui_tooltip_drop",
+    "ui_destroybounditem",
+    "ui_searchitem",
+    "ui_weaponsmithing",
+    "ui_engineering",
+    "ui_arcana",
+    "blacksmith_station",
+    "engineering_station",
+    "alchemy_station"
   ]
 }

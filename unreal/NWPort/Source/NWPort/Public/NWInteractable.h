@@ -60,6 +60,18 @@ public:
 	UPROPERTY(Replicated) TArray<FString> RewardClaims;
 	/** Refino (NWCrafting.h): o servidor confere estação perto, nível, materiais e taxa; erro vira aviso ao dono. */
 	UFUNCTION(Server, Reliable) void ServerRefine(const FString& StationType, FName Recipe, int32 Count);
+	/** Loja (NWShop.h): o servidor confere NPC perto, preço, limite semanal e peso; grava na hora (SavePlayer). */
+	UFUNCTION(Server, Reliable) void ServerShopBuy(const FString& ShopId, FName Item, int32 Quantity);
+	/** Fabricar arma, escudo ou ferramenta (docs/oficio.md; FNWCrafting::Craft): na hora, item na bolsa; treino abaixo do
+	 *  nível de fabricar. */
+	UFUNCTION(Server, Reliable) void ServerCraft(const FString& StationType, FName Recipe);
+	/** Melhoria do item da bolsa na mesa do ofício dele, pagando materiais (docs/itens.md): Kind = ENWImprove. */
+	UFUNCTION(Server, Reliable) void ServerImprove(const FString& StationType, int32 BagSlot, uint8 Kind);
+	/** Resultado da última fabricação (Kind 255) ou melhoria (ENWImprove) para a tela da mesa: o item antes e depois. */
+	UFUNCTION(Client, Reliable) void ClientCraftResult(const FNWItem& Before, const FNWItem& After, uint8 Kind);
+	struct FCraftResult { FNWItem Before, After; uint8 Kind = 255; int32 Seq = 0; };
+	/** Só no dono: Seq sobe a cada resultado (a tela espera um Seq maior que o do clique). */
+	FCraftResult CraftResult;
 
 	// ---- armazém da cidade (esteira 4): o servidor guarda e grava no nw-core (bolsa + armazém numa transação)
 	/** Peso máximo do armazém (kg), padrão sem dados: storage.base_weight em NWInteractable.cpp. */
@@ -73,6 +85,9 @@ public:
 	UFUNCTION(Server, Reliable) void ServerStorageClose();
 	/** Depositar (Slot = espaço da bolsa) ou retirar (Slot = espaço do armazém), Quantity da pilha. */
 	UFUNCTION(Server, Reliable) void ServerStorageMove(bool bDeposit, int32 Slot, int32 Quantity);
+	/** Várias pilhas inteiras de uma vez, gravadas numa só transação: "Pegar tudo" (catcontainer ContainerTakeAll) e
+	 *  mover a seção inteira (catsection TransferAll). Slots da bolsa (guardar) ou do armazém (retirar). */
+	UFUNCTION(Server, Reliable) void ServerStorageMoveMany(bool bDeposit, const TArray<int32>& Slots);
 
 private:
 	void LoadClaims();
@@ -84,7 +99,9 @@ private:
 	int64 StorageVersion = 0;
 	bool bStorageBusy = false;
 	TMap<FString, TArray<FNWItem>> MemStorage;   // sem backend (PIE)
-	void StorageSave(const FNWItem& Moved, bool bDeposit, bool bRetry);
+	void StorageSave(const TArray<FNWItem>& Moved, bool bDeposit, bool bRetry);
+	/** Move uma pilha (inteira ou Quantity) sem gravar; devolve o que mudou (Quantity 0 = nada). */
+	FNWItem StorageApply(bool bDeposit, int32 Slot, int32 Quantity, bool bWarn);
 	static void StorageAdd(TArray<FNWItem>& Items, const FNWItem& Item);
 	static bool StorageRemove(TArray<FNWItem>& Items, const FNWItem& Item);
 };

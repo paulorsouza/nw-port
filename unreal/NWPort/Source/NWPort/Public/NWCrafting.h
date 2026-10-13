@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "NWItems.h"
 #include "NWCrafting.generated.h"
 
 class ANWCharacter;
@@ -14,6 +15,9 @@ class UNWInventoryComponent;
  * por item ou por categoria, nível mínimo do ofício, tier da estação, taxa em moedas e XP do ofício. Instantâneo: o jogo
  * não tem tempo de refino.
  */
+/** Melhorias do item na mesa do ofício dele (docs/itens.md): sortear o atributo, subir o GS, desvincular. */
+enum class ENWImprove : uint8 { Attribute, GearScore, Unbind, Num };
+
 struct NWPORT_API FNWRecipe
 {
 	struct FIngredient { FName Id; int32 Qty = 0; bool bCategory = false; };
@@ -31,9 +35,21 @@ struct NWPORT_API FNWRecipe
 	/** Árvore da tela: família (CraftingCategory) e grupo, com o nome do jogo por idioma. */
 	FString Category;
 	TMap<FString, FString> CategoryName, GroupName;
+	/** Posição na árvore (craftingsortinfo.lua CategorySortOrder/GroupSortOrder; 9999 = fora da lista). */
+	int32 CategoryOrder = 9999, GroupOrder = 9999;
+	/** Tem FirstCraftAchievementId: a primeira confecção dá XP extra. */
+	bool bFirstCraft = false;
 	/** Chance de item extra: BonusItemChance e o ajuste por tier do reagente de categoria (Increase/Decrease). */
 	float Bonus = 0.f;
 	TArray<float> BonusInc, BonusDec;
+	/** Fabricar arma, escudo ou ferramenta (item com GS, perks e qualidade; docs/oficio.md): tier do item e GS base. */
+	bool bGear = false;
+	int32 ItemTier = 0;
+	int32 GsBase = 0;
+	/** XP de ofício de Count confecções: CategoricalProgressionReward × Σ Qty dos ingredientes × Count
+	 *  (crafting.xp_oficio, crafting.xp_ingrediente_contagem; sistemas-005). bFirst: primeira confecção desta receita pelo
+	 *  personagem, + base × (mult − 1) (crafting.primeira_confeccao_xp_mult, crafting.primeira_confeccao_ativa). */
+	int32 XpFor(int32 Count, bool bFirst = false) const;
 };
 
 class NWPORT_API FNWCrafting
@@ -57,11 +73,31 @@ public:
 	FName ChosenFor(const UNWInventoryComponent* Inv, const FNWRecipe::FIngredient& I) const;
 	/** Servidor: confere e refina Count vezes; devolve a chave do texto do erro ou vazio. */
 	FString Refine(ANWCharacter* Who, const FString& StationType, FName RecipeId, int32 Count) const;
+	/**
+	 * Servidor (docs/oficio.md): arma, escudo ou ferramenta, na hora. Abaixo do nível de fabricar é treino (gasta, dá XP,
+	 * sem item). Do nível em diante gasta material e taxa e sorteia o item. Com OutItem o item volta para quem chamou (que
+	 * pede o número de série e põe na bolsa); sem OutItem vai direto para a bolsa. Devolve a chave do erro ou vazio.
+	 */
+	FString Craft(ANWCharacter* Who, const FString& StationType, FName RecipeId, FNWItem* OutItem = nullptr) const;
+	/** Receita com tempo desta mesa que fabrica o item (nulo se a mesa não faz o item). */
+	const FNWRecipe* RecipeFor(FName ItemId, const FString& StationType) const;
+	/** Faixa de GS do item da receita para o personagem: faixa do catálogo + bônus do artesão pelo nível (teto gs_maximo). */
+	FIntPoint GsRange(const ANWCharacter* Who, const FNWRecipe& R) const;
+	/** Custo da melhoria em material (provisório, tools/itens.json "_custos": primeiro material da receita; sortear 2,
+	 *  sortear GS 2, desvincular 2 + qualidade/10). Qty 0 = não dá para fazer neste item. */
+	FNWRecipe::FIngredient ImproveCost(const FNWRecipe& R, const FNWItem& Item, ENWImprove Kind) const;
+	/** Servidor: melhoria no item da bolsa (só a parte dela muda); Before e After recebem o item antes e depois. Devolve
+	 *  a chave do erro ou vazio. */
+	FString Improve(ANWCharacter* Who, const FString& StationType, int32 BagSlot, ENWImprove Kind, FNWItem* Before = nullptr,
+		FNWItem* After = nullptr) const;
 
 private:
 	FNWCrafting();
 	TArray<FStation> StationList;
 	TArray<FNWRecipe> Recipes;
+	const class ANWStation* NearStation(const ANWCharacter* Who, const FString& StationType) const;
+	/** Gasta os ingredientes de Count receitas; devolve o que saiu (para devolver ao cancelar). */
+	TArray<FNWItem> Spend(ANWCharacter* Who, const FNWRecipe& R, int32 Count) const;
 	TMap<FName, TArray<FName>> Categories;
 };
 

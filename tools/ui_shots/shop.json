@@ -1,0 +1,14 @@
+{
+ "screen": "shop",
+ "shop": "queda_eterna_mercador",
+ "title": "Loja",
+ "coins": 5000,
+ "items": [["OreT1", 24]],
+ "bought": {"SandpaperT5": 100, "FluxT5": 30},
+ "shots": [
+  {"name": "grade", "mouse": [700, 300]},
+  {"name": "pocao", "item": "PotionHealthT5", "count": 5},
+  {"name": "fundente", "item": "FluxT5", "count": 20},
+  {"name": "limite", "item": "SandpaperT5"}
+ ]
+}

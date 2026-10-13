@@ -10,7 +10,10 @@
 #include "Misc/Paths.h"
 #include "NWCharacter.h"
 #include "NWCrafting.h"
+#include "NWHUD.h"
 #include "NWInteractable.h"
+#include "NWPlayerController.h"
+#include "NWShop.h"
 #include "NWText.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -26,7 +29,9 @@ ANWNpc::ANWNpc()
 	RootComponent = Capsule;
 	Body = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Body"));
 	Body->SetupAttachment(Capsule);
-	Body->SetRelativeLocation(FVector(0.f, 0.f, -86.f));
+	// Malha do jogo olha para +Y: mesma correção do jogador (NWCharacter), para o ator e a malha olharem juntos (virar
+	// para quem conversa).
+	Body->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -86.f), FRotator(0.f, -90.f, 0.f));
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Body->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	Body->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
@@ -112,7 +117,8 @@ void ANWNpcField::BeginPlay()
 			Foot = Hit.ImpactPoint;
 		}
 		const FVector Loc = Foot + FVector(0, 0, 86.0);
-		const FRotator Rot(0.0, N->GetNumberField(TEXT("yaw")), 0.0);
+		// "yaw" dos dados é o do ator com a malha sem correção; +90 compensa o giro da malha acima (pose igual).
+		const FRotator Rot(0.0, N->GetNumberField(TEXT("yaw")) + 90.0, 0.0);
 		FActorSpawnParameters SP;
 		SP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		ANWNpc* Npc = GetWorld()->SpawnActor<ANWNpc>(ANWNpc::StaticClass(), Loc, Rot, SP);
@@ -133,6 +139,23 @@ void ANWNpcField::BeginPlay()
 		Npc->Setup(N->GetStringField(TEXT("variant")), FText::FromString(Name),
 			FString::Printf(TEXT("%s/NPCs/%s/%s.%s"), *AssetRoot, *MeshName, *MeshName, *MeshName),
 			AnimName.IsEmpty() ? FString() : FString::Printf(TEXT("%s/Anims/A_%s.A_%s"), *AssetRoot, *AnimName, *AnimName));
+		// Mercador da loja do port (tools/shops.json): cartão "Loja · [E] Comprar" abre a tela da loja no cliente.
+		if (const FNWShop* Shop = FNWShops::Get().ForNpc(Npc->Variant))
+		{
+			const FString ShopId = Shop->Id;
+			const FString Title = NWText::Get(TEXT("ui_shop_default_name"));
+			Npc->Interact->SetActive(true);
+			Npc->Interact->DisplayName = FText::FromString(Title);
+			Npc->Interact->ActionKey = TEXT("ui_buy");
+			Npc->Interact->OnInteract = [ShopId, Title](ANWCharacter* Who)
+			{
+				ANWPlayerController* PC = Who ? Cast<ANWPlayerController>(Who->GetController()) : nullptr;
+				if (ANWHUD* HUD = PC ? Cast<ANWHUD>(PC->GetHUD()) : nullptr)
+				{
+					HUD->OpenShop(Who, ShopId, Title);
+				}
+			};
+		}
 		Npcs.Add(Npc);
 	}
 	UE_LOG(LogTemp, Log, TEXT("NPCs: %d de %s"), Npcs.Num(), *File);

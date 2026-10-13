@@ -32,7 +32,7 @@ ICONS = {os.path.basename(p)[:-4]: p for p in open(os.path.join(ROOT, "extract",
 # Classe do jogo -> conjunto de arma do personagem (ANWCharacter::WeaponSets) ou escudo.
 WEAPON_CLASSES = [("EquippableMainHand+Sword", "Sword"), ("EquippableMainHand+Hatchet", "Hatchet"), ("+Shield", "Shield")]
 SKIP = re.compile(r"Dagger|_Shop|_FTUE|Covenant|Syndicate|Marauder|Winter|Named|Debug|Legacy|Crassus|Test|_S\d|Season|Artifact|Quest|Faction|PvP|Unique|Omega|Skin|AI_", re.I)
-POTIONS = ["PotionHealthT1", "PotionHealthT2", "PotionHealthT3", "PotionHealthT4", "PotionHealthT5"]
+POTIONS = ["PotionHealthT5"]   # decisão do dono (2026-10-13): só a poção T5 existe no port
 # Materiais básicos (minério, madeira, fibra, couro cru, pedra), tiers 1 e 2.
 RESOURCES = ["OreT1", "WoodT1", "FiberT1", "RawhideT1", "StoneT1", "WoodT2"]
 PER_TIER = 3   # armas por conjunto e tier no catálogo
@@ -65,7 +65,14 @@ def text(loc, key, fallback=""):
     key = str(key or "").lstrip("@").lower()
     t = loc.get(key, fallback)
     t = re.sub(r"<[^>]+>", "", t.replace("\\n", "\n")).strip()
-    return t
+    # Expressões que o jogo calcula ao mostrar: "{[0.100000 * 100]}" -> "10" (só números e + - * / ( )).
+    def calc(m):
+        expr = m.group(1)
+        if not re.fullmatch(r"[\d.\s+\-*/()]+", expr):
+            return m.group(0)
+        v = eval(expr, {"__builtins__": {}})
+        return f"{v:.2f}".rstrip("0").rstrip(".")
+    return re.sub(r"\{\[([^\]]+)\]\}", calc, t)
 
 
 def loot_tables(items, roots):
@@ -185,6 +192,10 @@ def main():
             "name_key": str(r.get("Name") or ""), "desc_key": str(r.get("Description") or ""),
             "type_key": str(r.get("ItemTypeDisplayName") or ""),
             "weight": weights.get(r["ItemID"], 0.0),
+            # Seção do inventário (dynamicitemlist.lua: eItemClass_UI_<classe>) e forma da peça (itemlayout.lua
+            # SetLayoutByItemType: redonda para Resource, Lore, Dye, HousingItem; quadrada no resto).
+            "ui_class": str(r.get("UiItemClass") or "").removeprefix("UI_"),
+            "round": str(r.get("ItemType")) in ("Resource", "Lore", "Dye", "HousingItem"),
         }
         if r.get("ItemType") == "Weapon":
             w = weapons.get(r.get("ItemStatsRef"), {})
@@ -214,7 +225,7 @@ def main():
             "rolls": [
                 {"chance": 1.0, "pick": [e["id"] for e in catalog if e["type"] == "resource" and tier(e, 1)], "qty": [1, 3]},
                 {"chance": 0.5, "pick": [e["id"] for e in catalog if e["type"] == "resource" and tier(e, 1)], "qty": [1, 2]},
-                {"chance": 0.25, "pick": ["PotionHealthT1", "PotionHealthT2"], "qty": [1, 2]},
+                {"chance": 0.25, "pick": ["PotionHealthT5"], "qty": [1, 1]},
                 {"chance": 0.08, "pick": [e["id"] for e in catalog if e["type"] == "weapon" and e["tier"] in (2, 3)], "qty": [1, 1]},
                 {"chance": 0.02, "pick": [e["id"] for e in catalog if e["type"] == "weapon" and e["tier"] in (4, 5)], "qty": [1, 1]},
             ],

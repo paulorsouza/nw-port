@@ -80,6 +80,11 @@ TOptional<FNWCharacterRecord> FNWCharacterRecord::FromJson(const TSharedPtr<FJso
 			Item.Slot = I->GetIntegerField(TEXT("slot"));
 			Item.GearScore = I->GetIntegerField(TEXT("gear_score"));
 			Item.Rarity = uint8(I->GetIntegerField(TEXT("rarity")));
+			const TSharedPtr<FJsonObject>* Props = nullptr;
+			if (I->TryGetObjectField(TEXT("props"), Props))
+			{
+				NWItemProps::Read(Item, *Props);
+			}
 			R.Items.Add(Item);
 		}
 	}
@@ -126,6 +131,7 @@ FString FNWCharacterRecord::StateJson() const
 		I->SetNumberField(TEXT("slot"), Item.Slot);
 		I->SetNumberField(TEXT("gear_score"), Item.GearScore);
 		I->SetNumberField(TEXT("rarity"), Item.Rarity);
+		I->SetObjectField(TEXT("props"), NWItemProps::Write(Item));
 		Inv.Add(MakeShared<FJsonValueObject>(I));
 	}
 	Obj->SetArrayField(TEXT("inventory"), Inv);
@@ -367,11 +373,27 @@ namespace
 				Item.Slot = int32(I->GetNumberField(TEXT("slot")));
 				Item.GearScore = int32(I->GetNumberField(TEXT("gear_score")));
 				Item.Rarity = uint8(I->GetNumberField(TEXT("rarity")));
+				const TSharedPtr<FJsonObject>* Props = nullptr;
+				if (I->TryGetObjectField(TEXT("props"), Props))
+				{
+					NWItemProps::Read(Item, *Props);
+				}
 				Out.Add(Item);
 			}
 		}
 		return Out;
 	}
+}
+
+void UNWBackend::IssueSerial(const FString& CharacterId, TFunction<void(bool, const FString&)> Done)
+{
+	Request(TEXT("POST"), FString::Printf(TEXT("/internal/characters/%s/serials"), *CharacterId), FString(), true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			FString Serial;
+			const bool bOk = Status == 201 && Json && Json->TryGetStringField(TEXT("serial"), Serial);
+			Done(bOk, Serial);
+		});
 }
 
 void UNWBackend::GetStorage(const FString& CharacterId, const FString& Location,
@@ -404,6 +426,7 @@ void UNWBackend::PutStorage(const FNWCharacterRecord& Record, const FString& Loc
 		I->SetNumberField(TEXT("slot"), Item.Slot);
 		I->SetNumberField(TEXT("gear_score"), Item.GearScore);
 		I->SetNumberField(TEXT("rarity"), Item.Rarity);
+		I->SetObjectField(TEXT("props"), NWItemProps::Write(Item));
 		Arr.Add(MakeShared<FJsonValueObject>(I));
 	}
 	Body->SetArrayField(TEXT("items"), Arr);

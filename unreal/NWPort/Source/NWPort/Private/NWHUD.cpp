@@ -1,4 +1,5 @@
 #include "NWHUD.h"
+#include "NWShop.h"
 #include "NWProgressionComponent.h"
 #include "NWCreature.h"
 #include "NWText.h"
@@ -104,6 +105,7 @@ void ANWHUD::ReloadLanguage()
 	Tradeskills = FNWTradeskillMenu();
 	Attributes.Close();
 	Attributes = FNWAttributesMenu();
+	Inventory.Close();
 	Inventory = FNWInventoryMenu();
 	FNWItemCatalog::Get().Reload();
 	Respawn = FNWRespawnScreen();
@@ -246,6 +248,7 @@ void ANWHUD::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Login.Deactivate();
 	Chat.Close();
+	Inventory.Close();
 	Super::EndPlay(Reason);
 }
 
@@ -399,6 +402,8 @@ void ANWHUD::DrawGameHUD()
 		if (APlayerController* PC = GetOwningPlayerController())
 		{
 			PC->GetMousePosition(MX, MY);
+			// Arrastar e soltar: o soltar do botão chega aqui (o apertar vem pelo clique do controlador).
+			Inventory.Hold(FVector2D(MX, MY), PC->IsInputKeyDown(EKeys::LeftMouseButton));
 		}
 		Inventory.Draw(Canvas, FVector2D(MX, MY));
 		DrawLootTicker();
@@ -429,14 +434,34 @@ void ANWHUD::DrawGameHUD()
 		DrawNavbar(1, FVector2D(MX, MY));
 		return;
 	}
-	if (Refining.IsOpen() || Storage.IsOpen())
+	if (Shop.IsOpen())
 	{
 		float MX = 0.f, MY = 0.f;
 		if (APlayerController* PC = GetOwningPlayerController())
 		{
 			PC->GetMousePosition(MX, MY);
+			Shop.Hold(FVector2D(MX, MY), PC->IsInputKeyDown(EKeys::LeftMouseButton));
 		}
-		Refining.IsOpen() ? Refining.Draw(Canvas, FVector2D(MX, MY)) : Storage.Draw(Canvas, FVector2D(MX, MY));
+		Shop.Draw(Canvas, FVector2D(MX, MY));
+		return;
+	}
+	if (Refining.IsOpen())
+	{
+		float MX = 0.f, MY = 0.f;
+		if (APlayerController* PC = GetOwningPlayerController())
+		{
+			PC->GetMousePosition(MX, MY);
+			if (Refining.IsOpen())
+			{
+				// Arrastar a barra e repetir −/+ segurando; Espaço é a ação tryskip do jogo (o pulo já para com tela aberta).
+				Refining.Hold(FVector2D(MX, MY), PC->IsInputKeyDown(EKeys::LeftMouseButton));
+				if (PC->WasInputKeyJustPressed(EKeys::SpaceBar))
+				{
+					Refining.Space();
+				}
+			}
+		}
+		Refining.Draw(Canvas, FVector2D(MX, MY));
 		return;
 	}
 	if (Attributes.IsOpen())
@@ -662,7 +687,9 @@ void ANWHUD::DrawNpcNames(const APawn* Me)
 	{
 		const ANWNpc* Npc = *It;
 		const FNWNpcRewards::EState State = FNWNpcRewards::Get().StateFor(Npc, Char->Interactor->RewardClaims);
-		if (State == FNWNpcRewards::EState::None)
+		// Mercador (tools/shops.json): eConversationState_HasShop, icon_npcshop (staticworldmarker.lua).
+		const bool bShop = FNWShops::Get().ForNpc(Npc->Variant) != nullptr;
+		if (State == FNWNpcRewards::EState::None && !bShop)
 		{
 			continue;
 		}
@@ -673,7 +700,8 @@ void ANWHUD::DrawNpcNames(const APawn* Me)
 		{
 			continue;
 		}
-		UTexture2D* T = FNWUILayout::GameTexture(State == FNWNpcRewards::EState::Available
+		UTexture2D* T = bShop ? FNWUILayout::GameTexture(TEXT("lyshineui/images/icons/objectives/icon_npcshop.dds"))
+			: FNWUILayout::GameTexture(State == FNWNpcRewards::EState::Available
 			? TEXT("lyshineui/images/icons/objectives/icon_questavailable_npc.dds")
 			: TEXT("lyshineui/images/icons/objectives/icon_questcooldown_npc.dds"));
 		if (!T)
@@ -994,7 +1022,7 @@ void ANWHUD::DrawLootTicker()
 		if (L.Coins > 0)
 		{
 			Tex(TEXT("lyshineui/images/icons/objectives/reward_coin_cover.dds"), Row + FVector2D(52.f, 8.f) * S, FVector2D(42.f) * S, Alpha);
-			Text(FString::Printf(TEXT("+%lld"), L.Coins), Row.X + 107.f * S, Row.Y + 14.f * S, 19.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
+			Text(TEXT("+") + UNWInventoryComponent::FormatCoins(L.Coins), Row.X + 107.f * S, Row.Y + 14.f * S, 19.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
 			Text(NWText::Get(TEXT("nw.inv.coins")), Row.X + 175.f * S, Row.Y + 14.f * S, 18.f, Tan, Alpha);
 			continue;
 		}
@@ -1528,6 +1556,21 @@ void ANWHUD::OpenRefining(ANWCharacter* Who, ANWStation* Station)
 	PC->EnterCanvasMenu();
 }
 
+void ANWHUD::OpenShop(ANWCharacter* Who, const FString& ShopId, const FString& Title)
+{
+	ANWPlayerController* PC = Cast<ANWPlayerController>(GetOwningPlayerController());
+	if (!PC || !Who)
+	{
+		return;
+	}
+	PC->CloseMenus();
+	Shop.Open(Who, ShopId, Title);
+	if (Shop.IsOpen())
+	{
+		PC->EnterCanvasMenu();
+	}
+}
+
 void ANWHUD::OpenStorage(ANWCharacter* Who, ANWStation* Station)
 {
 	ANWPlayerController* PC = Cast<ANWPlayerController>(GetOwningPlayerController());
@@ -1538,7 +1581,8 @@ void ANWHUD::OpenStorage(ANWCharacter* Who, ANWStation* Station)
 	PC->CloseMenus();
 	// Armazém da cidade: um por personagem em cada assentamento (backend: settlement:<cidade>).
 	Who->Interactor->ServerStorageOpen(TEXT("settlement:") + Station->City);
-	Storage.Open(Who, Station->Interact->DisplayName.ToString());
+	// Inventário com o armazém à esquerda (catcontainer.lua): arrastar entre os dois.
+	Inventory.OpenStorage(Who, Station->Interact->DisplayName.ToString());
 	PC->EnterCanvasMenu();
 }
 
@@ -1549,14 +1593,14 @@ bool ANWHUD::StationMenuWheel(float Delta)
 		Refining.Wheel(Delta);
 		return true;
 	}
-	if (Storage.IsOpen())
+	if (Inventory.IsStorageMode())
 	{
 		float MX = 0.f, MY = 0.f;
 		if (APlayerController* PC = GetOwningPlayerController())
 		{
 			PC->GetMousePosition(MX, MY);
 		}
-		Storage.Wheel(Delta, FVector2D(MX, MY));
+		Inventory.Wheel(Delta, FVector2D(MX, MY));
 		return true;
 	}
 	return false;

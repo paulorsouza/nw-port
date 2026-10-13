@@ -1,0 +1,57 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "NWItems.h"
+
+/**
+ * Regras de item e de ofício do port (docs/itens.md, docs/oficio.md), em Data/Items/regras_itens.json
+ * (tools/make_itens.py a partir de tools/itens.json e tools/perks_decisoes.json).
+ */
+class NWPORT_API FNWItemRules
+{
+public:
+	static const FNWItemRules& Get();
+
+	struct FPerk
+	{
+		TMap<FString, FString> Name, Effect;   // por idioma; Effect com {v} no lugar do valor (perks do port)
+		float Min = 0.f, Max = 0.f;           // faixa (0 e 0: perk do jogo, efeito sem faixa)
+		FString Icon;
+	};
+
+	int32 CraftLevel = 50;
+	float SignQuality = 80.f;
+	float AttrPerGs = 0.05f;
+	int32 PerksPerItem = 3;
+	int32 PerksPerRing = 2;
+	int32 AbilityPerksMax = 1;
+	int32 GsMax = 800;
+	float QualityMinCraftMax = 20.f;
+	float QualityMinAllMax = 50.f;
+	TArray<FName> Attributes;                  // strength, dexterity, intelligence, focus, constitution
+	TMap<FName, FPerk> Perks;
+	TMap<FString, TArray<FName>> Equipment;    // arma, escudo, armadura, amuleto, anel, brinco, ferramenta
+	TMap<FName, TArray<FName>> Ability;        // conjunto da arma (Sword, Hatchet...) -> perks de habilidade
+	TArray<FName> HealWeapons;                 // armas que também rolam Cura causada
+
+	/** Classe de equipamento do item ("arma", "escudo", "ferramenta"...; vazio = não leva perk). */
+	static FString EquipClass(const FNWItemDef& D);
+	/** Perks que podem cair no item: as do equipamento, as de habilidade da arma e Cura causada nas armas de cura. */
+	TArray<FName> PerkPool(const FNWItemDef& D) const;
+	/** Valor da perk com a qualidade do item (uma casa decimal); 0 se a perk não tem faixa. */
+	float PerkValue(FName Perk, float Quality) const;
+	/** Texto da perk no idioma atual, com o valor da qualidade. */
+	FString PerkText(FName Perk, float Quality, bool bName) const;
+	/** Valor do atributo pelo gear score (docs/itens.md, provisório). */
+	int32 AttrValue(int32 GearScore) const;
+	/** Qualidade mínima do sorteio pelo nível do ofício (0 no nível 0, QualityMinCraftMax no máximo). */
+	float QualityMin(int32 SkillLevel, int32 MaxLevel) const;
+	/**
+	 * Monta o item fabricado: GS sorteado na faixa (Min..Max), atributo, qualidade (de QualMin a 100), perks sem repetir e
+	 * vínculo ao equipar. Signer fica com o nome do artesão quando a qualidade passa de SignQuality.
+	 */
+	FNWItem Roll(FName ItemId, int32 RollMin, int32 RollMax, float QualMin, const FString& Crafter) const;
+
+private:
+	FNWItemRules();
+};

@@ -13,6 +13,7 @@ Tabelas do jogo em `extract/data/sharedassets/springboardentitites/datatables/` 
 | Conversão | `tools/build_all.sh sistemas-01` (`convert_city.sh settlement_northwindsward_complete`) → `extract/cities/limpa/settlement_northwindsward_complete.glb`, `extract/cities/northwindsward_terrain.glb` |
 | Slices em JSON | `tools/build_all.sh sistemas-02` → `extract/slicejson/slices/...` (cidade e lotes `housing/plots/northwindsward/`) |
 | Import | `tools/ue_import_all.sh sistemas-01` (cidade, `L_QuedaEterna`) e `sistemas-02` (terreno, partida, materiais); `tools/etapas/sistemas.ue.sh` |
+| Exposição | volume `ExposicaoDoJogo` no mapa (`tools/ue/city_exposure.py`, etapa `sistemas-04`): histograma de 0,1 a 1, da faixa 1x–10x do ciclo de dia do jogo (`libs/timeofday/zones/everfall_a.xml`); o projeto desliga a exposição automática |
 | Ponto de partida | com o editor aberto no mapa (fora do Play): `python3 tools/ue/remote.py tools/ue/spawn_trace.py`. O `fix_spawn.py` deixava o personagem dentro do piso da praça e ele atravessava a cidade e o terreno |
 
 Território 4 = `@Everfall` (`DT/javelindata_territorydefinitions`): nível 1–25, TerritoryStandingXpModifier 1.25,
@@ -77,6 +78,8 @@ Port (esteira 4):
 
 ## 2. Estações de refino e ofício
 
+Regras do port para fabricar (tempo, espectros, evolução das mesas): `docs/oficio.md`. Itens fabricados: `docs/itens.md`.
+
 Jogo:
 - Receitas: `DT/javelindata_crafting_*` (14 arquivos, 8294 linhas; `javelindata_crafting` vazia). Colunas: RecipeID,
   CraftingCategory, Tradeskill, RecipeLevel, StationType1..4, ItemID, OutputQty, Ingredient1..7, Type1..7
@@ -117,6 +120,25 @@ Port (refino, esteira 4):
   `StationMenuClick`, `StationMenuWheel`).
 - Dev: F10 > "Bolsa de dev (peso)" alterna o peso máximo entre 1.000 e 10.000.000 (não salva).
 
+Port (fabricar, esteira 4, 2026-10-13; regras em `docs/oficio.md` e `docs/itens.md`; testado pelo dono):
+- Mesas: forja (`blacksmith`, Weaponsmithing), oficina (`engineering`, Engineering) e repositório arcano (`alchemy`,
+  Arcana) do slice da cidade. 33 receitas de arma, escudo e ferramenta T2–T5 (`gear` em `refining.json`, com material
+  refinado fixo do tier) e 9 de alquimia (poção de vida T5, reagentes T2), na hora como o refino.
+- Ofícios 9..11 na progressão (tabelas do jogo até 250, com o bônus de GS do artesão por tier).
+- Servidor: `FNWCrafting::Craft` / `UNWInteractorComponent::ServerCraft`. Abaixo do nível 50 é treino (só XP). Do 50 em
+  diante o item é sorteado (`FNWItemRules::Roll`, faixa `FNWCrafting::GsRange`) e vai para a bolsa; item assinado
+  (qualidade ≥ 80%) pega o número de série no nw-core antes (migração 0009, `backend/src/routes/serials.rs`).
+- Melhorar (aba "Melhorar itens" da mesa): `ServerImprove` / `FNWCrafting::Improve` com `ENWImprove` Attribute (outro
+  atributo), GearScore (sorteia de novo na faixa da fabricação, sobe ou desce) e Unbind. Custo provisório em
+  `FNWCrafting::ImproveCost` (`tools/itens.json` `_custos`).
+- Resultado: `ClientCraftResult` (item antes e depois) → `UNWInteractorComponent::CraftResult`; a tela espera o `Seq`
+  e mostra o roll de equipamento do jogo (`FNWRefiningMenu::DrawGearRoll`, `docs/analise-re/craftroll-equipamento.md`).
+- Item: `FNWItem` com atributo, qualidade, perks, gema, vínculo e assinatura (`props` no nw-core, migração 0008);
+  regras em `Data/Items/regras_itens.json` (`tools/make_itens.py`, `tools/itens.json`, `tools/perks_decisoes.json`).
+  Tooltip com perks com ícone e o slot de gema (moldura do soquete).
+- Captura: `tools/ui_shots/forja.json` (receitas e o roll no meio e no fim). Dev (F10): "+50 níveis nos ofícios de
+  fabricar" e "Materiais de fabricar".
+
 Tela (2026-10-13): `craftingscreenv4` no modo refino com estilos e posições do Lua (`docs/hud/refino.md`,
 `tools/ui_screens/refining.json`), conferida pela captura sem o jogo (`tools/ui_shots/refining.json`) e testada pelo
 dono. O que falta na tela: `docs/hud/README.md`.
@@ -140,7 +162,9 @@ Port (esteira 4):
   - Grava no nw-core bolsa e armazém juntos (`UNWBackend::PutStorage`, com versão). Se der 409, relê, refaz e grava
     de novo uma vez.
   - Sem backend (PIE), fica na memória.
-- Tela provisória `FNWStorageMenu`: bolsa e despensa lado a lado, peso de cada lado; clique move a pilha inteira.
+- Tela: o inventário do jogo em modo armazém (`FNWInventoryMenu::OpenStorage`, `docs/hud/inventario.md`): segunda
+  janela à direita, arrastar entre as duas, Shift + clique, dividir pilha, mover a seção inteira e "Pegar tudo"
+  (`ServerStorageMoveMany`, uma gravação só).
 
 ## 4. Lojas e mercadores
 
@@ -148,7 +172,22 @@ Jogo: `DT/javelindata_shopdata` (11 lojas de facção/evento com moeda própria)
 (`crafting_specialtyshops`, estações `Specialty_*Shop1`). Moedas em tabelas `*currency`. Não há tabela de vendedor
 NPC com estoque e preço em ouro.
 
-Port: moedas (`UNWInventoryComponent::Coins`), sem loja.
+Os itens e preços das lojas de facção ficam no servidor do jogo (o cliente só tem o cabeçalho em `shopdata`).
+
+Port (decisão do dono 2026-10-13: loja enxuta, só o essencial, sem itens genéricos):
+- Moedas em centavos como no jogo (`UNWInventoryComponent::FormatCoins`, ÷100 do `GetLocalizedCurrency`).
+- Poções: só a T5 existe no port (catálogo, saque do Lost e kit inicial). T1–T4 somem de quem já tinha ao entrar
+  (item fora do catálogo não carrega).
+- Mercador de Queda Eterna: `EF_Ambient_Merchant_00`, cartão "Loja · [E] Comprar" (`ui_shop_default_name`, `ui_buy`).
+- Lista e preços em `tools/shops.json` → `Data/World/shops.json` (`make_crafting.py`): Poção de vida T5 2,00; os 5
+  reagentes de refino T5 a 0,20 com limite semanal de 100 por personagem (número do port, ajustável no arquivo).
+- Limite renova com os brindes (terça 08:00 UTC). Compras da semana em `progression.shop` (`{period, bought}`); sem
+  mudança no backend.
+- Servidor: `UNWInteractorComponent::ServerShopBuy` confere NPC a 4 m, limite, moedas e peso; paga só o que entrou na
+  bolsa; grava na hora (`ANWGameMode::SavePlayer`).
+- Tela `FNWShopMenu` com o canvas do jogo `lyshineui/shop/shop` (`tools/ui_screens/shop.json`): grade de cartões
+  (`shopgriditem.lua`, espaço 11×12) e detalhe com quantidade e botão herói com o custo; no limite, relógio vermelho no
+  cartão e "Próxima recarga" com o tempo até renovar. Sem painel de rank nem prévia 3D. Captura: `tools/ui_shots/shop.json`.
 
 ## 5. Mercado (posto de trocas)
 
@@ -225,8 +264,8 @@ Implementação:
 - Ao concluir: o XP exato de N níveis (`XpForLevel`) e o aviso "Missão concluída".
 - Depois de todas: cada abate dá 25% do XP do nível atual, até o 60 (regra do port, `apos_tutoriais`; a base do
   jogo é a pergunta `sistemas-004`).
-- Campo de treino: 4 bonecos em Queda Eterna, a 12 m da praça (`tools/tutorials.json` "bonecos"), criados pelo
-  `ANWNpcField` no servidor.
+- Campo de treino: o `ANWNpcField` cria os bonecos de `tools/tutorials.json` "bonecos" no servidor. Os 4 de Queda
+  Eterna saíram do meio da cidade (pedido do dono 2026-10-13); a lista da cidade está vazia até haver um lugar para eles.
 - F10 > "Missões" mostra quantas foram concluídas; o clique lista as que faltam.
 
 ## Sem fonte
@@ -235,7 +274,7 @@ Implementação:
 - Tier atual de cada estação de Queda Eterna (estado de servidor).
 - Capacidade base do armazém e kg por ponto de TB_GainStorage.
 - Valores da taxa de estação e de propriedade (as do posto de trocas vieram em `sistemas-003`).
-- Vendedor NPC: estoque e preço em ouro.
+- Vendedor NPC: estoque e preço em ouro (lista e preços da loja são do port, `tools/shops.json`).
 - XP base por abate: calculado no servidor do jogo (`sistemas-004`). As tabelas dão base baixa (inimigo 60 comum
   ≈ 69 XP); a regra de XP depois dos tutoriais é do port.
 - Qual HouseType cada lote usa.

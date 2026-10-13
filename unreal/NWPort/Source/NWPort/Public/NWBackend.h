@@ -101,6 +101,8 @@ public:
 		TFunction<void(bool bOk, int32 Status)> Done);
 	// Armazém (esteira 4): ler e gravar um local ("settlement:<cidade>", "house:<id>") com a versão lida; a gravação
 	// leva junto a bolsa e as moedas do Record. Status 200 ok, 409 o armazém mudou (ler de novo).
+	/** Número de série de um item assinado; o personagem é o artesão (docs/itens.md, Assinatura). */
+	void IssueSerial(const FString& CharacterId, TFunction<void(bool bOk, const FString& Serial)> Done);
 	void GetStorage(const FString& CharacterId, const FString& Location,
 		TFunction<void(bool bOk, int64 Version, const TArray<FNWItem>& Items)> Done);
 	void PutStorage(const FNWCharacterRecord& Record, const FString& Location, int64 Version, const TArray<FNWItem>& Items,

@@ -566,6 +566,12 @@ float FNWUILayout::TextScale(UCanvas* Canvas, const FNWUIElement& E, UFont* Font
 	return E.FontSize * UIScale / FMath::Max(1, Font->LegacyFontSize);
 }
 
+// caseoverride do LyShine. FString::ToUpper só troca ASCII ("FUNDIçãO"); FText usa as regras do idioma.
+static FString NWUICaseOverride(const FString& Raw, int32 Case)
+{
+	return Case == 2 ? FText::FromString(Raw).ToUpper().ToString() : Case == 1 ? FText::FromString(Raw).ToLower().ToString() : Raw;
+}
+
 float FNWUILayout::TextWidth(UCanvas* Canvas, const FNWUIElement& E, float UIScale) const
 {
 	const FString& Raw = E.TextOverride.IsSet() ? E.TextOverride.GetValue() : E.Text;
@@ -574,7 +580,7 @@ float FNWUILayout::TextWidth(UCanvas* Canvas, const FNWUIElement& E, float UISca
 	{
 		return 0.f;
 	}
-	const FString Str = E.CaseOverride == 2 ? Raw.ToUpper() : E.CaseOverride == 1 ? Raw.ToLower() : Raw;
+	const FString Str = NWUICaseOverride(Raw, E.CaseOverride);
 	const float S = TextScale(Canvas, E, Font, UIScale);
 	const float Extra = FMath::Abs(E.CharSpacing) > 1.f ? E.CharSpacing * 0.001f * E.FontSize * UIScale : 0.f;
 	TArray<FString> Lines;
@@ -596,7 +602,7 @@ void FNWUILayout::DrawText(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect,
 		return;
 	}
 	const FString& Raw = E.TextOverride.IsSet() ? E.TextOverride.GetValue() : E.Text;
-	const FString Str = E.CaseOverride == 2 ? Raw.ToUpper() : E.CaseOverride == 1 ? Raw.ToLower() : Raw;
+	const FString Str = NWUICaseOverride(Raw, E.CaseOverride);
 	UFont* Font = TextFont(E);
 	if (Str.IsEmpty() || !Font)
 	{

@@ -6,11 +6,14 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use crate::auth::GameServer;
 use crate::error::{ApiError, ApiResult};
+use crate::routes::characters::{empty_props, is_bound, validate_props};
+use crate::routes::serials;
 use crate::routes::storage::{deliver, is_territory, Snapshot};
 use crate::AppState;
 
@@ -26,6 +29,7 @@ pub struct Order {
     pub quantity: i32,
     pub gear_score: i32,
     pub rarity: i16,
+    pub props: Value,
     pub unit_price: i64,
     pub fee: i64,
     pub status: String,
@@ -38,7 +42,7 @@ pub struct Order {
 /// Colunas de `Order`, em macro para entrar em `concat!` (o sqlx só aceita SQL estático).
 macro_rules! order_columns {
     () => {
-        "id, territory, kind, character_id, item_id, quantity, gear_score, rarity, unit_price, fee, status, created_at, expires_at"
+        "id, territory, kind, character_id, item_id, quantity, gear_score, rarity, props, unit_price, fee, status, created_at, expires_at"
     };
 }
 
@@ -59,6 +63,8 @@ pub struct CreateOrder {
     pub gear_score: i32,
     #[serde(default)]
     pub rarity: i16,
+    #[serde(default = "empty_props")]
+    pub props: Value,
     pub unit_price: i64,
     #[serde(default)]
     pub fee: i64,
@@ -75,6 +81,7 @@ pub struct FillOrder {
     /// Ordem de compra: o item que o vendedor entrega (padrão: o da ordem).
     pub gear_score: Option<i32>,
     pub rarity: Option<i16>,
+    pub props: Option<Value>,
     /// Bolsa e moedas de quem fecha a ordem, já com o pagamento (venda) ou o item tirado e as moedas (compra).
     #[serde(flatten)]
     pub snapshot: Snapshot,
@@ -113,7 +120,7 @@ async fn credit(tx: &mut sqlx::PgConnection, character_id: Uuid, amount: i64, re
 async fn close(tx: &mut sqlx::PgConnection, o: &Order, status: &str) -> ApiResult<()> {
     if o.quantity > 0 {
         if o.kind == "sell" {
-            deliver(tx, o.character_id, &settlement(&o.territory), &o.item_id, o.quantity, o.gear_score, o.rarity).await?;
+            deliver(tx, o.character_id, &settlement(&o.territory), &o.item_id, o.quantity, o.gear_score, o.rarity, &o.props).await?;
         } else {
             credit(tx, o.character_id, o.unit_price * o.quantity as i64, "market_refund", o.id).await?;
         }
@@ -123,6 +130,9 @@ async fn close(tx: &mut sqlx::PgConnection, o: &Order, status: &str) -> ApiResul
         .bind(status)
         .execute(&mut *tx)
         .await?;
+    if o.kind == "sell" && o.quantity > 0 {
+        serials::verify(tx, o.character_id, &settlement(&o.territory), &serials::serials([&o.props])).await?;
+    }
     Ok(())
 }
 
@@ -181,14 +191,18 @@ pub async fn create(
     if c.item_id.is_empty() || c.item_id.len() > 80 || c.quantity <= 0 || c.unit_price <= 0 || c.fee < 0 {
         return Err(ApiError::bad_request("invalid_order", "Item, quantidade, preço ou taxa inválidos."));
     }
+    validate_props(&c.props, &c.item_id).map_err(|e| ApiError::bad_request("invalid_order", e))?;
+    if is_bound(&c.props) {
+        return Err(ApiError::bad_request("item_bound", "Item vinculado não vai ao posto de trocas."));
+    }
     if !(1..=MAX_HOURS).contains(&c.duration_hours) {
         return Err(ApiError::bad_request("invalid_order", "Duração inválida."));
     }
     c.snapshot.validate()?;
     let mut tx = state.db.begin().await?;
     c.snapshot.apply(&mut tx, c.character_id).await?;
-    let order: Order = sqlx::query_as(concat!("insert into market_orders (id, territory, kind, character_id, item_id, quantity, gear_score, rarity, unit_price, fee, expires_at)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning ", order_columns!(), ""))
+    let order: Order = sqlx::query_as(concat!("insert into market_orders (id, territory, kind, character_id, item_id, quantity, gear_score, rarity, props, unit_price, fee, expires_at)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) returning ", order_columns!(), ""))
     .bind(Uuid::new_v4())
     .bind(&territory)
     .bind(&c.kind)
@@ -197,11 +211,14 @@ pub async fn create(
     .bind(c.quantity)
     .bind(c.gear_score)
     .bind(c.rarity)
+    .bind(&c.props)
     .bind(c.unit_price)
     .bind(c.fee)
     .bind(OffsetDateTime::now_utc() + Duration::hours(c.duration_hours))
     .fetch_one(&mut *tx)
     .await?;
+    serials::verify(&mut tx, c.character_id, "bag", &c.snapshot.serials()).await?;
+    serials::verify(&mut tx, c.character_id, "market", &serials::serials([&order.props])).await?;
     tx.commit().await?;
     Ok((StatusCode::CREATED, Json(order)))
 }
@@ -221,6 +238,12 @@ pub async fn fill(
     Json(f): Json<FillOrder>,
 ) -> ApiResult<Json<Order>> {
     f.snapshot.validate()?;
+    if let Some(p) = &f.props {
+        validate_props(p, "ordem").map_err(|e| ApiError::bad_request("invalid_order", e))?;
+        if is_bound(p) {
+            return Err(ApiError::bad_request("item_bound", "Item vinculado não vai ao posto de trocas."));
+        }
+    }
     let mut tx = state.db.begin().await?;
     let o = lock_order(&mut tx, id).await?;
     if o.status == "open" && o.expires_at <= OffsetDateTime::now_utc() {
@@ -241,12 +264,13 @@ pub async fn fill(
     let place = settlement(&o.territory);
     let total = o.unit_price * f.quantity as i64;
     if o.kind == "sell" {
-        deliver(&mut tx, f.character_id, &place, &o.item_id, f.quantity, o.gear_score, o.rarity).await?;
+        deliver(&mut tx, f.character_id, &place, &o.item_id, f.quantity, o.gear_score, o.rarity, &o.props).await?;
         credit(&mut tx, o.character_id, total, "market_sale", o.id).await?;
     } else {
         let gs = f.gear_score.unwrap_or(o.gear_score);
         let rarity = f.rarity.unwrap_or(o.rarity);
-        deliver(&mut tx, o.character_id, &place, &o.item_id, f.quantity, gs, rarity).await?;
+        let props = f.props.as_ref().unwrap_or(&o.props);
+        deliver(&mut tx, o.character_id, &place, &o.item_id, f.quantity, gs, rarity, props).await?;
     }
     let left = o.quantity - f.quantity;
     let updated: Order = sqlx::query_as(concat!("update market_orders set quantity = $2,
@@ -257,6 +281,9 @@ pub async fn fill(
     .bind(left)
     .fetch_one(&mut *tx)
     .await?;
+    serials::verify(&mut tx, f.character_id, "bag", &f.snapshot.serials()).await?;
+    let (owner, delivered) = if o.kind == "sell" { (f.character_id, &o.props) } else { (o.character_id, f.props.as_ref().unwrap_or(&o.props)) };
+    serials::verify(&mut tx, owner, &place, &serials::serials([delivered])).await?;
     tx.commit().await?;
     Ok(Json(updated))
 }

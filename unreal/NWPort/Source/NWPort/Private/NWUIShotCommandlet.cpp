@@ -19,6 +19,10 @@
 #include "NWInventoryComponent.h"
 #include "NWProgressionComponent.h"
 #include "NWRefiningMenu.h"
+#include "NWInventoryMenu.h"
+#include "NWInteractable.h"
+#include "NWNpcRewards.h"
+#include "NWShopMenu.h"
 #include "NWUILayout.h"
 #include "RenderingThread.h"
 #include "Serialization/JsonReader.h"
@@ -91,7 +95,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		return 1;
 	}
 	const FString Screen = S->GetStringField(TEXT("screen"));
-	if (Screen != TEXT("refining"))
+	if (Screen != TEXT("refining") && Screen != TEXT("shop") && Screen != TEXT("inventory"))
 	{
 		UE_LOG(LogNWUIShot, Error, TEXT("tela sem captura: %s"), *Screen);
 		return 1;
@@ -129,15 +133,18 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		UE_LOG(LogNWUIShot, Error, TEXT("não criou personagem/estação"));
 		return 1;
 	}
-	const TSharedPtr<FJsonObject> SO = S->GetObjectField(TEXT("station"));
-	FNWCrafting::FStation Data;
-	Data.Type = SO->GetStringField(TEXT("type"));
-	Data.Tier = int32(SO->GetNumberField(TEXT("tier")));
-	for (const FString Lang : {TEXT("pt-br"), TEXT("en-us")})
+	if (S->HasField(TEXT("station")))
 	{
-		Data.Name.Add(Lang, SO->GetStringField(TEXT("name")));
+		const TSharedPtr<FJsonObject> SO = S->GetObjectField(TEXT("station"));
+		FNWCrafting::FStation Data;
+		Data.Type = SO->GetStringField(TEXT("type"));
+		Data.Tier = int32(SO->GetNumberField(TEXT("tier")));
+		for (const FString Lang : {TEXT("pt-br"), TEXT("en-us")})
+		{
+			Data.Name.Add(Lang, SO->GetStringField(TEXT("name")));
+		}
+		St->Setup(Data);
 	}
-	St->Setup(Data);
 
 	TArray<FNWItem> Items;
 	for (const TSharedPtr<FJsonValue>& V : S->GetArrayField(TEXT("items")))
@@ -147,11 +154,65 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		I.ItemId = FName(A[0]->AsString());
 		I.Quantity = int32(A[1]->AsNumber());
 		I.Slot = Items.Num();
+		I.GearScore = A.Num() > 2 ? int32(A[2]->AsNumber()) : 0;
+		I.Rarity = A.Num() > 3 ? uint8(A[3]->AsNumber()) : 0;
 		Items.Add(I);
+	}
+	// Inventário: equipamento [[item, espaço, gs, raridade]] e armazém [[item, qtd, gs, raridade]].
+	const TArray<TSharedPtr<FJsonValue>>* Equip = nullptr;
+	if (S->TryGetArrayField(TEXT("equip"), Equip))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *Equip)
+		{
+			const TArray<TSharedPtr<FJsonValue>>& A = V->AsArray();
+			FNWItem I;
+			I.ItemId = FName(A[0]->AsString());
+			I.Quantity = 1;
+			I.Container = ENWItemContainer::Equip;
+			I.Slot = int32(A[1]->AsNumber());
+			I.GearScore = A.Num() > 2 ? int32(A[2]->AsNumber()) : 0;
+			I.Rarity = A.Num() > 3 ? uint8(A[3]->AsNumber()) : 0;
+			Items.Add(I);
+		}
+	}
+	TArray<FNWItem> Stored;
+	const TArray<TSharedPtr<FJsonValue>>* StoredArr = nullptr;
+	if (S->TryGetArrayField(TEXT("storage"), StoredArr))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *StoredArr)
+		{
+			const TArray<TSharedPtr<FJsonValue>>& A = V->AsArray();
+			FNWItem I;
+			I.ItemId = FName(A[0]->AsString());
+			I.Quantity = int32(A[1]->AsNumber());
+			I.Slot = Stored.Num();
+			I.GearScore = A.Num() > 2 ? int32(A[2]->AsNumber()) : 0;
+			I.Rarity = A.Num() > 3 ? uint8(A[3]->AsNumber()) : 0;
+			Stored.Add(I);
+		}
+	}
+	if (Me->Interactor)
+	{
+		Me->Interactor->StorageItems = Stored;
+		if (S->HasField(TEXT("storage_capacity")))
+		{
+			Me->Interactor->StorageCapacity = float(S->GetNumberField(TEXT("storage_capacity")));
+		}
 	}
 	Me->Inventory->Load(Items, int64(S->GetNumberField(TEXT("coins"))));
 	Me->Progression->bFromBackend = true;   // exige o nível do ofício, como no jogo com backend
-	for (const auto& T : S->GetObjectField(TEXT("trade"))->Values)
+	// Loja: compras da semana já feitas (limite semanal), {"FluxT5": 100}.
+	const TSharedPtr<FJsonObject>* Bought = nullptr;
+	if (S->TryGetObjectField(TEXT("bought"), Bought))
+	{
+		for (const auto& B : (*Bought)->Values)
+		{
+			Me->Progression->AddShopBought(FName(*FString(B.Key)), int32(B.Value->AsNumber()), FNWNpcRewards::Get().Period());
+		}
+	}
+	const TSharedPtr<FJsonObject>* Trade = nullptr;
+	const TSharedPtr<FJsonObject> NoTrade = MakeShared<FJsonObject>();
+	for (const auto& T : (S->TryGetObjectField(TEXT("trade"), Trade) ? *Trade : NoTrade)->Values)
 	{
 		const int32 Skill = NWTradeskill::Index(FName(*FString(T.Key)));
 		if (Skill != INDEX_NONE)
@@ -190,12 +251,84 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 
 		Me->Inventory->Load(Items, int64(S->GetNumberField(TEXT("coins"))));   // bolsa do cenário a cada captura (o roll refina de verdade)
 		FNWRefiningMenu Menu;
-		Menu.FixedNow = 1000.0;
-		Menu.Open(Me, St);
-		FString Recipe;
-		if (Shot->TryGetStringField(TEXT("recipe"), Recipe))
+		FNWShopMenu Shop;
+		FNWInventoryMenu Inventory;
+		const bool bShop = Screen == TEXT("shop");
+		const bool bInventory = Screen == TEXT("inventory");
+		Menu.FixedNow = Shop.FixedNow = 1000.0;
+		const int32 Count = Shot->HasField(TEXT("count")) ? int32(Shot->GetNumberField(TEXT("count"))) : 1;
+		if (bInventory)
 		{
-			Menu.Select(FName(Recipe), Shot->HasField(TEXT("count")) ? int32(Shot->GetNumberField(TEXT("count"))) : 1);
+			bool bStorageShot = false;
+			Shot->TryGetBoolField(TEXT("storage"), bStorageShot);
+			bStorageShot ? Inventory.OpenStorage(Me, S->GetStringField(TEXT("storage_title"))) : Inventory.Open(Me);
+			// Ordenação: {"sort": 1..4} na lista do inventário, {"storage_sort": 1..4} na do armazém.
+			if (Shot->HasField(TEXT("sort")))
+			{
+				Inventory.ShotSort(0, int32(Shot->GetNumberField(TEXT("sort"))));
+			}
+			if (Shot->HasField(TEXT("storage_sort")))
+			{
+				Inventory.ShotSort(1, int32(Shot->GetNumberField(TEXT("storage_sort"))));
+			}
+			// Busca: {"search": texto} na bolsa, {"storage_search": texto} no armazém.
+			FString Query;
+			if (Shot->TryGetStringField(TEXT("search"), Query))
+			{
+				Inventory.ShotSearch(0, Query);
+			}
+			if (Shot->TryGetStringField(TEXT("storage_search"), Query))
+			{
+				Inventory.ShotSearch(1, Query);
+			}
+			// Popup: {"popup": {"kind": "split|destroy", "from": "bag|storage", "item": Id, "qty": n}}.
+			const TSharedPtr<FJsonObject>* Pop = nullptr;
+			if (Shot->TryGetObjectField(TEXT("popup"), Pop))
+			{
+				const int32 Src = (*Pop)->GetStringField(TEXT("from")) == TEXT("storage") ? 2 : 0;
+				const FName Id((*Pop)->GetStringField(TEXT("item")));
+				const TArray<FNWItem>& Pool = Src == 2 ? Me->Interactor->StorageItems : Me->Inventory->Items;
+				if (const FNWItem* Found = Pool.FindByPredicate([&](const FNWItem& I) { return I.ItemId == Id && (Src == 2 || I.Container == ENWItemContainer::Bag); }))
+				{
+					const int32 Qty = (*Pop)->HasField(TEXT("qty")) ? int32((*Pop)->GetNumberField(TEXT("qty"))) : 0;
+					Inventory.ShotPopup((*Pop)->GetStringField(TEXT("kind")) == TEXT("destroy") ? 2 : 1, Src, Found->Slot, Qty);
+				}
+			}
+			// Arrasto simulado: {"from": "bag|equip|storage", "item": Id}.
+			const TSharedPtr<FJsonObject>* Drag = nullptr;
+			if (Shot->TryGetObjectField(TEXT("drag"), Drag))
+			{
+				const FString From = (*Drag)->GetStringField(TEXT("from"));
+				const FName Id((*Drag)->GetStringField(TEXT("item")));
+				const int32 Src = From == TEXT("equip") ? 1 : From == TEXT("storage") ? 2 : 0;
+				const TArray<FNWItem>& Pool = Src == 2 ? Me->Interactor->StorageItems : Me->Inventory->Items;
+				const FNWItem* Found = Pool.FindByPredicate([&](const FNWItem& I)
+				{
+					return I.ItemId == Id && (Src == 2 || I.Container == (Src == 1 ? ENWItemContainer::Equip : ENWItemContainer::Bag));
+				});
+				if (Found)
+				{
+					Inventory.ShotDrag(Src, Found->Slot);
+				}
+			}
+		}
+		else if (bShop)
+		{
+			Shop.Open(Me, S->GetStringField(TEXT("shop")), S->GetStringField(TEXT("title")));
+			FString Item;
+			if (Shot->TryGetStringField(TEXT("item"), Item))
+			{
+				Shop.Select(FName(Item), Count);
+			}
+		}
+		else
+		{
+			Menu.Open(Me, St);
+			FString Recipe;
+			if (Shot->TryGetStringField(TEXT("recipe"), Recipe))
+			{
+				Menu.Select(FName(Recipe), Count);
+			}
 		}
 
 		auto Frame = [&]()
@@ -205,7 +338,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			UCanvas* C = NewObject<UCanvas>();
 			C->Init(W, H, nullptr, &Canvas);
 			C->Update();
-			Menu.Draw(C, Mouse);
+			bInventory ? Inventory.Draw(C, Mouse) : bShop ? Shop.Draw(C, Mouse) : Menu.Draw(C, Mouse);
 			Canvas.Flush_GameThread(true);
 			FlushRenderingCommands();
 		};
@@ -213,9 +346,10 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		Frame();
 		SettleTextures();
 		Frame();
-		if (Shot->HasField(TEXT("craft")) && Shot->GetBoolField(TEXT("craft")))
+		if (!bShop && !bInventory && Shot->HasField(TEXT("craft")) && Shot->GetBoolField(TEXT("craft")))
 		{
 			Menu.ClickCraft();
+			Frame();   // o item do equipamento chega aqui (t0 do roll); t conta a partir dele
 			Menu.FixedNow += Shot->HasField(TEXT("t")) ? Shot->GetNumberField(TEXT("t")) : 1.0;
 			Frame();
 			SettleTextures();
@@ -225,7 +359,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		FString DumpFilter;
 		if (FParse::Value(*Params, TEXT("dump="), DumpFilter))
 		{
-			Menu.Dump(DumpFilter);
+			bShop ? Shop.Dump(DumpFilter) : Menu.Dump(DumpFilter);
 		}
 		TArray<FColor> Pixels;
 		Res->ReadPixels(Pixels);

@@ -28,3 +28,9 @@ sistemas_npcs() {
     py sistemas_npcs "$ROOT/tools/ue/import_npcs.py" "$ROOT/extract/ue/npcs" NpcQuedaEterna L_QuedaEterna
 }
 step sistemas-03 "NPCs de Queda Eterna (animações, aparências, campo no mapa)" sistemas_npcs
+
+sistemas_exposicao() {
+    # Exposição automática só neste mapa, com a faixa do ciclo de dia do jogo (tools/ue/city_exposure.py).
+    py sistemas_exposure "$ROOT/tools/ue/city_exposure.py" L_QuedaEterna
+}
+step sistemas-04 "exposição automática de Queda Eterna" sistemas_exposicao

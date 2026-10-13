@@ -14,6 +14,9 @@
 #include "NWNpcRewards.h"
 #include "NWPlayerController.h"
 #include "NWRules.h"
+#include "NWShop.h"
+#include "NWGameMode.h"
+#include "NWProgressionComponent.h"
 #include "NWText.h"
 
 namespace
@@ -255,6 +258,101 @@ void UNWInteractorComponent::ServerRefine_Implementation(const FString& StationT
 	}
 }
 
+// ---------------------------------------------------------------- fabricar (docs/oficio.md)
+
+void UNWInteractorComponent::ServerCraft_Implementation(const FString& StationType, FName Recipe)
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	FNWItem Signed;   // o item sorteado (vazio no treino); assinado só com Signer
+	const FString Error = FNWCrafting::Get().Craft(Me, StationType, Recipe, &Signed);
+	ANWPlayerController* PC = ControllerOf(this);
+	if (!Error.IsEmpty())
+	{
+		if (PC)
+		{
+			PC->Warning(NWText::Key(Error));
+		}
+		return;
+	}
+	auto Finish = [](UNWInteractorComponent* Self, const FNWItem& Item)
+	{
+		ANWCharacter* Who = Cast<ANWCharacter>(Self->GetOwner());
+		ANWPlayerController* PC2 = ControllerOf(Self);
+		if (Who && Who->Inventory && !Item.ItemId.IsNone())
+		{
+			Who->Inventory->Grant({Item}, 0);
+			Self->ClientCraftResult(FNWItem(), Item, 255);
+		}
+		if (ANWGameMode* GM = Self->GetWorld()->GetAuthGameMode<ANWGameMode>(); GM && PC2)
+		{
+			GM->SavePlayer(PC2);
+		}
+	};
+	if (Signed.ItemId.IsNone() || Signed.Signer.IsEmpty())
+	{
+		Finish(this, Signed);
+		return;
+	}
+	// Item assinado: número de série do nw-core (sem backend, um local). Sem o número, sai sem assinatura.
+	UNWBackend* B = BackendOf(this);
+	if (!B || !PC || !PC->Record)
+	{
+		Signed.Serial = TEXT("local-") + FGuid::NewGuid().ToString(EGuidFormats::Digits);
+		Finish(this, Signed);
+		return;
+	}
+	TWeakObjectPtr<UNWInteractorComponent> Self(this);
+	B->IssueSerial(PC->Record->Id, [Self, Signed, Finish](bool bOk, const FString& Serial) mutable
+	{
+		if (!Self.IsValid())
+		{
+			return;
+		}
+		if (bOk)
+		{
+			Signed.Serial = Serial;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Fabricar: sem número de série do nw-core; item sai sem assinatura"));
+			Signed.Signer.Reset();
+		}
+		Finish(Self.Get(), Signed);
+	});
+}
+
+void UNWInteractorComponent::ServerImprove_Implementation(const FString& StationType, int32 BagSlot, uint8 Kind)
+{
+	if (Kind >= uint8(ENWImprove::Num))
+	{
+		return;
+	}
+	FNWItem Before, After;
+	const FString Error = FNWCrafting::Get().Improve(Cast<ANWCharacter>(GetOwner()), StationType, BagSlot, ENWImprove(Kind), &Before, &After);
+	ANWPlayerController* PC = ControllerOf(this);
+	if (!Error.IsEmpty())
+	{
+		if (PC)
+		{
+			PC->Warning(NWText::Key(Error));
+		}
+		return;
+	}
+	ClientCraftResult(Before, After, Kind);
+	if (ANWGameMode* GM = GetWorld()->GetAuthGameMode<ANWGameMode>(); GM && PC)
+	{
+		GM->SavePlayer(PC);
+	}
+}
+
+void UNWInteractorComponent::ClientCraftResult_Implementation(const FNWItem& Before, const FNWItem& After, uint8 Kind)
+{
+	CraftResult.Before = Before;
+	CraftResult.After = After;
+	CraftResult.Kind = Kind;
+	++CraftResult.Seq;
+}
+
 // ---------------------------------------------------------------- armazém
 
 float UNWInteractorComponent::StorageWeight() const
@@ -270,11 +368,86 @@ float UNWInteractorComponent::StorageWeight() const
 	return W;
 }
 
+void UNWInteractorComponent::ServerShopBuy_Implementation(const FString& ShopId, FName Item, int32 Quantity)
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	const FNWShop* Shop = FNWShops::Get().Find(ShopId);
+	const FNWShopItem* Offer = Shop ? Shop->Find(Item) : nullptr;
+	const FNWItemDef* Def = FNWItemCatalog::Get().Find(Item);
+	ANWPlayerController* PC = ControllerOf(this);
+	if (!Me || !Me->Inventory || !Me->Progression || !Offer || !Def || Quantity <= 0)
+	{
+		return;
+	}
+	const ANWNpc* Npc = nullptr;
+	for (TActorIterator<ANWNpc> It(GetWorld()); It; ++It)
+	{
+		if (It->Variant == Shop->Npc)
+		{
+			Npc = *It;
+			break;
+		}
+	}
+	if (!Npc || FVector::Dist2D(Npc->GetActorLocation(), Me->GetActorLocation()) > 400.f)
+	{
+		return;
+	}
+	const FString Period = FNWNpcRewards::Get().Period();
+	const int32 Bought = Me->Progression->ShopBought(Item, Period);
+	if (Offer->WeeklyLimit > 0 && Bought + Quantity > Offer->WeeklyLimit)
+	{
+		if (PC)
+		{
+			PC->Warning(NWText::Key(TEXT("nw.shop.weekly_limit"), {FString::FromInt(Bought), FString::FromInt(Offer->WeeklyLimit)}));
+		}
+		return;
+	}
+	if (Me->Inventory->Coins < Offer->Price * Quantity)
+	{
+		if (PC)
+		{
+			PC->Warning(NWText::Key(TEXT("ui_insufficient_funds")));
+		}
+		return;
+	}
+	if (Me->Inventory->TotalWeight() + Def->Weight * Quantity > Me->Inventory->MaxWeight)
+	{
+		if (PC)
+		{
+			PC->Warning(NWText::Key(TEXT("ui_inventoryfull")));
+		}
+		return;
+	}
+	FNWItem New;
+	New.ItemId = Item;
+	New.Quantity = Quantity;
+	const int32 Added = Quantity - Me->Inventory->AddItem(New);
+	if (Added <= 0)
+	{
+		if (PC)
+		{
+			PC->Warning(NWText::Key(TEXT("ui_inventoryfull")));
+		}
+		return;
+	}
+	// Só paga o que entrou na bolsa (espaços cheios).
+	Me->Inventory->AddCoins(-Offer->Price * Added);
+	Me->Progression->AddShopBought(Item, Added, Period);
+	New.Quantity = Added;
+	Me->Inventory->ClientLoot({New}, 0);
+	UE_LOG(LogTemp, Log, TEXT("Loja %s: %s x%d por %lld"), *ShopId, *Item.ToString(), Added, Offer->Price * Added);
+	// Bolsa, moedas e o limite da semana vão ao nw-core na hora (PUT state).
+	if (ANWGameMode* GM = GetWorld()->GetAuthGameMode<ANWGameMode>())
+	{
+		GM->SavePlayer(PC);
+	}
+}
+
 void UNWInteractorComponent::StorageAdd(TArray<FNWItem>& Items, const FNWItem& Item)
 {
 	for (FNWItem& I : Items)
 	{
-		if (I.ItemId == Item.ItemId && I.GearScore == Item.GearScore && I.Rarity == Item.Rarity)
+		if (I.SameKind(Item))
 		{
 			I.Quantity += Item.Quantity;
 			return;
@@ -294,7 +467,7 @@ bool UNWInteractorComponent::StorageRemove(TArray<FNWItem>& Items, const FNWItem
 {
 	for (FNWItem& I : Items)
 	{
-		if (I.ItemId == Item.ItemId && I.GearScore == Item.GearScore && I.Rarity == Item.Rarity && I.Quantity >= Item.Quantity)
+		if (I.SameKind(Item) && I.Quantity >= Item.Quantity)
 		{
 			I.Quantity -= Item.Quantity;
 			Items.RemoveAll([](const FNWItem& X) { return X.Quantity <= 0; });
@@ -352,60 +525,97 @@ void UNWInteractorComponent::ServerStorageClose_Implementation()
 
 void UNWInteractorComponent::ServerStorageMove_Implementation(bool bDeposit, int32 Slot, int32 Quantity)
 {
-	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
-	if (!Me || !Me->Inventory || StorageLocation.IsEmpty() || bStorageBusy || Quantity <= 0)
+	if (StorageLocation.IsEmpty() || bStorageBusy || Quantity <= 0)
 	{
 		return;
 	}
+	const FNWItem Moved = StorageApply(bDeposit, Slot, Quantity, true);
+	if (Moved.Quantity > 0)
+	{
+		StorageSave({Moved}, bDeposit, true);
+	}
+}
+
+void UNWInteractorComponent::ServerStorageMoveMany_Implementation(bool bDeposit, const TArray<int32>& Slots)
+{
+	if (StorageLocation.IsEmpty() || bStorageBusy || Slots.Num() == 0)
+	{
+		return;
+	}
+	TArray<FNWItem> Moved;
+	bool bWarned = false;
+	for (int32 Slot : Slots)
+	{
+		const FNWItem M = StorageApply(bDeposit, Slot, MAX_int32, !bWarned);
+		if (M.Quantity > 0)
+		{
+			Moved.Add(M);
+		}
+		else
+		{
+			bWarned = true;   // um aviso só (armazém ou bolsa cheia)
+		}
+	}
+	if (Moved.Num() > 0)
+	{
+		StorageSave(Moved, bDeposit, true);
+	}
+}
+
+FNWItem UNWInteractorComponent::StorageApply(bool bDeposit, int32 Slot, int32 Quantity, bool bWarn)
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	FNWItem Moved;
+	Moved.Quantity = 0;
+	if (!Me || !Me->Inventory)
+	{
+		return Moved;
+	}
 	if (bDeposit)
 	{
 		const FNWItem* In = Me->Inventory->At(ENWItemContainer::Bag, Slot);
 		const FNWItemDef* D = In ? FNWItemCatalog::Get().Find(In->ItemId) : nullptr;
 		if (!In)
 		{
-			return;
+			return Moved;
 		}
 		// Cabe no armazém só o que o peso deixa.
 		const float Unit = D ? D->Weight : 0.f;
-		const int32 Fits = Unit > 0.f ? FMath::FloorToInt((StorageCapacity - StorageWeight()) / Unit) : Quantity;
-		const int32 N = FMath::Min(Quantity, Fits);
+		const int32 Want = FMath::Min(Quantity, In->Quantity);
+		const int32 Fits = Unit > 0.f ? FMath::FloorToInt((StorageCapacity - StorageWeight()) / Unit) : Want;
+		const int32 N = FMath::Min(Want, Fits);
 		if (N <= 0)
 		{
-			if (ANWPlayerController* PC = ControllerOf(this))
+			if (bWarn)
 			{
-				PC->Warning(NWText::Key(TEXT("ui_storage_is_full")));
+				if (ANWPlayerController* PC = ControllerOf(this))
+				{
+					PC->Warning(NWText::Key(TEXT("ui_storage_is_full")));
+				}
 			}
-			return;
+			return Moved;
 		}
 		Moved = Me->Inventory->TakeAt(Slot, N);
 		StorageAdd(StorageItems, Moved);
+		return Moved;
 	}
-	else
+	const FNWItem* In = StorageItems.FindByPredicate([Slot](const FNWItem& I) { return I.Slot == Slot; });
+	if (!In)
 	{
-		const FNWItem* In = StorageItems.FindByPredicate([Slot](const FNWItem& I) { return I.Slot == Slot; });
-		if (!In)
-		{
-			return;
-		}
-		Moved = *In;
-		Moved.Quantity = FMath::Min(Quantity, In->Quantity);
-		const int32 Left = Me->Inventory->AddItem(Moved);   // o que não coube na bolsa fica no armazém
-		Moved.Quantity -= Left;
-		if (Moved.Quantity <= 0)
-		{
-			return;
-		}
+		return Moved;
+	}
+	Moved = *In;
+	Moved.Quantity = FMath::Min(Quantity, In->Quantity);
+	const int32 Left = Me->Inventory->AddItem(Moved);   // o que não coube na bolsa fica no armazém
+	Moved.Quantity -= Left;
+	if (Moved.Quantity > 0)
+	{
 		StorageRemove(StorageItems, Moved);
 	}
-	if (Moved.Quantity <= 0)
-	{
-		return;
-	}
-	StorageSave(Moved, bDeposit, true);
+	return Moved;
 }
 
-void UNWInteractorComponent::StorageSave(const FNWItem& Moved, bool bDeposit, bool bRetry)
+void UNWInteractorComponent::StorageSave(const TArray<FNWItem>& Moved, bool bDeposit, bool bRetry)
 {
 	UNWBackend* B = BackendOf(this);
 	ANWPlayerController* PC = ControllerOf(this);
@@ -454,13 +664,16 @@ void UNWInteractorComponent::StorageSave(const FNWItem& Moved, bool bDeposit, bo
 			}
 			Self->StorageItems = Items;
 			Self->StorageVersion = Version;
-			if (bDeposit)
+			for (const FNWItem& M : Moved)
 			{
-				StorageAdd(Self->StorageItems, Moved);
-			}
-			else
-			{
-				StorageRemove(Self->StorageItems, Moved);
+				if (bDeposit)
+				{
+					StorageAdd(Self->StorageItems, M);
+				}
+				else
+				{
+					StorageRemove(Self->StorageItems, M);
+				}
 			}
 			Self->StorageSave(Moved, bDeposit, false);
 		});

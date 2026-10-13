@@ -798,6 +798,39 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 			}
 		}
 		break;
+	case ENWDevCommand::GiveCraftLevels:
+		// +50 níveis nos ofícios de fabricar (testar fabricar e espectro, docs/oficio.md).
+		if (Me && Me->Progression)
+		{
+			for (const TCHAR* Skill : {TEXT("Weaponsmithing"), TEXT("Engineering"), TEXT("Arcana")})
+			{
+				const int32 t = NWTradeskill::Index(Skill);
+				for (int32 i = 0; i < 50; ++i)
+				{
+					Me->Progression->AddTradeXp(NWTradeskill::Name(t), FMath::Max(1, Me->Progression->TradeXpToNext(t)));
+				}
+			}
+		}
+		break;
+	case ENWDevCommand::GiveCraftMaterials:
+		// Materiais refinados T2–T5 das receitas de fabricar e moedas para a taxa (docs/oficio.md).
+		if (Me && Me->Inventory)
+		{
+			TArray<FNWItem> Gift;
+			for (int32 Tier = 2; Tier <= 5; ++Tier)
+			{
+				for (const TPair<const TCHAR*, int32>& M : {TPair<const TCHAR*, int32>(TEXT("IngotT"), 60), TPair<const TCHAR*, int32>(TEXT("TimberT"), 20),
+					TPair<const TCHAR*, int32>(TEXT("LeatherT"), 20)})
+				{
+					FNWItem I;
+					I.ItemId = FName(*(FString(M.Key) + FString::FromInt(Tier)));
+					I.Quantity = M.Value;
+					Gift.Add(I);
+				}
+			}
+			Me->Inventory->Grant(Gift, 100000);
+		}
+		break;
 	case ENWDevCommand::GiveLevel:
 		// XP que falta para o próximo nível (testar a barra de XP e os pontos de atributo).
 		if (Me && Me->Progression) Me->Progression->AddXp(FMath::Max<int64>(1, UNWProgressionComponent::XpForLevel(Me->Progression->Level + 1) - Me->Progression->Xp));

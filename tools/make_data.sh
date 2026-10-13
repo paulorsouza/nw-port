@@ -18,6 +18,7 @@ step tools/make_rules.py
 [ -f extract/slicejson/slices/structures/settlements/v2_settlements/settlement_northwindsward_complete.dynamicslice.json ] \
     && step tools/make_crafting.py || echo "== sem o slice de Queda Eterna: Data/Crafting fica como está"
 step tools/make_items.py
+step tools/make_itens.py
 step tools/make_abilities.py
 step tools/make_progression.py
 step tools/make_worldmap.py

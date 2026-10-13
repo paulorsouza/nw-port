@@ -41,7 +41,7 @@ se algo estiver errado.
 
 ## Tutoriais de nível
 
-15. Em Queda Eterna, a uns 12 m a leste da praça, há 4 bonecos em fila. Derrotar 10 inimigos com a espada:
+15. Queda Eterna não tem mais os 4 bonecos de treino na praça. Derrotar 10 inimigos com a espada (Lost do F10):
     aviso "Missão concluída: Espada e escudo...", sobe 2 níveis (banner). F10 > Missões mostra 1/13.
 16. Trocar para a machadinha e derrotar 10: mais 2 níveis. Coletar 10 vezes num ofício (Guardaventos): mais 2.
 17. Refinar 1 item em cada estação de Queda Eterna: 1 nível por estação.
@@ -58,3 +58,62 @@ se algo estiver errado.
     painel direito com nível do ofício, chance de item extra, quantidade (−/+/número), requisitos verdes/vermelhos,
     botão CONFECCIONAR azul animado, taxa e "+N Fundição"; rodapé ENTER/ESPAÇO/ESC. Comparar com o print do jogo.
 24. Confeccionar: o fundo escurece, o total sobe de 0 em ~1 s, aparecem Base e Bônus; clique volta à lista.
+25. Refino: segurar e arrastar o marcador da barra de quantidade: o número acompanha o mouse. Segurar + ou −: depois de
+    meio segundo repete, e acelera depois de ~2 s.
+26. Refino: Espaço na escolha põe a quantidade máxima; Espaço durante a contagem pula para o fim; Espaço no resultado
+    volta à lista. O personagem não pula.
+27. Refino: deixar a tela aberta ~10 s olhando o botão CONFECCIONAR: o brilho azul corre liso, sem piscar.
+28. Refino na fundição: a árvore começa por Recursos Refinados > Metais, Metais Preciosos, Carvão, Prospecção; Conversão
+    de Material vem depois. O título fica "FUNDIÇÃO ESCALA 5" (com Ç e Ã maiúsculos).
+29. Refino: abaixo do CONFECCIONAR aparece "Taxa de Queda Eterna: 0,26" para 26 lingotes e o XP como "+N Fundição". Moedas
+    na barra de título, no inventário e no aviso de saque aparecem com duas casas (50 moedas do personagem novo = 0,50).
+30. Refino de 1 Lingote de Ferro: a tela mostra "+44 Fundição" (11 × 4 minérios) e o XP de Fundição sobe 44 na janela K.
+31. Refinar uma receita pela primeira vez (ex. Lingote de Aço): a tela mostra o XP triplicado e a Fundição sobe esse
+    valor. Na segunda vez, volta ao normal. Sair e entrar com backend: continua normal (a receita fica marcada como feita).
+
+## Loja
+
+32. Inventário e saque: não existe mais poção T1–T4; o personagem novo começa com 5 Poções de vida T5 e o Lost às vezes
+    deixa 1 Poção T5. Personagem antigo que tinha T1–T4 entra sem elas.
+33. Em Queda Eterna, o mercador (NPC ambiente de mercador) mostra o cartão "Loja · [E] Comprar". E abre a loja com a
+    grade: Poção de vida T5 (2,00) e os 5 reagentes de refino (0,20).
+34. Clicar num cartão abre o detalhe; arrastar a quantidade e clicar no botão com o preço: as moedas descem, o item
+    aparece no aviso de saque e na bolsa. O X volta à grade; Esc fecha.
+35. Comprar 100 de um reagente: o cartão ganha o relógio vermelho com o tempo até terça 05:00, e o detalhe mostra
+    "Próxima recarga". Sair e entrar com backend: o limite continua.
+36. Sem moedas suficientes: o botão fica cinza e aparece "Fundos insuficientes".
+37. F10: o menu aparece em duas colunas, inteiro na tela (Extras e Depuração na coluna da direita, com rolagem se
+    precisar). Extras > "Ganhar 100,00 moedas": as moedas sobem 100,00 e o botão mostra o saldo.
+38. Em Queda Eterna, entrar na igreja ou na taverna: em 1 a 2 s o interior clareia (adaptação do olho); ao sair, a rua
+    volta ao brilho de antes, sem ficar estourada.
+39. O mercador tem o ícone de loja sobre a cabeça, visível de longe e através das paredes.
+40. Conversar com um NPC (E): ele vira de frente para o personagem, não de lado. Parado, antes de conversar, cada NPC
+    continua na mesma pose e direção de antes.
+41. Tab: a bolsa mostra as seções do jogo em duas colunas (peças quadradas e redondas, tier, quantidade). Os 4 botões
+    de ordenação reordenam; clicar de novo no ativo inverte. A seta recolhe a seção.
+42. Arrastar uma arma da bolsa para o espaço dela (ou para qualquer ponto do lado do equipamento) equipa; arrastar do
+    equipamento para a bolsa desequipa. Os espaços compatíveis acendem durante o arrasto.
+43. No armazém: arrastar entre bolsa e armazém, Shift + clique, a seta da seção (move a seção inteira) e "Pegar tudo".
+44. Ctrl + clique numa pilha: o diálogo começa na metade; Mover/Pegar leva só a parte escolhida; sem armazém, Soltar
+    pede confirmação e destrói só a parte escolhida.
+45. Arrastar da bolsa para "Soltar itens" (à direita, sem armazém aberto) pede confirmação e destrói a pilha.
+46. Buscar: digitar no campo filtra a lista pelo nome, sem acento ("fundicao" acha Fundição); clicar fora devolve o
+    teclado ao jogo.
+47. Forja, oficina e repositório arcano abrem a tela; receita de arma ou ferramenta mostra a faixa de Gear score e de
+    Qualidade (ou o aviso de treino) e o botão Fabricar, sem a quantidade.
+48. Abaixo do nível 50 do ofício, Fabricar é treino: gasta material, dá XP e não gera item.
+49. F10 "+50 níveis nos ofícios de fabricar" e "Materiais de fabricar", Fabricar: material e taxa saem e o item aparece na
+    hora na bolsa. Tooltip com atributo, qualidade, perks com valor e ícone, slot de gema vazio (moldura do soquete), "Vincula ao equipar" e "Feito
+    por" quando a qualidade passa de 80%. Bolsa cheia: não fabrica e avisa.
+50. Equipar o item fabricado: o tooltip passa a "Vinculado". Sair e entrar de novo: o item continua igual.
+51. Na forja, "Melhorar itens" (canto de cima): lista os itens fabricados da bolsa feitos ali, com GS, atributo e
+    qualidade; botões Sortear atributo, Sortear GS e Desvincular (só se vinculado), com o ícone do material e
+    "custo / tem" embaixo (vermelho se faltar). Clicar abre a tela de resultado com o item depois da mudança. Cada um muda
+    só a sua parte; Sortear GS conta do GS antigo ao novo, dentro da faixa da receita (sobe ou desce).
+52. As receitas de arma e ferramenta pedem só lingote, tábua e couro do tier do item.
+53. Fabricar arma ou ferramenta do nível 50 em diante: tela de resultado do jogo (docs/analise-re/craftroll-equipamento.md):
+    GS contando até o do item, raridade, dano base, atributo, as perks uma a uma com ícone e o slot de gema vazio; nome
+    na cor da raridade com a qualidade embaixo. Clique durante a animação termina; outro clique volta à mesa. Item com
+    no máximo 1 perk de habilidade.
+54. Item com qualidade de 80% ou mais: "Feito por <nick>"; sair e entrar de novo, guardar e retirar do armazém: continua
+    igual (o número de série vai junto e o nw-core não aceita o mesmo item em dois lugares).
