@@ -11,7 +11,8 @@ import os
 import sys
 import time
 
-UE = os.environ.get("UE_DIR", "/mnt/jogos/UnrealEngine/5.8")
+UE = os.environ.get("NW_UE") or os.environ.get("UE_DIR") or (
+    "C:/UnrealEngine" if os.name == "nt" else "/mnt/jogos/UnrealEngine/5.8")
 sys.path.insert(0, os.path.join(UE, "Engine", "Plugins", "Experimental", "PythonScriptPlugin", "Content", "Python"))
 import remote_execution  # noqa: E402
 

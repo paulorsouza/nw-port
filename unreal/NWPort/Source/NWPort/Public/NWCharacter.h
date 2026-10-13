@@ -123,8 +123,8 @@ public:
 	 * prioridade; sem nenhuma, a da arma em uso. bNoSprint tira a animação de sprint enquanto valer. Local em cada
 	 * máquina: quem replica o estado (ex.: montado) chama nos clientes também.
 	 */
-	void SetLocomotionOverride(FName Owner, UBlendSpace* Space, int32 Priority = 0, bool bNoSprint = true);
-	void ClearLocomotionOverride(FName Owner);
+	void SetLocomotionOverride(FName OverrideOwner, UBlendSpace* Space, int32 Priority = 0, bool bNoSprint = true);
+	void ClearLocomotionOverride(FName OverrideOwner);
 	bool LocomotionBlocksSprint() const;
 	/** Menu aberto (maestria, inventário, dev): o personagem não age. */
 	bool InMenu() const;

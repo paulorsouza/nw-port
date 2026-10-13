@@ -10,7 +10,8 @@ import os
 
 import unreal
 
-ROOT = os.path.expanduser("~/workspace/nw-port/extract/audio")
+# Raiz do repositório a partir do projeto (unreal/NWPort/), sem caminho fixo de máquina.
+ROOT = os.path.join(os.path.abspath(os.path.join(unreal.Paths.project_dir(), "..", "..")), "extract", "audio")
 SETS = {
     "Music": [os.path.join(ROOT, "music/gameplay/territory", f"{n}.ogg") for n in ("windsward_ambient", "windsward_settlement_august")],
     "Ambient": sorted(glob.glob(os.path.join(ROOT, "ambient/windsward/*.ogg"))),

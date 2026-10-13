@@ -771,18 +771,18 @@ void ANWCharacter::UpdateCameraClipHide()
 	}
 }
 
-void ANWCharacter::SetLocomotionOverride(FName Owner, UBlendSpace* Space, int32 Priority, bool bNoSprint)
+void ANWCharacter::SetLocomotionOverride(FName OverrideOwner, UBlendSpace* Space, int32 Priority, bool bNoSprint)
 {
-	FNWLocomotionOverride& O = LocomotionOverrides.FindOrAdd(Owner);
+	FNWLocomotionOverride& O = LocomotionOverrides.FindOrAdd(OverrideOwner);
 	O.Space = Space;
 	O.Priority = Priority;
 	O.bNoSprint = bNoSprint;
 	RefreshLocomotion();
 }
 
-void ANWCharacter::ClearLocomotionOverride(FName Owner)
+void ANWCharacter::ClearLocomotionOverride(FName OverrideOwner)
 {
-	if (LocomotionOverrides.Remove(Owner) > 0)
+	if (LocomotionOverrides.Remove(OverrideOwner) > 0)
 	{
 		RefreshLocomotion();
 	}

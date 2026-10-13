@@ -25,7 +25,8 @@ PIECES = "/Game/NW/Arena"
 P_MAT = "/Game/NW/Materials"
 SOIL = "/Game/NW/Cities/SouthWindsward/Terrain/T_jav_fst_forestsoil_a_diff"
 GRASS = "/Game/NW/Cities/SouthWindsward/Terrain/T_jav_fst_feildgrass_a_diff"
-MUSIC = os.path.expanduser("~/workspace/nw-port/extract/audio/music/gameplay/territory/brightwoods_ambient.ogg")
+MUSIC = os.path.join(os.path.abspath(os.path.join(unreal.Paths.project_dir(), "..", "..")),
+                     "extract/audio/music/gameplay/territory/brightwoods_ambient.ogg")
 
 les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)

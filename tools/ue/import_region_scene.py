@@ -17,7 +17,8 @@ import time
 import unreal
 
 GLB, NAME = sys.argv[1], sys.argv[2]
-ROOT = os.path.expanduser("~/workspace/nw-port")
+# Raiz do repositório a partir do projeto (unreal/NWPort/), sem caminho fixo de máquina.
+ROOT = os.path.abspath(os.path.join(unreal.Paths.project_dir(), "..", ".."))
 CONTENT = f"/Game/NW/Region/{NAME}"
 MAP = "/Game/NW/Maps/L_SouthWindsward"
 FOLDER = f"Regiao/{NAME}"
