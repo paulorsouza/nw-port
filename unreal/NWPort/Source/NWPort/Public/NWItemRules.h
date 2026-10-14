@@ -34,6 +34,27 @@ public:
 	TMap<FName, TArray<FName>> Ability;        // conjunto da arma (Sword, Hatchet...) -> perks de habilidade
 	TArray<FName> HealWeapons;                 // armas que também rolam Cura causada
 
+	/** Gema ou vidro rúnico (docs/itens.md "Slot"): classe (armadura, arma), efeitos em %, gema bruta do custo de retirar. */
+	struct FGem
+	{
+		FString Class;
+		FName Raw;
+		bool bGlass = false;
+		TArray<TPair<FName, float>> Effects;
+	};
+	TMap<FName, FGem> Gems;
+	TMap<FString, TArray<FString>> GemClasses;           // classe da gema -> classes de equipamento
+	TMap<FName, TMap<FString, FString>> GemEffectText;   // efeito -> texto por idioma, com {v}
+
+	/** Equipamento com slot: arma, escudo ou armadura fabricados (joias e ferramentas não têm). */
+	static bool HasSocket(const FNWItemDef& D, const FNWItem& Item);
+	/** A gema (ou vidro) encaixa neste item. */
+	bool CanSocket(const FNWItemDef& D, const FNWItem& Item, FName GemId) const;
+	/** Linhas de efeito da gema no idioma atual ("+2,5% de resistência física"). */
+	TArray<FString> GemLines(FName GemId) const;
+	/** Custo de retirar a gema (provisório: 1 gema bruta do mesmo tipo e tier). */
+	FName UnsocketCost(FName GemId, int32& OutQty) const;
+
 	/** Classe de equipamento do item ("arma", "escudo", "ferramenta"...; vazio = não leva perk). */
 	static FString EquipClass(const FNWItemDef& D);
 	/** Perks que podem cair no item: as do equipamento, as de habilidade da arma e Cura causada nas armas de cura. */

@@ -340,6 +340,46 @@
     "nw.craft.improve_unbind": {
       "pt-br": "Desvincular",
       "en-us": "Unbind"
+    },
+    "nw.item.gem_remove": {
+      "pt-br": "Retirar gema",
+      "en-us": "Remove gem"
+    },
+    "nw.item.gem_cost_line": {
+      "pt-br": "Custo: {0}× {1} (você tem {2})",
+      "en-us": "Cost: {0}× {1} (you have {2})"
+    },
+    "nw.item.gem_none": {
+      "pt-br": "Este item não tem gema",
+      "en-us": "This item has no gem"
+    },
+    "nw.item.gem_cost": {
+      "pt-br": "Falta material para retirar a gema",
+      "en-us": "Not enough material to remove the gem"
+    },
+    "nw.item.gem_wrong": {
+      "pt-br": "Esta gema não encaixa neste item",
+      "en-us": "This gem doesn't fit this item"
+    },
+    "nw.item.gem_for_weapon": {
+      "pt-br": "Acopla em armas",
+      "en-us": "Fits weapons"
+    },
+    "nw.item.gem_for_armor": {
+      "pt-br": "Acopla em armaduras e escudos",
+      "en-us": "Fits armor and shields"
+    },
+    "nw.dev.dev_gems": {
+      "pt-br": "Gemas e Joalheria 200",
+      "en-us": "Gems and Jewelcrafting 200"
+    },
+    "nw.pie.offline": {
+      "pt-br": "Jogando sem backend: {0}",
+      "en-us": "Playing without backend: {0}"
+    },
+    "nw.item.gem_occupied": {
+      "pt-br": "Retire a gema antes (Shift + clique direito no item)",
+      "en-us": "Remove the gem first (Shift + right-click the item)"
     }
   },
   "chaves_do_jogo": [
@@ -469,6 +509,12 @@
     "ui_arcana",
     "blacksmith_station",
     "engineering_station",
-    "alchemy_station"
+    "alchemy_station",
+    "ui_jewelcrafting",
+    "ui_attach_gem",
+    "cr_continue_crafting",
+    "cr_exit_station",
+    "inv_equip",
+    "ui_tooltip_setactivetool"
   ]
 }

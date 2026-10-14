@@ -139,6 +139,38 @@ Port (fabricar, esteira 4, 2026-10-13; regras em `docs/oficio.md` e `docs/itens.
 - Captura: `tools/ui_shots/forja.json` (receitas e o roll no meio e no fim). Dev (F10): "+50 níveis nos ofícios de
   fabricar" e "Materiais de fabricar".
 
+Port (gemas e vidro rúnico, esteira 4, 2026-10-13; regras em `docs/itens.md` "Slot"):
+- Itens: as 4 lapidações do jogo (`<Gema>CutT1..T4`, Tier de item 2–5, 2–5%) de Ônix, Opala, Diamante, Safira, Jaspe,
+  Esmeralda e Malaquita, e o vidro rúnico `Runeglass_Gem_<Gema>_Melee|Arcane` (gema Pura + amplificação física ou
+  mágica). Efeitos por item em `Data/Items/regras_itens.json` `gema_itens` (`tools/make_itens.py` a partir de
+  `tools/itens.json` `gemas`, `gema_pct_por_tier`, `vidro_capsulas`, `vidro_amplificacao`).
+- Receitas do jogo (`javelindata_crafting_jeweler`, `_weapon`, `_refining`): lapidar na estação de equipamentos
+  (`outfitting`, ofício Joalheria, índice 12 do `NWTradeskill`); cápsula do vidro na forja e vidro na cantaria, tier 5,
+  nível 180 (o jogo usa a estação de runas, que Queda Eterna não tem). Mesmo caminho do refino (`FNWCrafting::Refine`).
+- Servidor: `UNWInventoryComponent::ServerSocket` (gema da bolsa no item da bolsa ou equipado; só em slot vazio: com
+  gema, recusa e avisa para retirar antes) e `ServerUnsocket` (gema volta para a bolsa; custo provisório: 1
+  gema bruta do mesmo tipo e tier, `FNWItemRules::UnsocketCost`). Regra de encaixe: `FNWItemRules::CanSocket` (gema
+  de armadura em armadura e escudo, de arma em arma; só item fabricado). A gema fica em `props.gem` (sem migração).
+- Telas: soltar a gema no item vazio abre "Acoplar Gema" (texto do jogo) com o efeito; Shift + clique direito no item
+  com gema abre "Retirar gema" com o custo. Miniatura do item com o ícone da gema no canto de baixo à direita. Tooltip do item com ícone, nome e efeitos da gema; da
+  gema solta, os efeitos e onde acopla (sem a descrição do jogo, que fala dos efeitos do jogo). Tela de resultado:
+  `GemPerkSlot` com o ícone e os efeitos.
+- Captura: `tools/ui_shots/gemas.json` (bolsa, tooltips, acoplar, retirar). Dev (F10): "Gemas e Joalheria
+  200" (Joalheria e Cantaria no 200, 7 gemas Puras, 2 vidros, gema bruta para o custo, material para lapidar e montar
+  um vidro).
+- Efeito no personagem (resistência, crítico, amplificação): fica para o item 3 da esteira (com a esteira 1).
+
+Port (polimento da tela de resultado, esteira 4, 2026-10-13):
+- Fim do roll de equipamento: botões Continuar a Confeccionar, Equipar (só com item equipável na bolsa; ferramenta
+  "Equipar Ferramenta") e Sair da Estação no `ActiveButtonsContainer` do jogo (x 232, y 520, coluna de 370, espaçamento
+  8; craftroll-equipamento.md §8). Tomam o lugar do "Clique em qualquer lugar"; clicar fora continua voltando à mesa.
+- Sons (craftroll-equipamento.md §9): `tools/extract_audio.py` grupo `ui` → `extract/audio/ui/crafting` (102 arquivos,
+  21 eventos); `tools/make_ui_sounds.py` lê os `.txtp` e grava as camadas e variações em `Data/Audio/ui_sounds.json`;
+  `tools/ue/import_ui_sounds.py` (etapa `sistemas-05`) importa em `/Game/NW/Audio/UI`. `FNWRefiningMenu::Sound` sorteia
+  uma variação por camada (a raridade toca duas camadas juntas). Tocam: abrir/fechar a mesa, escolher receita, botão
+  Fabricar/Refinar, fim do refino (1,4 s), raridade (0,5 s), cada perk e a gema. Pular o roll não toca os pendentes.
+- Lista de receitas com 16 linhas visíveis (a 17ª saía cortada).
+
 Tela (2026-10-13): `craftingscreenv4` no modo refino com estilos e posições do Lua (`docs/hud/refino.md`,
 `tools/ui_screens/refining.json`), conferida pela captura sem o jogo (`tools/ui_shots/refining.json`) e testada pelo
 dono. O que falta na tela: `docs/hud/README.md`.

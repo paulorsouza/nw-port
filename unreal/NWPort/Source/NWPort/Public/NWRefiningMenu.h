@@ -20,7 +20,7 @@ class NWPORT_API FNWRefiningMenu
 public:
 	bool IsOpen() const { return Station.IsValid() && Character.IsValid(); }
 	void Open(ANWCharacter* InCharacter, ANWStation* InStation);
-	void Close() { Station.Reset(); Character.Reset(); }
+	void Close() { Sound(TEXT("ui_crafting_outro")); Station.Reset(); Character.Reset(); }
 	void Draw(UCanvas* Canvas, const FVector2D& Mouse);
 	/** true se o clique foi da tela (aberta, qualquer clique é dela). */
 	bool Click(const FVector2D& Mouse);
@@ -107,4 +107,17 @@ private:
 	TArray<FImproveButton> RerollButtons;
 	void DrawReroll(UCanvas* Canvas, const FVector2D& Mouse);
 	void DrawTab(UCanvas* Canvas, const FVector2D& Mouse);
+
+	// Fim do roll de equipamento (craftroll-equipamento.md §8): Continuar, Equipar (item equipável na bolsa) e Sair da
+	// estação, em coluna no ActiveButtonsContainer.
+	enum class EDoneButton : uint8 { Continue, Equip, Exit };
+	TArray<TPair<FBox2f, EDoneButton>> DoneButtons;
+	void DrawDoneButtons(UCanvas* Canvas, const FVector2D& Mouse);
+	// Sons da tela (craftroll-equipamento.md §9; Data/Audio/ui_sounds.json, tools/make_ui_sounds.py): uma variação
+	// sorteada de cada camada do evento. SoundAt toca uma vez quando T passa de At (bit marca o que já tocou).
+	void Sound(const TCHAR* Event) const;
+	void SoundAt(double T, double At, int32 Bit, const FString& Event);
+	uint32 SoundsDone = 0;
+	/** Item do resultado na bolsa (o mesmo item que o servidor devolveu), ou nulo. */
+	const FNWItem* ResultInBag() const;
 };

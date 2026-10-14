@@ -117,3 +117,29 @@ se algo estiver errado.
     no máximo 1 perk de habilidade.
 54. Item com qualidade de 80% ou mais: "Feito por <nick>"; sair e entrar de novo, guardar e retirar do armazém: continua
     igual (o número de série vai junto e o nw-core não aceita o mesmo item em dois lugares).
+55. F10 "Gemas e Joalheria 200": na estação de equipamentos (Alfaiataria) a lista tem Gemas Lapidadas; lapidar uma Ônix
+    Imperfeita gasta a bruta e o reagente e dá XP de Joalheria. Na forja aparecem as 2 cápsulas de vidro rúnico; na
+    cantaria, os 14 vidros (cápsula + gema Pura).
+56. Tooltip de uma gema na bolsa: os efeitos do port (ex.: Diamante Brilhante "+2% de resistência física", "+2% de
+    resistência mágica") e "Acopla em armaduras e escudos" ou "Acopla em armas", sem a descrição do jogo.
+57. Arrastar uma Esmeralda para uma espada fabricada sem gema: "Acoplar Gema" com o efeito; Confirmar tira 1 da pilha e
+    o tooltip da espada mostra o ícone, o nome e "+5% de chance de acerto crítico". Ônix numa espada não abre nada;
+    gema em ferramenta ou em item do saque também não.
+58. Arrastar outra gema para a espada que já tem gema: não abre nada e avisa "Retire a gema antes". A miniatura da
+    espada na bolsa e no equipamento mostra o ícone da gema no canto de baixo à direita.
+59. Shift + clique direito na espada com gema: "Retirar gema" com o custo; Confirmar devolve a gema e o slot fica vazio.
+    Com a bolsa cheia, avisa e nada muda.
+60. Vidro rúnico de Ônix de Punição num escudo: tooltip com +5% de resistência física e +3% de dano físico. Sair e
+    entrar de novo, guardar e retirar do armazém: a gema continua no item. Item equipado também aceita gema.
+61. Com `tools/backend_dev.sh` no ar, Play: o log diz "Play com backend: Exilado (editor)". Pegar itens, andar, parar o
+    Play e dar Play de novo: mesma bolsa, mesmos níveis e mesma posição. Com o nw-core parado, aparece "Jogando sem
+    backend" e o Play segue com o kit inicial.
+62. Abrir "Melhorar itens" na forja, sair e abrir uma mesa de refino: abre na lista de receitas. Voltar à forja: também
+    abre nas receitas.
+63. Lista de receitas da mesa: a última linha visível termina inteira acima da borda de baixo; rolar mostra o resto.
+64. Fabricar uma arma: no fim do roll aparecem à esquerda Continuar a Confeccionar, Equipar e Sair da Estação. Equipar
+    põe o item no espaço dele e volta à mesa; Sair fecha a estação; Continuar (ou clicar fora) volta à lista. Ferramenta
+    mostra "Equipar Ferramenta".
+65. Sons: abrir e fechar a mesa, clicar numa receita e em Fabricar/Refinar tocam o som do jogo; no roll de arma toca a
+    raridade, um som por perk e o da gema; no refino, o de completar. Clicar para pular não dispara todos de uma vez.
+

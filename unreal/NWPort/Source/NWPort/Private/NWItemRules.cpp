@@ -71,6 +71,43 @@ FNWItemRules::FNWItemRules()
 			O->TryGetStringField(TEXT("icone"), Perk.Icon);
 		}
 	}
+	if (Root->TryGetObjectField(TEXT("gema_itens"), Obj))
+	{
+		for (const auto& G : (*Obj)->Values)
+		{
+			const TSharedPtr<FJsonObject> O = G.Value->AsObject();
+			FGem& Gem = Gems.Add(FName(*G.Key));
+			Gem.Class = O->GetStringField(TEXT("classe"));
+			Gem.Raw = FName(*O->GetStringField(TEXT("bruta")));
+			O->TryGetBoolField(TEXT("vidro"), Gem.bGlass);
+			for (const auto& E : O->GetObjectField(TEXT("efeitos"))->Values)
+			{
+				Gem.Effects.Add({FName(*E.Key), float(E.Value->AsNumber())});
+			}
+		}
+	}
+	if (Root->TryGetObjectField(TEXT("gema_classes"), Obj))
+	{
+		for (const auto& C : (*Obj)->Values)
+		{
+			TArray<FString>& L = GemClasses.Add(FString(C.Key));
+			for (const TSharedPtr<FJsonValue>& V : C.Value->AsArray())
+			{
+				L.Add(V->AsString());
+			}
+		}
+	}
+	if (Root->TryGetObjectField(TEXT("efeitos_gema"), Obj))
+	{
+		for (const auto& E : (*Obj)->Values)
+		{
+			TMap<FString, FString>& T = GemEffectText.Add(FName(*E.Key));
+			for (const auto& L : E.Value->AsObject()->Values)
+			{
+				T.Add(FString(L.Key), L.Value->AsString());
+			}
+		}
+	}
 	for (const TPair<const TCHAR*, bool>& Field : {TPair<const TCHAR*, bool>(TEXT("equipamento"), true), TPair<const TCHAR*, bool>(TEXT("habilidade"), false)})
 	{
 		if (!Root->TryGetObjectField(Field.Key, Obj))
@@ -107,6 +144,51 @@ FString FNWItemRules::EquipClass(const FNWItemDef& D)
 		return TEXT("ferramenta");
 	}
 	return D.Type == TEXT("weapon") ? TEXT("arma") : FString();
+}
+
+bool FNWItemRules::HasSocket(const FNWItemDef& D, const FNWItem& Item)
+{
+	// 1 slot por arma, escudo e armadura fabricados; joias e ferramentas não têm (docs/itens.md).
+	const FString Class = EquipClass(D);
+	return Item.Quality >= 0.f && (Class == TEXT("arma") || Class == TEXT("escudo") || Class == TEXT("armadura"));
+}
+
+bool FNWItemRules::CanSocket(const FNWItemDef& D, const FNWItem& Item, FName GemId) const
+{
+	const FGem* G = Gems.Find(GemId);
+	const TArray<FString>* Classes = G ? GemClasses.Find(G->Class) : nullptr;
+	return G && Classes && HasSocket(D, Item) && Classes->Contains(EquipClass(D));
+}
+
+TArray<FString> FNWItemRules::GemLines(FName GemId) const
+{
+	TArray<FString> Out;
+	const FGem* G = Gems.Find(GemId);
+	if (!G)
+	{
+		return Out;
+	}
+	for (const TPair<FName, float>& E : G->Effects)
+	{
+		const TMap<FString, FString>* T = GemEffectText.Find(E.Key);
+		const FString* L = T ? T->Find(NWText::Lang()) : nullptr;
+		FString Line = L ? *L : E.Key.ToString() + TEXT(" {v}");
+		// Uma casa decimal só quando precisa (2,5 / 5).
+		FString V = FMath::IsNearlyEqual(E.Value, FMath::RoundToFloat(E.Value)) ? FString::Printf(TEXT("%.0f"), E.Value) : FString::Printf(TEXT("%.1f"), E.Value);
+		if (NWText::Lang() == TEXT("pt-br"))
+		{
+			V.ReplaceInline(TEXT("."), TEXT(","));
+		}
+		Out.Add(Line.Replace(TEXT("{v}"), *V));
+	}
+	return Out;
+}
+
+FName FNWItemRules::UnsocketCost(FName GemId, int32& OutQty) const
+{
+	const FGem* G = Gems.Find(GemId);
+	OutQty = G ? 1 : 0;
+	return G ? G->Raw : NAME_None;
 }
 
 TArray<FName> FNWItemRules::PerkPool(const FNWItemDef& D) const

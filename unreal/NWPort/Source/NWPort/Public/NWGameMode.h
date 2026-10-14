@@ -50,6 +50,10 @@ private:
 	UNWBackend* Backend() const;
 	bool IsCharacterOnline(const FString& CharacterId) const;
 	void SaveAll();
+	/** Play do editor com backend (docs/teste-backend.md): entra com a conta do editor e aplica o personagem salvo. */
+	void PieEnter(ANWPlayerController* PC);
+	void HandleTearDown(UWorld* World);
+	FDelegateHandle TearDownHandle;
 
 	TArray<ANWPlayerState*> GroupMembers(int32 GroupId) const;
 	ANWPlayerState* FindPlayer(const FString& Name) const;

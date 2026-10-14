@@ -42,7 +42,7 @@ DEFAULT_GAME = nwplatform.game_directory()
 # Bancos de (b) combate/movimento. Todos levam -gra (um .txtp por variação aleatória).
 SFX_GROUPS = ["wpn_1h_sword", "wpn_1h_shield", "impacts", "player_mvts",
               "playvoice_male", "playvoice_female", "bodyfalls", "global",
-              "npc_boar", "npc_wolf", "wpn_1h_rapier", "wpn_2h_bow", "wpn_1h_axe"]
+              "npc_boar", "npc_wolf", "wpn_1h_rapier", "wpn_2h_bow", "wpn_1h_axe", "ui"]
 
 # Eventos de cada grupo que entram em (b), e a pasta de destino.
 SFX_RULES = [
@@ -64,6 +64,9 @@ SFX_RULES = [
     ("wpn_1h_rapier", r".", "combat/rapier"),
     ("wpn_2h_bow", r".", "combat/bow"),
     ("wpn_1h_axe", r".", "combat/hatchet"),
+    # Interface das estações (esteira 4): roll de fabricar, raridade, perks, gema, nível de ofício
+    # (docs/analise-re/craftroll-equipamento.md §9).
+    ("ui", r"^play_ui_(crafting_|tradeskill_levelup)", "ui/crafting"),
     ("playvoice_male", r"voice=vo_(exert|hurt|death|exhausted|landhard|landsoft|holding)", "combat/voice_male"),
     ("playvoice_female", r"voice=vo_(exert|hurt|death|exhausted|landhard|landsoft|holding)", "combat/voice_female"),
 ]

@@ -6,8 +6,10 @@ Levantamento da tela e do GS do jogo: `docs/analise-re/oficio.md`.
 
 ## Mesas
 
-- Mesas de Queda Eterna que fabricam itens do port: ferraria (armeiro), engenharia, alquimia (arcano). Cozinha e
-  alfaiataria entram quando houver comida com efeito e armadura.
+- Mesas de Queda Eterna que fabricam itens do port: ferraria (armeiro), engenharia, alquimia (arcano) e a estação de
+  equipamentos (joalheria: gemas lapidadas). Cozinha e armoraria entram quando houver comida com efeito e armadura.
+- Vidro rúnico: a cápsula sai da forja e o vidro (cápsula + gema Pura) da cantaria, porque Queda Eterna não tem a
+  estação de runas do jogo.
 - A mesa evolui com material investido nela. Não se fabrica item para evoluir a mesa.
 
 ## Fabricar

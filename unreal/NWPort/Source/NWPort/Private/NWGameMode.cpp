@@ -47,14 +47,84 @@ void ANWGameMode::BeginPlay()
 	{
 		GetWorld()->SpawnActor<ANWSpawnField>();
 	}
+	// Play do editor sozinho: nw-core local de teste com a conta do editor (docs/teste-backend.md). O jogador local já
+	// entrou (PostLogin vem antes do BeginPlay no Play).
+	UNWBackend* PieBackend = Backend();
+	if (GetWorld()->WorldType == EWorldType::PIE && GetNetMode() == NM_Standalone && PieBackend && PieBackend->EnablePie())
+	{
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			PieEnter(Cast<ANWPlayerController>(It->Get()));
+		}
+	}
 	if (UNWBackend* B = Backend(); B && B->IsServerEnabled())
 	{
 		GetWorldTimerManager().SetTimer(SaveTimer, this, &ANWGameMode::SaveAll, SaveInterval, true);
+		// Salvar antes de os atores saírem (no fim do Play o pawn pode sumir antes do EndPlay do GameMode).
+		TearDownHandle = FWorldDelegates::OnWorldBeginTearDown.AddUObject(this, &ANWGameMode::HandleTearDown);
 	}
+}
+
+void ANWGameMode::HandleTearDown(UWorld* World)
+{
+	if (World == GetWorld())
+	{
+		SaveAll();
+	}
+}
+
+void ANWGameMode::PieEnter(ANWPlayerController* PC)
+{
+	UNWBackend* B = Backend();
+	if (!PC || PC->Record || !PC->IsLocalController() || !B || !B->IsPie())
+	{
+		return;
+	}
+	B->PieEnter([WeakThis = TWeakObjectPtr<ANWGameMode>(this), WeakPC = TWeakObjectPtr<ANWPlayerController>(PC)](TOptional<FNWCharacterRecord> Record, const FString& Error)
+	{
+		ANWGameMode* Self = WeakThis.Get();
+		ANWPlayerController* P = WeakPC.Get();
+		if (!Self || !P)
+		{
+			return;
+		}
+		if (!Record)
+		{
+			// nw-core fora do ar: segue sem backend (kit inicial do PostLogin), com aviso.
+			UE_LOG(LogNWGameMode, Warning, TEXT("Play sem backend: %s"), *Error);
+			if (UNWBackend* B = Self->Backend())
+			{
+				B->DisablePie();
+			}
+			Self->GetWorldTimerManager().ClearTimer(Self->SaveTimer);
+			P->Warning(NWText::Key(TEXT("nw.pie.offline"), {Error}));
+			return;
+		}
+		UE_LOG(LogNWGameMode, Display, TEXT("Play com backend: %s (%s)"), *Record->Name, *Record->AccountName);
+		if (APlayerState* PS = P->GetPlayerState<APlayerState>())
+		{
+			PS->SetPlayerName(Record->Name);
+		}
+		P->Record = MoveTemp(*Record);
+		P->bPlacedFromRecord = true;
+		if (ANWCharacter* Ch = Cast<ANWCharacter>(P->GetPawn()))
+		{
+			const FNWCharacterRecord& R = *P->Record;
+			if (R.bHasPosition && R.Map == UWorld::RemovePIEPrefix(Self->GetWorld()->GetMapName()))
+			{
+				Ch->TeleportTo(R.Position, FRotator(0.f, R.Yaw, 0.f));
+				P->SetControlRotation(FRotator(0.f, R.Yaw, 0.f));
+			}
+			Ch->RestoreFrom(R);
+			Ch->CaptureTo(*P->Record);
+		}
+		P->PublishProgress();
+	});
 }
 
 void ANWGameMode::EndPlay(const EEndPlayReason::Type Reason)
 {
+	FWorldDelegates::OnWorldBeginTearDown.Remove(TearDownHandle);
 	SaveAll();
 	Super::EndPlay(Reason);
 }
@@ -166,6 +236,7 @@ void ANWGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 	ANWPlayerController* PC = Cast<ANWPlayerController>(NewPlayer);
+	PieEnter(PC);   // Play do editor com backend (só depois do BeginPlay; antes, o BeginPlay chama)
 	if (PC && !PC->Record)
 	{
 		// Sem backend (Play no editor, teste local): kit inicial com as ferramentas de coleta, para dar para testar.

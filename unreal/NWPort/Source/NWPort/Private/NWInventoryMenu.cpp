@@ -573,6 +573,17 @@ void FNWInventoryMenu::DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWI
 	{
 		DrawGameText(Canvas, Roman(D->Tier), R.Min.X + 5.f * S, R.Min.Y + 1.f * S, 14.f * K, TextA, TEXT("pica_italic"));
 	}
+	// Gema acoplada: ícone dela no canto de baixo à direita, sobre o soquete do tooltip (docs/itens.md "Slot").
+	if (const FNWItemDef* GD = Item->Gem.IsNone() ? nullptr : FNWItemCatalog::Get().Find(Item->Gem))
+	{
+		// Pouco mais de metade da peça (34 de 60), para a gema ser reconhecível na bolsa.
+		const FBox2f GB(FVector2f(R.Max.X - 34.f * S, R.Max.Y - 34.f * S), FVector2f(R.Max.X, R.Max.Y));
+		DrawTexture(Canvas, TEXT("lyshineui/images/tooltip/frame_gemsocket.dds"), GB, A);
+		if (UTexture2D* GemIcon = FNWUILayout::GameTexture(GD->Icon))
+		{
+			DrawTile(Canvas, GemIcon, FBox2f(GB.Min + FVector2f(2.f * S), GB.Max - FVector2f(2.f * S)), A);
+		}
+	}
 	// Quantidade só acima de 1, sobre frame_lootticker no canto de baixo à direita.
 	if (Item->Quantity > 1)
 	{
@@ -1148,7 +1159,25 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 	switch (Pressed.Source())
 	{
 	case ESource::Bag:
-		if (Target && Target->Source() == ESource::Equip && Accepts(Target->Slot, *Item))
+		if (const FNWItem* TI = Target && Target->Source() != ESource::Storage ? ItemOf(*Target) : nullptr;
+			TI && FNWItemRules::Get().Gems.Contains(Item->ItemId) && !(Target->Source() == ESource::Bag && Target->Slot == Pressed.Slot))
+		{
+			// Gema ou vidro rúnico solto num item: confirma antes de acoplar (o servidor confere se encaixa).
+			const FNWItemDef* TD = FNWItemCatalog::Get().Find(TI->ItemId);
+			if (TD && FNWItemRules::Get().CanSocket(*TD, *TI, Item->ItemId))
+			{
+				if (TI->Gem.IsNone())
+				{
+					PopupGemSlot = Pressed.Slot;
+					OpenPopup(EPopup::Socket, *Target);
+				}
+				else
+				{
+					Inv->ServerSocket(Pressed.Slot, Target->Container, Target->Slot);   // recusa e avisa: retirar antes
+				}
+			}
+		}
+		else if (Target && Target->Source() == ESource::Equip && Accepts(Target->Slot, *Item))
 		{
 			Inv->ServerMove(ENWItemContainer::Bag, Pressed.Slot, ENWItemContainer::Equip, Target->Slot);
 		}
@@ -1201,7 +1230,11 @@ void FNWInventoryMenu::RightClick(const FSlotRef& S)
 		return;
 	}
 	UNWInventoryComponent* Inv = Me->Inventory;
-	if (S.Source() == ESource::Storage || (bStorage && S.Source() == ESource::Bag))
+	if (S.Source() != ESource::Storage && !Item->Gem.IsNone() && (ModifierDown(EKeys::LeftShift) || ModifierDown(EKeys::RightShift)))
+	{
+		OpenPopup(EPopup::Unsocket, S);   // Shift + clique direito: retirar a gema
+	}
+	else if (S.Source() == ESource::Storage || (bStorage && S.Source() == ESource::Bag))
 	{
 		QuickMove(S);
 	}
@@ -1311,6 +1344,15 @@ void FNWInventoryMenu::OpenPopup(EPopup Kind, const FSlotRef& S)
 	{
 		Add(EAction::Destroy, TEXT("ui_confirm"));
 	}
+	else if (Kind == EPopup::Socket || Kind == EPopup::Unsocket)
+	{
+		// Retirar (ou trocar) paga o custo; sem ele o botão fica apagado.
+		int32 Qty = 0;
+		const FName Cost = Item->Gem.IsNone() ? NAME_None : FNWItemRules::Get().UnsocketCost(Item->Gem, Qty);
+		const ANWCharacter* Me = Character.Get();
+		const bool bPay = Cost.IsNone() || (Me && Me->Inventory && Me->Inventory->CountOf(Cost) >= Qty);
+		Add(Kind == EPopup::Socket ? EAction::Socket : EAction::Unsocket, TEXT("ui_confirm"), bPay);
+	}
 	else if (bStorage)
 	{
 		Add(EAction::Move, S.Source() == ESource::Storage ? TEXT("ui_tooltip_take") : TEXT("ui_move"));
@@ -1362,6 +1404,18 @@ void FNWInventoryMenu::RunAction(EAction Action)
 			Me->Inventory->ServerDestroy(PopupSlot.Slot, PopupQty);
 		}
 		break;
+	case EAction::Socket:
+		if (Me->Inventory && PopupGemSlot != INDEX_NONE)
+		{
+			Me->Inventory->ServerSocket(PopupGemSlot, PopupSlot.Container, PopupSlot.Slot);
+		}
+		break;
+	case EAction::Unsocket:
+		if (Me->Inventory)
+		{
+			Me->Inventory->ServerUnsocket(PopupSlot.Container, PopupSlot.Slot);
+		}
+		break;
 	default:
 		break;
 	}
@@ -1406,6 +1460,13 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 	// popup.lua: fundo escurece a 0,8; caixa centrada.
 	FillRect(Canvas, FBox2f(FVector2f(0.f), FVector2f(Canvas->ClipX, Canvas->ClipY)), FLinearColor(0.f, 0.f, 0.f, 0.6f));
 	const bool bSplit = Popup == EPopup::Split;
+	const bool bGem = Popup == EPopup::Socket || Popup == EPopup::Unsocket;
+	const FNWItem* GemStack = Popup == EPopup::Socket ? ItemOf(FSlotRef{ENWItemContainer::Bag, PopupGemSlot}) : nullptr;
+	if (Popup == EPopup::Socket && !GemStack)
+	{
+		Popup = EPopup::None;
+		return;
+	}
 	const FVector2f Size = FVector2f(560.f, bSplit ? 360.f : 350.f) * S;
 	const FVector2f C(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
 	const FBox2f Box(C - Size * 0.5f, C + Size * 0.5f);
@@ -1413,7 +1474,9 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 	FillRect(Canvas, Box, FLinearColor(0.f, 0.f, 0.f, 0.8f));
 	DrawDropZone(Canvas, Box, FLinearColor(InvTanBody.R, InvTanBody.G, InvTanBody.B, 0.5f));
 
-	const FString Title = FText::FromString(NWText::Get(bSplit ? TEXT("ui_split_stack") : TEXT("ui_destroybounditem"))).ToUpper().ToString();
+	const TCHAR* TitleKey = bSplit ? TEXT("ui_split_stack") : Popup == EPopup::Unsocket ? TEXT("nw.item.gem_remove")
+		: Popup == EPopup::Socket ? TEXT("ui_attach_gem") : TEXT("ui_destroybounditem");
+	const FString Title = FText::FromString(NWText::Get(TitleKey)).ToUpper().ToString();
 	DrawGameText(Canvas, Title, C.X - GameTextWidth(Title, 32.f, TEXT("pica_regular")) * 0.5f, Box.Min.Y + 22.f * S, 32.f, InvTan, TEXT("pica_regular"));
 	FillRect(Canvas, FBox2f(FVector2f(Box.Min.X + 40.f * S, Box.Min.Y + 66.f * S), FVector2f(Box.Max.X - 40.f * S, Box.Min.Y + 67.f * S)),
 		FLinearColor(InvLine.R, InvLine.G, InvLine.B, 0.35f));
@@ -1429,7 +1492,43 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 		DrawTexture(Canvas, FString(MiscDir) + TEXT("icon_weight.dds"), FBox2f(FVector2f(X - TW * 0.5f - 9.f * S, Y + Tile + 15.f * S), FVector2f(X - TW * 0.5f + 3.f * S, Y + Tile + 27.f * S)), InvGray);
 		DrawGameText(Canvas, W, X - TW * 0.5f + 7.f * S, Y + Tile + 8.f * S, 24.f, InvGray, TEXT("pica_regular"));
 	};
-	if (bSplit)
+	if (bGem)
+	{
+		// Item à esquerda, gema à direita (a que entra ou a que sai); embaixo o efeito da gema e o custo de retirar.
+		SliderRect = FBox2f(ForceInit);
+		const FName GemId = GemStack ? GemStack->ItemId : Item->Gem;
+		const float TY = Box.Min.Y + 86.f * S;
+		DrawItemTile(Canvas, FBox2f(FVector2f(C.X - 110.f * S - Tile * 0.5f, TY), FVector2f(C.X - 110.f * S + Tile * 0.5f, TY + Tile)), Item, D->bRound, 1.f, false, 1);
+		FNWItem GemCopy;
+		GemCopy.ItemId = GemId;
+		GemCopy.Quantity = 1;
+		const FNWItemDef* GD = FNWItemCatalog::Get().Find(GemId);
+		DrawItemTile(Canvas, FBox2f(FVector2f(C.X + 110.f * S - Tile * 0.5f, TY), FVector2f(C.X + 110.f * S + Tile * 0.5f, TY + Tile)), &GemCopy, GD && GD->bRound, 1.f, false, 1);
+		const float AX = Popup == EPopup::Socket ? 1.f : -1.f;   // seta: gema entra no item (socket) ou sai (retirar)
+		FCanvasTriangleItem Tri(FVector2D(C.X - 12.f * S * AX, TY + 37.f * S), FVector2D(C.X + 8.f * S * AX, TY + 25.f * S),
+			FVector2D(C.X + 8.f * S * AX, TY + 49.f * S), GWhiteTexture);
+		Tri.SetColor(InvTanBody);
+		Canvas->DrawItem(Tri);
+		float LY = TY + Tile + 14.f * S;
+		auto Line = [&](const FString& T, const FLinearColor& Color, const TCHAR* Font)
+		{
+			DrawGameText(Canvas, T, C.X - GameTextWidth(T, 23.f, Font) * 0.5f, LY, 23.f, Color, Font);
+			LY += 28.f * S;
+		};
+		Line(GD ? GD->Name : GemId.ToString(), InvTan, TEXT("nimbus_medium"));
+		Line(FString::Join(FNWItemRules::Get().GemLines(GemId), TEXT("  ")), InvGray, TEXT("nimbus_regular"));
+		int32 Qty = 0;
+		const FName Cost = Item->Gem.IsNone() ? NAME_None : FNWItemRules::Get().UnsocketCost(Item->Gem, Qty);
+		if (!Cost.IsNone())
+		{
+			const FNWItemDef* CD = FNWItemCatalog::Get().Find(Cost);
+			const ANWCharacter* Me = Character.Get();
+			const int32 Have = Me && Me->Inventory ? Me->Inventory->CountOf(Cost) : 0;
+			Line(NWText::Format(TEXT("nw.item.gem_cost_line"), {FString::FromInt(Qty), CD ? CD->Name : Cost.ToString(), FString::FromInt(Have)}),
+				Have >= Qty ? InvGray : FLinearColor(0.85f, 0.3f, 0.25f), TEXT("nimbus_regular"));
+		}
+	}
+	else if (bSplit)
 	{
 		// Fica (esquerda) e leva (direita), slider de 1 até a pilha.
 		TileAt(C.X - 110.f * S, Box.Min.Y + 86.f * S, PopupMax - PopupQty);
@@ -1474,11 +1573,16 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 void FNWInventoryMenu::ShotPopup(int32 Kind, int32 Source, int32 Slot, int32 Qty)
 {
 	FSlotRef R;
-	R.Container = ENWItemContainer::Bag;
+	R.Container = Source == 1 ? ENWItemContainer::Equip : ENWItemContainer::Bag;
 	R.bStorage = Source == 2;
 	R.Slot = Slot;
-	OpenPopup(Kind == 2 ? EPopup::Destroy : EPopup::Split, R);
-	if (Qty > 0)
+	// 3: acoplar (Qty = espaço da gema na bolsa); 4: retirar.
+	if (Kind == 3)
+	{
+		PopupGemSlot = Qty;
+	}
+	OpenPopup(Kind == 2 ? EPopup::Destroy : Kind == 3 ? EPopup::Socket : Kind == 4 ? EPopup::Unsocket : EPopup::Split, R);
+	if (Qty > 0 && Kind < 3)
 	{
 		PopupQty = Qty;
 	}
@@ -1666,18 +1770,39 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 			}
 		}
 	}
-	// Um slot em arma, escudo e armadura; joias e ferramentas não têm (docs/itens.md).
-	const FString Class = FNWItemRules::EquipClass(*D);
-	if (Item.Quality >= 0.f && (Class == TEXT("arma") || Class == TEXT("escudo") || Class == TEXT("armadura")))
+	// Um slot em arma, escudo e armadura; joias e ferramentas não têm (docs/itens.md). Com gema: ícone e nome dela e os
+	// efeitos (dynamictooltip_perk.lua mostra a gema como perk).
+	if (FNWItemRules::HasSocket(*D, Item))
 	{
 		if (Item.Perks.Num() == 0)
 		{
 			Section();
 		}
-		Rows.Add({Item.Gem.IsNone() ? NWText::Get(TEXT("nw.item.gem_empty")) : Item.Gem.ToString(), Muted, 23.f, 1, 4.f,
-			TEXT("lyshineui/images/tooltip/frame_gemsocket.dds")});
+		if (const FNWItemDef* GD = Item.Gem.IsNone() ? nullptr : FNWItemCatalog::Get().Find(Item.Gem))
+		{
+			Rows.Add({GD->Name, Perk, 23.f, 1, 0.f, GD->Icon});
+			for (const FString& L : IR.GemLines(Item.Gem))
+			{
+				Rows.Add({L, Body, 21.f, 0, 0.f});
+			}
+		}
+		else
+		{
+			Rows.Add({NWText::Get(TEXT("nw.item.gem_empty")), Muted, 23.f, 1, 4.f, TEXT("lyshineui/images/tooltip/frame_gemsocket.dds")});
+		}
 	}
-	if (!D->Description.IsEmpty())
+	// Gema ou vidro rúnico solto: os efeitos e onde encaixa.
+	if (IR.Gems.Contains(Item.ItemId))
+	{
+		Section();
+		for (const FString& L : IR.GemLines(Item.ItemId))
+		{
+			Rows.Add({L, Perk, 22.f, 0, 0.f});
+		}
+		Rows.Add({NWText::Get(IR.Gems[Item.ItemId].Class == TEXT("arma") ? TEXT("nw.item.gem_for_weapon") : TEXT("nw.item.gem_for_armor")), Muted, 21.f, 0, 2.f});
+	}
+	// Gemas: a descrição do jogo fala dos efeitos do jogo; vale a linha de efeitos do port acima.
+	if (!D->Description.IsEmpty() && !IR.Gems.Contains(Item.ItemId))
 	{
 		if (Rows.Num())
 		{

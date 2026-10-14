@@ -10,7 +10,9 @@
 #include "Misc/CommandLine.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Engine/World.h"
+#include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
+#include "Misc/Paths.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
@@ -189,7 +191,7 @@ void UNWBackend::Deinitialize()
 
 bool UNWBackend::WantsFrontEnd(const UWorld* World) const
 {
-	return !BaseUrl.IsEmpty() && !bAutoConnect && World && World->GetNetMode() == NM_Standalone;
+	return !BaseUrl.IsEmpty() && !bAutoConnect && !bPie && World && World->GetNetMode() == NM_Standalone;
 }
 
 void UNWBackend::HandleNetworkFailure(UWorld*, UNetDriver*, ENetworkFailure::Type Type, const FString& Error)
@@ -638,6 +640,103 @@ void UNWBackend::ClientAutoConnect()
 			{
 				UE_LOG(LogNWBackend, Error, TEXT("entrada falhou: %s"), *Error);
 			}
+		});
+	});
+}
+
+// ---------------------------------------------------------------- Play do editor com backend
+
+bool UNWBackend::EnablePie()
+{
+#if WITH_EDITOR
+	// backend/dev.env (valores de teste, no repositório): KEY=valor por linha, aspas opcionais.
+	FString Raw;
+	const FString File = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("../../backend/dev.env"));
+	if (!FFileHelper::LoadFileToString(Raw, *File))
+	{
+		return false;
+	}
+	TMap<FString, FString> Env;
+	TArray<FString> Lines;
+	Raw.ParseIntoArrayLines(Lines);
+	for (const FString& L : Lines)
+	{
+		FString K, V;
+		if (!L.StartsWith(TEXT("#")) && L.Split(TEXT("="), &K, &V))
+		{
+			Env.Add(K.TrimStartAndEnd(), V.TrimStartAndEnd().TrimQuotes());
+		}
+	}
+	const FString* Account = Env.Find(TEXT("NW_PIE_ACCOUNT"));
+	if (!Account || Account->IsEmpty() || !Env.Contains(TEXT("NW_BACKEND")) || !Env.Contains(TEXT("NW_SERVER_SECRET")))
+	{
+		return false;
+	}
+	BaseUrl = Env[TEXT("NW_BACKEND")];
+	BaseUrl.RemoveFromEnd(TEXT("/"));
+	ServerSecret = Env[TEXT("NW_SERVER_SECRET")];
+	PieAccount = *Account;
+	PiePassword = Env.FindRef(TEXT("NW_TEST_PASSWORD"));
+	PieCharacter = Env.FindRef(TEXT("NW_PIE_CHARACTER"));
+	bPie = true;
+	UE_LOG(LogNWBackend, Display, TEXT("Play com backend: %s, conta %s, personagem %s"), *BaseUrl, *PieAccount, *PieCharacter);
+	return true;
+#else
+	return false;
+#endif
+}
+
+void UNWBackend::DisablePie()
+{
+	bPie = false;
+	BaseUrl.Reset();
+	ServerSecret.Reset();
+	SessionToken.Reset();
+}
+
+void UNWBackend::PieEnter(FRedeemDone Done)
+{
+	TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("name"), PieAccount);
+	Body->SetStringField(TEXT("password"), PiePassword);
+	// A sessão fica só na memória do Play (não grava [NW.Session] no GameUserSettings).
+	Request(TEXT("POST"), TEXT("/v1/auth/login"), WriteJson(Body), false, [this, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json) mutable
+	{
+		if (Status != 200 || !Json.IsValid())
+		{
+			Done({}, ErrorMessage(Status, Json));
+			return;
+		}
+		SessionToken = Json->GetStringField(TEXT("token"));
+		Request(TEXT("GET"), TEXT("/v1/me"), FString(), false, [this, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Me) mutable
+		{
+			const TArray<TSharedPtr<FJsonValue>>* List = nullptr;
+			FString Id;
+			if (Status == 200 && Me.IsValid() && Me->TryGetArrayField(TEXT("characters"), List))
+			{
+				for (const TSharedPtr<FJsonValue>& V : *List)
+				{
+					if (V->AsObject()->GetStringField(TEXT("name")).Equals(PieCharacter, ESearchCase::IgnoreCase))
+					{
+						Id = V->AsObject()->GetStringField(TEXT("id"));
+					}
+				}
+			}
+			if (Id.IsEmpty())
+			{
+				Done({}, FString::Printf(TEXT("personagem %s não existe (rode tools/backend_dev.sh)"), *PieCharacter));
+				return;
+			}
+			Request(TEXT("POST"), FString::Printf(TEXT("/v1/characters/%s/join"), *Id), FString(), false,
+				[this, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Join) mutable
+				{
+					if (Status != 200 || !Join.IsValid())
+					{
+						Done({}, ErrorMessage(Status, Join));
+						return;
+					}
+					RedeemTicket(Join->GetStringField(TEXT("ticket")), MoveTemp(Done));
+				});
 		});
 	});
 }

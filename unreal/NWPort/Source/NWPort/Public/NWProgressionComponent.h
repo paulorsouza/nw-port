@@ -19,11 +19,11 @@ enum class ENWAttribute : uint8
 /** Ofícios de coleta do jogo (CategoricalProgressionId). */
 namespace NWTradeskill
 {
-	constexpr int32 Num = 12;
+	constexpr int32 Num = 13;
 	/** Ofícios de coleta (0..3); os de refino vêm depois (4..8). */
 	constexpr int32 NumGathering = 4;
 	/** Mining, Logging, Harvesting, Skinning -> 0..3; Smelting, Woodworking, Leatherworking, Weaving, Stonecutting
-	 *  -> 4..8 (refino, esteira 4); Weaponsmithing, Engineering, Arcana -> 9..11 (fabricar, docs/oficio.md); outro ->
+	 *  -> 4..8 (refino, esteira 4); Weaponsmithing, Engineering, Arcana -> 9..11 (fabricar, docs/oficio.md); Jewelcrafting -> 12 (gemas); outro ->
 	 *  INDEX_NONE. */
 	NWPORT_API int32 Index(FName Tradeskill);
 	NWPORT_API FName Name(int32 Index);

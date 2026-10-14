@@ -17,6 +17,7 @@ step tools/make_rules.py
 # Esteira 4: estações e receitas de refino de Queda Eterna (o catálogo inclui os itens das receitas).
 [ -f extract/slicejson/slices/structures/settlements/v2_settlements/settlement_northwindsward_complete.dynamicslice.json ] \
     && step tools/make_crafting.py || echo "== sem o slice de Queda Eterna: Data/Crafting fica como está"
+[ -f extract/audio/sfx_index.csv ] && step tools/make_ui_sounds.py || echo "== sem extract/audio: Data/Audio fica como está"
 step tools/make_items.py
 step tools/make_itens.py
 step tools/make_abilities.py

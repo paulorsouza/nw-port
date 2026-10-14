@@ -10,6 +10,13 @@
 #include "NWInventoryComponent.h"
 #include "NWItems.h"
 #include "NWItemRules.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonReader.h"
+#include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
+#include "Sound/SoundBase.h"
+#include "Kismet/GameplayStatics.h"
 #include "NWPlayerController.h"
 #include "NWProgressionComponent.h"
 #include "NWText.h"
@@ -28,7 +35,7 @@ namespace
 	const FLinearColor CategoryBg(FColor(0x4A, 0x5D, 0x70));
 	const TCHAR* Img = TEXT("lyshineui/images/");
 	constexpr float RowStep = 46.f;          // UiDynamicScrollBox: protótipo 449×46
-	constexpr int32 VisibleRows = 17;
+	constexpr int32 VisibleRows = 16;       // cabem 16 linhas inteiras até a borda de baixo da lista (a 17ª saía cortada)
 	constexpr double RollCount = 1.0;        // craftroll.lua: duration
 	constexpr double RollDelay = 0.5;        // ProgressionContainer: atraso 0,5 s
 	constexpr double RollEnd = 2.2;          // fim da contagem + Base/Bonus (0,2 + 0,5)
@@ -157,6 +164,8 @@ void FNWRefiningMenu::Open(ANWCharacter* InCharacter, ANWStation* InStation)
 	Count = 1;
 	Drag = EDrag::None;
 	State = EState::Select;
+	Sound(TEXT("ui_crafting_intro"));
+	bReroll = false;   // cada mesa abre nas receitas (a aba "Melhorar itens" só existe nas mesas de fabricar)
 }
 
 void FNWRefiningMenu::Select(FName RecipeId, int32 InCount)
@@ -570,6 +579,8 @@ void FNWRefiningMenu::DrawRoll(const FNWRecipe& R)
 	{
 		Box->AlphaMul = float(FMath::Clamp((T - 0.25) / 0.3, 0.0, 1.0));
 	}
+	// RarityOffset termina de subir em 1,4 s: Crafting_Done (refino.md §6).
+	SoundAt(T, 1.4, 0, TEXT("ui_crafting_complete"));
 	if (State == EState::Roll && T > RollEnd)
 	{
 		State = EState::Done;
@@ -689,6 +700,17 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 	// (craftroll.lua 4535–5088).
 	SetShown(E(TEXT("Stats/NoPerkLabel")), false);
 	const int32 NumPerks = It->Perks.Num();
+	// Sons: raridade em 0,5 (Crafting_Rarity_n), cada perk em 0,55 + 0,15·k + 0,2 (Crafting_Perk_Show), gema depois
+	// (Crafting_GemSlot_Show).
+	SoundAt(T, 0.5, 1, FString::Printf(TEXT("ui_crafting_rarity_%d"), Rarity));
+	for (int32 k = 0; k < NumPerks && k < 8; ++k)
+	{
+		SoundAt(T, 0.55 + 0.15 * k + 0.2, 2 + k, TEXT("ui_crafting_perk_show"));
+	}
+	if (bSlot)
+	{
+		SoundAt(T, 0.55 + 0.15 * NumPerks + 0.2, 10, TEXT("ui_crafting_gemslot_show"));
+	}
 	if (Ro)
 	{
 		SetShown(Ro, true);
@@ -751,9 +773,12 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		static const float GemY[] = {112.f, 112.f, 186.f, 260.f, 334.f, 408.f};
 		Gem->Translate.Y = GemY[FMath::Clamp(NumPerks, 0, 5)] - 408.f;   // canvas: 408
 		Row(Gem, 0.55 + 0.15 * NumPerks);
-		SetText(E(TEXT("GemPerkSlot/Bg/PerkName")), It->Gem.IsNone() ? NWText::Get(TEXT("nw.item.gem_empty")) : It->Gem.ToString());
-		SetText(E(TEXT("GemPerkSlot/Bg/PerkDesc")), FString());
-		SetShown(E(TEXT("GemPerkSlot/PerkImageBg/PerkImage")), !It->Gem.IsNone());
+		// Com gema: nome e ícone dela e os efeitos (docs/itens.md "Slot"); vazio: o soquete do jogo.
+		const FNWItemDef* GD = It->Gem.IsNone() ? nullptr : FNWItemCatalog::Get().Find(It->Gem);
+		SetText(E(TEXT("GemPerkSlot/Bg/PerkName")), GD ? GD->Name : NWText::Get(TEXT("nw.item.gem_empty")));
+		SetText(E(TEXT("GemPerkSlot/Bg/PerkDesc")), GD ? FString::Join(FNWItemRules::Get().GemLines(It->Gem), TEXT("  ")) : FString());
+		SetShown(E(TEXT("GemPerkSlot/PerkImageBg/PerkImage")), GD != nullptr);
+		SetTexture(E(TEXT("GemPerkSlot/PerkImageBg/PerkImage")), GD ? GD->Icon : FString());
 		if (FNWUIElement* Cover = E(TEXT("GemPerkSlot/PerkImageBg/PerkImageCover")))
 		{
 			Cover->AlphaMul = 1.f - Fade(T, 0.65 + 0.15 * NumPerks, 0.3);   // ShowPerk(d, true): capa 1→0, fica o soquete
@@ -838,6 +863,8 @@ void FNWRefiningMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	SetShown(E(TEXT("CraftingContainer/CraftingPanel")), !bRoll);
 	SetShown(E(TEXT("CraftingContainer/CraftRoll")), bRoll);
 	SetShown(E(TEXT("CraftingContainer/CraftDone")), State == EState::Done);
+	// Equipamento: os botões do fim tomam o lugar do "Clique em qualquer lugar" (o clique fora deles continua valendo).
+	SetShown(E(TEXT("CraftDoneWindow/ContinueText")), !bGearRoll);
 	if (FNWUIElement* Bg = E(TEXT("_root/CraftingScreen/BackgroundStep1")))
 	{
 		Bg->AlphaMul = bRoll ? float(FMath::Clamp((Now() - RollStart) / 0.35, 0.0, 1.0)) : 0.f;
@@ -863,6 +890,11 @@ void FNWRefiningMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 		DrawRoll(*R);
 	}
 	Ui.Draw(Canvas);
+	DoneButtons.Reset();
+	if (bGearRoll && State == EState::Done)
+	{
+		DrawDoneButtons(Canvas, Mouse);
+	}
 	if (!bRoll)
 	{
 		DrawRows(Canvas, Mouse);
@@ -892,12 +924,44 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 	}
 	ANWCharacter* Me = Character.Get();
 	const FVector2f M(Mouse);
+	for (const TPair<FBox2f, EDoneButton>& B : DoneButtons)
+	{
+		if (!B.Key.IsInside(M))
+		{
+			continue;
+		}
+		if (B.Value == EDoneButton::Equip)
+		{
+			const FNWItem* It = ResultInBag();
+			const FNWItemDef* D = It ? FNWItemCatalog::Get().Find(It->ItemId) : nullptr;
+			const int32 To = D ? NWEquip::SlotForSet(D->Set) : INDEX_NONE;
+			if (Me && Me->Inventory && To != INDEX_NONE)
+			{
+				Me->Inventory->ServerMove(ENWItemContainer::Bag, It->Slot, ENWItemContainer::Equip, To);
+			}
+			State = EState::Select;
+		}
+		else if (B.Value == EDoneButton::Exit)
+		{
+			// OnExitPostCrafting: fecha a estação.
+			if (ANWPlayerController* PC = Me ? Cast<ANWPlayerController>(Me->GetController()) : nullptr)
+			{
+				PC->CloseMenus();
+			}
+		}
+		else
+		{
+			State = EState::Select;
+		}
+		return true;
+	}
 	if (bGearRoll && State != EState::Select)
 	{
 		// TrySkip: com animação em curso termina tudo; depois volta à mesa. Sem o item ainda, espera.
 		if (ResultAt > 0.0 && Now() - ResultAt < GearRollLength())
 		{
 			ResultAt = Now() - GearRollLength();
+			SoundsDone = ~0u;   // pular termina as animações sem tocar tudo de uma vez
 		}
 		else if (ResultAt > 0.0)
 		{
@@ -951,6 +1015,7 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 			{
 				Selected = Row.Value;
 				Count = 1;
+				Sound(TEXT("ui_crafting_item_select"));
 			}
 			else
 			{
@@ -1010,6 +1075,8 @@ void FNWRefiningMenu::ClickCraft()
 		return;
 	}
 	const FNWRecipe& R = *Recipes[Sel->Recipe];
+	Sound(TEXT("ui_crafting_select"));   // Crafting_Button_Select
+	SoundsDone = 0;
 	if (R.bGear)
 	{
 		// Na hora: o item vai para a bolsa (ou só XP no treino). Com item, a contagem do jogo sobe até o GS dele.
@@ -1041,6 +1108,7 @@ void FNWRefiningMenu::StartResultRoll(FName ItemId, uint8 Kind)
 	bGearRoll = true;
 	State = EState::Roll;
 	RollStart = Now();
+	SoundsDone = 0;
 }
 
 const FNWItem* FNWRefiningMenu::RollResult() const
@@ -1327,5 +1395,102 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 	if (Shown == 0)
 	{
 		CraftText(Canvas, NWText::Get(TEXT("nw.craft.reroll_none")), Panel.Min.X + 30.f * S, Y, 24.f, Gray);
+	}
+}
+
+const FNWItem* FNWRefiningMenu::ResultInBag() const
+{
+	const FNWItem* R = RollResult();
+	const ANWCharacter* Me = Character.Get();
+	if (!R || !Me || !Me->Inventory)
+	{
+		return nullptr;
+	}
+	// O item sorteado é único (GS, qualidade, perks e série): acha o espaço dele na bolsa.
+	return Me->Inventory->Items.FindByPredicate([R](const FNWItem& I) { return I.Container == ENWItemContainer::Bag && I.SameKind(*R); });
+}
+
+void FNWRefiningMenu::DrawDoneButtons(UCanvas* Canvas, const FVector2D& Mouse)
+{
+	// ActiveButtonsContainer (craftingscreenv4): x 232–602, a partir de y 520, espaçamento 8 (o do UnusedButtonContainer).
+	// Continuar é o botão de destaque (70 de altura); Equipar e Sair, 45. Aparecem com a janela do fim (0,7 s, atraso 0,55).
+	const FNWItem* It = ResultInBag();
+	const FNWItemDef* D = It ? FNWItemCatalog::Get().Find(It->ItemId) : nullptr;
+	const bool bEquip = D && NWEquip::SlotForSet(D->Set) != INDEX_NONE;
+	const bool bTool = bEquip && NWEquip::SlotForSet(D->Set) >= NWEquip::FirstTool;
+	const float S = Canvas->ClipY / 1080.f;
+	const float X0 = (Canvas->ClipX - 1920.f * S) * 0.5f + 232.f * S, W = 370.f * S;
+	float Y = 520.f * S;
+	auto Add = [&](EDoneButton Kind, const FString& Label, float H)
+	{
+		const FBox2f R(FVector2f(X0, Y), FVector2f(X0 + W, Y + H * S));
+		CraftButton(Canvas, R, Label, R.IsInside(FVector2f(Mouse)), true);
+		DoneButtons.Add({R, Kind});
+		Y += (H + 8.f) * S;
+	};
+	Add(EDoneButton::Continue, Loc(TEXT("cr_continue_crafting")), 70.f);
+	if (bEquip)
+	{
+		Add(EDoneButton::Equip, Loc(bTool ? TEXT("ui_tooltip_setactivetool") : TEXT("inv_equip")), 45.f);
+	}
+	Add(EDoneButton::Exit, Loc(TEXT("cr_exit_station")), 45.f);
+}
+
+void FNWRefiningMenu::Sound(const TCHAR* Event) const
+{
+	const ANWCharacter* Me = Character.Get();
+	UWorld* World = Me ? Me->GetWorld() : nullptr;
+	if (!World || FixedNow > 0.0 || !World->IsGameWorld())
+	{
+		return;   // captura sem jogo (FixedNow) e fora do jogo não tocam
+	}
+	static TMap<FString, TArray<TArray<FString>>> Events = []
+	{
+		TMap<FString, TArray<TArray<FString>>> Out;
+		FString Raw;
+		TSharedPtr<FJsonObject> Root;
+		if (FFileHelper::LoadFileToString(Raw, *(FPaths::ProjectDir() / TEXT("Data/Audio/ui_sounds.json")))
+			&& FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Raw), Root) && Root.IsValid())
+		{
+			for (const auto& E : Root->Values)
+			{
+				TArray<TArray<FString>>& Layers = Out.Add(FString(E.Key));
+				for (const TSharedPtr<FJsonValue>& L : E.Value->AsArray())
+				{
+					TArray<FString>& Names = Layers.AddDefaulted_GetRef();
+					for (const TSharedPtr<FJsonValue>& N : L->AsArray())
+					{
+						Names.Add(N->AsString());
+					}
+				}
+			}
+		}
+		return Out;
+	}();
+	const TArray<TArray<FString>>* Layers = Events.Find(Event);
+	if (!Layers)
+	{
+		return;
+	}
+	for (const TArray<FString>& L : *Layers)
+	{
+		if (L.Num() == 0)
+		{
+			continue;
+		}
+		const FString& N = L[FMath::RandRange(0, L.Num() - 1)];
+		if (USoundBase* S = LoadObject<USoundBase>(nullptr, *FString::Printf(TEXT("/Game/NW/Audio/UI/%s.%s"), *N, *N), nullptr, LOAD_NoWarn | LOAD_Quiet))
+		{
+			UGameplayStatics::PlaySound2D(World, S);
+		}
+	}
+}
+
+void FNWRefiningMenu::SoundAt(double T, double At, int32 Bit, const FString& Event)
+{
+	if (T >= At && !(SoundsDone & (1u << Bit)))
+	{
+		SoundsDone |= 1u << Bit;
+		Sound(*Event);
 	}
 }

@@ -156,6 +156,10 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		I.Slot = Items.Num();
 		I.GearScore = A.Num() > 2 ? int32(A[2]->AsNumber()) : 0;
 		I.Rarity = A.Num() > 3 ? uint8(A[3]->AsNumber()) : 0;
+		if (A.Num() > 4 && A[4]->Type == EJson::Object)
+		{
+			NWItemProps::Read(I, A[4]->AsObject());   // props do item fabricado (qualidade, perks, gema...)
+		}
 		Items.Add(I);
 	}
 	// Inventário: equipamento [[item, espaço, gs, raridade]] e armazém [[item, qtd, gs, raridade]].
@@ -172,6 +176,10 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			I.Slot = int32(A[1]->AsNumber());
 			I.GearScore = A.Num() > 2 ? int32(A[2]->AsNumber()) : 0;
 			I.Rarity = A.Num() > 3 ? uint8(A[3]->AsNumber()) : 0;
+			if (A.Num() > 4 && A[4]->Type == EJson::Object)
+			{
+				NWItemProps::Read(I, A[4]->AsObject());
+			}
 			Items.Add(I);
 		}
 	}
@@ -281,17 +289,28 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			{
 				Inventory.ShotSearch(1, Query);
 			}
-			// Popup: {"popup": {"kind": "split|destroy", "from": "bag|storage", "item": Id, "qty": n}}.
+			// Popup: {"popup": {"kind": "split|destroy|socket|unsocket", "from": "bag|equip|storage", "item": Id, "qty": n,
+			// "gem": Id (socket: gema na bolsa)}}.
 			const TSharedPtr<FJsonObject>* Pop = nullptr;
 			if (Shot->TryGetObjectField(TEXT("popup"), Pop))
 			{
-				const int32 Src = (*Pop)->GetStringField(TEXT("from")) == TEXT("storage") ? 2 : 0;
+				const FString From = (*Pop)->GetStringField(TEXT("from"));
+				const int32 Src = From == TEXT("storage") ? 2 : From == TEXT("equip") ? 1 : 0;
 				const FName Id((*Pop)->GetStringField(TEXT("item")));
 				const TArray<FNWItem>& Pool = Src == 2 ? Me->Interactor->StorageItems : Me->Inventory->Items;
-				if (const FNWItem* Found = Pool.FindByPredicate([&](const FNWItem& I) { return I.ItemId == Id && (Src == 2 || I.Container == ENWItemContainer::Bag); }))
+				const ENWItemContainer Cont = Src == 1 ? ENWItemContainer::Equip : ENWItemContainer::Bag;
+				if (const FNWItem* Found = Pool.FindByPredicate([&](const FNWItem& I) { return I.ItemId == Id && (Src == 2 || I.Container == Cont); }))
 				{
-					const int32 Qty = (*Pop)->HasField(TEXT("qty")) ? int32((*Pop)->GetNumberField(TEXT("qty"))) : 0;
-					Inventory.ShotPopup((*Pop)->GetStringField(TEXT("kind")) == TEXT("destroy") ? 2 : 1, Src, Found->Slot, Qty);
+					const FString Kind = (*Pop)->GetStringField(TEXT("kind"));
+					int32 Qty = (*Pop)->HasField(TEXT("qty")) ? int32((*Pop)->GetNumberField(TEXT("qty"))) : 0;
+					FString Gem;
+					if (Kind == TEXT("socket") && (*Pop)->TryGetStringField(TEXT("gem"), Gem))
+					{
+						const FNWItem* G = Me->Inventory->Items.FindByPredicate([&](const FNWItem& I) { return I.ItemId == FName(*Gem) && I.Container == ENWItemContainer::Bag; });
+						Qty = G ? G->Slot : INDEX_NONE;
+					}
+					const int32 K = Kind == TEXT("destroy") ? 2 : Kind == TEXT("socket") ? 3 : Kind == TEXT("unsocket") ? 4 : 1;
+					Inventory.ShotPopup(K, Src, Found->Slot, Qty);
 				}
 			}
 			// Arrasto simulado: {"from": "bag|equip|storage", "item": Id}.

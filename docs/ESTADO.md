@@ -26,7 +26,7 @@ plano paralelo do dono (agora no repo cliente original (fora deste repositório)
 | Inventário com itens do jogo, raridade, peso, equipamento de armas e ferramentas | `NWInventoryComponent`, `NWInventoryMenu` |
 | Coleta: 100 mil coletáveis da paisagem (minério, árvores, plantas, alquimia, pedras), ferramentas, saque das tabelas do jogo, respawn | `NWGatherField`, `NWGatherComponent`, `tools/make_gatherables.py` |
 | Cidade de Guardaventos, terreno da região (2 km), cenário pré-gerado (penhascos, ruínas) | `tools/ue/import_*.py` |
-| Capital de Queda Eterna em `L_QuedaEterna` (cidade, terreno de 768 m, ponto de partida) com 30 NPCs vestidos e em pose parada do jogo, brindes semanais e itens iniciais por ofício; estações de refino com a tela do jogo (receitas na ordem do jogo, chance de item extra, XP com o fator de ingredientes e a primeira confecção, contagem); armazém da cidade no nw-core; loja do mercador (poção T5 e reagentes com limite semanal); moedas em centavos; nível pelos tutoriais. Backend do posto de trocas e das casas pronto, ainda sem tela | esteira 4: `docs/sistemas.md`, `tools/etapas/sistemas.*`, `NWNpc`, `backend/` |
+| Capital de Queda Eterna em `L_QuedaEterna` (cidade, terreno de 768 m, ponto de partida) com 30 NPCs vestidos e em pose parada do jogo, brindes semanais e itens iniciais por ofício; estações de refino com a tela do jogo (receitas na ordem do jogo, chance de item extra, XP com o fator de ingredientes e a primeira confecção, contagem); armazém da cidade no nw-core; loja do mercador (poção T5 e reagentes com limite semanal); moedas em centavos; nível pelos tutoriais; fabricar arma, escudo e ferramenta com a tela de resultado do jogo; gemas e vidro rúnico (acoplar, substituir, retirar). Backend do posto de trocas e das casas pronto, ainda sem tela | esteira 4: `docs/sistemas.md`, `tools/etapas/sistemas.*`, `NWNpc`, `backend/` |
 | Música e ambiente de Guardaventos | `NWAmbienceComponent` |
 | Telas do jogo: menu do Esc (com Desprender), configurações (vídeo, áudio, jogo, atalhos), barra de navegação, mapa (M) com POIs, bússola com POIs, tooltip de item com comparação, aviso de saque, faixa de aviso, indicador de golpe, sobrecarga, barra de XP, banner de nível, atributos, aba de ofícios na janela K | `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWHUD`, `NWInventoryMenu`, `NWTradeskillMenu`; pesquisa e estado em `docs/hud-original.md` |
 | Nível, XP e atributos com as tabelas do jogo (XP de personagem ainda sem fonte; "Ganhar 1 nível" no F10); ofícios de coleta com XP, nível, velocidade, bônus no saque e nível mínimo dos coletáveis; tudo salvo no nw-core | `NWProgressionComponent`, `tools/make_progression.py`, migration 0003 |
@@ -34,6 +34,8 @@ plano paralelo do dono (agora no repo cliente original (fora deste repositório)
 Fases do servidor F0–F3 concluídas; F4 (Guardaventos completo) em andamento: `docs/guardaventos.md`.
 
 ## Falta / problemas conhecidos
+
+Testes no editor usam o nw-core local com conta fixa: `docs/teste-backend.md`.
 
 Lista completa em `docs/pendencias.md`. Os principais agora:
 

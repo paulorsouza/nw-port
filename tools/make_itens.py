@@ -70,6 +70,32 @@ def text(loc, key):
     return re.sub(r"\{\[((?:[^{}]|\{perkMultiplier\})*?)\]\}", rep, t).strip()
 
 
+def gem_items(rules):
+    """Item de gema e de vidro rúnico -> classe, efeitos (%) e gema bruta do custo de retirar (docs/itens.md "Slot")."""
+    game = {}
+    for f in glob.glob(os.path.join(DT, "javelindata_itemdefinitions_master_*.datasheet.json")):
+        for r in json.load(open(f))["rows"]:
+            game.setdefault(r["ItemID"], r)
+    pct = {int(k): v for k, v in rules["gema_pct_por_tier"].items()}
+    out = {}
+    for gem, g in rules["gemas"].items():
+        for cut in range(1, 5):
+            iid = f"{gem}CutT{cut}"
+            if iid not in game:
+                raise SystemExit(f"gema sem item no jogo: {iid}")
+            total = pct[int(game[iid]["Tier"])]
+            out[iid] = {"classe": g["classe"], "bruta": f"{gem}T{cut}",
+                        "efeitos": {e: round(total * f, 2) for e, f in g["efeito"].items()}}
+        pure = out[f"{gem}CutT4"]
+        for case, amp in rules["vidro_capsulas"].items():
+            iid = f"Runeglass_Gem_{gem}_{case}"
+            if iid not in game:
+                raise SystemExit(f"vidro rúnico sem item no jogo: {iid}")
+            out[iid] = {"classe": g["classe"], "bruta": pure["bruta"], "vidro": True,
+                        "efeitos": {**pure["efeitos"], amp: rules["vidro_amplificacao"]}}
+    return out
+
+
 def main():
     rules = json.load(open(os.path.join(ROOT, "tools", "itens.json")))
     rules.pop("_comment", None)
@@ -93,6 +119,7 @@ def main():
         if m:
             ability.setdefault(WEAPON.get(m.group(1), m.group(1)), []).append(pid)
     rules["habilidade"] = ability
+    rules["gema_itens"] = gem_items(rules)
     missing = [p for pool in rules["equipamento"].values() for p in pool if p not in perks]
     if missing:
         raise SystemExit(f"perks do equipamento sem definição: {missing}")

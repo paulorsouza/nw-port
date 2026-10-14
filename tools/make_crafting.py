@@ -34,13 +34,22 @@ STATIONS = {"smelting": ("smelting", "Smelting"), "carpentry": ("carpentry", "Wo
             # Mesas de fabricar (docs/oficio.md): ferraria, engenharia e alquimia. Cozinha e alfaiataria entram quando
             # houver comida com efeito e armadura.
             "blacksmithing": ("blacksmith", "Weaponsmithing"), "engineering": ("engineering", "Engineering"),
-            "alchemy": ("alchemy", "Arcana")}
+            "alchemy": ("alchemy", "Arcana"),
+            # Joalheria (gemas lapidadas; docs/itens.md "Slot"). A armoraria entra na mesma estação com as armaduras.
+            "outfitting": ("outfitting", "Jewelcrafting")}
 # Receitas de fabricar do port (docs/oficio.md): armas, escudos e ferramentas T2–T5, poção de vida T5 e reagentes de
 # alquimia T2.
-CRAFT_SOURCES = ("javelindata_crafting_weapon", "javelindata_crafting_engineer", "javelindata_crafting_arcana")
+CRAFT_SOURCES = ("javelindata_crafting_weapon", "javelindata_crafting_engineer", "javelindata_crafting_arcana",
+                 "javelindata_crafting_jeweler")
 CRAFT_GEAR = re.compile(r"^Procedural_(Longsword|ShieldRound|ShieldKite|ShieldTower|Hatchet|LoggingAxe|MiningPick|"
                         r"SkinningKnife|Sickle)T[2-5]$")
-CRAFT_INSTANT = re.compile(r"^(Procedural_PotionHealthT5|Alchemy[A-Za-z]+T2)$")
+CRAFT_INSTANT = re.compile(r"^(Procedural_PotionHealthT5|Alchemy[A-Za-z]+T2|"
+                           r"(Onyx|Opal|Diamond|Sapphire|Jasper|Emerald|Malachite)CutT[1-4]|"
+                           r"Runeglass_Case_Empty_(Melee|Arcane))$")
+# Vidro rúnico (docs/itens.md "Slot"): o jogo usa a estação de runas (RuneglassStation1), que Queda Eterna não tem. No
+# port a cápsula sai da forja (Weaponsmithing) e o vidro (cápsula + gema Pura) da cantaria (Stonecutting), tier 5.
+RUNEGLASS = re.compile(r"^Runeglass_(Case_Empty_(Melee|Arcane)|Gem_(Onyx|Opal|Diamond|Sapphire|Jasper|Emerald|Malachite)_(Melee|Arcane))$")
+RUNEGLASS_STATION = {"Weaponsmithing": "blacksmith5", "Stonecutting": "masonry5"}
 
 
 def load_loc(language):
@@ -134,8 +143,11 @@ def main():
     for r, crafted in source:
         if r.get("Tradeskill") not in (skills if crafted else refining_skills):
             continue
-        if str(r.get("StationType1", "")).startswith("Runeglass"):
-            continue
+        station_type = str(r.get("StationType1", ""))
+        if station_type.startswith("Runeglass"):
+            if not RUNEGLASS.match(r["RecipeID"]):
+                continue
+            station_type = RUNEGLASS_STATION[r["Tradeskill"]]
         if not r.get("bKnownByDefault"):
             continue   # variantes de evento/conquista (ex. CharcoalT1_WoodenCoin)
         if r["RecipeID"].startswith("TerritoryStandingSupplies"):
@@ -157,7 +169,7 @@ def main():
                 used_cats.add(iid)
             ing.append([iid, int(qty), cat])
         ev = events.get(r.get("GameEventID") or "", {})
-        station = re.match(r"([a-z]+)(\d)", str(r.get("StationType1", "")).lower())
+        station = re.match(r"([a-z]+)(\d)", station_type.lower())
         recipes.append({
             "id": r["RecipeID"], "skill": r["Tradeskill"], "level": int(r.get("RecipeLevel") or 0),
             "station": station.group(1) if station else "", "tier": int(station.group(2)) if station else 0,

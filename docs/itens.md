@@ -61,13 +61,28 @@ Perks de habilidade com efeito trocado (sem Energizado, Reforço, velocidade ou 
 
 ## Slot
 
-- 1 slot por arma e armadura. Joias não têm slot.
-- Gema: 1, 2, 3, 4 ou 5% pelo tier (T1–T5).
-  - Armadura: resistência mágica, resistência física, híbrida 50/50, híbrida 70/30 mais mágica, híbrida 70/30 mais
-    física. A híbrida divide o total.
-  - Arma: chance crítica ou dano crítico.
-- Vidro rúnico: amplificação de dano físico ou mágico. Usa o mesmo slot da gema (um ou outro) e precisa de uma gema para
-  ser equipado.
+- 1 slot por arma, escudo e armadura. Joias não têm slot.
+- Gema: as 4 lapidações do jogo (Imperfeita, Lapidada, Brilhante, Pura; tier de item 2–5) dão 2, 3, 4 e 5%. Não há
+  gema de 1% (decisão 2026-10-13).
+- Uma gema, um efeito (o do jogo mais próximo; as outras gemas do jogo ficam fora):
+
+| Gema | Armadura e escudo | Arma |
+|---|---|---|
+| Ônix | Resistência física | — |
+| Opala | Resistência mágica | — |
+| Diamante | Híbrida 50/50 | — |
+| Safira | Híbrida 70/30 mais mágica | — |
+| Jaspe | Híbrida 70/30 mais física | — |
+| Esmeralda | — | Chance crítica |
+| Malaquita | — | Dano crítico |
+
+- A híbrida divide o total (5% em 50/50 = 2,5% + 2,5%).
+- Escudo usa as gemas de armadura, como no jogo.
+- Vidro rúnico: item só, feito de cápsula + gema Pura, como no jogo. Ocupa o slot no lugar da gema e dá o efeito da
+  gema (5%) mais a amplificação de dano física (cápsula de Punição) ou mágica (cápsula Arcana). Vai em arma, escudo e
+  armadura.
+- Encaixar: arrastar a gema ou o vidro para o item na bolsa. Só encaixa em slot vazio; para trocar, retirar antes.
+- Retirar: devolve a gema ou o vidro para a bolsa, pagando material de ofício (custo no balanceamento).
 
 ## Vínculo (bind)
 
@@ -90,3 +105,4 @@ Perks de habilidade com efeito trocado (sem Energizado, Reforço, velocidade ou 
 - Faixa de cada perk (sugestões na página) e resistência base de cada material.
 - Quais itens caem vinculados ao pegar.
 - Custo de sortear o atributo de novo.
+- Custo de retirar a gema; amplificação do vidro rúnico.

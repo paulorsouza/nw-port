@@ -1,0 +1,28 @@
+{
+ "_comment": "Gemas e vidro rúnico (docs/itens.md 'Slot'): tooltip do item com gema, da gema solta e popups de acoplar e retirar. tools/ui_shot.sh tools/ui_shots/gemas.json",
+ "screen": "inventory",
+ "coins": 500000,
+ "storage_title": "Despensa",
+ "storage_capacity": 1000,
+ "items": [
+  ["1hSwordT5", 1, 612, 3, {"attr": 0, "quality": 84.2, "perks": ["ChanceCritica", "RouboVida", "PerkID_Ability_Sword_ReverseStab"], "gem": "Runeglass_Gem_Emerald_Melee", "bind": "equip", "signed": "Exilado"}],
+  ["1hShieldBT5", 1, 590, 2, {"attr": 4, "quality": 41.0, "perks": ["RegenVigor", "ReducaoRecarga"], "bind": "equip"}],
+  ["1hSwordT4", 1, 520, 2, {"attr": 1, "quality": 63.5, "perks": ["DanoCritico", "ReducaoRecarga"], "gem": "MalachiteCutT2", "bind": "equip"}],
+  ["EmeraldCutT4", 3],
+  ["DiamondCutT3", 2],
+  ["OnyxCutT1", 5],
+  ["Runeglass_Gem_Jasper_Arcane", 1],
+  ["MalachiteT2", 2],
+  ["EmeraldT4", 1]
+ ],
+ "equip": [],
+ "storage": [],
+ "shots": [
+  {"name": "bolsa", "mouse": [-100, -100]},
+  {"name": "tooltip_espada", "mouse": [1156, 288]},
+  {"name": "tooltip_escudo", "mouse": [1094, 288]},
+  {"name": "tooltip_vidro", "mouse": [1031, 443]},
+  {"name": "acoplar", "popup": {"kind": "socket", "from": "bag", "item": "1hShieldBT5", "gem": "DiamondCutT3"}, "mouse": [1100, 700]},
+  {"name": "retirar", "popup": {"kind": "unsocket", "from": "bag", "item": "1hSwordT5"}, "mouse": [1100, 700]}
+ ]
+}

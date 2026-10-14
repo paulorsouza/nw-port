@@ -14,6 +14,8 @@ O que a RE já leu do cliente, para todas as esteiras: `docs/analise-re/resumo-p
   `UnrealEditor-Cmd`, compilação). `build_all.sh` e `ue_import_all.sh` entram na fila sozinhos.
 - Editor é do dono. Precisa compilar ou importar: peça para fechar, faça tudo de uma vez, abra no mapa da esteira
   e peça o print. Nunca rodar jogo, cliente ou teste automático.
+- Testes usam o nw-core local: `tools/backend_dev.sh` antes de abrir o editor (`docs/teste-backend.md`); o Play
+  entra com a conta fixa do editor e salva bolsa, posição e níveis entre sessões.
 - Arquivo de outra esteira (tabela "Donos dos arquivos"): não mexa. Compartilhado: releia antes, mudança mínima.
 - C++ compilando ao fim de cada mudança sua. Erro em arquivo dos outros: avise e espere.
 - Fonte de todo número nos dados do jogo; sem fonte, skill `nw-re`.

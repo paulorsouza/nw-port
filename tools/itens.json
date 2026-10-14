@@ -18,15 +18,103 @@
  "perks_habilidade_max": 1,
  "_gs": "provisório (balanceamento): teto de GS de qualquer item; sortear GS de novo usa a faixa da fabricação",
  "gs_maximo": 800,
- "_custos": "provisório: sortear atributo = 2, sortear GS = 2, desvincular = 2 + qualidade/10 do primeiro material da receita",
+ "_custos": "provisório: sortear atributo = 2, sortear GS = 2, desvincular = 2 + qualidade/10 do primeiro material da receita; retirar gema = 1 gema bruta do mesmo tipo e tier",
  "chance_critica_teto": 50,
- "gema_por_tier": [
-  1,
-  2,
-  3,
-  4,
-  5
- ],
+ "_gemas": "docs/itens.md 'Slot': as 4 lapidações do jogo (<Gema>CutT1..T4, Tier de item 2..5) dão o % do tier; uma gema, um efeito; híbrida divide o total. Vidro rúnico = Runeglass_Gem_<Gema>_<Cápsula>: efeito da gema Pura mais a amplificação da cápsula (provisório: vidro_amplificacao). Retirar custa 1 gema bruta do mesmo tipo e tier (<Gema>T<n>; provisório).",
+ "gema_pct_por_tier": {
+  "2": 2,
+  "3": 3,
+  "4": 4,
+  "5": 5
+ },
+ "gemas": {
+  "Onyx": {
+   "classe": "armadura",
+   "efeito": {
+    "ResFisica": 1.0
+   }
+  },
+  "Opal": {
+   "classe": "armadura",
+   "efeito": {
+    "ResMagica": 1.0
+   }
+  },
+  "Diamond": {
+   "classe": "armadura",
+   "efeito": {
+    "ResFisica": 0.5,
+    "ResMagica": 0.5
+   }
+  },
+  "Sapphire": {
+   "classe": "armadura",
+   "efeito": {
+    "ResMagica": 0.7,
+    "ResFisica": 0.3
+   }
+  },
+  "Jasper": {
+   "classe": "armadura",
+   "efeito": {
+    "ResFisica": 0.7,
+    "ResMagica": 0.3
+   }
+  },
+  "Emerald": {
+   "classe": "arma",
+   "efeito": {
+    "ChanceCritica": 1.0
+   }
+  },
+  "Malachite": {
+   "classe": "arma",
+   "efeito": {
+    "DanoCritico": 1.0
+   }
+  }
+ },
+ "_gema_classes": "classe da gema -> equipamentos onde encaixa (escudo usa as gemas de armadura, como no jogo)",
+ "gema_classes": {
+  "armadura": [
+   "armadura",
+   "escudo"
+  ],
+  "arma": [
+   "arma"
+  ]
+ },
+ "vidro_capsulas": {
+  "Melee": "AmpFisica",
+  "Arcane": "AmpMagica"
+ },
+ "vidro_amplificacao": 3.0,
+ "efeitos_gema": {
+  "ResFisica": {
+   "pt-br": "+{v}% de resistência física",
+   "en-us": "+{v}% physical resistance"
+  },
+  "ResMagica": {
+   "pt-br": "+{v}% de resistência mágica",
+   "en-us": "+{v}% magic resistance"
+  },
+  "ChanceCritica": {
+   "pt-br": "+{v}% de chance de acerto crítico",
+   "en-us": "+{v}% critical hit chance"
+  },
+  "DanoCritico": {
+   "pt-br": "+{v}% de dano crítico",
+   "en-us": "+{v}% critical damage"
+  },
+  "AmpFisica": {
+   "pt-br": "+{v}% de dano físico",
+   "en-us": "+{v}% physical damage"
+  },
+  "AmpMagica": {
+   "pt-br": "+{v}% de dano mágico",
+   "en-us": "+{v}% magic damage"
+  }
+ },
  "equipamento": {
   "arma": [
    "ChanceCritica",

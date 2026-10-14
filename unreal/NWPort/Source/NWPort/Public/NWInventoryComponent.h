@@ -67,6 +67,13 @@ public:
 	UFUNCTION(Server, Reliable) void ServerUseBestPotion();
 	/** Destrói Quantity da pilha (largar no chão: o port não tem saco de saque). */
 	UFUNCTION(Server, Reliable) void ServerDestroy(int32 BagSlot, int32 Quantity);
+	/**
+	 * Encaixa a gema ou o vidro rúnico do espaço GemBagSlot da bolsa no item (bolsa ou equipado; docs/itens.md "Slot").
+	 * Só em slot vazio: com gema, recusa e avisa (retirar antes, pagando).
+	 */
+	UFUNCTION(Server, Reliable) void ServerSocket(int32 GemBagSlot, ENWItemContainer Container, int32 Slot);
+	/** Retira a gema do item para a bolsa, pagando o custo (FNWItemRules::UnsocketCost). */
+	UFUNCTION(Server, Reliable) void ServerUnsocket(ENWItemContainer Container, int32 Slot);
 	/** Saque recebido (para o aviso na tela). */
 	UFUNCTION(Client, Reliable) void ClientLoot(const TArray<FNWItem>& Gained, int64 CoinsGained);
 
@@ -74,6 +81,9 @@ public:
 
 private:
 	FNWItem* Find(ENWItemContainer Container, int32 Slot);
+	/** Servidor: devolve a gema do item à bolsa pagando o custo; chave do erro ou vazio (nada muda no erro). */
+	FString Unsocket(ENWItemContainer Container, int32 Slot);
+	void Warn(const TCHAR* Key) const;
 	int32 FreeBagSlot() const;
 	bool CanEquip(const FNWItem& Item, int32 EquipSlot) const;
 	void Changed();

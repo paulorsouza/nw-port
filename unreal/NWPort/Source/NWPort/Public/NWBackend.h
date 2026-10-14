@@ -94,6 +94,16 @@ public:
 	using FRedeemDone = TFunction<void(TOptional<FNWCharacterRecord> Record, const FString& Error)>;
 	void RedeemTicket(const FString& Ticket, FRedeemDone Done);
 	void SaveState(const FNWCharacterRecord& Record);
+
+	// ---- Play do editor com o nw-core local de teste (docs/teste-backend.md)
+	/** Só no editor: lê backend/dev.env (NW_BACKEND, NW_SERVER_SECRET, NW_PIE_ACCOUNT, NW_PIE_CHARACTER, NW_TEST_PASSWORD)
+	 *  e liga o backend no Play sozinho (standalone). Sem NW_PIE_ACCOUNT, devolve false e o Play segue sem backend. */
+	bool EnablePie();
+	/** Volta a jogar sem backend (nw-core fora do ar). */
+	void DisablePie();
+	bool IsPie() const { return bPie; }
+	/** Entra com a conta e o personagem do editor: login, passe e resgate, como um cliente no servidor dedicado. */
+	void PieEnter(FRedeemDone Done);
 	// Brindes dos NPCs (esteira 4, NWNpcRewards.h): o que já foi pego ("<kind>:<npc>:<period>") e a coleta, gravada
 	// junto com a bolsa e as moedas do Record (Status 201 ok, 409 já pego).
 	void ListNpcRewards(const FString& CharacterId, const FString& Period, TFunction<void(bool bOk, const TArray<FString>& Keys)> Done);
@@ -128,5 +138,7 @@ private:
 	TArray<FNWCharacterSummary> Characters;
 	int32 Busy = 0;
 	bool bAutoConnect = false;
+	bool bPie = false;
+	FString PieAccount, PiePassword, PieCharacter;
 	FDelegateHandle NetworkFailureHandle, TravelFailureHandle;
 };

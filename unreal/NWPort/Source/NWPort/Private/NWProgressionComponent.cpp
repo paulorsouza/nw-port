@@ -116,7 +116,7 @@ namespace NWTradeskill
 {
 	static const TCHAR* Names[Num] = {TEXT("Mining"), TEXT("Logging"), TEXT("Harvesting"), TEXT("Skinning"), TEXT("Smelting"),
 		TEXT("Woodworking"), TEXT("Leatherworking"), TEXT("Weaving"), TEXT("Stonecutting"), TEXT("Weaponsmithing"),
-		TEXT("Engineering"), TEXT("Arcana")};
+		TEXT("Engineering"), TEXT("Arcana"), TEXT("Jewelcrafting")};
 
 	int32 Index(FName Tradeskill)
 	{

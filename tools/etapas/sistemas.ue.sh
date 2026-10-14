@@ -34,3 +34,9 @@ sistemas_exposicao() {
     py sistemas_exposure "$ROOT/tools/ue/city_exposure.py" L_QuedaEterna
 }
 step sistemas-04 "exposição automática de Queda Eterna" sistemas_exposicao
+
+sistemas_sons_ui() {
+    # Antes: python3 tools/extract_audio.py (grupo "ui" -> extract/audio/ui/crafting).
+    py sistemas_ui_sounds "$ROOT/tools/ue/import_ui_sounds.py"
+}
+step sistemas-05 "sons da interface das estações" sistemas_sons_ui

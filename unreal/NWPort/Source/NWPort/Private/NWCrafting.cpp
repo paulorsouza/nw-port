@@ -6,6 +6,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "NWCharacter.h"
+#include "NWDevRegistry.h"
 #include "NWEvents.h"
 #include "NWHUD.h"
 #include "NWInteractable.h"
@@ -544,3 +545,47 @@ void ANWStation::Setup(const FNWCrafting::FStation& Data)
 		}
 	};
 }
+
+// Testar gemas (docs/itens.md "Slot"): Joalheria e Cantaria no 200 (vidro rúnico pede 180), as 7 gemas Puras, 2 vidros
+// rúnicos, gema bruta T4 para o custo de retirar, material para lapidar uma T1 e montar um vidro.
+NW_REGISTER_DEV(DevGems, TEXT("sistemas.dev_gems"), TEXT("nw.dev.dev_gems"),
+	[](ANWPlayerController* PC)
+	{
+		ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		if (!C || !C->Inventory || !C->Progression)
+		{
+			return;
+		}
+		for (const TCHAR* Skill : {TEXT("Jewelcrafting"), TEXT("Stonecutting")})
+		{
+			const int32 t = NWTradeskill::Index(Skill);
+			for (int32 i = 0; i < 300 && C->Progression->TradeLevel(t) < 200; ++i)
+			{
+				C->Progression->AddTradeXp(Skill, FMath::Max(1, C->Progression->TradeXpToNext(t)));
+			}
+		}
+		TArray<FNWItem> Gift;
+		auto Give = [&Gift](const FString& Id, int32 Qty)
+		{
+			if (FNWItemCatalog::Get().Find(FName(*Id)))
+			{
+				FNWItem I;
+				I.ItemId = FName(*Id);
+				I.Quantity = Qty;
+				Gift.Add(I);
+			}
+		};
+		for (const TCHAR* Gem : {TEXT("Onyx"), TEXT("Opal"), TEXT("Diamond"), TEXT("Sapphire"), TEXT("Jasper"), TEXT("Emerald"), TEXT("Malachite")})
+		{
+			Give(FString(Gem) + TEXT("CutT4"), 3);
+			Give(FString(Gem) + TEXT("T4"), 5);
+		}
+		Give(TEXT("Runeglass_Gem_Onyx_Melee"), 1);
+		Give(TEXT("Runeglass_Gem_Emerald_Arcane"), 1);
+		Give(TEXT("OnyxT1"), 4);
+		Give(TEXT("AlchemyLifeT1"), 8);
+		Give(TEXT("Runeglass_Case_Empty_Melee"), 1);
+		Give(TEXT("SolventT5"), 2);
+		Give(TEXT("IngotPreciousT2"), 1);
+		C->Inventory->Grant(Gift, 0);
+	});

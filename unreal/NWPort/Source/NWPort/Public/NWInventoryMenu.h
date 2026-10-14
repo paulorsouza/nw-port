@@ -82,9 +82,10 @@ private:
 		TArray<FSectionHit> Sections;
 	};
 
-	// Popup do jogo (popup.lua): dividir pilha (Ctrl + clique) ou confirmar destruir (soltar no chão).
-	enum class EPopup : uint8 { None, Split, Destroy };
-	enum class EAction : uint8 { Cancel, Move, Drop, Destroy };
+	// Popup do jogo (popup.lua): dividir pilha (Ctrl + clique), confirmar destruir (soltar no chão), acoplar gema (soltar
+	// a gema no item; ui_attach_gem / ui_replace_gem) e retirar gema (Shift + clique direito no item; docs/itens.md).
+	enum class EPopup : uint8 { None, Split, Destroy, Socket, Unsocket };
+	enum class EAction : uint8 { Cancel, Move, Drop, Destroy, Socket, Unsocket };
 	struct FPopupButton
 	{
 		EAction Action = EAction::Cancel;
@@ -171,6 +172,7 @@ private:
 
 	EPopup Popup = EPopup::None;
 	FSlotRef PopupSlot;
+	int32 PopupGemSlot = INDEX_NONE;   // Socket: espaço da gema na bolsa
 	int32 PopupQty = 1, PopupMax = 1;
 	TArray<FPopupButton> PopupButtons;
 	FBox2f SliderRect = FBox2f(ForceInit);

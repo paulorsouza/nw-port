@@ -30,6 +30,8 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 - O editor é do dono. Compilar e importar exigem o editor fechado: peça para fechar, faça tudo que precisa do
   editor fechado de uma vez, e no fim abra o editor no mapa da sua esteira.
 - Nunca rodar o jogo, o cliente ou teste automático por conta própria. Abra o editor e peça o print.
+- Todo teste usa o nw-core local (`docs/teste-backend.md`): `tools/backend_dev.sh` antes de abrir o editor; o Play
+  entra com a conta `editor` / personagem `Exilado` e salva tudo entre sessões.
 - Cada esteira tem a sua lista de testes em `docs/testes/<esteira>.md`, numerada só nela. Item novo: o que fazer e o
   que deve acontecer, numa ou duas frases.
 
@@ -278,8 +280,8 @@ desvincular), registro de número de série no nw-core. Testes 41–54 de `docs/
 
 Próximos passos da esteira 4, nesta ordem (o dono pediu terminar as mecânicas antes de refinar filtros e telas):
 
-1. Gemas e vidros rúnicos: itens e receitas (T1–T5, 1–5%), encaixar e retirar no slot (vidro exige gema), efeito no
-   tooltip e na tela de resultado (`GemPerkSlot` com o ícone da gema). Regras em `docs/itens.md`.
+1. ~~Gemas e vidros rúnicos~~ (feito 2026-10-13, aguardando teste do dono: testes 55–60): 4 lapidações (2–5%), vidro
+   rúnico = gema Pura + amplificação, encaixar em slot vazio e retirar com custo. Regras em `docs/itens.md`.
 2. Armaduras e joias fabricadas: receitas de alfaiataria/armoraria e joalharia, resistência base por material, perks
    por equipamento (`tools/itens.json`). Na tela de resultado faltam os painéis `Stats/Armor` e `Stats/Trinket`
    (`docs/analise-re/craftroll-equipamento.md` §6).
@@ -288,8 +290,8 @@ Próximos passos da esteira 4, nesta ordem (o dono pediu terminar as mecânicas 
 4. Balanceamento (provisórios em `docs/itens.md` e `docs/oficio.md` "Pendente"): curva GS → atributo, custos das
    melhorias, faixas das perks, material e XP do treino, evolução das mesas com material investido.
 5. Lojas, mercado e casas (itens 5–7 acima); o mercado já recusa item vinculado e confere o número de série.
-6. Polimento da tela de resultado: flipbooks de raridade (`RarityEffect1..4`, texturas fora do layout), sons do roll,
-   botões do fim (Equipar, Sair da estação), filtros da lista de receitas.
+6. Polimento da tela de resultado: ~~sons do roll, botões do fim~~ (feito 2026-10-13, testes 64–65); faltam
+   flipbooks de raridade (`RarityEffect1..4`, texturas fora do layout) e filtros da lista de receitas.
 
 ## Prompts das sessões
 

@@ -6,6 +6,7 @@
 #include "NWCharacter.h"
 #include "NWCombatComponent.h"
 #include "NWHUD.h"
+#include "NWItemRules.h"
 #include "NWPlayerController.h"
 #include "NWText.h"
 #include "Internationalization/Internationalization.h"
@@ -369,6 +370,91 @@ void UNWInventoryComponent::ServerUse_Implementation(int32 BagSlot)
 	if (--I->Quantity <= 0)
 	{
 		Items.RemoveAll([&](const FNWItem& X) { return X.Container == ENWItemContainer::Bag && X.Slot == BagSlot; });
+	}
+	Changed();
+}
+
+void UNWInventoryComponent::Warn(const TCHAR* Key) const
+{
+	const APawn* Pawn = Cast<APawn>(GetOwner());
+	if (ANWPlayerController* PC = Pawn ? Cast<ANWPlayerController>(Pawn->GetController()) : nullptr)
+	{
+		PC->Warning(NWText::Key(Key));
+	}
+}
+
+FString UNWInventoryComponent::Unsocket(ENWItemContainer Container, int32 Slot)
+{
+	const FNWItem* Item = Find(Container, Slot);
+	if (!Item || Item->Gem.IsNone())
+	{
+		return TEXT("nw.item.gem_none");
+	}
+	const FName Gem = Item->Gem;
+	int32 Qty = 0;
+	const FName Cost = FNWItemRules::Get().UnsocketCost(Gem, Qty);
+	if (Cost.IsNone() || CountOf(Cost) < Qty)
+	{
+		return TEXT("nw.item.gem_cost");
+	}
+	// A gema volta para a bolsa: precisa de pilha com espaço ou de espaço livre.
+	const FNWItemDef* GD = FNWItemCatalog::Get().Find(Gem);
+	FNWItem Back;
+	Back.ItemId = Gem;
+	Back.Quantity = 1;
+	const bool bStack = GD && Items.ContainsByPredicate([&](const FNWItem& I) { return I.Container == ENWItemContainer::Bag && I.SameKind(Back) && I.Quantity < GD->Stack; });
+	if (!GD || (!bStack && FreeBagSlot() == INDEX_NONE))
+	{
+		return TEXT("nw.inv.bag_full");
+	}
+	Take(Cost, Qty);
+	if (FNWItem* Again = Find(Container, Slot))
+	{
+		Again->Gem = NAME_None;
+	}
+	AddItem(Back);
+	return FString();
+}
+
+void UNWInventoryComponent::ServerSocket_Implementation(int32 GemBagSlot, ENWItemContainer Container, int32 Slot)
+{
+	const FNWItem* GemStack = At(ENWItemContainer::Bag, GemBagSlot);
+	const FNWItem* Item = At(Container, Slot);
+	const FNWItemDef* D = Item ? FNWItemCatalog::Get().Find(Item->ItemId) : nullptr;
+	if (!GemStack || !D || (Container == ENWItemContainer::Bag && Slot == GemBagSlot))
+	{
+		return;
+	}
+	const FName Gem = GemStack->ItemId;
+	if (!FNWItemRules::Get().CanSocket(*D, *Item, Gem))
+	{
+		Warn(TEXT("nw.item.gem_wrong"));
+		return;
+	}
+	// Slot ocupado: retirar antes, pagando (docs/itens.md "Slot"); acoplar não troca.
+	if (!Item->Gem.IsNone())
+	{
+		Warn(TEXT("nw.item.gem_occupied"));
+		return;
+	}
+	if (Take(Gem, 1) < 1)
+	{
+		return;
+	}
+	if (FNWItem* Target = Find(Container, Slot))
+	{
+		Target->Gem = Gem;
+	}
+	Changed();
+}
+
+void UNWInventoryComponent::ServerUnsocket_Implementation(ENWItemContainer Container, int32 Slot)
+{
+	const FString Err = Unsocket(Container, Slot);
+	if (!Err.IsEmpty())
+	{
+		Warn(*Err);
+		return;
 	}
 	Changed();
 }
