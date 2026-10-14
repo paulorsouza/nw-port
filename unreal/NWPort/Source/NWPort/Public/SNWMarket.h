@@ -9,6 +9,7 @@
 class ANWCharacter;
 class SBox;
 class SEditableTextBox;
+class SToolTip;
 class SWidgetSwitcher;
 
 /**
@@ -136,6 +137,8 @@ private:
 	TSharedRef<SWidget> ItemDetails(const FNWItem& Item);
 	TSharedRef<SWidget> Stepper(TFunction<int32()> Max);
 	TSharedRef<SWidget> Spinner(float Size);
+	TSharedRef<SToolTip> ItemTip(const FNWItem& Item);
+	void Close();
 	TSharedRef<ITableRow> OnRow(FRowPtr Row, const TSharedRef<STableViewBase>& Owner, EPage P);
 
 	// Estado.

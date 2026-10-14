@@ -1,5 +1,7 @@
 #include "SNWMarket.h"
 
+#include "NWSlate.h"
+
 #include "Engine/Font.h"
 #include "Framework/Application/SlateApplication.h"
 #include "NWCharacter.h"
@@ -26,13 +28,12 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Views/SHeaderRow.h"
 #include "Widgets/Views/STableRow.h"
+#include "Widgets/SToolTip.h"
 
 namespace
 {
 	// ---------------------------------------------------------------- estilo (cores e fontes do jogo)
-	const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6)), Gray(FColor(0xB2, 0xAE, 0xA1)), Dim(FColor(0x7A, 0x75, 0x6B)),
-		Gold(FColor(0xED, 0xC6, 0x3E)), Line(FColor(0xFF, 0xF1, 0xCE)), Red(FColor(0xF2, 0x5D, 0x5D)),
-		Wood(FColor(0x2C, 0x25, 0x1B)), Bronze(FColor(0x6B, 0x4E, 0x1E));
+	using namespace NWSlate;
 	constexpr double KeepAfterDone = 2.0;   // previsão de bolsa/moedas depois do fim, até a replicação chegar
 	constexpr double GiveUp = 15.0;         // sem resposta do servidor: desiste da previsão
 	const TCHAR* SpinnerTex = TEXT("lyshineui/images/frontend/image_loading_spinner.dds");
@@ -40,138 +41,6 @@ namespace
 	const FName ColName("Name"), ColTier("Tier"), ColGs("Gs"), ColQuality("Quality"), ColPerks("Perks"), ColSeller("Seller"),
 		ColQty("Qty"), ColPrice("Price"), ColLowest("Lowest"), ColExpires("Expires"), ColAction("Action");
 
-	FLinearColor WithA(FLinearColor C, float A)
-	{
-		C.A *= A;
-		return C;
-	}
-
-	FSlateFontInfo Font(int32 Style, int32 Size)
-	{
-		return FSlateFontInfo(FNWUILayout::GameFont(Style), Size);
-	}
-
-	FSlateRoundedBoxBrush Round(const FLinearColor& Fill, const FLinearColor& Outline = FLinearColor::Transparent, float W = 0.f, float R = 4.f)
-	{
-		return FSlateRoundedBoxBrush(Fill, R, Outline, W);
-	}
-
-	struct FStyle
-	{
-		FSlateRoundedBoxBrush Panel = Round(FLinearColor(0.f, 0.f, 0.f, 0.42f), WithA(Line, 0.10f), 1.f, 6.f);
-		FSlateRoundedBoxBrush Divider = Round(WithA(Line, 0.18f), FLinearColor::Transparent, 0.f, 0.f);
-		FSlateColorBrush White = FSlateColorBrush(FLinearColor::White);
-		FSlateColorBrush Backdrop = FSlateColorBrush(FLinearColor(0.02f, 0.015f, 0.01f, 0.93f));
-		FSlateNoResource None;
-		FButtonStyle Button, Primary, Chip, Flat;
-		FTableRowStyle Row;
-		FHeaderRowStyle Header;
-		FTableViewStyle List;
-		FScrollBarStyle Scroll;
-		FEditableTextBoxStyle Field;
-		FScrollBoxStyle ScrollBox;
-
-		FStyle()
-		{
-			auto Btn = [](FButtonStyle& B, const FLinearColor& Base, float Outline)
-			{
-				B = FButtonStyle()
-					.SetNormal(Round(Base, WithA(Gold, Outline), 1.f))
-					.SetHovered(Round(Base * 1.35f, WithA(Gold, FMath::Min(1.f, Outline + 0.4f)), 1.f))
-					.SetPressed(Round(Base * 0.8f, Gold, 1.f))
-					.SetDisabled(Round(WithA(Base, 0.4f), WithA(Gold, 0.12f), 1.f))
-					.SetNormalPadding(FMargin(14.f, 7.f))
-					.SetPressedPadding(FMargin(14.f, 8.f, 14.f, 6.f));
-			};
-			Btn(Button, Wood, 0.35f);
-			Btn(Primary, Bronze, 0.6f);
-			Btn(Chip, FLinearColor(1.f, 1.f, 1.f, 0.04f), 0.f);
-			Chip.SetNormalPadding(FMargin(10.f, 5.f)).SetPressedPadding(FMargin(10.f, 6.f, 10.f, 4.f));
-			Flat = FButtonStyle().SetNormal(None).SetHovered(Round(FLinearColor(1.f, 1.f, 1.f, 0.05f))).SetPressed(Round(FLinearColor(1.f, 1.f, 1.f, 0.08f)))
-				.SetDisabled(None).SetNormalPadding(FMargin(10.f, 6.f)).SetPressedPadding(FMargin(10.f, 7.f, 10.f, 5.f));
-
-			Row = FCoreStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
-			const FSlateRoundedBoxBrush Sel = Round(WithA(Gold, 0.13f), WithA(Gold, 0.55f), 1.f, 3.f);
-			Row.SetEvenRowBackgroundBrush(Round(FLinearColor(1.f, 1.f, 1.f, 0.03f), FLinearColor::Transparent, 0.f, 3.f))
-				.SetOddRowBackgroundBrush(Round(FLinearColor(1.f, 1.f, 1.f, 0.015f), FLinearColor::Transparent, 0.f, 3.f))
-				.SetEvenRowBackgroundHoveredBrush(Round(FLinearColor(1.f, 1.f, 1.f, 0.07f), FLinearColor::Transparent, 0.f, 3.f))
-				.SetOddRowBackgroundHoveredBrush(Round(FLinearColor(1.f, 1.f, 1.f, 0.07f), FLinearColor::Transparent, 0.f, 3.f))
-				.SetActiveBrush(Sel).SetActiveHoveredBrush(Sel).SetInactiveBrush(Sel).SetInactiveHoveredBrush(Sel)
-				.SetActiveHighlightedBrush(Sel).SetInactiveHighlightedBrush(Sel)
-				.SetSelectorFocusedBrush(None)
-				.SetTextColor(Tan).SetSelectedTextColor(Tan);
-
-			FTableColumnHeaderStyle Col = FCoreStyle::Get().GetWidgetStyle<FTableColumnHeaderStyle>("TableView.Header.Column");
-			Col.SetNormalBrush(None).SetHoveredBrush(Round(FLinearColor(1.f, 1.f, 1.f, 0.04f)));
-			Header = FCoreStyle::Get().GetWidgetStyle<FHeaderRowStyle>("TableView.Header");
-			Header.SetBackgroundBrush(None).SetColumnStyle(Col).SetLastColumnStyle(Col).SetForegroundColor(Dim)
-				.SetHorizontalSeparatorBrush(Divider).SetHorizontalSeparatorThickness(1.f);
-
-			List = FTableViewStyle().SetBackgroundBrush(None);
-
-			Scroll = FCoreStyle::Get().GetWidgetStyle<FScrollBarStyle>("ScrollBar");
-			Scroll.SetNormalThumbImage(Round(WithA(Gold, 0.30f), FLinearColor::Transparent, 0.f, 3.f))
-				.SetHoveredThumbImage(Round(WithA(Gold, 0.55f), FLinearColor::Transparent, 0.f, 3.f))
-				.SetDraggedThumbImage(Round(WithA(Gold, 0.75f), FLinearColor::Transparent, 0.f, 3.f))
-				.SetVerticalBackgroundImage(Round(FLinearColor(1.f, 1.f, 1.f, 0.03f), FLinearColor::Transparent, 0.f, 3.f))
-				.SetVerticalTopSlotImage(None).SetVerticalBottomSlotImage(None)
-				.SetThickness(6.f);
-
-			ScrollBox = FCoreStyle::Get().GetWidgetStyle<FScrollBoxStyle>("ScrollBox");
-			ScrollBox.SetTopShadowBrush(None).SetBottomShadowBrush(None).SetLeftShadowBrush(None).SetRightShadowBrush(None);
-
-			Field = FCoreStyle::Get().GetWidgetStyle<FEditableTextBoxStyle>("NormalEditableTextBox");
-			Field.SetBackgroundImageNormal(Round(FLinearColor(1.f, 1.f, 1.f, 0.05f), WithA(Gold, 0.25f), 1.f))
-				.SetBackgroundImageHovered(Round(FLinearColor(1.f, 1.f, 1.f, 0.07f), WithA(Gold, 0.5f), 1.f))
-				.SetBackgroundImageFocused(Round(FLinearColor(1.f, 1.f, 1.f, 0.08f), WithA(Gold, 0.9f), 1.f))
-				.SetBackgroundImageReadOnly(Round(FLinearColor(1.f, 1.f, 1.f, 0.03f)))
-				.SetForegroundColor(Tan).SetFocusedForegroundColor(FLinearColor::White)
-				.SetPadding(FMargin(10.f, 6.f));
-		}
-	};
-
-	const FStyle& St()
-	{
-		static FStyle S;
-		return S;
-	}
-
-	/** Pincel de textura do jogo (lyshineui/...dds); nulo se a textura não foi importada. */
-	const FSlateBrush* Tex(const FString& Path, float Size)
-	{
-		static TMap<FString, TSharedPtr<FSlateBrush>> Cache;
-		const FString Key = FString::Printf(TEXT("%s@%.0f"), *Path, Size);
-		if (const TSharedPtr<FSlateBrush>* Found = Cache.Find(Key))
-		{
-			return Found->Get();
-		}
-		UTexture2D* T = Path.IsEmpty() ? nullptr : FNWUILayout::GameTexture(Path);
-		TSharedPtr<FSlateBrush> B;
-		if (T)
-		{
-			B = MakeShared<FSlateBrush>();
-			B->SetResourceObject(T);
-			B->ImageSize = FVector2D(Size, Size);
-			B->DrawAs = ESlateBrushDrawType::Image;
-		}
-		Cache.Add(Key, B);
-		return B.Get();
-	}
-
-	TSharedRef<STextBlock> Txt(const FText& T, int32 Style, int32 Size, const FLinearColor& C)
-	{
-		return SNew(STextBlock).Text(T).Font(Font(Style, Size)).ColorAndOpacity(C);
-	}
-
-	TSharedRef<STextBlock> Txt(const FString& S, int32 Style, int32 Size, const FLinearColor& C)
-	{
-		return Txt(FText::FromString(S), Style, Size, C);
-	}
-
-	FString Money(int64 Cents)
-	{
-		return UNWInventoryComponent::FormatCoins(Cents);
-	}
 
 	int64 ParseMoney(const FString& In)
 	{
@@ -418,8 +287,11 @@ void SNWMarket::Construct(const FArguments& Args)
 					]
 					+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 					[
-						SNew(STextBlock).Font(Font(2, 20)).ColorAndOpacity(Gold)
-						.Text_Lambda([this]() { return FText::FromString(Money(ShownCoins())); })
+						Coins(TAttribute<int64>::CreateLambda([this]() { return ShownCoins(); }), 2, 20, Gold)
+					]
+					+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(24.f, 0.f, 0.f, 0.f)
+					[
+						CloseButton([this]() { Close(); })
 					]
 				]
 				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f, 0.f, 18.f)[BuildTabs()]
@@ -460,6 +332,37 @@ SNWMarket::~SNWMarket()
 	{
 		Me->Interactor->ServerMarketClose();
 	}
+}
+
+void SNWMarket::Close()
+{
+	if (ANWCharacter* Me = Character.Get())
+	{
+		if (ANWPlayerController* PC = Cast<ANWPlayerController>(Me->GetController()))
+		{
+			PC->CloseMenus();
+		}
+	}
+}
+
+TSharedRef<SToolTip> SNWMarket::ItemTip(const FNWItem& I)
+{
+	// Mesmo conteúdo do painel do item, num quadro escuro junto do mouse.
+	return SNew(SToolTip)
+		.BorderImage(&St().None)
+		.TextMargin(0.f)
+		[
+			SNew(SBox).WidthOverride(400.f)
+			[
+				SNew(SBorder).BorderImage(&St().Tip).Padding(FMargin(18.f, 16.f))
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot().AutoHeight()[ItemHeader(I)]
+					+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 12.f)[SNew(SBox).HeightOverride(1.f)[SNew(SBorder).BorderImage(&St().Divider)]]
+					+ SVerticalBox::Slot().AutoHeight()[ItemDetails(I)]
+				]
+			]
+		];
 }
 
 TSharedRef<SWidget> SNWMarket::Spinner(float Size)
@@ -868,6 +771,7 @@ TSharedRef<ITableRow> SNWMarket::OnRow(FRowPtr R, const TSharedRef<STableViewBas
 		if (Col == ColName)
 		{
 			return SNew(SHorizontalBox)
+				.ToolTip(ItemTip(I))
 				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 12.f, 0.f)[ItemIcon(I, 46.f)]
 				+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
 				[
@@ -902,11 +806,11 @@ TSharedRef<ITableRow> SNWMarket::OnRow(FRowPtr R, const TSharedRef<STableViewBas
 		}
 		if (Col == ColPrice)
 		{
-			return Txt(Money(R->Order.UnitPrice), 2, 15, Gold);
+			return Coins(R->Order.UnitPrice, 2, 15, Gold);
 		}
 		if (Col == ColLowest)
 		{
-			return Txt(R->Lowest > 0 ? Money(R->Lowest) : FString(TEXT("—")), 0, 14, R->Lowest > 0 ? Gold : Dim);
+			return R->Lowest > 0 ? Coins(R->Lowest, 0, 14, Gold) : StaticCastSharedRef<SWidget>(Txt(TEXT("—"), 0, 14, Dim));
 		}
 		if (Col == ColExpires)
 		{
@@ -1134,7 +1038,7 @@ void SNWMarket::RefreshPanel(EPage P)
 	if (P == EPage::Buy)
 	{
 		Act->AddSlot().AutoHeight().Padding(0.f, 4.f)[LabelRow(NWText::Get(TEXT("nw.market.col_seller")), Txt(R->Order.Seller, 1, 14, Tan))];
-		Act->AddSlot().AutoHeight().Padding(0.f, 4.f)[LabelRow(NWText::Get(TEXT("ui_listingunitprice")), Txt(Money(R->Order.UnitPrice), 2, 15, Gold))];
+		Act->AddSlot().AutoHeight().Padding(0.f, 4.f)[LabelRow(NWText::Get(TEXT("ui_listingunitprice")), Coins(R->Order.UnitPrice, 2, 15, Gold))];
 		if (Item.Quantity > 1)
 		{
 			Act->AddSlot().AutoHeight().Padding(0.f, 6.f)
@@ -1149,13 +1053,12 @@ void SNWMarket::RefreshPanel(EPage P)
 			+ SHorizontalBox::Slot().FillWidth(1.f)[Txt(NWText::Get(TEXT("ui_total")), 2, 17, Tan)]
 			+ SHorizontalBox::Slot().AutoWidth()
 			[
-				SNew(STextBlock).Font(Font(2, 18))
-				.Text_Lambda([this, Key]() { FRowPtr X = Find(EPage::Buy, Key); return FText::FromString(Money(X.IsValid() ? X->Order.UnitPrice * Count : 0)); })
-				.ColorAndOpacity_Lambda([this, Key]()
-				{
-					FRowPtr X = Find(EPage::Buy, Key);
-					return FSlateColor(X.IsValid() && ShownCoins() < X->Order.UnitPrice * Count ? Red : Gold);
-				})
+				Coins(TAttribute<int64>::CreateLambda([this, Key]() { FRowPtr X = Find(EPage::Buy, Key); return X.IsValid() ? X->Order.UnitPrice * Count : 0; }), 2, 18,
+					TAttribute<FSlateColor>::CreateLambda([this, Key]()
+					{
+						FRowPtr X = Find(EPage::Buy, Key);
+						return FSlateColor(X.IsValid() && ShownCoins() < X->Order.UnitPrice * Count ? Red : Gold);
+					}))
 			]
 		];
 		Act->AddSlot().AutoHeight().Padding(0.f, 12.f, 0.f, 0.f)
@@ -1236,7 +1139,8 @@ void SNWMarket::RefreshPanel(EPage P)
 		Act->AddSlot().AutoHeight().Padding(0.f, 6.f)[LabelRow(NWText::Get(TEXT("nw.market.duration")), DaysBox)];
 		Act->AddSlot().AutoHeight().Padding(0.f, 4.f)
 		[
-			LabelRow(NWText::Get(TEXT("nw.market.col_lowest")), Txt(R->Lowest > 0 ? Money(R->Lowest) : FString(TEXT("—")), 1, 14, R->Lowest > 0 ? Gold : Dim))
+			LabelRow(NWText::Get(TEXT("nw.market.col_lowest")),
+				R->Lowest > 0 ? Coins(R->Lowest, 1, 14, Gold) : StaticCastSharedRef<SWidget>(Txt(TEXT("—"), 1, 14, Dim)))
 		];
 		Act->AddSlot().AutoHeight().Padding(0.f, 12.f, 0.f, 4.f)[SNew(SBox).HeightOverride(1.f)[SNew(SBorder).BorderImage(&St().Divider)]];
 		Act->AddSlot().AutoHeight().Padding(0.f, 6.f)
@@ -1245,8 +1149,7 @@ void SNWMarket::RefreshPanel(EPage P)
 			+ SHorizontalBox::Slot().FillWidth(1.f)[Txt(NWText::Get(TEXT("ui_total")), 2, 17, Tan)]
 			+ SHorizontalBox::Slot().AutoWidth()
 			[
-				SNew(STextBlock).Font(Font(2, 18)).ColorAndOpacity(Gold)
-				.Text_Lambda([this]() { return FText::FromString(Price > 0 ? Money(Price * Count) : FString(TEXT("—"))); })
+				Coins(TAttribute<int64>::CreateLambda([this]() { return Price * Count; }), 2, 18, Gold)
 			]
 		];
 		Act->AddSlot().AutoHeight().Padding(0.f, 12.f, 0.f, 0.f)
@@ -1660,14 +1563,8 @@ FReply SNWMarket::OnKeyDown(const FGeometry& Geometry, const FKeyEvent& Key)
 {
 	if (Key.GetKey() == EKeys::Escape)
 	{
-		if (ANWCharacter* Me = Character.Get())
-		{
-			if (ANWPlayerController* PC = Cast<ANWPlayerController>(Me->GetController()))
-			{
-				PC->CloseMenus();
-				return FReply::Handled();
-			}
-		}
+		Close();
+		return FReply::Handled();
 	}
 	return SCompoundWidget::OnKeyDown(Geometry, Key);
 }

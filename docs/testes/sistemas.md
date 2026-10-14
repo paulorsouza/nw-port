@@ -199,7 +199,8 @@ se algo estiver errado.
     `socket`, `unsocket`, `destroy`).
 97. Pegar o brinde semanal de um NPC: os itens entram e o log mostra `npc_reward:...`; tentar de novo: não entra nada.
 98. Queda Eterna: [E] no Entreposto Comercial abre a tela (spinner até o livro chegar) com Comprar, Vender e
-    "Meus Pedidos n/50". Esc fecha. Longe do posto, nada abre.
+    "Meus Pedidos n/50". Esc ou o X no canto fecham. Moedas e preços com o ícone de moeda. Mouse sobre o nome de um
+    item na tabela: quadro com atributo, qualidade e vantagens. Longe do posto, nada abre.
 99. Vender: só aparecem itens fabricados, gemas lapidadas e refinados finais (Asmodeum e outros T5.1); minério e
     lingote não. Escolher um item: painel com atributo, qualidade, vantagens com valor; o campo de preço já com o menor
     preço anunciado, se houver. Preço, duração, Enter ou Fazer Pedido de Venda: o item sai da lista na hora e o pedido
