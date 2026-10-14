@@ -293,7 +293,8 @@ Port (decisões do dono 2026-10-14; as taxas e o limite de 100 acima são do jog
 - Pedido de compra fica fora da tela (quase nada pode ser pedido); o servidor ainda aceita.
 - Resposta otimista: comprar, vender e cancelar mudam a tela na hora (spinner até o servidor gravar); recusado, volta
   ao que era e a linha pisca em vermelho com o motivo.
-- Depois: preço médio de itens iguais (histórico de vendas, mediana), NPC comprador de matéria-prima.
+- Fora da primeira versão (dono 2026-10-14): preço médio de itens iguais (histórico de vendas, mediana).
+- Depois: NPC comprador de matéria-prima.
 
 ## 6. Casas
 
