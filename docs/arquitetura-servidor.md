@@ -148,6 +148,26 @@ volta deles (perfil 70 s depois, `-nwcsvdelay=70`):
   procuravam coletável a cada ciclo (~7 ms com 370 personagens). Mesmo erro da câmera; regra nova abaixo.
 - A árvore de comportamento das criaturas custa ~21 µs por criatura por ciclo (`Behavior` no rastreamento).
 
+Teste de 1 hora (2026-10-14, servidor empacotado com o código do commit b884219, Guardaventos, 200 simulados em 900 m,
+~160 criaturas em volta deles, sem conexões e sem nw-core; `soak.log` em `unreal/NWPort/Saved/Perf/`):
+
+| Minutos | Trabalho/ciclo méd | p95 | Máx | Criaturas | Memória |
+|---|---|---|---|---|---|
+| 0–5 | 24,9 ms | 27,4 | 36 | 162 | 2,76 → 2,79 GB |
+| 15–20 | 28,0 | 30,5 | 42 | 168 | 2,75 GB |
+| 30–35 | 27,5 | 30,1 | 45 | 156 | 2,76 GB |
+| 55–60 | 28,1 | 30,6 | 40 | 155 | 2,76 GB |
+
+- Sem vazamento: memória parada em ~2,76 GB por 60 min (+12 MB entre os minutos 15 e 60).
+- Sem piora: depois dos primeiros 15 min o ciclo fica em 27–29 ms; 30 ciclos/s o tempo todo, nenhum relatório abaixo
+  de 29.
+- A subida de ~25 para ~28 ms nos primeiros 15 min acompanha os simulados presos em parede (`is stuck`, 26 mil linhas;
+  alguns presos a hora toda): o simulado anda reto e não desvia. É defeito do teste (`nw.sim`), não do jogo.
+- Um ciclo de ~45 ms a cada ~10 min (20.18.26, 20.28.37, 20.38.48...). Causa não achada; não é nada do port com
+  período de 600 s. Fica anotado.
+- Log: 78 mil avisos `GetSocketInfoByName ... No SkeletalMesh` (97% de `NWCreature`): criatura criada no servidor
+  sem malha procura soquete. Só ruído de log hoje; corrigir junto com os caminhos abertos.
+
 Regra que saiu disso: **"controlado localmente" no servidor inclui toda IA.** Lógica de jogador local (câmera, foco
 do [E], HUD, tremida) confere `IsLocallyControlled() && IsPlayerControlled()`.
 
