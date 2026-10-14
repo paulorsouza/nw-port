@@ -1,0 +1,13 @@
+{
+ "_comment": "Armaduras e joias (docs/armaduras.md): estação de equipamentos com receita de armadura, roll de armadura e de joia. tools/ui_shot.sh tools/ui_shots/armaduras.json",
+ "screen": "refining",
+ "station": {"type": "outfitting", "tier": 5, "name": "Estação de Alfaiataria Escala 5"},
+ "coins": 500000,
+ "trade": {"Armoring": 160, "Jewelcrafting": 160},
+ "items": [["LeatherT5", 120], ["ClothT5", 120], ["IngotT5", 120], ["LeatherT3", 60], ["ClothT3", 60], ["IngotT3", 60], ["IngotPreciousT2", 40]],
+ "shots": [
+  {"name": "receita", "recipe": "Procedural_LeatherChestT5"},
+  {"name": "roll_armadura", "recipe": "Procedural_LeatherChestT5", "craft": true, "t": 3.0},
+  {"name": "roll_joia", "recipe": "Procedural_RingT3", "craft": true, "t": 3.0}
+ ]
+}

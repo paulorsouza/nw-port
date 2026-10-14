@@ -116,7 +116,7 @@ namespace NWTradeskill
 {
 	static const TCHAR* Names[Num] = {TEXT("Mining"), TEXT("Logging"), TEXT("Harvesting"), TEXT("Skinning"), TEXT("Smelting"),
 		TEXT("Woodworking"), TEXT("Leatherworking"), TEXT("Weaving"), TEXT("Stonecutting"), TEXT("Weaponsmithing"),
-		TEXT("Engineering"), TEXT("Arcana"), TEXT("Jewelcrafting")};
+		TEXT("Engineering"), TEXT("Arcana"), TEXT("Jewelcrafting"), TEXT("Armoring")};
 
 	int32 Index(FName Tradeskill)
 	{
@@ -134,10 +134,12 @@ namespace NWTradeskill
 	FString TextKey(int32 I) { return I >= 0 && I < Num ? TEXT("ui_") + FString(Names[I]).ToLower() : FString(); }
 	FString Icon(int32 I)
 	{
-		// Ícones com o nome da mesa no jogo: masonary (cantaria, grafia do jogo), blacksmithing (armeiro), alchemy (arcano).
+		// Ícones com o nome da mesa no jogo: masonary (cantaria, grafia do jogo), blacksmithing (armeiro), alchemy (arcano),
+		// outfitting (armoraria).
 		const FString File = I == Index(TEXT("Stonecutting")) ? FString(TEXT("masonary"))
 			: I == Index(TEXT("Weaponsmithing")) ? FString(TEXT("blacksmithing"))
 			: I == Index(TEXT("Arcana")) ? FString(TEXT("alchemy"))
+			: I == Index(TEXT("Armoring")) ? FString(TEXT("outfitting"))
 			: FString(I >= 0 && I < Num ? Names[I] : TEXT("")).ToLower();
 		return I >= 0 && I < Num ? FString::Printf(TEXT("lyshineui/images/icons/tradeskills/icon_tradeskill_%s.dds"), *File) : FString();
 	}

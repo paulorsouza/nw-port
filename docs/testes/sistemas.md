@@ -142,4 +142,11 @@ se algo estiver errado.
     mostra "Equipar Ferramenta".
 65. Sons: abrir e fechar a mesa, clicar numa receita e em Fabricar/Refinar tocam o som do jogo; no roll de arma toca a
     raridade, um som por perk e o da gema; no refino, o de completar. Clicar para pular não dispara todos de uma vez.
+66. F10 "Armaduras e joias (níveis e materiais)": na forja aparecem as armaduras de placa; na estação de equipamentos as
+    de couro e tecido e as joias. Cada receita pede só lingote, couro e tecido do tier (joia: um lingote precioso).
+67. Fabricar uma peça de armadura: tela de resultado com o painel Resistência (Físico e Mágico, base → valor do item),
+    atributo, 3 perks de armadura e o slot de gema; joia sem slot e anel com 2 perks.
+68. Equipar cada peça e cada joia no seu espaço (arrastar, clique direito ou Equipar no fim da fabricação). Tooltip com
+    a resistência e comparação com o equipado; GS do painel muda. Sair e entrar: tudo continua equipado.
+69. Gema de armadura (Ônix, Opala, Diamante, Safira, Jaspe) acopla na armadura; gema de arma não.
 

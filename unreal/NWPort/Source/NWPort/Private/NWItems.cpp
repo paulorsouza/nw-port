@@ -11,7 +11,9 @@ int32 NWEquip::SlotForSet(FName Set)
 {
 	static const TMap<FName, int32> Slots = {
 		{TEXT("Sword"), Sword}, {TEXT("Hatchet"), Hatchet}, {TEXT("Shield"), Shield}, {TEXT("Pick"), Pick},
-		{TEXT("Sickle"), Sickle}, {TEXT("LoggingAxe"), LoggingAxe}, {TEXT("SkinningKnife"), SkinningKnife}};
+		{TEXT("Sickle"), Sickle}, {TEXT("LoggingAxe"), LoggingAxe}, {TEXT("SkinningKnife"), SkinningKnife},
+		{TEXT("Head"), Head}, {TEXT("Chest"), Chest}, {TEXT("Hands"), Hands}, {TEXT("Legs"), Legs}, {TEXT("Feet"), Feet},
+		{TEXT("Amulet"), Amulet}, {TEXT("Ring"), Ring}, {TEXT("Earring"), Earring}};
 	const int32* S = Slots.Find(Set);
 	return S ? *S : INDEX_NONE;
 }
@@ -66,6 +68,11 @@ void FNWItemCatalog::Load()
 			if (O->TryGetStringField(TEXT("gather"), Gather))
 			{
 				D.Gather = FName(Gather);
+			}
+			FString Armor;
+			if (O->TryGetStringField(TEXT("armor"), Armor) && !Armor.IsEmpty())
+			{
+				D.Armor = FName(Armor);
 			}
 			O->TryGetNumberField(TEXT("efficiency"), D.Efficiency);
 			O->TryGetNumberField(TEXT("weight"), D.Weight);

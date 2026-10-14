@@ -589,3 +589,45 @@ NW_REGISTER_DEV(DevGems, TEXT("sistemas.dev_gems"), TEXT("nw.dev.dev_gems"),
 		Give(TEXT("IngotPreciousT2"), 1);
 		C->Inventory->Grant(Gift, 0);
 	});
+
+// Testar armaduras e joias (docs/armaduras.md): Armoraria e Joalheria no 200 (receitas T5 pedem 150) e material refinado
+// T2–T5 de placa, couro e tecido, mais os lingotes preciosos das joias (prata, ouro, platina; oricalco é o IngotT5).
+NW_REGISTER_DEV(DevArmor, TEXT("sistemas.dev_armor"), TEXT("nw.dev.dev_armor"),
+	[](ANWPlayerController* PC)
+	{
+		ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		if (!C || !C->Inventory || !C->Progression)
+		{
+			return;
+		}
+		for (const TCHAR* Skill : {TEXT("Armoring"), TEXT("Jewelcrafting")})
+		{
+			const int32 t = NWTradeskill::Index(Skill);
+			for (int32 i = 0; i < 300 && C->Progression->TradeLevel(t) < 200; ++i)
+			{
+				C->Progression->AddTradeXp(Skill, FMath::Max(1, C->Progression->TradeXpToNext(t)));
+			}
+		}
+		TArray<FNWItem> Gift;
+		auto Give = [&Gift](const FString& Id, int32 Qty)
+		{
+			if (FNWItemCatalog::Get().Find(FName(*Id)))
+			{
+				FNWItem I;
+				I.ItemId = FName(*Id);
+				I.Quantity = Qty;
+				Gift.Add(I);
+			}
+		};
+		for (int32 Tier = 2; Tier <= 5; ++Tier)
+		{
+			Give(FString::Printf(TEXT("IngotT%d"), Tier), 120);
+			Give(FString::Printf(TEXT("LeatherT%d"), Tier), 120);
+			Give(FString::Printf(TEXT("ClothT%d"), Tier), 120);
+		}
+		for (int32 Tier = 1; Tier <= 3; ++Tier)
+		{
+			Give(FString::Printf(TEXT("IngotPreciousT%d"), Tier), 40);
+		}
+		C->Inventory->Grant(Gift, 500000);
+	});

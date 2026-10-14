@@ -380,6 +380,26 @@
     "nw.item.gem_occupied": {
       "pt-br": "Retire a gema antes (Shift + clique direito no item)",
       "en-us": "Remove the gem first (Shift + right-click the item)"
+    },
+    "nw.item.res_physical": {
+      "pt-br": "Resistência física",
+      "en-us": "Physical resistance"
+    },
+    "nw.item.res_magic": {
+      "pt-br": "Resistência mágica",
+      "en-us": "Magic resistance"
+    },
+    "nw.item.resistance": {
+      "pt-br": "Resistência",
+      "en-us": "Resistance"
+    },
+    "nw.item.magic_only": {
+      "pt-br": "Mágico",
+      "en-us": "Magic"
+    },
+    "nw.dev.dev_armor": {
+      "pt-br": "Armaduras e joias (níveis e materiais)",
+      "en-us": "Armor and jewelry (levels and materials)"
     }
   },
   "chaves_do_jogo": [
@@ -515,6 +535,7 @@
     "cr_continue_crafting",
     "cr_exit_station",
     "inv_equip",
-    "ui_tooltip_setactivetool"
+    "ui_tooltip_setactivetool",
+    "ui_armoring"
   ]
 }

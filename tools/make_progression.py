@@ -17,10 +17,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLES = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites", "datatables")
 OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "Progression")
 ATTRS = ["strength", "dexterity", "intelligence", "focus", "constitution"]
-# Coleta (0..3), refino (4..8), fabricar (9..11; esteira 4: tools/make_crafting.py, docs/oficio.md) e joalharia (12,
-# gemas: docs/itens.md "Slot"); mesma ordem do NWTradeskill no C++.
+# Coleta (0..3), refino (4..8), fabricar (9..11; esteira 4: tools/make_crafting.py, docs/oficio.md), joalharia (12) e
+# armoraria (13; docs/armaduras.md); mesma ordem do NWTradeskill no C++.
 TRADESKILLS = ["Mining", "Logging", "Harvesting", "Skinning", "Smelting", "Woodworking", "Leatherworking", "Weaving",
-               "Stonecutting", "Weaponsmithing", "Engineering", "Arcana", "Jewelcrafting"]
+               "Stonecutting", "Weaponsmithing", "Engineering", "Arcana", "Jewelcrafting", "Armoring"]
 
 
 def rows(name):

@@ -282,12 +282,12 @@ Próximos passos da esteira 4, nesta ordem (o dono pediu terminar as mecânicas 
 
 1. ~~Gemas e vidros rúnicos~~ (feito 2026-10-13, aguardando teste do dono: testes 55–60): 4 lapidações (2–5%), vidro
    rúnico = gema Pura + amplificação, encaixar em slot vazio e retirar com custo. Regras em `docs/itens.md`.
-2. Armaduras e joias fabricadas: receitas de alfaiataria/armoraria e joalharia, resistência base por material, perks
+2. Armaduras e joias fabricadas (`docs/armaduras.md`; fase 1, mecânica, feita 2026-10-13, testes 66–69; falta o visual): receitas de alfaiataria/armoraria e joalharia, resistência base por material, perks
    por equipamento (`tools/itens.json`). Na tela de resultado faltam os painéis `Stats/Armor` e `Stats/Trinket`
    (`docs/analise-re/craftroll-equipamento.md` §6).
 3. Efeito das perks e do atributo no personagem (chance e dano crítico, recarga, roubo de vida, regen de vigor, vida
    máxima, amplificação, escudo no lugar do Fortalecer). Fica junto com a esteira 1 (combate): combinar antes de mexer.
-4. Balanceamento (provisórios em `docs/itens.md` e `docs/oficio.md` "Pendente"): curva GS → atributo, custos das
+4. Sortear GS como passo em volta do GS atual (`docs/itens.md`, "A mudar"); balanceamento (provisórios em `docs/itens.md` e `docs/oficio.md` "Pendente"): curva GS → atributo, custos das
    melhorias, faixas das perks, material e XP do treino, evolução das mesas com material investido.
 5. Lojas, mercado e casas (itens 5–7 acima); o mercado já recusa item vinculado e confere o número de série.
 6. Polimento da tela de resultado: ~~sons do roll, botões do fim~~ (feito 2026-10-13, testes 64–65); faltam

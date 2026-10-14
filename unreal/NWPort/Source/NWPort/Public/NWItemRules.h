@@ -46,6 +46,12 @@ public:
 	TMap<FString, TArray<FString>> GemClasses;           // classe da gema -> classes de equipamento
 	TMap<FName, TMap<FString, FString>> GemEffectText;   // efeito -> texto por idioma, com {v}
 
+	/** Resistência do peito por classe de peso (mín, máx) e fração de cada peça (docs/itens.md "Armaduras e joias"). */
+	TMap<FName, FVector2f> ChestResistance;
+	TMap<FName, float> SlotResistance;
+	/** Resistência física (= mágica) da peça de armadura com a qualidade do item; 0 fora de armadura. */
+	float Resistance(const FNWItemDef& D, float Quality) const;
+
 	/** Equipamento com slot: arma, escudo ou armadura fabricados (joias e ferramentas não têm). */
 	static bool HasSocket(const FNWItemDef& D, const FNWItem& Item);
 	/** A gema (ou vidro) encaixa neste item. */

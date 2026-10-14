@@ -53,8 +53,17 @@ def rows(name):
     return json.load(open(glob.glob(os.path.join(DATA, "**", f"javelindata_{name}.datasheet.json"), recursive=True)[0]))["rows"]
 
 
+# Aparência das armaduras (javelindata_itemappearancedefinitions): o ícone da armadura vem dela, não do item.
+APPEARANCE = {}
+# Espaço de equipamento do port pela classe do jogo (docs/armaduras.md).
+ARMOR_SLOTS = (("EquippableHead", "Head"), ("EquippableChest", "Chest"), ("EquippableHands", "Hands"),
+               ("EquippableLegs", "Legs"), ("EquippableFeet", "Feet"), ("EquippableAmulet", "Amulet"),
+               ("EquippableRing", "Ring"), ("EquippableToken", "Earring"))
+
+
 def icon_for(r):
-    for cand in (str(r.get("IconPath") or ""), r["ItemID"]):
+    look = APPEARANCE.get(str(r.get("ArmorAppearanceM") or ""), {})
+    for cand in (str(r.get("IconPath") or ""), str(look.get("IconPath") or ""), r["ItemID"]):
         base = os.path.splitext(os.path.basename(cand))[0].lower()
         if base and base in ICONS:
             return ICONS[base]
@@ -133,6 +142,7 @@ def main():
             if r.get("Weight") not in (None, ""):
                 weights.setdefault(r["ItemID"], float(r["Weight"]) / 10)  # o jogo guarda em décimos
     weapons = {r["WeaponID"]: r for r in rows("itemdefinitions_weapons")}
+    APPEARANCE.update({r["ItemID"]: r for r in rows("itemappearancedefinitions")})
     consumables = {r["ConsumableID"]: r for r in rows("itemdefinitions_consumables")}
     effects = {r["StatusID"]: r for r in rows("statuseffects_item")}
 
@@ -197,6 +207,11 @@ def main():
             "ui_class": str(r.get("UiItemClass") or "").removeprefix("UI_"),
             "round": str(r.get("ItemType")) in ("Resource", "Lore", "Dye", "HousingItem"),
         }
+        if r.get("ItemType") == "Armor":
+            cls = str(r.get("ItemClass"))
+            e["set"] = next((slot for key, slot in ARMOR_SLOTS if key in cls), weapon_set)
+            # Classe de peso da peça (Heavy, Medium, Light); joias não têm.
+            e["armor"] = next((w for w in ("Heavy", "Medium", "Light") if w in cls.split("+")), "")
         if r.get("ItemType") == "Weapon":
             w = weapons.get(r.get("ItemStatsRef"), {})
             e["damage"] = float(w.get("BaseDamage") or 0)

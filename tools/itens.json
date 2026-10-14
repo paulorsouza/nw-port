@@ -89,6 +89,28 @@
   "Arcane": "AmpMagica"
  },
  "vidro_amplificacao": 3.0,
+ "_resistencia": "provisório (docs/itens.md 'Armaduras e joias'): resistência física = mágica do peito pela classe de peso (fatores do jogo 0,875 / 0,481 / 0,265 x 400), posicionada pela qualidade; outras peças pela fração do slot do jogo (ArmorRatingScaleFactor 0,20 e 0,15 sobre 0,35)",
+ "resistencia_peito": {
+  "Heavy": [
+   350,
+   385
+  ],
+  "Medium": [
+   193,
+   212
+  ],
+  "Light": [
+   106,
+   117
+  ]
+ },
+ "resistencia_slot": {
+  "Chest": 1.0,
+  "Legs": 0.5714,
+  "Head": 0.4286,
+  "Hands": 0.4286,
+  "Feet": 0.4286
+ },
  "efeitos_gema": {
   "ResFisica": {
    "pt-br": "+{v}% de resistência física",

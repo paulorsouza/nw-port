@@ -696,6 +696,39 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		: bTool ? FString::Printf(TEXT("%.0f%%"), D->Efficiency * 100.f) : FString::Printf(TEXT("%.0f"), D->Damage));
 	SetShown(E(TEXT("PrimaryBaseValue/PrimaryValue")), false);
 
+	// Armadura (RO/Stats/Armor, craftroll-equipamento.md §6): base da receita (qualidade 0) → resistência do item, física e
+	// mágica iguais no port (docs/itens.md "Armaduras e joias"). Joia (RO/Stats/Trinket): só o divisor.
+	const bool bArmor = Class == TEXT("armadura");
+	FNWUIElement* Ar = E(TEXT("RarityOffset/Stats/Armor"));
+	SetShown(Ar, bArmor);
+	SetShown(E(TEXT("RarityOffset/Stats/Trinket")), Class == TEXT("amuleto") || Class == TEXT("anel") || Class == TEXT("brinco"));
+	// O layout traz os filhos do painel desligados (o Lua liga): liga os que o port usa; os brilhos ficam fora.
+	for (const TCHAR* P : {TEXT("Armor/AbsorptionTitle"), TEXT("Armor/PhysicalLabel"), TEXT("PhysicalLabel/PhysicalValue"),
+		TEXT("PhysicalValue/FinalPhysical"), TEXT("FinalPhysical/Arrow"), TEXT("FinalPhysical/ElementalLabel"),
+		TEXT("ElementalLabel/ElementalValue"), TEXT("ElementalValue/FinalElemental"), TEXT("FinalElemental/Arrow"),
+		TEXT("Armor/Divider"), TEXT("Trinket/Divider")})
+	{
+		SetShown(E(P), true);
+	}
+	if (bArmor && D)
+	{
+		Ar->AlphaMul = Fade(T, 0.0, 0.4);
+		const FString Base = FString::FromInt(FMath::FloorToInt(Rules.Resistance(*D, 0.f)));
+		const FString Final = FString::FromInt(FMath::FloorToInt(Rules.Resistance(*D, It->Quality)));
+		SetText(E(TEXT("Armor/AbsorptionTitle")), NWText::Get(TEXT("nw.item.resistance")));
+		SetText(E(TEXT("FinalPhysical/ElementalLabel")), NWText::Get(TEXT("nw.item.magic_only")));
+		SetText(E(TEXT("PhysicalLabel/PhysicalValue")), Base);
+		SetText(E(TEXT("ElementalLabel/ElementalValue")), Base);
+		for (const TCHAR* P : {TEXT("PhysicalValue/FinalPhysical"), TEXT("ElementalValue/FinalElemental")})
+		{
+			if (FNWUIElement* F = E(P))
+			{
+				SetText(F, Final);
+				F->AlphaMul = Fade(T, 0.3, 0.3);   // FinalPhysical 0→1 em 0,3
+			}
+		}
+	}
+
 	// Atributo (CraftingAttribute) em 0,4; perks em 0,55 + 0,15·k; gema depois. Posições da tabela por número de perks
 	// (craftroll.lua 4535–5088).
 	SetShown(E(TEXT("Stats/NoPerkLabel")), false);
@@ -1417,7 +1450,7 @@ void FNWRefiningMenu::DrawDoneButtons(UCanvas* Canvas, const FVector2D& Mouse)
 	const FNWItem* It = ResultInBag();
 	const FNWItemDef* D = It ? FNWItemCatalog::Get().Find(It->ItemId) : nullptr;
 	const bool bEquip = D && NWEquip::SlotForSet(D->Set) != INDEX_NONE;
-	const bool bTool = bEquip && NWEquip::SlotForSet(D->Set) >= NWEquip::FirstTool;
+	const bool bTool = bEquip && NWEquip::IsTool(NWEquip::SlotForSet(D->Set));
 	const float S = Canvas->ClipY / 1080.f;
 	const float X0 = (Canvas->ClipX - 1920.f * S) * 0.5f + 232.f * S, W = 370.f * S;
 	float Y = 520.f * S;

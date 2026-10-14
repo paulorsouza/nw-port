@@ -23,6 +23,10 @@ https://claude.ai/artifact/QCkhEVRxbP2xFBCGMpjiYD.
 - Sortear o GS muda só o GS e o atributo. Qualidade, perks, dano e resistência não mudam.
 - Aprimorar o GS é sortear de novo na faixa da fabricação (material + bônus do artesão pelo nível, teto `gs_maximo`,
   provisório 800): pode subir ou descer. Na mesa do ofício do item, aba "Melhorar itens", pagando materiais de ofício.
+- A mudar (pedido do dono 2026-10-13, ainda não implementado): o sorteio do GS deixa de cobrir a faixa inteira e vira um
+  passo em volta do GS atual, sempre dentro da faixa da fabricação. Perto do GS base do item o passo favorece subir
+  (ex. −10 a +15); quanto mais longe do base, mais difícil subir (−10 a +10, depois −20 a +10). Números e a curva a
+  fechar no balanceamento.
 
 ## Qualidade
 
@@ -58,6 +62,19 @@ https://claude.ai/artifact/QCkhEVRxbP2xFBCGMpjiYD.
 | Ferramenta | Velocidade, Rendimento e Experiência de coleta |
 
 Perks de habilidade com efeito trocado (sem Energizado, Reforço, velocidade ou debuff): campo `nota` na página.
+
+## Armaduras e joias (decisão 2026-10-13)
+
+- Linhas: placas (pesada), couro (média) e tecido (leve), 5 peças (cabeça, peito, mãos, pernas, pés), T2–T5. A linha
+  "vestido" do jogo fica fora.
+- Material só refinado do tier, como nas armas: placa = lingote + couro + tecido; couro = couro + tecido + lingote;
+  tecido = tecido + couro + lingote (quantidades da receita do jogo).
+- Joias (amuleto, anel, brinco) direto do lingote precioso, sem componentes: prata T2, ouro T3, platina T4, oricalco T5,
+  na quantidade somada da receita do jogo.
+- Resistência física e mágica iguais (a variação vem das gemas), pela qualidade na faixa do material. Peito:
+  placa 350–385, couro 193–212, tecido 106–117 (fatores do jogo 0,875 / 0,481 / 0,265 × 400). Pernas 57% e cabeça,
+  mãos e pés 43% do peito (frações do jogo 0,20 e 0,15 sobre 0,35). Provisório (balanceamento).
+- Joias sem resistência.
 
 ## Slot
 
@@ -102,7 +119,7 @@ Perks de habilidade com efeito trocado (sem Energizado, Reforço, velocidade ou 
 - Faixa de GS de cada material e bônus do artesão.
 - Curva do GS para o atributo.
 - Custo de aprimorar e de desvincular.
-- Faixa de cada perk (sugestões na página) e resistência base de cada material.
+- Faixa de cada perk (sugestões na página) e resistência base de cada material (provisória em "Armaduras e joias").
 - Quais itens caem vinculados ao pegar.
 - Custo de sortear o atributo de novo.
 - Custo de retirar a gema; amplificação do vidro rúnico.

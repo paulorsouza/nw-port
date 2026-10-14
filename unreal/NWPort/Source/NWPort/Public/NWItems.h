@@ -13,7 +13,7 @@ enum class ENWItemContainer : uint8
 	Equip,
 };
 
-/** Espaços de equipamento: armas (espada, machadinha, escudo) e ferramentas de coleta (F4). */
+/** Espaços de equipamento: armas (espada, machadinha, escudo), ferramentas de coleta (F4), armadura e joias. */
 namespace NWEquip
 {
 	constexpr int32 Sword = 0;
@@ -23,8 +23,20 @@ namespace NWEquip
 	constexpr int32 Sickle = 4;
 	constexpr int32 LoggingAxe = 5;
 	constexpr int32 SkinningKnife = 6;
-	constexpr int32 Count = 7;
+	// Armadura e joias (docs/armaduras.md); o nw-core aceita espaços 0..15.
+	constexpr int32 Head = 7;
+	constexpr int32 Chest = 8;
+	constexpr int32 Hands = 9;
+	constexpr int32 Legs = 10;
+	constexpr int32 Feet = 11;
+	constexpr int32 Amulet = 12;
+	constexpr int32 Ring = 13;
+	constexpr int32 Earring = 14;
+	constexpr int32 Count = 15;
 	constexpr int32 FirstTool = Pick;
+	constexpr int32 LastTool = SkinningKnife;
+	constexpr int32 FirstArmor = Head;
+	inline bool IsTool(int32 Slot) { return Slot >= FirstTool && Slot <= LastTool; }
 
 	/** Espaço do conjunto do catálogo (Sword, Hatchet, Shield, Pick, ...) ou INDEX_NONE. */
 	NWPORT_API int32 SlotForSet(FName Set);
@@ -89,6 +101,7 @@ struct FNWItemDef
 	float HealPercent = 0.f;
 	float Cooldown = 0.f;
 	FName Gather;       // ferramenta: Mining, Cutting, Chopping, Dressing
+	FName Armor;        // armadura: Heavy, Medium, Light (joias: vazio)
 	float Efficiency = 1.f;
 	float Weight = 0.f;  // kg (o jogo guarda em décimos)
 	FString Name;

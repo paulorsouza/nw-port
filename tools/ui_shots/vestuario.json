@@ -1,0 +1,27 @@
+{
+ "_comment": "Armadura e joias equipadas (docs/armaduras.md): painel do personagem e tooltip. tools/ui_shot.sh tools/ui_shots/vestuario.json",
+ "screen": "inventory",
+ "coins": 500000,
+ "storage_title": "Despensa",
+ "storage_capacity": 1000,
+ "items": [
+  ["MediumChest_LeatherT5", 1, 560, 3, {"attr": 4, "quality": 72.5, "perks": ["VidaMaxima", "AmpFisica", "RegenVigor"], "gem": "OnyxCutT4", "bind": "equip"}],
+  ["RingT4", 1, 470, 2, {"attr": 0, "quality": 40.0, "perks": ["ChanceCritica", "DanoCritico"], "bind": "equip"}]
+ ],
+ "equip": [
+  ["1hSwordT2", 0, 200, 0],
+  ["HeavyHead_PlateT5", 7, 540, 2, {"attr": 4, "quality": 90.0, "perks": ["VidaMaxima"], "bind": "equip"}],
+  ["HeavyChest_PlateT5", 8, 552, 2, {"attr": 4, "quality": 55.0, "perks": ["AmpFisica"], "gem": "DiamondCutT3"}],
+  ["LightHands_ClothT4", 9, 430, 1, {"attr": 2, "quality": 10.0, "perks": []}],
+  ["MediumLegs_LeatherT3", 10, 350, 1, {"attr": 1, "quality": 50.0, "perks": []}],
+  ["HeavyFeet_PlateT2", 11, 250, 0, {"attr": 3, "quality": 20.0, "perks": []}],
+  ["AmuletT5", 12, 580, 3, {"attr": 4, "quality": 80.0, "perks": ["VidaMaxima", "RegenVigor", "ReducaoRecarga"]}],
+  ["EarringT3", 14, 330, 1, {"attr": 2, "quality": 30.0, "perks": ["RegenVigor"]}]
+ ],
+ "storage": [],
+ "shots": [
+  {"name": "painel", "mouse": [-100, -100]},
+  {"name": "tooltip_anel", "mouse": [1031, 288]},
+  {"name": "tooltip_peito", "mouse": [1094, 288]}
+ ]
+}

@@ -40,9 +40,16 @@ STATIONS = {"smelting": ("smelting", "Smelting"), "carpentry": ("carpentry", "Wo
 # Receitas de fabricar do port (docs/oficio.md): armas, escudos e ferramentas T2–T5, poção de vida T5 e reagentes de
 # alquimia T2.
 CRAFT_SOURCES = ("javelindata_crafting_weapon", "javelindata_crafting_engineer", "javelindata_crafting_arcana",
-                 "javelindata_crafting_jeweler")
+                 "javelindata_crafting_jeweler", "javelindata_crafting_armorer")
+# Ofícios que não têm mesa própria no slice: armoraria (placas na forja, couro e tecido na estação de equipamentos).
+EXTRA_SKILLS = {"Armoring"}
 CRAFT_GEAR = re.compile(r"^Procedural_(Longsword|ShieldRound|ShieldKite|ShieldTower|Hatchet|LoggingAxe|MiningPick|"
-                        r"SkinningKnife|Sickle)T[2-5]$")
+                        r"SkinningKnife|Sickle|"
+                        # Armaduras (placas, couro, tecido; sem a linha "vestido") e joias (docs/armaduras.md).
+                        r"(Plate|Leather|Cloth)(Head|Chest|Hands|Legs|Feet)|Amulet|Ring|Earring)T[2-5]$")
+# Joias no port (docs/itens.md "Armaduras e joias"): sem componentes; o lingote precioso de cada componente (corrente,
+# aro, gancho, engaste) entra direto, somado ao metal precioso da receita.
+TRINKET_COMPONENT = re.compile(r"^Trinket(Chain|Band|Hook|Setting)(T\d+)?$")
 CRAFT_INSTANT = re.compile(r"^(Procedural_PotionHealthT5|Alchemy[A-Za-z]+T2|"
                            r"(Onyx|Opal|Diamond|Sapphire|Jasper|Emerald|Malachite)CutT[1-4]|"
                            r"Runeglass_Case_Empty_(Melee|Arcane))$")
@@ -110,7 +117,14 @@ def stations():
 
 
 def main():
-    skills = {s for _, s in STATIONS.values()}
+    skills = {s for _, s in STATIONS.values()} | EXTRA_SKILLS
+    jeweler = {r["RecipeID"]: r for r in rows("javelindata_crafting_jeweler")}
+
+    def component_ingot(category, tier):
+        """Lingote e quantidade do componente de joia (Trinket_<Peça>T<tier> do jogo)."""
+        m = TRINKET_COMPONENT.match(category)
+        rec = jeweler.get(f"Trinket_{m.group(1)}T{tier}")
+        return (rec["Ingredient1"], int(rec["Qty1"])) if rec else (None, 0)
     events = {r["EventID"]: r for r in rows("javelindata_gameevents")}
     categories = {}
     for f in glob.glob(os.path.join(DT, "javelindata_itemdefinitions_master_*.datasheet.json")):
@@ -163,8 +177,19 @@ def main():
                 # Fabricar no port (docs/oficio.md): só material refinado, um por espaço, do tier do item (o jogo deixa
                 # escolher entre vários da categoria, inclusive raros).
                 tier = int(r.get("BaseTier") or 2)
-                iid = {"Timber": f"TimberT{tier}", "Leather": f"LeatherT{tier}"}.get(iid, re.sub(r"^MetalT(\d)$", r"IngotT\1", iid))
+                precious = f"IngotPreciousT{tier - 1}" if tier < 5 else "IngotT5"   # prata, ouro, platina, oricalco
+                if TRINKET_COMPONENT.match(iid):
+                    iid, qty = component_ingot(iid, tier)
+                elif iid == "MetalPrecious":
+                    iid = precious
+                else:
+                    iid = {"Timber": f"TimberT{tier}", "Leather": f"LeatherT{tier}", "Cloth": f"ClothT{tier}",
+                           "Metal": f"IngotT{tier}"}.get(iid, re.sub(r"^MetalT(\d)$", r"IngotT\1", iid))
                 cat = False
+                same = next((x for x in ing if x[0] == iid), None)
+                if same:
+                    same[1] += int(qty)   # joia: componentes e metal precioso viram um lingote só
+                    continue
             if cat:
                 used_cats.add(iid)
             ing.append([iid, int(qty), cat])

@@ -77,7 +77,7 @@ namespace
 	// Raridade da peça: armas pela raridade sorteada; o resto pelo tier.
 	int32 RarityOf(const FNWItemDef& D, const FNWItem& I)
 	{
-		return D.Type == TEXT("weapon") ? FMath::Min<int32>(I.Rarity, 4) : FMath::Clamp(D.Tier - 1, 0, 4);
+		return D.Type == TEXT("weapon") || D.Type == TEXT("armor") ? FMath::Min<int32>(I.Rarity, 4) : FMath::Clamp(D.Tier - 1, 0, 4);
 	}
 
 	// Espaços do port nas posições do equipmentv3 (relativas à origem do painel).
@@ -85,6 +85,11 @@ namespace
 	const FEquipPos CombatSlots[] = {
 		{NWEquip::Sword, 548.f, 216.f, TEXT("iconweapon")}, {NWEquip::Hatchet, 548.f, 284.f, TEXT("iconweapon")},
 		{NWEquip::Shield, 30.f, 556.f, TEXT("iconshield")},
+		// Armadura e joias (docs/armaduras.md).
+		{NWEquip::Head, 30.f, 216.f, TEXT("iconhead")}, {NWEquip::Chest, 30.f, 284.f, TEXT("iconchest")},
+		{NWEquip::Hands, 30.f, 352.f, TEXT("iconhand")}, {NWEquip::Legs, 30.f, 420.f, TEXT("iconlegs")},
+		{NWEquip::Feet, 30.f, 488.f, TEXT("iconfeet")}, {NWEquip::Amulet, 548.f, 438.f, TEXT("iconamulet")},
+		{NWEquip::Ring, 548.f, 506.f, TEXT("iconring")}, {NWEquip::Earring, 548.f, 574.f, TEXT("icontoken")},
 	};
 	const FEquipPos ToolSlots[] = {
 		{NWEquip::LoggingAxe, 548.f, 351.f, TEXT("iconlogging")}, {NWEquip::Pick, 548.f, 419.f, TEXT("iconpickaxe")},
@@ -98,11 +103,7 @@ namespace
 	}
 	// Espaços do jogo que o port não tem: vazios, para o painel ter a forma do jogo.
 	struct FEmptyPos { float X, Y; const TCHAR* Icon; };
-	const FEmptyPos CombatEmpty[] = {
-		{30.f, 216.f, TEXT("iconhead")}, {30.f, 284.f, TEXT("iconchest")}, {30.f, 352.f, TEXT("iconhand")},
-		{30.f, 420.f, TEXT("iconlegs")}, {30.f, 488.f, TEXT("iconfeet")}, {548.f, 352.f, TEXT("iconrune")},
-		{548.f, 438.f, TEXT("iconamulet")}, {548.f, 506.f, TEXT("iconring")}, {548.f, 574.f, TEXT("icontoken")},
-	};
+	const FEmptyPos CombatEmpty[] = {{548.f, 352.f, TEXT("iconrune")}};
 	const FEmptyPos ToolEmpty[] = {{548.f, 623.f, TEXT("iconfishing")}};
 
 	// Alvo de soltar aceso (containerareadroptarget/dropzoneglow): borda de 2 px e um véu leve. O canvas da Unreal mistura
@@ -865,9 +866,9 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 	DrawTexture(Canvas, TEXT("lyshineui/images/icons/objectives/reward_xp.dds"), Box(524.f, 103.f, 48.f, 48.f));
 	DrawGameText(Canvas, FString::FromInt(Prog ? Prog->Level : 1), (EquipOrigin.X + 576.f) * S, 103.f * S, 48.f, InvTan, TEXT("pica_regular"));
 	int32 Sum = 0, Count = 0;
-	for (int32 Slot = 0; Slot < NWEquip::FirstTool; ++Slot)
+	for (int32 Slot = 0; Slot < NWEquip::Count; ++Slot)   // armas, armadura e joias (ferramentas não contam)
 	{
-		if (const FNWItem* I = Inv->At(ENWItemContainer::Equip, Slot); I && I->GearScore > 0)
+		if (const FNWItem* I = NWEquip::IsTool(Slot) ? nullptr : Inv->At(ENWItemContainer::Equip, Slot); I && I->GearScore > 0)
 		{
 			Sum += I->GearScore;
 			++Count;
@@ -1197,7 +1198,7 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 			if (const int32 To = D ? NWEquip::SlotForSet(D->Set) : INDEX_NONE; To != INDEX_NONE)
 			{
 				Inv->ServerMove(ENWItemContainer::Bag, Pressed.Slot, ENWItemContainer::Equip, To);
-				EquipTab = To >= NWEquip::FirstTool ? 1 : 0;
+				EquipTab = NWEquip::IsTool(To) ? 1 : 0;
 			}
 		}
 		break;
@@ -1252,7 +1253,7 @@ void FNWInventoryMenu::RightClick(const FSlotRef& S)
 	else if (const int32 To = NWEquip::SlotForSet(D->Set); To != INDEX_NONE)
 	{
 		Inv->ServerMove(ENWItemContainer::Bag, S.Slot, ENWItemContainer::Equip, To);
-		EquipTab = To >= NWEquip::FirstTool ? 1 : 0;
+		EquipTab = NWEquip::IsTool(To) ? 1 : 0;
 	}
 }
 
@@ -1728,7 +1729,7 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 	static const TCHAR* Dir = TEXT("lyshineui/images/tooltip/");
 	const float S = UIScale;
 	const FLinearColor Body(0.62f, 0.6f, 0.52f), Divider(0.61f, 0.58f, 0.25f), Line(0.2f, 0.2f, 0.2f);
-	const int32 Rarity = D->Type == TEXT("weapon") ? FMath::Min<int32>(Item.Rarity, 4) : FMath::Clamp(D->Tier - 1, 0, 4);
+	const int32 Rarity = D->Type == TEXT("weapon") || D->Type == TEXT("armor") ? FMath::Min<int32>(Item.Rarity, 4) : FMath::Clamp(D->Tier - 1, 0, 4);
 
 	// Seções do corpo: gear score, atributos, descrição, peso.
 	// Icon: perk com ícone e o slot de gema (moldura do soquete, dynamictooltip_perk.lua) à esquerda do texto.
@@ -1746,6 +1747,14 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 	// Item fabricado (docs/itens.md): atributo, qualidade (entre resistências e perks), perks com o valor da qualidade e
 	// o slot de gema.
 	const FNWItemRules& IR = FNWItemRules::Get();
+	// Armadura: resistência física e mágica (iguais; docs/itens.md "Armaduras e joias"), no lugar do dano base.
+	if (const float Res = IR.Resistance(*D, Item.Quality); Res > 0.f)
+	{
+		for (const TCHAR* Key : {TEXT("nw.item.res_physical"), TEXT("nw.item.res_magic")})
+		{
+			Rows.Add({FString::Printf(TEXT("%.1f  %s"), Res, *NWText::Get(Key)), FLinearColor(0.67f, 0.67f, 0.67f), 23.f, 0, 4.f});
+		}
+	}
 	const FLinearColor Perk(0.86f, 0.82f, 0.68f), Muted(0.55f, 0.53f, 0.47f);
 	if (Item.Attr != 255 && IR.Attributes.IsValidIndex(Item.Attr) && Item.GearScore > 0)
 	{
@@ -1802,7 +1811,10 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 		Rows.Add({NWText::Get(IR.Gems[Item.ItemId].Class == TEXT("arma") ? TEXT("nw.item.gem_for_weapon") : TEXT("nw.item.gem_for_armor")), Muted, 21.f, 0, 2.f});
 	}
 	// Gemas: a descrição do jogo fala dos efeitos do jogo; vale a linha de efeitos do port acima.
-	if (!D->Description.IsEmpty() && !IR.Gems.Contains(Item.ItemId))
+	// Joia fabricada: a descrição do jogo fala de soquete, e joia não tem slot no port.
+	const FString ItemClass = FNWItemRules::EquipClass(*D);
+	const bool bTrinket = ItemClass == TEXT("amuleto") || ItemClass == TEXT("anel") || ItemClass == TEXT("brinco");
+	if (!D->Description.IsEmpty() && !IR.Gems.Contains(Item.ItemId) && !bTrinket)
 	{
 		if (Rows.Num())
 		{

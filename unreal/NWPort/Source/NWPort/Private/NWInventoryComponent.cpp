@@ -272,7 +272,7 @@ void UNWInventoryComponent::GiveTools()
 
 const FNWItemDef* UNWInventoryComponent::ToolFor(FName GatherType) const
 {
-	for (int32 Slot = NWEquip::FirstTool; Slot < NWEquip::Count; ++Slot)
+	for (int32 Slot = NWEquip::FirstTool; Slot <= NWEquip::LastTool; ++Slot)
 	{
 		const FNWItem* I = At(ENWItemContainer::Equip, Slot);
 		const FNWItemDef* D = I ? FNWItemCatalog::Get().Find(I->ItemId) : nullptr;

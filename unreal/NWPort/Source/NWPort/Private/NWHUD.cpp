@@ -1032,7 +1032,7 @@ void ANWHUD::DrawLootTicker()
 			continue;
 		}
 		// Peça do item (ItemLayoutSimple) reduzida a 92 x 46: fundo, faixa de raridade, ícone e tier.
-		const int32 Rarity = D->Type == TEXT("weapon") ? FMath::Min<int32>(L.Rarity, 4) : FMath::Clamp(D->Tier - 1, 0, 4);
+		const int32 Rarity = D->Type == TEXT("weapon") || D->Type == TEXT("armor") ? FMath::Min<int32>(L.Rarity, 4) : FMath::Clamp(D->Tier - 1, 0, 4);
 		const FVector2D Tile = Row + FVector2D(10.f, 6.f) * S;
 		const FVector2D TileSize = FVector2D(92.f, 46.f) * S;
 		Tex(TEXT("lyshineui/images/lootticker/lootticker_itembg_square.dds"), Tile - FVector2D(3.f) * S, TileSize + FVector2D(6.f) * S, Alpha);
@@ -1042,7 +1042,7 @@ void ANWHUD::DrawLootTicker()
 		Text(Roman[FMath::Clamp(D->Tier, 0, 5)], Tile.X + 4.f * S, Tile.Y, 13.f, Tan, Alpha);
 		// "+N" e o nome à direita (ItemQuantity / ItemName), nome na cor da raridade das armas.
 		Text(FString::Printf(TEXT("+%d"), L.Quantity), Row.X + 112.f * S, Row.Y + 16.f * S, 18.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
-		Text(D->Name, Row.X + 160.f * S, Row.Y + 16.f * S, 18.f, D->Type == TEXT("weapon") ? NWRarityColor(L.Rarity) : Tan, Alpha);
+		Text(D->Name, Row.X + 160.f * S, Row.Y + 16.f * S, 18.f, D->Type == TEXT("weapon") || D->Type == TEXT("armor") ? NWRarityColor(L.Rarity) : Tan, Alpha);
 	}
 }
 

@@ -86,6 +86,21 @@ FNWItemRules::FNWItemRules()
 			}
 		}
 	}
+	if (Root->TryGetObjectField(TEXT("resistencia_peito"), Obj))
+	{
+		for (const auto& R : (*Obj)->Values)
+		{
+			const TArray<TSharedPtr<FJsonValue>>& A = R.Value->AsArray();
+			ChestResistance.Add(FName(*R.Key), FVector2f(float(A[0]->AsNumber()), float(A[1]->AsNumber())));
+		}
+	}
+	if (Root->TryGetObjectField(TEXT("resistencia_slot"), Obj))
+	{
+		for (const auto& R : (*Obj)->Values)
+		{
+			SlotResistance.Add(FName(*R.Key), float(R.Value->AsNumber()));
+		}
+	}
 	if (Root->TryGetObjectField(TEXT("gema_classes"), Obj))
 	{
 		for (const auto& C : (*Obj)->Values)
@@ -143,7 +158,27 @@ FString FNWItemRules::EquipClass(const FNWItemDef& D)
 	{
 		return TEXT("ferramenta");
 	}
+	static const TMap<FName, FString> Armor = {{TEXT("Head"), TEXT("armadura")}, {TEXT("Chest"), TEXT("armadura")},
+		{TEXT("Hands"), TEXT("armadura")}, {TEXT("Legs"), TEXT("armadura")}, {TEXT("Feet"), TEXT("armadura")},
+		{TEXT("Amulet"), TEXT("amuleto")}, {TEXT("Ring"), TEXT("anel")}, {TEXT("Earring"), TEXT("brinco")}};
+	if (const FString* C = Armor.Find(D.Set))
+	{
+		return *C;
+	}
 	return D.Type == TEXT("weapon") ? TEXT("arma") : FString();
+}
+
+float FNWItemRules::Resistance(const FNWItemDef& D, float Quality) const
+{
+	const FVector2f* Chest = ChestResistance.Find(D.Armor);
+	const float* Frac = SlotResistance.Find(D.Set);
+	if (!Chest || !Frac || Quality < 0.f)
+	{
+		return 0.f;
+	}
+	// Faixa do peito pela classe de peso × fração da peça, posicionada pela qualidade (uma casa decimal).
+	const float Q = FMath::Clamp(Quality, 0.f, 100.f) / 100.f;
+	return FMath::RoundToFloat((Chest->X + (Chest->Y - Chest->X) * Q) * *Frac * 10.f) / 10.f;
 }
 
 bool FNWItemRules::HasSocket(const FNWItemDef& D, const FNWItem& Item)
