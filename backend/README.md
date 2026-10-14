@@ -40,16 +40,21 @@ Servidor de jogo (`X-NW-Server-Secret`):
 | Método | Rota | Corpo | Resposta |
 |---|---|---|---|
 | POST | `/internal/tickets/redeem` | `ticket` | `account_id`, `account_name`, `character` |
-| PUT | `/internal/characters/{id}/state` | estado completo | 204 |
-| GET | `/internal/characters/{id}/storage/{local}` | | `version`, `items` |
-| PUT | `/internal/characters/{id}/storage/{local}` | `version`, `items`, `inventory`, `coins` | `version`, `items`; 409 `storage_changed` |
+| PUT | `/internal/characters/{id}/state` | estado completo; a bolsa inteira (`inventory`) ou só os espaços que mudaram (`inventory_patch`: `container`, `slot`, `item` ou nulo) | 204 |
+| GET | `/internal/characters/{id}/storage/shared` | | `version`, `items`, `tab_names`, `capacity` |
+| PUT | `/internal/characters/{id}/storage/shared` | `version`, `items`, `inventory`, `coins`; opcionais `tab_names`, `capacity` | igual ao GET; 409 `storage_changed` |
 | GET | `/internal/characters/{id}/houses` | | lista |
 | POST | `/internal/characters/{id}/houses` | `territory`, `address`, `house_type`, `price`, `inventory`, `coins` | 201 casa; 409 `house_owned` |
-| POST | `/internal/characters/{id}/credits/claim` | | `amount` |
+| GET | `/internal/characters/{id}/credits` | | `amount`, `until` (créditos a resgatar até aquele instante) |
+| POST | `/internal/characters/{id}/credits/claim` | `session`, `seq`, `reason`, `until` | `amount` (soma só os créditos até `until`) |
 | GET | `/internal/market/{território}/orders` | filtros `item_id`, `kind`, `character_id` | ordens abertas |
-| POST | `/internal/market/{território}/orders` | `character_id`, `kind` (`sell`/`buy`), `item_id`, `quantity`, `gear_score`, `rarity`, `props`, `unit_price`, `fee`, `duration_hours`, `inventory`, `coins` | 201 ordem; 400 `item_bound` |
-| POST | `/internal/market/orders/{id}/fill` | `character_id`, `quantity`, `inventory`, `coins` (compra: `gear_score`, `rarity`, `props` do item entregue) | ordem; 409 `order_closed`/`order_quantity`; 400 `item_bound` |
+| POST | `/internal/market/{território}/orders` | `character_id`, `kind` (`sell`/`buy`), `item_id`, `quantity`, `gear_score`, `rarity`, `props`, `unit_price`, `fee`, `duration_hours`, `weight`, `inventory`, `coins` | 201 ordem; 400 `item_bound`; 409 `storage_full` (compra), `too_many_orders` (50 abertas) |
+| POST | `/internal/market/orders/{id}/fill` | `character_id`, `quantity`, `inventory`, `coins` (compra: `gear_score`, `rarity`, `props` do item entregue) | ordem; 409 `order_closed`/`order_quantity`/`storage_full` (comprar de venda); 400 `item_bound` |
 | POST | `/internal/market/orders/{id}/cancel` | `character_id` | 204 |
+| GET | `/internal/characters/{id}/ground` | | sacos vivos (`id`, `map`, `position`, `expires_at`, `items`); apaga os vencidos |
+| POST | `/internal/characters/{id}/ground` | `map`, `position`, `ttl_seconds`, `items`, `inventory`, `coins` | 201 saco |
+| POST | `/internal/ground/{saco}/take` | `character_id`, `items` (o que sobra), `inventory`, `coins` | `remaining`; 409 `ground_gone` |
+| GET | `/internal/item-log` | filtros `character_id`, `character`, `item_id`, `serial`, `since`, `limit` | linhas do log, mais novas primeiro |
 | POST | `/internal/characters/{id}/serials` | | 201 `serial` (número de série do item assinado; o personagem é o artesão) |
 | GET | `/internal/characters/{id}/npc-rewards` | `period` (terça da semana) | `claims`: brindes já pegos (`once` + o período) |
 | POST | `/internal/characters/{id}/npc-rewards` | `npc`, `kind` (`starter`/`weekly`), `period` (`once`/`AAAA-MM-DD`), `inventory`, `coins` | 201; 409 `already_claimed` |
@@ -63,12 +68,17 @@ Item assinado leva `props.serial` (emitido por `/serials`): toda gravação conf
 
 Armazém, mercado e casas ficam fora do `state`, que regrava a bolsa inteira. Cada ação leva a bolsa e as moedas
 do personagem como ficam depois dela (`inventory`, `coins`), gravadas na mesma transação da ação.
-- `{local}`: `settlement:<território>` ou `house:<id da casa>`.
+- Armazém compartilhado (`shared`, migration 0010): um por personagem, aberto em qualquer despensa; item com `tab`
+  (0–4) e `weight` (peso unitário em kg, do servidor de jogo); `tab_names` com os nomes das abas. `capacity` é a soma
+  das fontes (1000 kg por cidade conhecida, baús das casas, nível da cidade) feita pelo servidor de jogo.
 - O armazém tem versão: o PUT com uma versão velha devolve 409 (ler de novo e refazer).
-- O mercado entrega o item comprado no armazém da cidade da ordem.
-- O vendedor recebe em `coin_credits`. O servidor de jogo resgata com `credits/claim`, soma às moedas e salva.
+- Compra (ordem de compra ou comprar de uma venda) só passa se armazém + compras abertas + a compra couberem em
+  `capacity` (409 `storage_full`). Venda não tem limite. O mercado entrega no armazém mesmo acima da capacidade (aba
+  1); o mercado é um só (o servidor de jogo usa o território `global`).
+- O vendedor recebe em `coin_credits`. O servidor de jogo consulta `credits`, resgata com `credits/claim` até o
+  `until` lido e soma às moedas na mesma gravação.
 - Ordem cancelada ou vencida devolve o item ao armazém (venda) ou a garantia em crédito (compra).
-- Taxas e duração vêm do servidor de jogo.
+- Sem taxas no port (`fee` = 0); duração vem do servidor de jogo. Até 50 ordens abertas por personagem.
 
 Estado do personagem: `map`, `position` (`x`, `y`, `z` em cm do Unreal, ou null), `yaw`, `health`,
 `active_weapon`, `loadout` e `mastery` (JSON livre, por arma).

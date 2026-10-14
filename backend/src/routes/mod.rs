@@ -1,7 +1,9 @@
 mod account;
 mod characters;
+mod ground;
 mod houses;
 mod internal;
+mod journal;
 mod market;
 mod npc_rewards;
 mod serials;
@@ -30,10 +32,14 @@ pub fn router() -> Router<AppState> {
         .route("/internal/characters/{id}/state", put(internal::save_state))
         .route("/internal/characters/{id}/storage/{location}", get(storage::get).put(storage::put))
         .route("/internal/characters/{id}/houses", get(houses::list).post(houses::buy))
+        .route("/internal/characters/{id}/credits", get(market::pending_credits))
         .route("/internal/characters/{id}/credits/claim", post(market::claim_credits))
         .route("/internal/characters/{id}/npc-rewards", get(npc_rewards::list).post(npc_rewards::claim))
         .route("/internal/characters/{id}/serials", post(serials::issue))
         .route("/internal/market/{territory}/orders", get(market::list).post(market::create))
         .route("/internal/market/orders/{id}/fill", post(market::fill))
         .route("/internal/market/orders/{id}/cancel", post(market::cancel))
+        .route("/internal/item-log", get(journal::list))
+        .route("/internal/characters/{id}/ground", get(ground::list).post(ground::drop_items))
+        .route("/internal/ground/{bag}/take", post(ground::take))
 }

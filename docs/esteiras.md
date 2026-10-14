@@ -30,6 +30,9 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 - O editor é do dono. Compilar e importar exigem o editor fechado: peça para fechar, faça tudo que precisa do
   editor fechado de uma vez, e no fim abra o editor no mapa da sua esteira.
 - Nunca rodar o jogo, o cliente ou teste automático por conta própria. Abra o editor e peça o print.
+  Exceção (dono, 2026-10-14): teste de desempenho (`docs/arquitetura-servidor.md`, teste de carga) pode ser rodado
+  pela sessão, sem janela (servidor `-server -nullrhi`, bots `-nullrhi`), pela fila de trabalho pesado, com o editor
+  fechado e o New World original fechado.
 - Todo teste usa o nw-core local (`docs/teste-backend.md`): `tools/backend_dev.sh` antes de abrir o editor; o Play
   entra com a conta `editor` / personagem `Exilado` e salva tudo entre sessões.
 - Cada esteira tem a sua lista de testes em `docs/testes/<esteira>.md`, numerada só nela. Item novo: o que fazer e o
@@ -77,6 +80,7 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 | Coleta | `tools/sets/player/coleta.json`, `tools/etapas/coleta.*`, `docs/analise-re/perguntas/coleta-*`, `tools/strings/coleta.json`; `NWGatherComponent`, `NWGatherField`; `tools/make_gatherables.py`, `convert_gatherables.sh`, `tools/ue/import_gatherables.py`; `docs/coleta.md` |
 | Montarias | `NWMountComponent` (já criado, vazio), `tools/sets/player/montaria.json`, `tools/etapas/montarias.*`, `tools/strings/montarias.json`; `NWMount*`; `tools/sets/mount_*.json`; `docs/montarias.md` |
 | Sistemas | `NWCharacterSave.cpp`, `tools/strings/sistemas.json`, `tools/etapas/sistemas.*`; `NWHUD`, `NWInventory*`, `NWProgression*`, `NWItems`, `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWTradeskillMenu`, `NWAttributesMenu`; `backend/`; `tools/make_items.py`, `make_progression.py`, `ui_build_*.py`, `convert_city.sh`, `tools/ue/import_city.py`, `fix_city.py`; `NWRefiningMenu`, `NWStorageMenu`, `NWLootBag`, `NWShop*`, `tools/shops.json`, `NWCrafting`, `NWInteractable`, `NWNpc*`, `NWEvents`, `NWUIShotCommandlet`; `tools/ui_screens/`, `ui_shots/`, `ui_shot.sh`, `ui_styles.py`, `ui_compare.py`, `make_crafting.py`, `make_npcs.py`; `docs/hud/`, `docs/hud-*.md`, `docs/sistemas.md` |
+| Servidor e rede (por enquanto com a esteira 4) | `NWLoadTest`, `NWPlayerGrid`, `tools/perf_csv.py`, `tools/item_log.py`, `docs/arquitetura-servidor.md` (regras de desempenho para todas as esteiras, rascunho até o dono aprovar) |
 | RE (agente `nw-re`) | `docs/analise-re/`, `tools/re/` |
 | Compartilhados | `NWCharacter.h`, `NWCharacter.cpp`, `NWPlayerController`, `SNWDevMenu`, `NWCombatTypes.h`, `NWMasteryMenu`, `NWRules`, `NWInputRegistry`, `NWDevRegistry`, `NWUILayout`, `tools/ui_canvas.py`, `NWAnimInstance`, `ABP_NW` (dono único, abaixo); `tools/sets/sword_shield.json`, `tools/strings/geral.json`, `build_all.sh`, `ue_import_all.sh`, `make_data.sh`; `docs/ESTADO.md` |
 
@@ -310,14 +314,32 @@ pilha de teste em rede no PC do dono com Cloudflare Tunnel (`docs/rede-teste.md`
    cliente no Windows (`docs/rede-teste.md`, Cliente Windows) com `Jogar.bat` em `-nwconnect=<IP do PC>:7777`,
    conta por `tools/rede.sh invite`. Depois, com os amigos: Zero Trust e WARP (o provedor usa CGNAT), reservar o IP
    do PC no DHCP, atualizar o `cloudflared` (2026.8.3 → 2026.10.0).
-4. Tela da bolsa no chão como a do jogo (`catcontainer` no modo bolsa de saque: lista, pegar item por item, aviso de
-   tempo de vida); hoje só [E] Pegar tudo.
+4. ~~Tela da bolsa no chão como a do jogo~~ (feito 2026-10-14: janela "Itens Derrubados", pegar item por item, aviso
+   de tempo de vida; testes 76–78).
 5. ~~Sortear GS como passo em volta do GS atual~~ (feito 2026-10-14, com as chances e a escolha do material na tela;
    testes 74–75).
 6. Polimento: descrição longa de perk de habilidade passa da linha na tela de resultado (ex. Ventos Curativos);
    flipbooks de raridade; filtros da lista de receitas.
 7. Armaduras fase 2 (visual), combinando com as outras esteiras antes de mexer em `NWCharacter` e no conjunto do
    jogador; depois lojas, mercado e casas.
+8. Armazém compartilhado (feito 2026-10-14, testes 79–83): um armazém por personagem em qualquer despensa, 1000 kg
+   por cidade conhecida (casas e nível da cidade somam quando existirem), 5 abas com nome, mercado único com compra
+   limitada pela capacidade (migration 0010). Mercado (2026-10-14): sem taxas, 50 ordens, só item fabricado,
+   gema lapidada ou refinado final (`mercado` em `tools/itens.json`); tela própria em Slate (`SNWMarket`) com filtros,
+   vendedor, vantagens e resposta otimista (testes 98–105, captura `tools/ui_shots/market.json`). Depois: preço médio
+   de itens iguais e NPC comprador de matéria-prima.
+9. Gravações sem rollback (`docs/plano-servidor.md` "Gravações"): etapa 1 feita 2026-10-14 (sessão e número em toda
+   gravação, fila por personagem, log de itens, salvamento a cada 5 s; migration 0011, testes 84–86). Etapa 2 feita
+   2026-10-14 (armazém, refinar, fabricar, melhorar, soltar e pegar do chão gravados antes de valer, `NWOps`; chão no
+   nw-core até vencer; migration 0012, testes 89–93). Etapa 3 feita 2026-10-14 (coleta, saque, F10, loja, gemas,
+   destruir e brinde como operações; bolsa gravada só pela diferença; testes 94–97).
+   Testes do dono adiados (pedido de 2026-10-14): 89–92 (saco volta, saco vence, nw-core desligado, bolsa cheia na
+   fabricação), combate com a animação reduzida no servidor e o teste em rede (movimento a 30/s). Passaram: 87 (F10 no
+   log) e a fabricação como operação gravada (93).
+10. Desempenho do servidor (`docs/arquitetura-servidor.md`, 2026-10-14): teste de carga (`nw.sim`, `nw.perf`), servidor
+    empacotado com 500 simulados andando em ~32 ms; animação só com montagem e câmera/foco só no jogador local no
+    servidor; grade de jogadores para a IA; envio de movimento a 30/s. Faltam os testes do dono (combate, rede) e os
+    "caminhos abertos" do documento.
 
 ## Prompts das sessões
 

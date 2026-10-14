@@ -13,7 +13,9 @@
   ["Prospect_PreciousOre_T2", 1]
  ],
  "equip": [["1hSwordT2", 0, 200, 0], ["1hHatchetT2", 1, 200, 0], ["1hShieldAT2", 2, 200, 0], ["2hPickT2", 3, 0, 0]],
- "storage": [["OreT1", 1000], ["IngotT2", 320], ["FluxT5", 150], ["2hPickT3", 1, 280, 1], ["PotionHealthT5", 30], ["WoodT2", 500]],
+ "storage": [["OreT1", 1000], ["IngotT2", 320], ["FluxT5", 150], ["2hPickT3", 1, 280, 1], ["PotionHealthT5", 30], ["WoodT2", 500, 0, 0, 1],
+             ["WoodT1", 200, 0, 0, 1]],
+ "storage_tab_names": ["", "Madeira", "", "", ""],
  "shots": [
   {"name": "bolsa", "mouse": [1700, 330]},
   {"name": "busca", "search": "madeira", "mouse": [1700, 330]},
@@ -26,6 +28,8 @@
   {"name": "destruir", "popup": {"kind": "destroy", "from": "bag", "item": "StoneT1"}, "mouse": [1100, 700]},
   {"name": "destruir_parte", "popup": {"kind": "destroy", "from": "bag", "item": "WoodT1", "qty": 60}, "mouse": [1100, 700]},
   {"name": "dividir_armazem", "storage": true, "popup": {"kind": "split", "from": "storage", "item": "IngotT2"}, "mouse": [1100, 700]},
-  {"name": "arrasto_guardar", "storage": true, "drag": {"from": "bag", "item": "OreT1"}, "mouse": [1600, 500]}
+  {"name": "arrasto_guardar", "storage": true, "drag": {"from": "bag", "item": "OreT1"}, "mouse": [1600, 500]},
+  {"name": "armazem_aba2", "storage": true, "storage_tab": 1, "mouse": [960, 1060]},
+  {"name": "arrasto_aba", "storage": true, "drag": {"from": "bag", "item": "OreT1"}, "mouse": [1596, 193]}
  ]
 }

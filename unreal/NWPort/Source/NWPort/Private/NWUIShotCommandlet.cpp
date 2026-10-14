@@ -10,7 +10,11 @@
 #include "Engine/Engine.h"
 #include "Engine/Texture2D.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "NWMarket.h"
+#include "SNWMarket.h"
+#include "Slate/WidgetRenderer.h"
 #include "Engine/World.h"
+#include "NWLootBag.h"
 #include "ImageUtils.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -99,7 +103,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		return 1;
 	}
 	const FString Screen = S->GetStringField(TEXT("screen"));
-	if (Screen != TEXT("refining") && Screen != TEXT("shop") && Screen != TEXT("inventory"))
+	if (Screen != TEXT("refining") && Screen != TEXT("shop") && Screen != TEXT("inventory") && Screen != TEXT("market"))
 	{
 		UE_LOG(LogNWUIShot, Error, TEXT("tela sem captura: %s"), *Screen);
 		return 1;
@@ -200,6 +204,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			I.Slot = Stored.Num();
 			I.GearScore = A.Num() > 2 ? int32(A[2]->AsNumber()) : 0;
 			I.Rarity = A.Num() > 3 ? uint8(A[3]->AsNumber()) : 0;
+			I.Tab = A.Num() > 4 ? uint8(A[4]->AsNumber()) : 0;   // aba do armazém
 			Stored.Add(I);
 		}
 	}
@@ -212,6 +217,32 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		}
 	}
 	Me->Inventory->Load(Items, int64(S->GetNumberField(TEXT("coins"))));
+	// Entreposto: pedidos [{"item", "qty", "gs", "rarity", "props", "price", "seller", "mine", "hours"}].
+	const TArray<TSharedPtr<FJsonValue>>* Orders = nullptr;
+	if (Me->Interactor && S->TryGetArrayField(TEXT("orders"), Orders))
+	{
+		int32 N = 0;
+		for (const TSharedPtr<FJsonValue>& V : *Orders)
+		{
+			const TSharedPtr<FJsonObject> O = V->AsObject();
+			FNWMarketRow Row;
+			Row.Id = FString::Printf(TEXT("shot-%d"), N++);
+			Row.Item.ItemId = FName(O->GetStringField(TEXT("item")));
+			Row.Item.Quantity = O->HasField(TEXT("qty")) ? int32(O->GetNumberField(TEXT("qty"))) : 1;
+			Row.Item.GearScore = O->HasField(TEXT("gs")) ? int32(O->GetNumberField(TEXT("gs"))) : 0;
+			Row.Item.Rarity = O->HasField(TEXT("rarity")) ? uint8(O->GetNumberField(TEXT("rarity"))) : 0;
+			const TSharedPtr<FJsonObject>* Props = nullptr;
+			if (O->TryGetObjectField(TEXT("props"), Props))
+			{
+				NWItemProps::Read(Row.Item, *Props);
+			}
+			Row.UnitPrice = int64(O->GetNumberField(TEXT("price")));
+			O->TryGetStringField(TEXT("seller"), Row.Seller);
+			O->TryGetBoolField(TEXT("mine"), Row.bMine);
+			Row.ExpiresIn = O->HasField(TEXT("hours")) ? float(O->GetNumberField(TEXT("hours"))) * 3600.f : 72.f * 3600.f;
+			Me->Interactor->MarketRows.Add(Row);
+		}
+	}
 	Me->Progression->bFromBackend = true;   // exige o nível do ofício, como no jogo com backend
 	// Loja: compras da semana já feitas (limite semanal), {"FluxT5": 100}.
 	const TSharedPtr<FJsonObject>* Bought = nullptr;
@@ -266,14 +297,43 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		FNWShopMenu Shop;
 		FNWInventoryMenu Inventory;
 		const bool bShop = Screen == TEXT("shop");
+		const bool bMarket = Screen == TEXT("market");
+		TSharedPtr<SNWMarket> Market;
 		const bool bInventory = Screen == TEXT("inventory");
 		Menu.FixedNow = Shop.FixedNow = 1000.0;
 		const int32 Count = Shot->HasField(TEXT("count")) ? int32(Shot->GetNumberField(TEXT("count"))) : 1;
 		if (bInventory)
 		{
-			bool bStorageShot = false;
+			bool bStorageShot = false, bLootShot = false;
 			Shot->TryGetBoolField(TEXT("storage"), bStorageShot);
-			bStorageShot ? Inventory.OpenStorage(Me, S->GetStringField(TEXT("storage_title"))) : Inventory.Open(Me);
+			Shot->TryGetBoolField(TEXT("loot"), bLootShot);
+			if (bLootShot)
+			{
+				// Bolsa no chão com os itens de "storage" (tela da bolsa de saque).
+				ANWLootBag* Bag = World->SpawnActor<ANWLootBag>(FVector::ZeroVector, FRotator::ZeroRotator);
+				if (Bag)
+				{
+					Bag->Items = Stored;
+				}
+				Inventory.OpenLootBag(Me, Bag);
+			}
+			else
+			{
+				bStorageShot ? Inventory.OpenStorage(Me, S->GetStringField(TEXT("storage_title"))) : Inventory.Open(Me);
+			}
+			if (Shot->HasField(TEXT("storage_tab")))
+			{
+				Inventory.ShotTab(int32(Shot->GetNumberField(TEXT("storage_tab"))));
+			}
+			const TArray<TSharedPtr<FJsonValue>>* TabNames = nullptr;
+			if (S->TryGetArrayField(TEXT("storage_tab_names"), TabNames) && Me->Interactor)
+			{
+				Me->Interactor->StorageTabNames.Reset();
+				for (const TSharedPtr<FJsonValue>& TabName : *TabNames)
+				{
+					Me->Interactor->StorageTabNames.Add(TabName->AsString());
+				}
+			}
 			// Ordenação: {"sort": 1..4} na lista do inventário, {"storage_sort": 1..4} na do armazém.
 			if (Shot->HasField(TEXT("sort")))
 			{
@@ -335,6 +395,25 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 				}
 			}
 		}
+		else if (bMarket)
+		{
+			// Tela em Slate: {"tab": 0..2, "search": texto, "perk": Id, "select": índice da linha}.
+			Market = SNew(SNWMarket).Character(Me).Title(S->GetStringField(TEXT("title"))).bShot(true);
+			Market->ShotTab(Shot->HasField(TEXT("tab")) ? int32(Shot->GetNumberField(TEXT("tab"))) : 0);
+			FString Query, Perk;
+			if (Shot->TryGetStringField(TEXT("search"), Query))
+			{
+				Market->ShotSearch(Query);
+			}
+			if (Shot->TryGetStringField(TEXT("perk"), Perk))
+			{
+				Market->ShotPerkFilter(FName(Perk));
+			}
+			if (Shot->HasField(TEXT("select")))
+			{
+				Market->ShotSelect(int32(Shot->GetNumberField(TEXT("select"))));
+			}
+		}
 		else if (bShop)
 		{
 			Shop.Open(Me, S->GetStringField(TEXT("shop")), S->GetStringField(TEXT("title")));
@@ -362,6 +441,18 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 
 		auto Frame = [&]()
 		{
+			if (Market.IsValid())
+			{
+				// Duas passadas: a primeira mede o layout (textos, listas), a segunda desenha com ele.
+				// Um renderizador vivo até o fim do processo: a limpeza do buffer de desenho dele roda numa tarefa depois do
+				// DrawWidget, e destruir antes derruba o processo.
+				static FWidgetRenderer* Renderer = new FWidgetRenderer(false, false);   // o render target já é sRGB
+				Renderer->DrawWidget(RT, Market.ToSharedRef(), FVector2D(W, H), 0.f);
+				FlushRenderingCommands();
+				Renderer->DrawWidget(RT, Market.ToSharedRef(), FVector2D(W, H), 0.f);
+				FlushRenderingCommands();
+				return;
+			}
 			FCanvas Canvas(Res, nullptr, FGameTime::CreateUndilated(Menu.FixedNow, 0.0), World->GetFeatureLevel());
 			Canvas.Clear(RT->ClearColor);
 			UCanvas* C = NewObject<UCanvas>();

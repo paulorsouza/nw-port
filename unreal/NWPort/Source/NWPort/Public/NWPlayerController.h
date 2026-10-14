@@ -80,6 +80,8 @@ public:
 	void ToggleMap();
 	void ToggleDevMenu();
 	void CloseMenus();
+	/** Tela Slate por cima do jogo (menu F10, entreposto): fecha as outras, foco em Focus; Esc fecha. */
+	void ShowMenu(TSharedRef<SWidget> Menu, TSharedRef<SWidget> Focus);
 	bool IsMenuOpen() const;
 	/** Entra no modo de menu para uma tela desenhada no canvas (cliques pelo OnMenuClick), ex. telas da esteira 4. */
 	void EnterCanvasMenu();
@@ -88,6 +90,13 @@ public:
 	uint64 MenuClickFrame = 0;
 	bool IsInventoryOpen() const;
 
+	/**
+	 * Comandos de teste (F10): o servidor só aceita de quem pode (conta admin no nw-core; sem nw-core ou no Play do
+	 * editor, todos). Cada uso vai para o log do servidor e para o log de itens ("dev:<comando>").
+	 */
+	UPROPERTY(Replicated) bool bDevAllowed = false;
+	/** Servidor: recalcula bDevAllowed (no começo e quando o personagem chega do nw-core). */
+	void UpdateDevAllowed();
 	UFUNCTION(Server, Reliable) void ServerDev(ENWDevCommand Command);
 	/** Botão do F10 registrado por uma esteira (NW_REGISTER_DEV, NWDevRegistry.h). */
 	UFUNCTION(Server, Reliable) void ServerDevNamed(FName Id);
@@ -136,7 +145,6 @@ protected:
 	UFUNCTION() void OnRep_Progress();
 
 private:
-	void ShowMenu(TSharedRef<SWidget> Menu, TSharedRef<SWidget> Focus);
 	void EnterMenuInput();
 	void LeaveMenuInput();
 	void OnMenuClick();

@@ -1,4 +1,5 @@
 #include "NWBehaviorTreeComponent.h"
+#include "NWPlayerGrid.h"
 
 #include "Components/CapsuleComponent.h"
 #include "Dom/JsonObject.h"
@@ -917,7 +918,7 @@ void UNWBehaviorTreeComponent::MoveToward(const FVector& Dest, float Speed, floa
 
 void UNWBehaviorTreeComponent::OnHit(float Damage, ENWHitResult Result, AActor* Attacker)
 {
-	if (ANWCharacter* By = Cast<ANWCharacter>(Attacker); By && By->IsPlayerControlled())
+	if (ANWCharacter* By = Cast<ANWCharacter>(Attacker); By && By->IsPlayerLike())
 	{
 		SetVec(TEXT("Last_Damage_Pos"), By->GetActorLocation());
 		Aggro(By);
@@ -978,28 +979,34 @@ ANWCharacter* UNWBehaviorTreeComponent::LookForTarget() const
 	const AActor* Self = GetOwner();
 	ANWCharacter* Best = nullptr;
 	float BestD = Dist;
-	for (TActorIterator<ANWCharacter> It(GetWorld()); It; ++It)
+	UNWPlayerGrid* Grid = UNWPlayerGrid::Get(GetWorld());
+	if (!Grid)
 	{
-		if (!It->IsPlayerControlled() || It->Combat->State == ENWCombatState::Dead)
+		return nullptr;
+	}
+	// Só os jogadores perto (grade), não o mundo inteiro (docs/arquitetura-servidor.md, regra 1).
+	Grid->ForEachNear(Self->GetActorLocation(), Dist, [&](ANWCharacter* It)
+	{
+		if (It->Combat->State == ENWCombatState::Dead)
 		{
-			continue;
+			return;
 		}
 		const FVector To = It->GetActorLocation() - Self->GetActorLocation();
 		const float D = To.Size();
 		if (D > BestD || FVector::DotProduct(Self->GetActorForwardVector(), To.GetSafeNormal()) < FMath::Cos(FMath::DegreesToRadians(HalfAngle)))
 		{
-			continue;
+			return;
 		}
 		FHitResult Hit;
 		FCollisionQueryParams P(SCENE_QUERY_STAT(NWSight), false, Self);
-		P.AddIgnoredActor(*It);
+		P.AddIgnoredActor(It);
 		if (GetWorld()->LineTraceSingleByChannel(Hit, Self->GetActorLocation() + FVector(0, 0, 50), It->GetActorLocation() + FVector(0, 0, 50), ECC_Visibility, P))
 		{
-			continue;   // sem linha de visão
+			return;   // sem linha de visão
 		}
 		BestD = D;
-		Best = *It;
-	}
+		Best = It;
+	});
 	return Best;
 }
 
@@ -1018,8 +1025,9 @@ void UNWBehaviorTreeComponent::UpdateSensor(float Dt)
 		SetNum(TEXT("Target_Vitals_State"), 3.0);
 		Target.Reset();
 	}
-	if (!Target.IsValid() && !bResetting && !bLeashing)
+	if (!Target.IsValid() && !bResetting && !bLeashing && Now >= NextLookAt)
 	{
+		NextLookAt = Now + LookEvery * FMath::FRandRange(0.8, 1.2);
 		if (ANWCharacter* Seen = LookForTarget())
 		{
 			Aggro(Seen);

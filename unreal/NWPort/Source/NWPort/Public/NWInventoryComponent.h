@@ -56,7 +56,11 @@ public:
 	static FString FormatCoins(int64 Cents);
 	/** Entrega um saque: põe na bolsa; o que não couber vai para o chão (bolsa de saque) com aviso; mostra o saque ao dono. */
 	void Grant(const TArray<FNWItem>& Gained, int64 Coins);
+	/** Grant sem operação (dentro de uma ou sem nw-core). */
+	void GrantNow(const TArray<FNWItem>& Gained, int64 Coins);
 	void Load(const TArray<FNWItem>& InItems, int64 InCoins);
+	/** Marca a bolsa como mudada (replica no fim do ciclo). */
+	void Changed();
 	void GiveStarterKit();
 	/** Ferramentas T1 de coleta nos espaços vazios (kit inicial e menu de dev). */
 	void GiveTools();
@@ -90,6 +94,5 @@ private:
 	void Warn(const TCHAR* Key) const;
 	int32 FreeBagSlot() const;
 	bool CanEquip(const FNWItem& Item, int32 EquipSlot) const;
-	void Changed();
 	float ServerNow() const;
 };

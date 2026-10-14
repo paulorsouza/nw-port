@@ -28,6 +28,7 @@
 #include "NWCombatComponent.h"
 #include "NWTraversalComponent.h"
 #include "NWGatherComponent.h"
+#include "NWInteractable.h"
 #include "NWProgressionComponent.h"
 #include "NWInventoryComponent.h"
 #include "NWOptions.h"
@@ -108,5 +109,6 @@ void ANWCharacter::CaptureTo(FNWCharacterRecord& Record) const
 	Record.Items = Inventory->Items;
 	Record.Coins = Inventory->Coins;
 	Record.Progression = Progression->Save();
+	Record.StorageCapacity = Interactor ? Interactor->StorageCapacityNow() : -1.f;
 	Record.bFirstJoin = false;
 }

@@ -39,6 +39,19 @@ pub struct CharacterState {
     /// Nível, XP, atributos e ofícios (objeto do servidor de jogo). Ausente = mantém.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub progression: Option<Value>,
+    /// Capacidade do armazém compartilhado (kg), somada pelo servidor de jogo; ausente = mantém.
+    #[serde(default, skip_serializing)]
+    pub storage_capacity: Option<f32>,
+    /// Só os espaços da bolsa/equipado que mudaram (no lugar de `inventory`): item novo ou nulo para apagar.
+    #[serde(default, skip_serializing)]
+    pub inventory_patch: Option<Vec<SlotPatch>>,
+    /// Sessão, número e motivo da gravação (servidor de jogo; journal.rs).
+    #[serde(default, skip_serializing)]
+    pub session: Option<i64>,
+    #[serde(default, skip_serializing)]
+    pub seq: Option<i64>,
+    #[serde(default, skip_serializing)]
+    pub reason: Option<String>,
 }
 
 /// Um item do personagem (ItemID do jogo, ver Data/Items/items.*.json no projeto Unreal).
@@ -81,6 +94,48 @@ pub(crate) fn is_bound(props: &Value) -> bool {
     props.get("bound").and_then(Value::as_bool).unwrap_or(false)
 }
 pub(crate) const MAX_EQUIP_SLOTS: i32 = 16;
+
+/// Um espaço da bolsa ou do equipado: o item que fica nele, ou nenhum.
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct SlotPatch {
+    pub container: String,
+    pub slot: i32,
+    pub item: Option<PatchItem>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct PatchItem {
+    pub item_id: String,
+    pub quantity: i32,
+    #[serde(default)]
+    pub gear_score: i32,
+    #[serde(default)]
+    pub rarity: i16,
+    #[serde(default = "empty_props")]
+    pub props: Value,
+}
+
+impl SlotPatch {
+    /// O item completo do espaço (para validar e gravar), ou None quando apaga.
+    pub(crate) fn instance(&self) -> Option<ItemInstance> {
+        self.item.as_ref().map(|i| ItemInstance {
+            item_id: i.item_id.clone(),
+            quantity: i.quantity,
+            container: self.container.clone(),
+            slot: self.slot,
+            gear_score: i.gear_score,
+            rarity: i.rarity,
+            props: i.props.clone(),
+        })
+    }
+
+    pub(crate) fn validate(&self) -> Result<(), String> {
+        match self.instance() {
+            Some(i) => i.validate(),
+            None => ItemInstance { item_id: "x".into(), quantity: 1, container: self.container.clone(), slot: self.slot, gear_score: 0, rarity: 0, props: empty_props() }.validate(),
+        }
+    }
+}
 
 impl ItemInstance {
     pub(crate) fn validate(&self) -> Result<(), String> {
@@ -163,6 +218,11 @@ impl From<CharacterRow> for Character {
                 coins: Some(r.coins),
                 inventory: None,
                 progression: Some(r.progression),
+                storage_capacity: None,
+                inventory_patch: None,
+                session: None,
+                seq: None,
+                reason: None,
             },
         }
     }

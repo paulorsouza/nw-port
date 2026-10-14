@@ -1,4 +1,5 @@
 #include "NWSpawnField.h"
+#include "NWPlayerGrid.h"
 
 #include "Dom/JsonObject.h"
 #include "Engine/World.h"
@@ -98,11 +99,14 @@ void ANWSpawnField::Step()
 {
 	UWorld* World = GetWorld();
 	TArray<FVector> Players;
-	for (TActorIterator<ANWCharacter> It(World); It; ++It)
+	if (UNWPlayerGrid* Grid = UNWPlayerGrid::Get(World))
 	{
-		if (It->IsPlayerControlled())
+		for (const TWeakObjectPtr<ANWCharacter>& P : Grid->All())
 		{
-			Players.Add(It->GetActorLocation());
+			if (P.IsValid())
+			{
+				Players.Add(P->GetActorLocation());
+			}
 		}
 	}
 	const double Now = World->GetTimeSeconds();

@@ -32,11 +32,13 @@ trap cleanup EXIT
 seconds="${NW_TEST_SECONDS:-90}"
 if [ "${NW_SERVER:-}" = docker ]; then
   invite() { docker compose -f "$root/deploy/compose.yaml" exec -T core nw-core invite 2>/dev/null | awk '{print $1}'; }
+  admin() { docker compose -f "$root/deploy/compose.yaml" exec -T core nw-core admin "$1" >/dev/null 2>&1 || true; }
   [ -n "$caller_accounts" ] || NW_TEST_ACCOUNTS="${NW_TEST_ACCOUNTS_10:-teste1:Aranha teste2:Besouro teste3:Coruja teste4:Doninha teste5:Esquilo teste6:Falcao teste7:Gaviao teste8:Hiena teste9:Iguana teste10:Javali}"
 else
   (cd "$root/backend" && docker compose up -d >/dev/null && cargo build -q)
   core="$root/backend/target/debug/nw-core"
   invite() { "$core" invite 2>/dev/null | awk '{print $1}'; }
+  admin() { "$core" admin "$1" >/dev/null 2>&1 || true; }
   NW_BIND=127.0.0.1:8090 "$core" serve >"$out/nw-core.log" 2>&1 &
   pids+=($!)
 fi
@@ -54,6 +56,7 @@ for pair in $NW_TEST_ACCOUNTS; do
   fi
   curl -s -XPOST "$NW_BACKEND/v1/characters" -H "authorization: Bearer $token" -H content-type:application/json \
     -d "{\"name\":\"$char\"}" | grep -q '"id"\|name_taken' || { echo "falhou criar $char"; exit 1; }
+  admin "$acc"   # contas de teste usam o F10 (-nwtestdev); o servidor só aceita de admin
 done
 
 server_log() { if [ "${NW_SERVER:-}" = docker ]; then docker exec deploy-game-1 cat /srv/nw/NWPort/Saved/Logs/NWPort.log; else cat "$out/server.log"; fi; }

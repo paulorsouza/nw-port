@@ -109,6 +109,11 @@ public:
 	UPROPERTY(Replicated) TArray<FName> Crafted;
 	bool HasCrafted(FName Recipe) const { return Crafted.Contains(Recipe); }
 	void MarkCrafted(FName Recipe);
+	/** Cidades conhecidas (id da cidade, ex. queda_eterna; salvo em progression.cities): cada uma soma capacidade ao
+	 *  armazém compartilhado. Só o dono recebe. */
+	UPROPERTY(Replicated) TArray<FString> Cities;
+	/** Servidor: marca a cidade como conhecida; true se é nova. */
+	bool DiscoverCity(const FString& City);
 	/** Compras da semana nas lojas (limite semanal; salvo em progression.shop). Período = FNWNpcRewards::Period. */
 	UPROPERTY(Replicated) FString ShopPeriod;
 	UPROPERTY(Replicated) TArray<FName> ShopBoughtIds;

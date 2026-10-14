@@ -71,6 +71,7 @@ pub(crate) async fn verify(tx: &mut sqlx::PgConnection, character_id: Uuid, loca
             select props ->> 'serial' as s from items where props ? 'serial'
             union all select props ->> 'serial' from storage_items where props ? 'serial'
             union all select props ->> 'serial' from market_orders where status = 'open' and props ? 'serial'
+            union all select props ->> 'serial' from ground_items where props ? 'serial'
          ) t where s = any($1) group by s having count(*) > 1 limit 1",
     )
     .bind(&unique)

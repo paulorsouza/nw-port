@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "NWItems.h"
+#include "NWOps.h"
+#include "NWMarket.h"
 #include "NWInteractable.generated.h"
 
 class ANWCharacter;
@@ -60,6 +62,8 @@ public:
 	UPROPERTY(Replicated) TArray<FString> RewardClaims;
 	/** Bolsa no chão (NWLootBag.h): o servidor confere dono e distância e passa o que couber para a bolsa. */
 	UFUNCTION(Server, Reliable) void ServerLootTake(class ANWLootBag* Bag);
+	/** Pega Quantity do item do espaço Slot da bolsa no chão (tela da bolsa: arrastar, clique direito, dividir). */
+	UFUNCTION(Server, Reliable) void ServerLootTakeItem(class ANWLootBag* Bag, int32 Slot, int32 Quantity);
 	/** Refino (NWCrafting.h): o servidor confere estação perto, nível, materiais e taxa; erro vira aviso ao dono. */
 	UFUNCTION(Server, Reliable) void ServerRefine(const FString& StationType, FName Recipe, int32 Count);
 	/** Loja (NWShop.h): o servidor confere NPC perto, preço, limite semanal e peso; grava na hora (SavePlayer). */
@@ -76,21 +80,50 @@ public:
 	/** Só no dono: Seq sobe a cada resultado (a tela espera um Seq maior que o do clique). */
 	FCraftResult CraftResult;
 
-	// ---- armazém da cidade (esteira 4): o servidor guarda e grava no nw-core (bolsa + armazém numa transação)
-	/** Peso máximo do armazém (kg), padrão sem dados: storage.base_weight em NWInteractable.cpp. */
-	static constexpr float StorageBaseCapacity = 1000.f;
-	/** Local aberto ("settlement:queda_eterna") e os itens dele; só o dono recebe. Vazio = fechado. */
+	// ---- armazém compartilhado (esteira 4, docs/sistemas.md "Armazém"): um por personagem, aberto em qualquer despensa,
+	// 5 abas; o servidor guarda e grava no nw-core (bolsa + armazém numa transação).
+	/** Aberto ("shared") ou fechado (vazio), os itens (Tab = aba), nomes das abas e capacidade; só o dono recebe. */
 	UPROPERTY(Replicated) FString StorageLocation;
 	UPROPERTY(Replicated) TArray<FNWItem> StorageItems;
-	UPROPERTY(Replicated) float StorageCapacity = StorageBaseCapacity;
+	UPROPERTY(Replicated) TArray<FString> StorageTabNames;
+	UPROPERTY(Replicated) float StorageCapacity = 0.f;
 	float StorageWeight() const;
-	UFUNCTION(Server, Reliable) void ServerStorageOpen(const FString& Location);
+	/** Capacidade pelas fontes: armazem_por_cidade × cidades conhecidas (casas e nível da cidade quando existirem). */
+	float StorageCapacityNow() const;
+	/** Abre na despensa da cidade City (a cidade passa a ser conhecida). */
+	UFUNCTION(Server, Reliable) void ServerStorageOpen(const FString& City);
 	UFUNCTION(Server, Reliable) void ServerStorageClose();
-	/** Depositar (Slot = espaço da bolsa) ou retirar (Slot = espaço do armazém), Quantity da pilha. */
-	UFUNCTION(Server, Reliable) void ServerStorageMove(bool bDeposit, int32 Slot, int32 Quantity);
+	/** Depositar (Slot = espaço da bolsa, na aba Tab) ou retirar (Slot = espaço do armazém), Quantity da pilha. */
+	UFUNCTION(Server, Reliable) void ServerStorageMove(bool bDeposit, int32 Slot, int32 Quantity, uint8 Tab);
 	/** Várias pilhas inteiras de uma vez, gravadas numa só transação: "Pegar tudo" (catcontainer ContainerTakeAll) e
-	 *  mover a seção inteira (catsection TransferAll). Slots da bolsa (guardar) ou do armazém (retirar). */
-	UFUNCTION(Server, Reliable) void ServerStorageMoveMany(bool bDeposit, const TArray<int32>& Slots);
+	 *  mover a seção inteira (catsection TransferAll). Slots da bolsa (guardar, na aba Tab) ou do armazém (retirar). */
+	UFUNCTION(Server, Reliable) void ServerStorageMoveMany(bool bDeposit, const TArray<int32>& Slots, uint8 Tab);
+	/** Passa a pilha do espaço Slot do armazém para a aba Tab (junta com a igual que já estiver lá). */
+	UFUNCTION(Server, Reliable) void ServerStorageSetTab(int32 Slot, uint8 Tab);
+	/** Nome da aba (vazio = padrão; até 24 letras). */
+	UFUNCTION(Server, Reliable) void ServerStorageRenameTab(uint8 Tab, const FString& Name);
+
+	// ---- mercado (NWMarket.h, NWMarket.cpp): só perto do posto de trocas; o dono recebe as linhas do livro.
+	UFUNCTION(Server, Reliable) void ServerMarketOpen();
+	UFUNCTION(Server, Reliable) void ServerMarketClose();
+	UFUNCTION(Server, Reliable) void ServerMarketRefresh();
+	/** Compra Quantity de uma ordem de venda (vai para o armazém). */
+	UFUNCTION(Server, Reliable) void ServerMarketBuy(int32 Req, const FString& OrderId, int32 Quantity);
+	/** Vende Quantity do item do espaço BagSlot para uma ordem de compra. */
+	UFUNCTION(Server, Reliable) void ServerMarketSell(int32 Req, const FString& OrderId, int32 BagSlot, int32 Quantity);
+	/** Cria ordem de venda com Quantity do item do espaço BagSlot. */
+	UFUNCTION(Server, Reliable) void ServerMarketPostSell(int32 Req, int32 BagSlot, int32 Quantity, int64 UnitPrice, int32 Days);
+	/** Cria ordem de compra (o preço × quantidade sai das moedas na hora). */
+	UFUNCTION(Server, Reliable) void ServerMarketPostBuy(int32 Req, FName ItemId, int32 Quantity, int64 UnitPrice, int32 Days);
+	UFUNCTION(Server, Reliable) void ServerMarketCancel(int32 Req, const FString& OrderId);
+	UFUNCTION(Client, Reliable) void ClientMarketOrders(const TArray<FNWMarketRow>& Rows);
+	/** Fim do pedido Req do cliente (Req vem da tela; o livro novo chega antes, na mesma ordem). bOk = gravado. */
+	UFUNCTION(Client, Reliable) void ClientMarketDone(int32 Req, bool bOk);
+	/** Cliente: livro de ordens recebido e o número da última atualização (a tela redesenha quando muda). */
+	TArray<FNWMarketRow> MarketRows;
+	int32 MarketSeq = 0;
+	/** Cliente: pedidos terminados (Req, gravado) que a tela ainda não leu. */
+	TArray<TPair<int32, bool>> MarketDone;
 
 private:
 	void LoadClaims();
@@ -101,10 +134,26 @@ private:
 	// Armazém no servidor.
 	int64 StorageVersion = 0;
 	bool bStorageBusy = false;
-	TMap<FString, TArray<FNWItem>> MemStorage;   // sem backend (PIE)
-	void StorageSave(const TArray<FNWItem>& Moved, bool bDeposit, bool bRetry);
-	/** Move uma pilha (inteira ou Quantity) sem gravar; devolve o que mudou (Quantity 0 = nada). */
-	FNWItem StorageApply(bool bDeposit, int32 Slot, int32 Quantity, bool bWarn);
+	TArray<FNWItem> MemStorage;   // sem backend (PIE)
+	TArray<FString> MemTabNames;
+
+	/** Gravação de uma operação no armazém (NWOps): PUT storage com a versão; 409 relê e refaz, 208 só relê a versão. */
+	NWOps::FCommit StorageCommit();
+	/** Roda uma mudança do armazém como operação gravada (NWOps::Run). */
+	void RunStorageOp(TFunction<bool(UNWInteractorComponent&)> Apply);
+	// Mercado no servidor.
+	bool bMarketOpen = false;
+	bool NearTradingPost() const;
+	void MarketSend(bool bForce);
+	/** Relê o livro, manda as linhas e depois o fim do pedido Req. */
+	void MarketFinish(int32 Req, bool bOk);
+	void MarketClaimCredits();
+	/** Gravação de uma operação do mercado: Call grava e devolve status e código do erro do nw-core. */
+	NWOps::FCommit MarketCommit(TFunction<void(const FNWCharacterRecord&, TFunction<void(int32, const FString&)>)> Call);
+	/** Move uma pilha (inteira ou Quantity) sem gravar; devolve o que mudou (Quantity 0 = nada; Tab = aba no armazém). */
+	FNWItem StorageApply(bool bDeposit, int32 Slot, int32 Quantity, bool bWarn, uint8 Tab);
+	/** Junta na pilha igual da mesma aba (Item.Tab) ou ocupa um espaço novo nela. */
 	static void StorageAdd(TArray<FNWItem>& Items, const FNWItem& Item);
+	/** Tira da pilha igual, de preferência da mesma aba. */
 	static bool StorageRemove(TArray<FNWItem>& Items, const FNWItem& Item);
 };

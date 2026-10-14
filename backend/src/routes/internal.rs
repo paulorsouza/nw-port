@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::auth::{self, GameServer};
 use crate::error::{ApiError, ApiResult};
 use crate::routes::characters::{character_columns, Character, CharacterRow, CharacterState, ItemInstance};
+use crate::routes::journal::{self, WriteSeq};
 use crate::routes::serials;
 use crate::AppState;
 
@@ -24,6 +25,10 @@ pub struct RedeemResponse {
     /// Primeira entrada do personagem num servidor de jogo (o servidor dá o kit inicial).
     pub first_join: bool,
     pub character: Character,
+    /// Sessão aberta por este resgate: toda gravação do personagem leva este número e um `seq` crescente.
+    pub session: i64,
+    /// Conta admin (`nw-core admin <conta>`): só ela usa os comandos de teste (F10) no servidor.
+    pub is_admin: bool,
 }
 
 pub async fn redeem_ticket(State(state): State<AppState>, _server: GameServer, Json(req): Json<RedeemRequest>) -> ApiResult<Json<RedeemResponse>> {
@@ -39,7 +44,7 @@ pub async fn redeem_ticket(State(state): State<AppState>, _server: GameServer, J
     let Some((account_id, character_id)) = redeemed else {
         return Err(ApiError::new(StatusCode::UNAUTHORIZED, "invalid_ticket", "Passe de entrada inválido ou expirado."));
     };
-    let (account_name,): (String,) = sqlx::query_as("select name from accounts where id = $1")
+    let (account_name, is_admin): (String, bool) = sqlx::query_as("select name, is_admin from accounts where id = $1")
         .bind(account_id)
         .fetch_one(&mut *tx)
         .await?;
@@ -63,9 +68,10 @@ pub async fn redeem_ticket(State(state): State<AppState>, _server: GameServer, J
     .fetch_all(&mut *tx)
     .await?;
     character.state.inventory = Some(items);
+    let session = journal::new_session(&mut tx, character_id).await?;
     tx.commit().await?;
-    tracing::info!(account = %account_name, character = %character.name, "entrou no servidor");
-    Ok(Json(RedeemResponse { account_id, account_name, first_join: previous_seen.is_none(), character }))
+    tracing::info!(account = %account_name, character = %character.name, session, "entrou no servidor");
+    Ok(Json(RedeemResponse { account_id, account_name, first_join: previous_seen.is_none(), character, session, is_admin }))
 }
 
 pub async fn save_state(
@@ -77,18 +83,36 @@ pub async fn save_state(
     if let Some(items) = &s.inventory {
         validate_inventory(items)?;
     }
+    if let Some(patches) = &s.inventory_patch {
+        if s.inventory.is_some() {
+            return Err(ApiError::bad_request("invalid_inventory", "inventory e inventory_patch juntos."));
+        }
+        let mut seen = std::collections::HashSet::new();
+        for p in patches {
+            p.validate().map_err(|e| ApiError::bad_request("invalid_inventory", e))?;
+            if !seen.insert((p.container.as_str(), p.slot)) {
+                return Err(ApiError::bad_request("invalid_inventory", format!("slot repetido: {} {}", p.container, p.slot)));
+            }
+        }
+    }
     if s.coins.is_some_and(|c| c < 0) {
         return Err(ApiError::bad_request("invalid_coins", "Moedas negativas."));
     }
     if s.progression.as_ref().is_some_and(|p| !p.is_object()) {
         return Err(ApiError::bad_request("invalid_progression", "Progressão tem que ser um objeto."));
     }
+    if s.storage_capacity.is_some_and(|c| !c.is_finite() || c < 0.0) {
+        return Err(ApiError::bad_request("invalid_storage", "Capacidade inválida."));
+    }
     let mut tx = state.db.begin().await?;
+    let ctx = journal::claim(&mut tx, id, &WriteSeq { session: s.session, seq: s.seq, reason: s.reason.clone() }).await?;
+    journal::write_bag(&mut tx, &ctx, None, s.coins).await?;
     let done = sqlx::query(
         "update characters
             set map = $2, pos_x = $3, pos_y = $4, pos_z = $5, yaw = $6, health = $7,
-                active_weapon = $8, loadout = $9, mastery = $10, coins = coalesce($11, coins),
-                progression = coalesce($12, progression), last_seen_at = now()
+                active_weapon = $8, loadout = $9, mastery = $10,
+                progression = coalesce($11, progression), storage_capacity = coalesce($12, storage_capacity),
+                last_seen_at = now()
           where id = $1 and deleted_at is null",
     )
     .bind(id)
@@ -101,15 +125,20 @@ pub async fn save_state(
     .bind(&s.active_weapon)
     .bind(&s.loadout)
     .bind(&s.mastery)
-    .bind(s.coins)
     .bind(&s.progression)
+    .bind(s.storage_capacity)
     .execute(&mut *tx)
     .await?;
     if done.rows_affected() == 0 {
         return Err(ApiError::not_found("Personagem"));
     }
+    if let Some(patches) = &s.inventory_patch {
+        journal::patch_bag(&mut tx, &ctx, patches).await?;
+        let changed: Vec<_> = patches.iter().filter_map(|p| p.instance()).collect();
+        serials::verify(&mut tx, id, "bag", &serials::serials(changed.iter().map(|i| &i.props))).await?;
+    }
     if let Some(items) = &s.inventory {
-        write_inventory(&mut tx, id, items).await?;
+        journal::write_bag(&mut tx, &ctx, Some(items), None).await?;
         serials::verify(&mut tx, id, "bag", &serials::serials(items.iter().map(|i| &i.props))).await?;
     }
     tx.commit().await?;

@@ -88,6 +88,65 @@ indo para uma máquina sua, privada. Os clientes continuam extraindo cada um da 
   errada, criar conta por convite, criar e excluir personagem, Jogar até a cidade. Digitação real no teclado
   ainda não foi testada por uma pessoa.
 
+## Gravações (decisão de 2026-10-14)
+
+Meta do dono: nada que o jogador viu acontecer é desfeito, e tudo que mexe em item fica num log para investigar.
+Etapas: 1 ordem e log (feita); 2 armazém, fabricar e chão como operações gravadas antes de confirmar ao cliente; 3 loja,
+gemas, coleta e saque.
+
+Etapa 1 (migration 0011, `backend/src/routes/journal.rs`, `UNWBackend::Write`):
+- Sessão: cada resgate do passe abre uma sessão nova do personagem (`session + 1`, `save_seq = 0`). Toda gravação de
+  bolsa, moedas ou armazém (state, storage, mercado, casa, brindes, créditos) leva `session`, `seq` e `reason`; o
+  nw-core só aplica se a sessão é a atual e `seq` é maior que o último (409 `stale_write`; o mesmo `seq` = 409
+  `duplicate_write`). Uma gravação atrasada, fora de ordem ou de um servidor que caiu, nunca desfaz uma mais nova.
+- Fila por personagem no servidor de jogo: uma gravação por vez, na ordem; sem resposta, tenta de novo com o mesmo
+  `seq` (1, 2, 4, 8, 16 s); `duplicate_write` vira 208 (já gravado).
+- Log `item_log`, só de acréscimo: cada gravação compara antes e depois (bolsa, equipado, armazém por aba, moedas) e
+  grava uma linha por diferença, com motivo (`periodic`, `logout`, `shutdown`, `storage`, `craft:<receita>`,
+  `refine:<receita>:<n>`, `improve:<tipo>:<item>`, `shop:<item>:<n>`, `npc_reward:...`, `city:<cidade>`); entregas do
+  mercado e créditos entram como ação do nw-core. Consulta: `GET /internal/item-log` ou `tools/item_log.py`.
+- Salvamento periódico a cada 5 s (era 30), mais ao sair e quando o servidor fecha.
+- Números decimais dos `props` (qualidade em float do jogo, 17 dígitos) são lidos exatos (`serde_json`
+  `float_roundtrip`); sem isso o antes e o depois do mesmo item diferiam no último dígito e o log via saída e entrada
+  falsas a cada gravação (achado no teste de 2026-10-14).
+- Ainda não resolvido na etapa 1: o cliente via o resultado antes de gravar; o chão não era salvo.
+
+Etapa 2 (2026-10-14; migration 0012, `backend/src/routes/ground.rs`, `NWOps`):
+- Guardar, retirar, mover entre abas, renomear aba, refinar, fabricar, melhorar, soltar no chão e pegar do chão são
+  operações (`NWOps::Run`): o servidor aplica no estado real, copia o resultado e volta ao estado de antes no mesmo
+  ciclo (a replicação não mostra nada), grava no nw-core e só então aplica o resultado, mostra os avisos (saque,
+  tela de resultado da fabricação) e cria o saco no chão. Falhou: nada muda, aviso "Não foi possível gravar".
+- Uma operação por vez por personagem; enquanto grava, mover itens, poção, gemas, destruir, coleta, saque, loja e
+  brinde de NPC esperam e entram depois; o salvamento periódico e o de saída esperam também. O Record do jogador passa
+  ao estado gravado (um salvamento depois nunca volta ao de antes).
+- Chão no nw-core (`ground_bags`, `ground_items`): soltar = bolsa + saco novo numa transação; pegar = bolsa + o que
+  sobra; o excesso da bolsa cheia (fabricar, refinar) vai num saco gravado junto com a operação. O saco volta no mesmo
+  lugar quando o jogador entra (enquanto não vence) e sai do mundo quando ele sai; vencido, o nw-core apaga e registra
+  `ground_expired`. No log o chão é o local `ground:<saco>`.
+- Fabricar arma, escudo ou ferramenta pede o número de série antes do sorteio (se o item não sair assinado, o número
+  fica sem uso).
+- XP de ofício não volta atrás numa falha de gravação (não é item).
+
+Etapa 3 (2026-10-14, sem migration):
+- `PUT state` aceita `inventory_patch` (só os espaços que mudaram: item novo ou nulo); o servidor de jogo guarda a última
+  bolsa gravada de cada personagem (`UNWBackend::PersistedBag`) e manda só a diferença, inclusive no salvamento
+  periódico (sem mudança, a bolsa não vai). Log e verificação de série só do que mudou.
+- Coleta, saque de criatura, F10, loja, encaixar/retirar gema, destruir item e brinde de NPC são operações gravadas
+  (`UNWInventoryComponent::Grant` abre uma operação quando não está dentro de outra). Motivos no log: `gather`,
+  `loot:<tabela>`, `dev:<comando>`, `shop:<item>:<n>`, `socket`, `unsocket`, `destroy`, `npc_reward:<chave>`.
+- Mover e equipar não são operação (não criam nem destroem item): entram no salvamento periódico.
+
+## Segurança do servidor (2026-10-14)
+
+- O cliente manda só intenções (ação, espaço da bolsa, receita); dano, sorteio, itens e moedas são do servidor, e o
+  cliente nunca tem o segredo do nw-core.
+- F10 (comandos de teste): o servidor só aceita de conta admin no nw-core (`nw-core admin <conta>`,
+  `tools/rede.sh admin`); sem nw-core ou no Play do editor, liberado. O cliente sem permissão não abre o menu. Cada
+  uso vai para o log do servidor (`F10: conta/personagem usou X`, recusas em Warning) e para o `item_log` com o
+  motivo `dev:<comando>`.
+- Em aberto (esteira 1): maestria (`ServerSetMastery`) e habilidades na barra (`ServerSetWeaponAbilities`) aceitam o
+  que o cliente manda sem conferir pontos nem se a habilidade é da arma; limite geral de frequência das RPCs.
+
 ## Fases
 
 Cada fase fecha testável. Teste local: servidor dedicado + vários clientes na mesma máquina, com

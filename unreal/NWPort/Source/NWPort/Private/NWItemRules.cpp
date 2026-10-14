@@ -1,4 +1,5 @@
 #include "NWItemRules.h"
+#include "Internationalization/Regex.h"
 
 #include "Dom/JsonObject.h"
 #include "Misc/FileHelper.h"
@@ -106,6 +107,27 @@ FNWItemRules::FNWItemRules()
 		}
 	};
 	Root->TryGetNumberField(TEXT("chance_sucesso_gs"), GsSuccess);
+	Root->TryGetNumberField(TEXT("armazem_por_cidade"), StoragePerCity);
+	if (Root->TryGetObjectField(TEXT("mercado"), Obj))
+	{
+		(*Obj)->TryGetNumberField(TEXT("max_ordens"), MarketMaxOrders);
+		const TArray<TSharedPtr<FJsonValue>>* List = nullptr;
+		if ((*Obj)->TryGetArrayField(TEXT("padroes"), List))
+		{
+			for (const TSharedPtr<FJsonValue>& V : *List)
+			{
+				MarketPatterns.Add(V->AsString());
+			}
+		}
+		if ((*Obj)->TryGetArrayField(TEXT("itens"), List))
+		{
+			for (const TSharedPtr<FJsonValue>& V : *List)
+			{
+				MarketItems.Add(FName(*V->AsString()));
+			}
+		}
+	}
+	Root->TryGetNumberField(TEXT("armazem_abas"), StorageTabs);
 	if (Root->TryGetArrayField(TEXT("passo_gs"), Arr))
 	{
 		ReadSteps(*Arr, GsSteps);
@@ -372,4 +394,29 @@ FNWItem FNWItemRules::Roll(FName ItemId, int32 RollMin, int32 RollMax, float Qua
 	// Raridade pelo número de perks (o tooltip e a moldura da peça usam).
 	Out.Rarity = uint8(FMath::Clamp(Out.Perks.Num(), 0, 4));
 	return Out;
+}
+
+bool FNWItemRules::CanTrade(const FNWItemDef& D, const FNWItem& Item) const
+{
+	if (Item.Bind == 2)
+	{
+		return false;   // vinculado
+	}
+	if (Item.Quality >= 0.f && !EquipClass(D).IsEmpty())
+	{
+		return true;   // equipamento fabricado
+	}
+	if (MarketItems.Contains(Item.ItemId))
+	{
+		return true;
+	}
+	const FString Id = Item.ItemId.ToString();
+	for (const FString& P : MarketPatterns)
+	{
+		if (FRegexMatcher(FRegexPattern(P), Id).FindNext())
+		{
+			return true;
+		}
+	}
+	return false;
 }

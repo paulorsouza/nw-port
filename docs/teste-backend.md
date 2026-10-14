@@ -14,7 +14,8 @@ equipamento, a posição, os níveis, o armazém e os brindes ficam salvos entre
    Sobe o Postgres (`nw-core-db`, `backend/compose.yaml`), compila o nw-core se o fonte mudou (fila de trabalho
    pesado), sobe a API em `127.0.0.1:8090` e cria a conta `editor` com o personagem `Exilado` se não existirem.
 2. Abrir o editor e dar Play (sozinho, "Standalone"/"Play in Viewport"). No log: `Play com backend: Exilado (editor)`.
-3. Parar o Play salva tudo (também salva a cada 30 s).
+3. Parar o Play salva tudo (também salva a cada 5 s). Histórico de itens do personagem: `tools/item_log.py
+   --personagem Exilado` (filtros `--item`, `--serie`, `--desde`).
 
 Outros comandos: `tools/backend_dev.sh status | log | down`. `down` para só a API; o banco continua com os dados.
 

@@ -265,6 +265,18 @@
       "pt-br": "Chance de itens adicionais",
       "en-us": "Chance to craft additional items"
     },
+    "nw.save.failed": {
+      "pt-br": "Não foi possível gravar; nada mudou",
+      "en-us": "Could not save; nothing changed"
+    },
+    "nw.storage.city_known": {
+      "pt-br": "Cidade conhecida: armazém +{0} kg",
+      "en-us": "City discovered: storage +{0} kg"
+    },
+    "nw.storage.tab": {
+      "pt-br": "Aba {0}",
+      "en-us": "Tab {0}"
+    },
     "nw.storage.open": {
       "pt-br": "Abrir",
       "en-us": "Open"
@@ -412,6 +424,98 @@
     "nw.inv.bag_full_ground": {
       "pt-br": "Bolsa cheia: o item foi para o chão",
       "en-us": "Bag full: the item was dropped on the ground"
+    },
+    "nw.market.cat_weapons": {
+      "pt-br": "Armas",
+      "en-us": "Weapons"
+    },
+    "nw.market.cat_armor": {
+      "pt-br": "Armaduras",
+      "en-us": "Armor"
+    },
+    "nw.market.cat_jewelry": {
+      "pt-br": "Joias",
+      "en-us": "Jewelry"
+    },
+    "nw.market.cat_tools": {
+      "pt-br": "Ferramentas",
+      "en-us": "Tools"
+    },
+    "nw.market.cat_gems": {
+      "pt-br": "Gemas",
+      "en-us": "Gems"
+    },
+    "nw.market.cat_materials": {
+      "pt-br": "Materiais",
+      "en-us": "Materials"
+    },
+    "nw.market.duration": {
+      "pt-br": "Duração",
+      "en-us": "Duration"
+    },
+    "nw.market.days": {
+      "pt-br": "{0}d",
+      "en-us": "{0}d"
+    },
+    "nw.market.empty": {
+      "pt-br": "Nenhum pedido",
+      "en-us": "No orders"
+    },
+    "nw.market.nothing_to_sell": {
+      "pt-br": "Nada para vender",
+      "en-us": "Nothing to sell"
+    },
+    "nw.market.no_orders": {
+      "pt-br": "Nenhum pedido",
+      "en-us": "No orders"
+    },
+    "nw.market.bought": {
+      "pt-br": "Comprado. Está no armazém.",
+      "en-us": "Bought. It is in storage."
+    },
+    "nw.market.failed": {
+      "pt-br": "O posto de trocas não respondeu",
+      "en-us": "The trading post did not respond"
+    },
+    "nw.market.not_tradeable": {
+      "pt-br": "Este item não vai ao posto de trocas",
+      "en-us": "This item cannot be traded"
+    },
+    "nw.market.item_bound": {
+      "pt-br": "Este item não vai ao posto de trocas",
+      "en-us": "This item cannot be traded"
+    },
+    "nw.market.too_many_orders": {
+      "pt-br": "Limite de pedidos abertos",
+      "en-us": "Open order limit reached"
+    },
+    "nw.market.order_closed": {
+      "pt-br": "O pedido não está mais aberto",
+      "en-us": "The order is no longer open"
+    },
+    "nw.market.order_quantity": {
+      "pt-br": "Quantidade maior que a disponível",
+      "en-us": "Quantity above what is available"
+    },
+    "nw.market.own_order": {
+      "pt-br": "Não dá para negociar com o próprio pedido",
+      "en-us": "You cannot trade with your own order"
+    },
+    "nw.market.invalid_order": {
+      "pt-br": "Pedido inválido",
+      "en-us": "Invalid order"
+    },
+    "nw.market.invalid_territory": {
+      "pt-br": "Pedido inválido",
+      "en-us": "Invalid order"
+    },
+    "nw.market.col_seller": {
+      "pt-br": "Vendedor",
+      "en-us": "Seller"
+    },
+    "nw.market.col_lowest": {
+      "pt-br": "Menor preço",
+      "en-us": "Lowest price"
     }
   },
   "chaves_do_jogo": [
@@ -551,6 +655,30 @@
     "ui_armoring",
     "ui_takeall",
     "ui_loot_bag_items",
-    "ui_loot_bag_1_item"
+    "ui_loot_bag_1_item",
+    "ui_open",
+    "inv_droppeditems",
+    "inv_discard_life_warning",
+    "ui_sell",
+    "ui_allitems",
+    "ui_price",
+    "ui_listingunitprice",
+    "ui_total",
+    "ui_placebuyorder",
+    "ui_placesellorder",
+    "ui_tradingpost",
+    "ui_myorders",
+    "ui_filters",
+    "ui_clear_all",
+    "trade_column_tier",
+    "trade_column_rarity",
+    "trade_column_name",
+    "trade_column_quantity",
+    "trade_column_price",
+    "trade_column_expiresin",
+    "ui_min_gear_score",
+    "ui_perks",
+    "ui_canafford",
+    "ui_quality"
   ]
 }

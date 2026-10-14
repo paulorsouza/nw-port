@@ -570,7 +570,7 @@ void ANWStation::Setup(const FNWCrafting::FStation& Data)
 	Type = Data.Type;
 	Tier = Data.Tier;
 	const bool bStorage = Type == TEXT("storage");
-	if (bStorage)
+	if (bStorage || Type == TEXT("tradingpost"))
 	{
 		Interact->ActionKey = TEXT("nw.storage.open");
 	}
@@ -587,7 +587,18 @@ void ANWStation::Setup(const FNWCrafting::FStation& Data)
 		{
 			if (ANWHUD* HUD = Cast<ANWHUD>(PC->GetHUD()))
 			{
-				Self->Type == TEXT("storage") ? HUD->OpenStorage(Who, Self.Get()) : HUD->OpenRefining(Who, Self.Get());
+				if (Self->Type == TEXT("storage"))
+				{
+					HUD->OpenStorage(Who, Self.Get());
+				}
+				else if (Self->Type == TEXT("tradingpost"))
+				{
+					HUD->OpenMarket(Who, Self.Get());
+				}
+				else
+				{
+					HUD->OpenRefining(Who, Self.Get());
+				}
 			}
 		}
 	};

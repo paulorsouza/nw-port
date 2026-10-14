@@ -6,6 +6,7 @@
 #include "NWUILayout.h"
 
 class ANWCharacter;
+class ANWLootBag;
 class SEditableText;
 class SWidget;
 class UCanvas;
@@ -18,7 +19,8 @@ class UCanvas;
  * - Equipamento sem painel, nas posições do equipmentv3 (espaços 63x63, fundos pretos por grupo, abas em ícone, nível
  *   e gear score, atributos).
  * - Armazém (catcontainer.lua, modo armazém): segunda janela igual à direita; o inventário e o equipamento vão 300 px
- *   para a esquerda.
+ *   para a esquerda. Modo bolsa de saque (CONTAINER_MODE_LOOT_BAG): a mesma janela com os itens da bolsa no chão
+ *   (ANWLootBag), aviso de tempo de vida e contagem no lugar da busca; só pegar, nunca guardar.
  * - Arrastar (itemdraggable.lua): cópia 75x75 no cursor, origem a 0,5; espaços compatíveis acendem; a janela de destino
  *   acende com o mouse em cima. Shift + clique guarda/retira; direito equipa, usa ou move.
  */
@@ -30,6 +32,8 @@ public:
 	/** Inventário com o armazém da cidade (o servidor já abriu o local). */
 	void OpenStorage(ANWCharacter* InCharacter, const FString& InTitle);
 	bool IsStorageMode() const { return IsOpen() && bStorage; }
+	/** Inventário com a bolsa no chão (catcontainer no modo bolsa de saque). */
+	void OpenLootBag(ANWCharacter* InCharacter, ANWLootBag* Bag);
 	void Close();
 	void Draw(UCanvas* Canvas, const FVector2D& Mouse);
 	/** Apertar do botão (o soltar chega por Hold). */
@@ -48,6 +52,12 @@ public:
 	/** Campo de busca da lista em pixels (o campo de texto do Slate fica por cima). */
 	FBox2f SearchRect(int32 List) const { return Lists[FMath::Clamp(List, 0, 1)].SearchBox; }
 	void SetSearch(int32 List, const FString& Text) { Lists[FMath::Clamp(List, 0, 1)].Search = Text; }
+	/** Aba do armazém sendo renomeada (clique duplo): retângulo do campo de texto; inválido = nenhuma. */
+	FBox2f RenameRect() const;
+	/** Enter ou perder o foco no campo do nome da aba. */
+	void CommitRename(const FString& Name);
+	/** Captura offline: aba aberta do armazém. */
+	void ShotTab(int32 Tab) { StorageTab = Tab; }
 
 private:
 	enum class ESource : uint8 { Bag, Equip, Storage };
@@ -166,6 +176,29 @@ private:
 
 	bool bStorage = false;
 	FString StorageTitle;
+	// Abas do armazém compartilhado (FNWItemRules::StorageTabs): a lista mostra só a aba aberta; guardar vai para ela;
+	// soltar um item numa aba passa para lá; clique duplo renomeia.
+	static constexpr int32 MaxTabs = 5;
+	int32 StorageTab = 0;
+	int32 RenameTab = INDEX_NONE;
+	FBox2f TabRectsStorage[MaxTabs];
+	double LastTabClick = 0.0;
+	int32 LastTabClicked = INDEX_NONE;
+	TSharedPtr<SEditableText> RenameEdit;
+	bool ShowsTabs() const { return bStorage && !bLoot; }
+	/** Aba sob o mouse (INDEX_NONE fora). */
+	int32 TabAt(const FVector2f& M) const;
+	/** A pilha entra na lista da segunda janela (aba aberta do armazém; a bolsa no chão mostra tudo). */
+	bool InList(const FNWItem& I, bool bStorageItems) const { return !bStorageItems || !ShowsTabs() || I.Tab == StorageTab; }
+	void DrawTabs(UCanvas* Canvas, const FVector2D& Mouse);
+	// Modo bolsa de saque: a segunda janela mostra LootBag em vez do armazém.
+	bool bLoot = false;
+	TWeakObjectPtr<ANWLootBag> LootBag;
+	/** Itens da segunda janela (armazém ou bolsa no chão). */
+	const TArray<FNWItem>* ContainerItems() const;
+	/** Move entre a bolsa e a segunda janela; na bolsa no chão só pega (bDeposit false). */
+	void ContainerMove(bool bDeposit, int32 Slot, int32 Quantity);
+	void ContainerMoveMany(bool bDeposit, const TArray<int32>& Slots);
 
 	FBox2f ClipRect = FBox2f(ForceInit);         // recorte do desenho (lista com rolagem); inválido = sem recorte
 	float InvLeft = 0.f;                          // borda esquerda do Content do inventário (px de 1080p)

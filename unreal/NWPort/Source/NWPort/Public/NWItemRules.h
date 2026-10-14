@@ -45,6 +45,16 @@ public:
 	TArray<FImproveMaterial> ImproveMaterials;
 	int32 CostAttr = 2, CostGs = 2, CostUnbind = 2;
 	float UnbindQualityPer = 10.f;             // desvincular: +1 a cada tantos % de qualidade
+	/** Mercado (docs/sistemas.md §5): ordens abertas por personagem e o que pode ir ao mercado. */
+	int32 MarketMaxOrders = 50;
+	TArray<FString> MarketPatterns;
+	TArray<FName> MarketItems;
+	/** O item pode ir ao mercado: equipamento fabricado, padrões (gema lapidada, vidro rúnico) ou a lista de itens; nunca
+	 *  vinculado. */
+	bool CanTrade(const FNWItemDef& D, const FNWItem& Item) const;
+	/** Armazém compartilhado (docs/sistemas.md "Armazém"): kg por cidade conhecida e número de abas. */
+	float StoragePerCity = 1000.f;
+	int32 StorageTabs = 5;
 
 	/** Gema ou vidro rúnico (docs/itens.md "Slot"): classe (armadura, arma), efeitos em %, gema bruta do custo de retirar. */
 	struct FGem

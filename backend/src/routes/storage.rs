@@ -1,5 +1,7 @@
-//! Armazém da cidade e da casa. Fora do PUT state: o servidor de jogo grava a bolsa e o armazém juntos numa
-//! transação, com a versão do armazém que ele leu (o mercado entrega itens no armazém a qualquer momento).
+//! Armazém compartilhado (local `shared`, migration 0010): um por personagem, 5 abas, aberto em qualquer despensa. Fora
+//! do PUT state: o servidor de jogo grava a bolsa e o armazém juntos numa transação, com a versão do armazém que ele
+//! leu (o mercado entrega itens no armazém a qualquer momento). O peso unitário de cada item e a capacidade vêm do
+//! servidor de jogo; o nw-core só soma para recusar ordem de compra acima da capacidade (`used_weight`).
 
 use axum::extract::{Path, State};
 use axum::Json;
@@ -11,17 +13,24 @@ use serde_json::Value;
 
 use crate::error::{ApiError, ApiResult};
 use crate::routes::characters::{empty_props, ItemInstance};
-use crate::routes::internal::{validate_inventory, write_inventory};
+use crate::routes::internal::validate_inventory;
+use crate::routes::journal::{self, Ctx, WriteSeq};
 use crate::routes::serials;
 use crate::AppState;
 
 pub(crate) const MAX_STORAGE_SLOTS: i32 = 2000;
+pub(crate) const SHARED: &str = "shared";
+pub(crate) const TABS: i16 = 5;
+const MAX_TAB_NAME: usize = 24;
 
 /// Bolsa, equipado e moedas do personagem depois da ação, aplicados na mesma transação da ação.
 #[derive(Deserialize, Debug)]
 pub struct Snapshot {
     pub inventory: Vec<ItemInstance>,
     pub coins: i64,
+    /// Sessão, número e motivo da gravação (journal.rs).
+    #[serde(flatten)]
+    pub write: WriteSeq,
 }
 
 impl Snapshot {
@@ -37,16 +46,11 @@ impl Snapshot {
         serials::serials(self.inventory.iter().map(|i| &i.props))
     }
 
-    pub(crate) async fn apply(&self, tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<()> {
-        let done = sqlx::query("update characters set coins = $2 where id = $1 and deleted_at is null")
-            .bind(character_id)
-            .bind(self.coins)
-            .execute(&mut *tx)
-            .await?;
-        if done.rows_affected() == 0 {
-            return Err(ApiError::not_found("Personagem"));
-        }
-        write_inventory(tx, character_id, &self.inventory).await
+    /// Confere a ordem (`journal::claim`) e grava bolsa e moedas com a diferença no log.
+    pub(crate) async fn apply(&self, tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<Ctx> {
+        let ctx = journal::claim(tx, character_id, &self.write).await?;
+        journal::write_bag(tx, &ctx, Some(&self.inventory), Some(self.coins)).await?;
+        Ok(ctx)
     }
 }
 
@@ -61,12 +65,21 @@ pub struct StorageItem {
     pub rarity: i16,
     #[serde(default = "empty_props")]
     pub props: Value,
+    /// Aba (0–4).
+    #[serde(default)]
+    pub tab: i16,
+    /// Peso unitário em kg (do catálogo do servidor de jogo).
+    #[serde(default)]
+    pub weight: f32,
 }
 
 #[derive(Serialize, Debug)]
 pub struct StorageView {
     pub version: i64,
     pub items: Vec<StorageItem>,
+    /// Nomes das abas dados pelo jogador (vazio = nome padrão).
+    pub tab_names: Vec<String>,
+    pub capacity: f32,
 }
 
 #[derive(Deserialize, Debug)]
@@ -74,17 +87,49 @@ pub struct StorageWrite {
     /// Versão lida no GET; diferente da atual = 409 `storage_changed` (ler de novo e refazer).
     pub version: i64,
     pub items: Vec<StorageItem>,
+    /// Nomes das abas (ausente = mantém).
+    pub tab_names: Option<Vec<String>>,
+    /// Capacidade atual em kg, somada pelo servidor de jogo (ausente = mantém).
+    pub capacity: Option<f32>,
     #[serde(flatten)]
     pub snapshot: Snapshot,
 }
 
 pub(crate) fn validate_location(location: &str) -> ApiResult<()> {
-    let ok = match location.split_once(':') {
-        Some(("settlement", t)) => is_territory(t),
-        Some(("house", id)) => Uuid::parse_str(id).is_ok(),
-        _ => false,
-    };
-    if ok { Ok(()) } else { Err(ApiError::bad_request("invalid_location", format!("local inválido: {location}"))) }
+    if location == SHARED { Ok(()) } else { Err(ApiError::bad_request("invalid_location", format!("local inválido: {location}"))) }
+}
+
+/// Peso ocupado do armazém: itens guardados mais o que as ordens de compra abertas ainda vão entregar.
+pub(crate) async fn used_weight(tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<f64> {
+    let (used,): (f64,) = sqlx::query_as(
+        "select coalesce((select sum(quantity * weight)::float8 from storage_items where character_id = $1 and location = 'shared'), 0)
+              + coalesce((select sum(quantity * weight)::float8 from market_orders
+                           where character_id = $1 and kind = 'buy' and status = 'open'), 0)",
+    )
+    .bind(character_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    Ok(used)
+}
+
+/// Capacidade guardada pelo servidor de jogo.
+pub(crate) async fn capacity(tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<f64> {
+    let (cap,): (f32,) = sqlx::query_as("select storage_capacity from characters where id = $1")
+        .bind(character_id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or_else(|| ApiError::not_found("Personagem"))?;
+    Ok(cap as f64)
+}
+
+/// Recusa (409 `storage_full`) uma compra de `extra` kg que passaria da capacidade do armazém.
+pub(crate) async fn check_room(tx: &mut sqlx::PgConnection, character_id: Uuid, extra: f64) -> ApiResult<()> {
+    let used = used_weight(tx, character_id).await?;
+    let cap = capacity(tx, character_id).await?;
+    if used + extra > cap + 1e-3 {
+        return Err(ApiError::conflict("storage_full", format!("Armazém sem espaço: {used:.1} + {extra:.1} kg de {cap:.1} kg.")));
+    }
+    Ok(())
 }
 
 pub(crate) fn is_territory(t: &str) -> bool {
@@ -116,7 +161,8 @@ async fn bump(tx: &mut sqlx::PgConnection, character_id: Uuid, location: &str) -
     Ok(version)
 }
 
-/// Entrega um item no armazém (mercado): soma na pilha igual (mesmos `props`) ou ocupa o próximo slot.
+/// Entrega um item no armazém (mercado), mesmo acima da capacidade: soma na pilha igual (mesmos `props`, qualquer aba)
+/// ou ocupa o próximo slot na aba 1.
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn deliver(
     tx: &mut sqlx::PgConnection,
@@ -127,14 +173,17 @@ pub(crate) async fn deliver(
     gear_score: i32,
     rarity: i16,
     props: &Value,
+    weight: f32,
+    reason: &str,
 ) -> ApiResult<()> {
     lock_storage(tx, character_id, location).await?;
-    let merged = sqlx::query(
+    let merged: Option<(i16,)> = sqlx::query_as(
         "update storage_items set quantity = quantity + $6
           where id = (select id from storage_items
                        where character_id = $1 and location = $2 and item_id = $3 and gear_score = $4 and rarity = $5
                          and props = $7
-                       order by slot limit 1)",
+                       order by slot limit 1)
+          returning tab",
     )
     .bind(character_id)
     .bind(location)
@@ -143,9 +192,11 @@ pub(crate) async fn deliver(
     .bind(rarity)
     .bind(quantity)
     .bind(props)
-    .execute(&mut *tx)
+    .fetch_optional(&mut *tx)
     .await?;
-    if merged.rows_affected() == 0 {
+    let tab = merged.map_or(0, |m| m.0);
+    journal::log(tx, &Ctx::core(character_id, reason), &format!("storage:{tab}"), Some(item_id), quantity as i64, gear_score, rarity, props).await?;
+    if merged.is_none() {
         let (slot,): (i32,) = sqlx::query_as(
             "select coalesce(max(slot) + 1, 0) from storage_items where character_id = $1 and location = $2",
         )
@@ -154,8 +205,8 @@ pub(crate) async fn deliver(
         .fetch_one(&mut *tx)
         .await?;
         sqlx::query(
-            "insert into storage_items (id, character_id, location, item_id, quantity, slot, gear_score, rarity, props)
-             values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            "insert into storage_items (id, character_id, location, item_id, quantity, slot, gear_score, rarity, props, tab, weight)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, $10)",
         )
         .bind(Uuid::new_v4())
         .bind(character_id)
@@ -166,6 +217,7 @@ pub(crate) async fn deliver(
         .bind(gear_score)
         .bind(rarity)
         .bind(props)
+        .bind(weight)
         .execute(&mut *tx)
         .await?;
     }
@@ -179,20 +231,30 @@ pub async fn get(
     Path((id, location)): Path<(Uuid, String)>,
 ) -> ApiResult<Json<StorageView>> {
     validate_location(&location)?;
-    let version: Option<(i64,)> = sqlx::query_as("select version from storages where character_id = $1 and location = $2")
+    let head: Option<(i64, Value)> = sqlx::query_as("select version, tab_names from storages where character_id = $1 and location = $2")
         .bind(id)
         .bind(&location)
         .fetch_optional(&state.db)
         .await?;
     let items: Vec<StorageItem> = sqlx::query_as(
-        "select item_id, quantity, slot, gear_score, rarity, props from storage_items
+        "select item_id, quantity, slot, gear_score, rarity, props, tab, weight from storage_items
           where character_id = $1 and location = $2 order by slot",
     )
     .bind(id)
     .bind(&location)
     .fetch_all(&state.db)
     .await?;
-    Ok(Json(StorageView { version: version.map_or(0, |v| v.0), items }))
+    let (cap,): (f32,) = sqlx::query_as("select storage_capacity from characters where id = $1")
+        .bind(id)
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or_else(|| ApiError::not_found("Personagem"))?;
+    let (version, names) = head.unwrap_or((0, Value::Array(vec![])));
+    Ok(Json(StorageView { version, items, tab_names: tab_names(&names), capacity: cap }))
+}
+
+fn tab_names(v: &Value) -> Vec<String> {
+    v.as_array().map(|a| a.iter().map(|n| n.as_str().unwrap_or_default().to_string()).collect()).unwrap_or_default()
 }
 
 pub async fn put(
@@ -218,31 +280,49 @@ pub async fn put(
         if !(0..MAX_STORAGE_SLOTS).contains(&it.slot) || !seen.insert(it.slot) {
             return Err(ApiError::bad_request("invalid_storage", format!("slot inválido ou repetido: {}", it.slot)));
         }
+        if !(0..TABS).contains(&it.tab) || !it.weight.is_finite() || it.weight < 0.0 {
+            return Err(ApiError::bad_request("invalid_storage", format!("aba ou peso inválido no slot {}", it.slot)));
+        }
+    }
+    if let Some(names) = &w.tab_names {
+        if names.len() > TABS as usize || names.iter().any(|n| n.chars().count() > MAX_TAB_NAME) {
+            return Err(ApiError::bad_request("invalid_storage", "Nomes de aba inválidos."));
+        }
+    }
+    if w.capacity.is_some_and(|c| !c.is_finite() || c < 0.0) {
+        return Err(ApiError::bad_request("invalid_storage", "Capacidade inválida."));
     }
     let mut tx = state.db.begin().await?;
-    if location.starts_with("house:") {
-        let house = Uuid::parse_str(&location["house:".len()..]).unwrap_or_default();
-        let owned: Option<(Uuid,)> = sqlx::query_as("select id from houses where id = $1 and character_id = $2")
-            .bind(house)
+    let ctx = w.snapshot.apply(&mut tx, id).await?;
+    if let Some(cap) = w.capacity {
+        sqlx::query("update characters set storage_capacity = $2 where id = $1")
             .bind(id)
-            .fetch_optional(&mut *tx)
+            .bind(cap)
+            .execute(&mut *tx)
             .await?;
-        owned.ok_or_else(|| ApiError::not_found("Casa"))?;
     }
-    w.snapshot.apply(&mut tx, id).await?;
     let current = lock_storage(&mut tx, id, &location).await?;
     if current != w.version {
         return Err(ApiError::conflict("storage_changed", "O armazém mudou; leia de novo."));
     }
+    let before = journal::storage_tally(&mut tx, id).await?;
     sqlx::query("delete from storage_items where character_id = $1 and location = $2")
         .bind(id)
         .bind(&location)
         .execute(&mut *tx)
         .await?;
+    if let Some(names) = &w.tab_names {
+        sqlx::query("update storages set tab_names = $3 where character_id = $1 and location = $2")
+            .bind(id)
+            .bind(&location)
+            .bind(serde_json::json!(names))
+            .execute(&mut *tx)
+            .await?;
+    }
     for it in &w.items {
         sqlx::query(
-            "insert into storage_items (id, character_id, location, item_id, quantity, slot, gear_score, rarity, props)
-             values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            "insert into storage_items (id, character_id, location, item_id, quantity, slot, gear_score, rarity, props, tab, weight)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
         )
         .bind(Uuid::new_v4())
         .bind(id)
@@ -253,12 +333,24 @@ pub async fn put(
         .bind(it.gear_score)
         .bind(it.rarity)
         .bind(&it.props)
+        .bind(it.tab)
+        .bind(it.weight)
         .execute(&mut *tx)
         .await?;
     }
+    let after = journal::storage_tally(&mut tx, id).await?;
+    journal::log_diff(&mut tx, &ctx, &before, &after).await?;
     let version = bump(&mut tx, id, &location).await?;
     serials::verify(&mut tx, id, "bag", &w.snapshot.serials()).await?;
     serials::verify(&mut tx, id, &location, &serials::serials(w.items.iter().map(|i| &i.props))).await?;
+    let (names, cap): (Value, f32) = sqlx::query_as(
+        "select s.tab_names, c.storage_capacity from storages s join characters c on c.id = s.character_id
+          where s.character_id = $1 and s.location = $2",
+    )
+    .bind(id)
+    .bind(&location)
+    .fetch_one(&mut *tx)
+    .await?;
     tx.commit().await?;
-    Ok(Json(StorageView { version, items: w.items }))
+    Ok(Json(StorageView { version, items: w.items, tab_names: tab_names(&names), capacity: cap }))
 }

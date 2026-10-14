@@ -154,9 +154,63 @@ se algo estiver errado.
     continuam: o que não cabe aparece numa bolsa no chão, com o aviso "Bolsa cheia: o item foi para o chão".
 72. Arrastar uma pilha para "Soltar itens": sai da bolsa e aparece um saco aos pés com o cartão "N itens" e [E] Pegar
     tudo. E devolve tudo para a bolsa. Ctrl + clique > Soltar solta só a parte escolhida.
-73. O saco some 2 minutos depois de solto. Soltar mais de 1000 kg no total recusa com "Você já tem 1000 kg de itens no
+73. O saco some 3 minutos depois de solto (era 2 até 2026-10-14). Soltar mais de 1000 kg no total recusa com "Você já tem 1000 kg de itens no
     chão".
 74. Mesa de fabricar > Melhorar itens: cada item mostra os materiais da receita (lingote, tábua, couro) com a quantidade
     na bolsa; clicar num muda o ícone e o custo embaixo dos botões. Sem material suficiente, o custo fica vermelho.
 75. Botão "Refinar GS" com só "GS a–b" embaixo. Refinar várias vezes: sobe e desce perto de metade das vezes, quase
     sempre 1 ou 2 pontos, nunca fora de a–b. Embaixo de Sortear atributo: "25% cada".
+76. Soltar itens no chão e apertar [E] no saco ("Abrir"): abre o inventário com a janela "Itens Derrubados" à direita,
+    ícone da bolsa, aviso de 3 minutos, "N itens", peso / 1000 e a lista dos itens soltos.
+77. Na janela da bolsa: arrastar um item para o inventário, clique direito e Ctrl + clique > Pegar com parte da pilha
+    passam só aquilo; a seta da seção pega a seção; Pegar Tudo pega o resto. Arrastar da bolsa para a janela do saco
+    não faz nada.
+78. Esvaziar o saco com a tela aberta: a janela some e fica só o inventário; o saco some do chão. Saco esquecido some
+    em 3 minutos.
+79. Personagem novo entra em Queda Eterna: aviso "Cidade conhecida: armazém +1000 kg". Abrir a despensa: peso / 1000.
+    Sair e entrar: continua conhecida, capacidade igual.
+80. Guardar itens numa despensa e abrir a outra despensa da cidade: os mesmos itens (armazém compartilhado). Itens
+    guardados antes desta versão aparecem na Aba 1.
+81. Abas: 5 abas embaixo da busca. Trocar de aba mostra só os itens dela; guardar vai para a aba aberta; arrastar da
+    bolsa para outra aba guarda nela; arrastar do armazém para outra aba passa a pilha. Pegar Tudo pega só a aba aberta.
+82. Clique duplo na aba aberta: campo de texto; digitar um nome e Enter. Sair e entrar: o nome continua.
+83. Peso acima da capacidade (ex. pelo F10 se houver, ou capacidade menor): não guarda ("armazém cheio"), retira normal.
+84. Play, guardar e retirar do armazém, fabricar um item, parar o Play. `tools/item_log.py --personagem Exilado`: cada
+    ação aparece com o motivo (storage, craft:<receita>), o local (bag, storage:<aba>) e a quantidade +/−.
+85. Ficar parado 10 s no Play: o log não ganha linhas novas (salvamento periódico só grava diferença).
+86. Parar o Play logo depois de soltar um item no chão (antes de 5 s): ao voltar, o item não está na bolsa nem no chão
+    (o chão ainda não é salvo: etapa 2); no log aparece a saída da bolsa com o motivo do salvamento.
+87. Play do editor: F10 abre e os botões funcionam; cada uso aparece em `tools/item_log.py --personagem Exilado` com o
+    motivo `dev:<comando>` (quando mexe em item ou moedas).
+88. Teste em rede com uma conta sem admin: F10 não abre; com `tools/rede.sh admin <conta>` e entrando de novo, abre.
+89. Soltar um item no chão, parar o Play e dar Play de novo: o saco está no mesmo lugar, com os itens e o tempo que
+    sobrava; pegar devolve à bolsa. `tools/item_log.py --personagem Exilado`: `drop` (bag −, ground:<saco> +) e
+    `ground_take` (ground −, bag +).
+90. Soltar, esperar os 3 minutos com o Play aberto: o saco some; parar e voltar: não volta (no log: `ground_expired`).
+91. Com o nw-core desligado no meio do Play (`tools/backend_dev.sh down`): fabricar, guardar e soltar mostram "Não foi
+    possível gravar; nada mudou" e nada sai da bolsa; ligar de novo (`tools/backend_dev.sh`) e repetir: funciona.
+92. Fabricar com a bolsa cheia: o item vai para um saco no chão, que volta depois de parar e dar Play de novo.
+93. Fabricar, refinar e melhorar várias vezes seguidas e rápido: tudo entra na ordem, sem item a mais nem a menos
+    (comparar com o log).
+94. Coletar alguns minérios e matar uma criatura: o item e o aviso de saque aparecem normalmente; no log, `gather` e
+    `loot:<tabela>` com só o que entrou (sem regravar a bolsa).
+95. Ficar parado 10 s: o salvamento periódico não grava nada da bolsa (nenhuma linha nova no log).
+96. Comprar na loja do mercador, encaixar e retirar uma gema, destruir um item: cada um aparece no log (`shop:...`,
+    `socket`, `unsocket`, `destroy`).
+97. Pegar o brinde semanal de um NPC: os itens entram e o log mostra `npc_reward:...`; tentar de novo: não entra nada.
+98. Queda Eterna: [E] no Entreposto Comercial abre a tela (spinner até o livro chegar) com Comprar, Vender e
+    "Meus Pedidos n/50". Esc fecha. Longe do posto, nada abre.
+99. Vender: só aparecem itens fabricados, gemas lapidadas e refinados finais (Asmodeum e outros T5.1); minério e
+    lingote não. Escolher um item: painel com atributo, qualidade, vantagens com valor; o campo de preço já com o menor
+    preço anunciado, se houver. Preço, duração, Enter ou Fazer Pedido de Venda: o item sai da lista na hora e o pedido
+    aparece em Meus Pedidos com spinner, que some quando o servidor grava.
+100. Meus Pedidos > Cancelar: a linha apaga com spinner e some; o item volta no armazém compartilhado.
+101. Comprar (com 2 jogadores, `tools/net_test.sh` ou duas contas): a venda de A aparece para B com o nome de A em
+     Vendedor; comprar: as moedas de B caem na hora, o item vai para o armazém de B; A reabre o posto e recebe.
+102. Filtros: escala, raridade, GS mínimo, atributo, vantagem e Pode Pagar reduzem a lista; Limpar Tudo volta; clicar
+     no título de uma coluna ordena.
+103. Recusa: vender com o nw-core desligado (`tools/backend_dev.sh down`): a linha aparece, some e o item volta à lista
+     com a linha piscando em vermelho e o aviso.
+104. Criar 50 pedidos: o botão de vender apaga no 50º.
+105. `tools/item_log.py --personagem Exilado`: `market_post_sell`, `market_buy` e `market_credit` com o item e as
+     moedas de cada ação.

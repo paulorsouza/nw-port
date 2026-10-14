@@ -178,6 +178,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") bool bDummyBlocks = false;
 	// Boneco de treino: ataca o jogador mais próximo dentro do alcance, um combo a cada intervalo.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") bool bDummyAttacks = false;
+	/** Jogador simulado do teste de carga (ANWLoadTest): controle de IA, mas spawn de criaturas e IA o tratam como
+	 *  jogador. Use IsPlayerLike() onde a regra é "é um jogador?". */
+	UPROPERTY(Transient) bool bSimPlayer = false;
+	bool IsPlayerLike() const { return bSimPlayer || IsPlayerControlled(); }
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") float DummyAttackInterval = 3.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") float DummyAttackRange = 260.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") int32 DummyComboHits = 3;

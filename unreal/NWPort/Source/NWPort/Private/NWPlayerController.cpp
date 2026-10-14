@@ -26,6 +26,10 @@
 #include "NWGatherField.h"
 #include "NWInventoryComponent.h"
 #include "NWGameMode.h"
+#include "NWOps.h"
+#include "NWBackend.h"
+#include "Engine/GameInstance.h"
+#include "Misc/ScopeExit.h"
 #include "GameFramework/PlayerState.h"
 #include "Dom/JsonObject.h"
 #include "Net/UnrealNetwork.h"
@@ -62,7 +66,17 @@ void ANWPlayerController::BeginPlay()
 	if (HasAuthority())
 	{
 		GetWorldTimerManager().SetTimer(BreadcrumbTimer, this, &ANWPlayerController::RecordBreadcrumb, 1.f, true);
+		UpdateDevAllowed();
 	}
+}
+
+void ANWPlayerController::UpdateDevAllowed()
+{
+	// Sem nw-core (nada é salvo) ou Play do editor: liberado. Com nw-core: só conta admin.
+	const UGameInstance* GI = GetGameInstance();
+	const UNWBackend* B = GI ? GI->GetSubsystem<UNWBackend>() : nullptr;
+	const bool bBackend = B && B->IsServerEnabled();
+	bDevAllowed = !bBackend || GetWorld()->WorldType == EWorldType::PIE || (Record && Record->bAdmin);
 }
 
 void ANWPlayerController::ClientWarning_Implementation(const FString& Text)
@@ -356,6 +370,10 @@ void ANWPlayerController::OnMenuRightClick()
 
 void ANWPlayerController::ToggleDevMenu()
 {
+	if (!bDevAllowed && !OpenMenu.IsValid())
+	{
+		return;   // conta sem admin: o servidor recusaria os comandos
+	}
 	if (const ANWHUD* HUD = GetNWHUD(); HUD && HUD->Login.IsActive())
 	{
 		return;
@@ -520,7 +538,7 @@ void ANWPlayerController::PawnLeavingGame()
 	{
 		if (ANWGameMode* GM = GetWorld()->GetAuthGameMode<ANWGameMode>())
 		{
-			GM->SavePlayer(this);
+			GM->SavePlayer(this, TEXT("leave"));
 		}
 	}
 	Super::PawnLeavingGame();
@@ -537,16 +555,54 @@ void ANWPlayerController::LocalConsole(const FString& Command)
 	ConsoleCommand(Command, true);
 }
 
+namespace
+{
+	/** F10 recusado (conta sem admin) ou registrado no log; depois de usar, salva com o motivo "dev:<comando>". */
+	bool DevGate(ANWPlayerController* PC, const FString& Name)
+	{
+		const FString Who = PC->Record ? PC->Record->AccountName + TEXT("/") + PC->Record->Name : PC->GetName();
+		if (!PC->bDevAllowed)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("F10 recusado: %s pediu %s"), *Who, *Name);
+			return false;
+		}
+		UE_LOG(LogTemp, Display, TEXT("F10: %s usou %s"), *Who, *Name);
+		return true;
+	}
+
+	void DevSave(ANWPlayerController* PC, const FString& Name)
+	{
+		if (ANWGameMode* GM = PC->GetWorld() ? PC->GetWorld()->GetAuthGameMode<ANWGameMode>() : nullptr)
+		{
+			GM->SavePlayer(PC, TEXT("dev:") + Name);
+		}
+	}
+}
+
 void ANWPlayerController::ServerDevNamed_Implementation(FName Id)
 {
+	const FString Name = Id.ToString();
+	if (!DevGate(this, Name))
+	{
+		return;
+	}
+	const NWOps::FReason Reason(TEXT("dev:") + Name);   // o que o F10 der vira operação com este motivo
 	if (const FNWDevEntry* E = FNWDevRegistry::Find(Id); E && E->Server)
 	{
 		E->Server(this);
 	}
+	DevSave(this, Name);
 }
 
 void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 {
+	const FString DevName = StaticEnum<ENWDevCommand>()->GetNameStringByValue(int64(Command));
+	if (!DevGate(this, DevName))
+	{
+		return;
+	}
+	ON_SCOPE_EXIT { DevSave(this, DevName); };
+	const NWOps::FReason Reason(TEXT("dev:") + DevName);
 	ANWCharacter* Me = Cast<ANWCharacter>(GetPawn());
 	UWorld* World = GetWorld();
 	if (!World)
@@ -871,6 +927,7 @@ void ANWPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME_CONDITION(ANWPlayerController, ProgressJson, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(ANWPlayerController, bDevAllowed, COND_OwnerOnly);
 }
 
 void ANWPlayerController::PublishProgress()

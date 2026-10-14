@@ -8,6 +8,7 @@
 #     tools/rede.sh up        # sobe tudo e o túnel
 #     tools/rede.sh down      # para tudo (o banco fica no volume nw-rede_db)
 #     tools/rede.sh invite    # gera um convite de conta (7 dias)
+#     tools/rede.sh admin <conta> [--revoke]   # libera (ou tira) os comandos de teste F10 da conta
 #     tools/rede.sh logs      # últimas linhas do jogo, do nw-core e do túnel
 #     tools/rede.sh status
 set -euo pipefail
@@ -67,6 +68,7 @@ case "${1:-status}" in
         compose down
         ;;
     invite) compose exec core nw-core invite --days 7 ;;
+    admin) shift; compose exec core nw-core admin "$@" ;;
     logs)
         compose logs --tail 30 core
         compose exec game tail -n 30 /srv/nw/NWPort/Saved/Logs/NWPort.log 2>/dev/null || compose logs --tail 30 game
@@ -76,5 +78,5 @@ case "${1:-status}" in
         compose ps
         echo "túnel: $( [ -f "$OUT/tunnel.pid" ] && kill -0 "$(cat "$OUT/tunnel.pid")" 2>/dev/null && echo rodando || echo parado)"
         ;;
-    *) echo "uso: $0 build|tunnel|up|down|invite|logs|status"; exit 2 ;;
+    *) echo "uso: $0 build|tunnel|up|down|invite|admin|logs|status"; exit 2 ;;
 esac

@@ -6,9 +6,14 @@
 #include "GameFramework/Controller.h"
 #include "Net/UnrealNetwork.h"
 #include "NWCharacter.h"
+#include "NWHUD.h"
 #include "NWInteractable.h"
 #include "NWInventoryComponent.h"
+#include "NWPlayerController.h"
 #include "NWText.h"
+#include "NWBackend.h"
+#include "NWOps.h"
+#include "Engine/GameInstance.h"
 
 namespace
 {
@@ -25,7 +30,7 @@ ANWLootBag::ANWLootBag()
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	RootComponent = Mesh;
 	Interact = CreateDefaultSubobject<UNWInteractableComponent>(TEXT("Interact"));
-	Interact->ActionKey = TEXT("ui_takeall");
+	Interact->ActionKey = TEXT("ui_open");
 	Interact->Radius = 250.f;
 	Interact->FocusHeight = 40.f;
 }
@@ -52,9 +57,11 @@ void ANWLootBag::BeginPlay()
 	TWeakObjectPtr<ANWLootBag> Self(this);
 	Interact->OnInteract = [Self](ANWCharacter* Who)
 	{
-		if (Self.IsValid() && Who && Who->Interactor)
+		// Abre a tela da bolsa (cliente); pegar vai pelo servidor (ServerLootTake*).
+		ANWPlayerController* PC = Self.IsValid() && Who ? Cast<ANWPlayerController>(Who->GetController()) : nullptr;
+		if (ANWHUD* HUD = PC ? Cast<ANWHUD>(PC->GetHUD()) : nullptr)
 		{
-			Who->Interactor->ServerLootTake(Self.Get());
+			HUD->OpenLootBag(Who, Self.Get());
 		}
 	};
 	UpdateLabel();
@@ -77,10 +84,10 @@ void ANWLootBag::UpdateLabel()
 		: NWText::Get(TEXT("ui_loot_bag_items")).Replace(TEXT("{amount}"), *FString::FromInt(N)));
 }
 
-float ANWLootBag::Weight() const
+float ANWLootBag::ItemsWeight(const TArray<FNWItem>& InItems)
 {
 	float W = 0.f;
-	for (const FNWItem& I : Items)
+	for (const FNWItem& I : InItems)
 	{
 		if (const FNWItemDef* D = FNWItemCatalog::Get().Find(I.ItemId))
 		{
@@ -103,71 +110,173 @@ float ANWLootBag::GroundWeight(const AController* Owner)
 	return W;
 }
 
-ANWLootBag* ANWLootBag::Drop(ANWCharacter* Who, const TArray<FNWItem>& InItems, bool bLimit, FString* OutError)
+bool ANWLootBag::CheckLimit(const ANWCharacter* Who, const TArray<FNWItem>& InItems, FString* OutError)
 {
-	AController* PC = Who ? Who->GetController() : nullptr;
-	if (!PC || !Who->HasAuthority() || InItems.Num() == 0)
-	{
-		return nullptr;
-	}
-	float Add = 0.f;
-	for (const FNWItem& I : InItems)
-	{
-		const FNWItemDef* D = FNWItemCatalog::Get().Find(I.ItemId);
-		Add += D ? D->Weight * I.Quantity : 0.f;
-	}
-	if (bLimit && GroundWeight(PC) + Add > MaxGroundWeight)
+	if (GroundWeight(Who ? Who->GetController() : nullptr) + ItemsWeight(InItems) > MaxGroundWeight)
 	{
 		if (OutError)
 		{
 			*OutError = TEXT("nw.inv.ground_full");
 		}
+		return false;
+	}
+	return true;
+}
+
+FVector ANWLootBag::DropPoint(const ANWCharacter* Who)
+{
+	// Aos pés, um pouco à frente.
+	const float Half = Who->GetSimpleCollisionHalfHeight();
+	return Who->GetActorLocation() + Who->GetActorForwardVector() * 60.f - FVector(0.f, 0.f, Half);
+}
+
+ANWLootBag* ANWLootBag::Spawn(AController* Owner, const FVector& At, const TArray<FNWItem>& InItems, const FString& InBagId, float Life)
+{
+	UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+	if (!World || InItems.Num() == 0)
+	{
 		return nullptr;
 	}
-	// Aos pés, um pouco à frente, girado ao acaso.
-	const float Half = Who->GetSimpleCollisionHalfHeight();
-	const FVector At = Who->GetActorLocation() + Who->GetActorForwardVector() * 60.f - FVector(0.f, 0.f, Half);
 	FActorSpawnParameters P;
-	P.Owner = PC;
+	P.Owner = Owner;
 	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	ANWLootBag* Bag = Who->GetWorld()->SpawnActor<ANWLootBag>(At, FRotator(0.f, FMath::FRandRange(0.f, 360.f), 0.f), P);
+	ANWLootBag* Bag = World->SpawnActor<ANWLootBag>(At, FRotator(0.f, FMath::FRandRange(0.f, 360.f), 0.f), P);
 	if (Bag)
 	{
+		Bag->BagId = InBagId;
 		for (FNWItem I : InItems)
 		{
 			I.Container = ENWItemContainer::Bag;
 			I.Slot = Bag->Items.Num();
 			Bag->Items.Add(I);
 		}
+		Bag->SetLifeSpan(FMath::Max(1.f, Life));
 		Bag->UpdateLabel();
 		Bag->ForceNetUpdate();
 	}
 	return Bag;
 }
 
-void ANWLootBag::TakeAll(ANWCharacter* Who)
+ANWLootBag* ANWLootBag::Drop(ANWCharacter* Who, const TArray<FNWItem>& InItems, bool bLimit, FString* OutError)
 {
-	if (!Who || !Who->Inventory || !HasAuthority())
+	AController* PC = Who ? Who->GetController() : nullptr;
+	if (!PC || !Who->HasAuthority() || InItems.Num() == 0 || (bLimit && !CheckLimit(Who, InItems, OutError)))
+	{
+		return nullptr;
+	}
+	return Spawn(PC, DropPoint(Who), InItems, FString(), LifeSeconds);
+}
+
+void ANWLootBag::RestoreFor(ANWPlayerController* PC)
+{
+	UWorld* World = PC ? PC->GetWorld() : nullptr;
+	UNWBackend* B = World && World->GetGameInstance() ? World->GetGameInstance()->GetSubsystem<UNWBackend>() : nullptr;
+	if (!B || !B->IsServerEnabled() || !PC->Record)
 	{
 		return;
 	}
-	TArray<FNWItem> Left;
-	for (const FNWItem& I : Items)
+	TWeakObjectPtr<ANWPlayerController> WeakPC(PC);
+	B->ListGround(PC->Record->Id, [WeakPC](bool bOk, const TArray<UNWBackend::FGroundBag>& Bags)
 	{
-		const int32 Rest = Who->Inventory->AddItem(I);
-		if (Rest > 0)
+		ANWPlayerController* P = WeakPC.Get();
+		if (!bOk || !P)
 		{
-			FNWItem K = I;
-			K.Quantity = Rest;
-			Left.Add(K);
+			return;
+		}
+		const FString Map = UWorld::RemovePIEPrefix(P->GetWorld()->GetMapName());
+		for (const UNWBackend::FGroundBag& G : Bags)
+		{
+			bool bThere = false;
+			for (TActorIterator<ANWLootBag> It(P->GetWorld()); It && !bThere; ++It)
+			{
+				bThere = It->BagId == G.Id;
+			}
+			if (!bThere && G.Map == Map && G.ExpiresIn > 1.0)
+			{
+				Spawn(P, G.Position, G.Items, G.Id, float(G.ExpiresIn));
+			}
+		}
+	});
+}
+
+void ANWLootBag::RemoveFor(const AController* Owner)
+{
+	if (!Owner || !Owner->GetWorld())
+	{
+		return;
+	}
+	for (TActorIterator<ANWLootBag> It(Owner->GetWorld()); It; ++It)
+	{
+		if (It->GetOwner() == Owner)
+		{
+			It->Destroy();
 		}
 	}
-	Items = MoveTemp(Left);
-	if (Items.Num() == 0)
+}
+
+void ANWLootBag::Take(ANWCharacter* Who, int32 Slot, int32 Quantity)
+{
+	if (!Who || !Who->Inventory || !HasAuthority() || Quantity <= 0)
 	{
-		Destroy();
 		return;
 	}
-	UpdateLabel();
-	ForceNetUpdate();
+	// Operação gravada: a bolsa com o que entrou e o saco com o que sobra numa transação (NWOps; ground/take).
+	TWeakObjectPtr<ANWLootBag> Self(this);
+	TSharedRef<TArray<FNWItem>> Left = MakeShared<TArray<FNWItem>>();
+	NWOps::Run(Who, TEXT("ground_take"),
+		[Self, Who, Slot, Quantity, Left]()
+		{
+			if (!Self.IsValid())
+			{
+				return false;
+			}
+			*Left = Self->Items;
+			int32 Moved = 0;
+			for (FNWItem& I : *Left)
+			{
+				if (Slot != INDEX_NONE && I.Slot != Slot)
+				{
+					continue;
+				}
+				FNWItem Part = I;
+				Part.Quantity = FMath::Min(Quantity, I.Quantity);
+				const int32 Got = Part.Quantity - Who->Inventory->AddItem(Part);
+				I.Quantity -= Got;
+				Moved += Got;
+			}
+			Left->RemoveAll([](const FNWItem& X) { return X.Quantity <= 0; });
+			return Moved > 0;
+		},
+		[Self, Left](const FNWCharacterRecord& After, const FNWOpState&, TFunction<void(NWOps::EResult)> Fin)
+		{
+			UNWBackend* B = Self.IsValid() && Self->GetGameInstance() ? Self->GetGameInstance()->GetSubsystem<UNWBackend>() : nullptr;
+			if (!B || Self->BagId.IsEmpty())
+			{
+				Fin(NWOps::EResult::Ok);   // saco só deste servidor
+				return;
+			}
+			B->TakeGround(After, Self->BagId, *Left, TEXT("ground_take"), [Self, Fin](int32 Status)
+			{
+				if (Status == 409 && Self.IsValid())
+				{
+					Self->Destroy();   // venceu ou já foi pego
+				}
+				Fin(Status == 200 || Status == 208 ? NWOps::EResult::Ok : NWOps::EResult::Failed);
+			});
+		},
+		[Self, Left](bool bOk)
+		{
+			if (!bOk || !Self.IsValid())
+			{
+				return;
+			}
+			Self->Items = *Left;
+			if (Self->Items.Num() == 0)
+			{
+				Self->Destroy();
+				return;
+			}
+			Self->UpdateLabel();
+			Self->ForceNetUpdate();
+		});
 }

@@ -1,4 +1,5 @@
 #include "NWGatherComponent.h"
+#include "NWOps.h"
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
@@ -303,6 +304,7 @@ void UNWGatherComponent::Finish(bool bComplete)
 		FNWItemCatalog::Get().RollGame(D->SkinLoot, Gained, Bonus);
 		if (Me->Inventory)
 		{
+			const NWOps::FReason Reason(TEXT("gather"));   // log de itens (NWOps)
 			Me->Inventory->Grant(Gained, 0);
 		}
 		if (Me->Progression)
@@ -323,6 +325,7 @@ void UNWGatherComponent::Finish(bool bComplete)
 	Field->Deplete(Index);
 	if (Me->Inventory)
 	{
+		const NWOps::FReason Reason(TEXT("gather"));   // log de itens (NWOps)
 		Me->Inventory->Grant(Gained, 0);
 	}
 	if (Me->Progression)
@@ -384,7 +387,9 @@ void UNWGatherComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	{
 		return;
 	}
-	if (Me->IsLocallyControlled())
+	// Foco do [E] só no jogador local: no servidor, criaturas e IA contam como "controladas localmente" e procuravam
+	// coletável a cada ciclo (docs/arquitetura-servidor.md, medições).
+	if (Me->IsLocallyControlled() && Me->IsPlayerControlled())
 	{
 		UpdateFocus();
 	}

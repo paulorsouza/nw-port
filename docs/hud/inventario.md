@@ -100,6 +100,11 @@ não mostra a tela.
 - Peso: WeightBar Set{x=36,y=100} largura 556 → x 1318..1874; radial encumbrance/encumbrancefill.dds 68×68 centrado no ícone (~1339,77). Valor "%.1f" Pica 33 branco + "/ %.1f" Pica 24 #c8c8c8, à direita (valor x≈1763..1810, máx x≈1814..1865, y≈61..92). Overage 3%, texto @ui_storage_is_full.
 - Lista: mesmo DynamicItemList, Set{x=36,y=185,w=573,h=742} → x 1318..1891, y 185..927, com seções. Barra de busca/ordenação 63 px acima (y 122..152): busca 360×45 + 4 botões 34×45.
 - Seletor de assentamento (só armazém pessoal): x 1317..1695, y 935..985; buttonbg.dds #2c251b, primarybuttonframe.dds, dropdownarrow.dds; Nimbus 32 branco; "Nome <font color=#edc63e>(@ui_current_location)</font>"; ícone de facção 50 px; lista abre para cima, 560 de largura.
+- Modo bolsa de saque (CONTAINER_MODE_LOOT_BAG, 1821-1990): Content largura 340, X −7; WeightBar 246; título y 57 w 270; FrameHeader 183; lista Set{x=41,y=246,w=284,h=681} sem seções, sem SortAndFilterBar; ícone icon_dropped_items.dds #COLOR_TAN_WARM; ButtonTakeAll x 4, texto @interact_takeAll; LootBagInfoContainer (canvas, já com +490/−298): LifeTimeWarning x 1324..1585 y 104..184, @inv_discard_life_warning, Nimbus 23 #c8c8c8, quebra, entrelinha −4; ItemsText x 1324..1424 y 201..251, @ui_loot_bag_items / @ui_loot_bag_1_item; LootBagDivider. Título = InteractName (port: @inv_DroppedItems).
+- Abas do armazém compartilhado (port, dono 2026-10-14; o jogo não tem): 5 botões buttonbg #2c251b + primarybuttonframe
+  em y 174..212 entre a busca e a lista (lista a partir de y 222), largura dividida com 6 px de espaço; aberta com a
+  moldura cheia e o texto #ebe3d6, as outras a 0,4 e #b2aea1; Nimbus médio 22; arrastando, a aba sob o mouse acende;
+  clique duplo abre um campo do Slate por cima para o nome. Captura: `inventory.json` `armazem_aba2`, `arrasto_aba`.
 - Pegar tudo: ButtonTakeAll 170×50, x 1707.5..1877.5, y 935..985, @interact_takeAll, Pica 32; buttonbg #2c251b, heroframedisabled2023, heroborder aditivo, focusnew a 0,1. Callback ContainerTakeAll (3715-3778).
 
 ### Inventário e equipamento com o armazém aberto

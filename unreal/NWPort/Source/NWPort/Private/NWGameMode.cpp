@@ -1,4 +1,6 @@
 #include "NWGameMode.h"
+#include "NWLootBag.h"
+#include "NWOps.h"
 
 #include "NWText.h"
 
@@ -59,7 +61,7 @@ void ANWGameMode::BeginPlay()
 	}
 	if (UNWBackend* B = Backend(); B && B->IsServerEnabled())
 	{
-		GetWorldTimerManager().SetTimer(SaveTimer, this, &ANWGameMode::SaveAll, SaveInterval, true);
+		GetWorldTimerManager().SetTimer(SaveTimer, this, &ANWGameMode::SavePeriodic, SaveInterval, true);
 		// Salvar antes de os atores saírem (no fim do Play o pawn pode sumir antes do EndPlay do GameMode).
 		TearDownHandle = FWorldDelegates::OnWorldBeginTearDown.AddUObject(this, &ANWGameMode::HandleTearDown);
 	}
@@ -69,7 +71,7 @@ void ANWGameMode::HandleTearDown(UWorld* World)
 {
 	if (World == GetWorld())
 	{
-		SaveAll();
+		SaveAll(TEXT("shutdown"));
 	}
 }
 
@@ -107,6 +109,8 @@ void ANWGameMode::PieEnter(ANWPlayerController* PC)
 		}
 		P->Record = MoveTemp(*Record);
 		P->bPlacedFromRecord = true;
+		P->UpdateDevAllowed();
+		ANWLootBag::RestoreFor(P);   // sacos no chão ainda vivos voltam
 		if (ANWCharacter* Ch = Cast<ANWCharacter>(P->GetPawn()))
 		{
 			const FNWCharacterRecord& R = *P->Record;
@@ -125,7 +129,7 @@ void ANWGameMode::PieEnter(ANWPlayerController* PC)
 void ANWGameMode::EndPlay(const EEndPlayReason::Type Reason)
 {
 	FWorldDelegates::OnWorldBeginTearDown.Remove(TearDownHandle);
-	SaveAll();
+	SaveAll(TEXT("shutdown"));
 	Super::EndPlay(Reason);
 }
 
@@ -207,6 +211,8 @@ FString ANWGameMode::InitNewPlayer(APlayerController* NewPlayerController, const
 			PS->SetPlayerName(Record.Name);
 		}
 		PC->Record = MoveTemp(Record);
+		PC->UpdateDevAllowed();
+		ANWLootBag::RestoreFor(PC);   // sacos no chão ainda vivos voltam
 	}
 	return Error;
 }
@@ -263,7 +269,8 @@ void ANWGameMode::Logout(AController* Exiting)
 	if (ANWPlayerController* PC = Cast<ANWPlayerController>(Exiting))
 	{
 		GroupLeave(PC);
-		SavePlayer(PC);
+		SavePlayer(PC, TEXT("logout"));
+		ANWLootBag::RemoveFor(PC);   // continuam no nw-core até vencer
 		if (PC->Record)
 		{
 			UE_LOG(LogNWGameMode, Display, TEXT("saída: %s"), *PC->Record->Name);
@@ -272,11 +279,19 @@ void ANWGameMode::Logout(AController* Exiting)
 	Super::Logout(Exiting);
 }
 
-void ANWGameMode::SavePlayer(ANWPlayerController* PC)
+void ANWGameMode::SavePlayer(ANWPlayerController* PC, const FString& Reason)
 {
 	UNWBackend* B = Backend();
 	if (!PC || !PC->Record || !B || !B->IsServerEnabled())
 	{
+		return;
+	}
+	// Operação gravando (NWOps): salvar agora gravaria o estado de antes dela; salva depois.
+	if (ANWCharacter* Busy = Cast<ANWCharacter>(PC->GetPawn()); Busy && NWOps::IsBusy(Busy))
+	{
+		TWeakObjectPtr<ANWGameMode> Self(this);
+		TWeakObjectPtr<ANWPlayerController> WeakPC(PC);
+		NWOps::After(Busy, [Self, WeakPC, Reason]() { if (Self.IsValid() && WeakPC.IsValid()) { Self->SavePlayer(WeakPC.Get(), Reason); } });
 		return;
 	}
 	FNWCharacterRecord& R = *PC->Record;
@@ -285,14 +300,14 @@ void ANWGameMode::SavePlayer(ANWPlayerController* PC)
 	{
 		Ch->CaptureTo(R);
 	}
-	B->SaveState(R);
+	B->SaveState(R, Reason);
 }
 
-void ANWGameMode::SaveAll()
+void ANWGameMode::SaveAll(const TCHAR* Reason)
 {
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
-		SavePlayer(Cast<ANWPlayerController>(It->Get()));
+		SavePlayer(Cast<ANWPlayerController>(It->Get()), Reason);
 	}
 }
 
@@ -504,6 +519,7 @@ void ANWGameMode::GrantLoot(APawn* Killer, const AActor* Victim, FName Table)
 		TArray<FNWItem> Gained;
 		int64 Coins = 0;
 		FNWItemCatalog::Get().RollLoot(Table, Gained, Coins);
+		const NWOps::FReason Reason(TEXT("loot:") + Table.ToString());
 		Pawn->Inventory->Grant(Gained, Coins);
 	}
 }

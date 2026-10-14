@@ -22,6 +22,17 @@ DEFINE_LOG_CATEGORY_STATIC(LogNWBackend, Log, All);
 static TSharedPtr<FJsonObject> ParseJson(const FString& Text)
 {
 	TSharedPtr<FJsonObject> Obj;
+	// Resposta em lista (ex. sacos no chão): vem embrulhada em {"__array": [...]}.
+	if (Text.TrimStart().StartsWith(TEXT("[")))
+	{
+		TArray<TSharedPtr<FJsonValue>> Arr;
+		if (FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Arr))
+		{
+			Obj = MakeShared<FJsonObject>();
+			Obj->SetArrayField(TEXT("__array"), Arr);
+		}
+		return Obj;
+	}
 	FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Obj);
 	return Obj;
 }
@@ -140,6 +151,10 @@ FString FNWCharacterRecord::StateJson() const
 	if (Progression.IsValid())
 	{
 		Obj->SetObjectField(TEXT("progression"), Progression);
+	}
+	if (StorageCapacity >= 0.f)
+	{
+		Obj->SetNumberField(TEXT("storage_capacity"), StorageCapacity);
 	}
 	return WriteJson(Obj);
 }
@@ -281,7 +296,8 @@ void UNWBackend::RedeemTicket(const FString& Ticket, FRedeemDone Done)
 {
 	TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
 	Body->SetStringField(TEXT("ticket"), Ticket);
-	Request(TEXT("POST"), TEXT("/internal/tickets/redeem"), WriteJson(Body), true, [Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+	Request(TEXT("POST"), TEXT("/internal/tickets/redeem"), WriteJson(Body), true,
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
 	{
 		if (Status != 200 || !Json.IsValid())
 		{
@@ -301,19 +317,182 @@ void UNWBackend::RedeemTicket(const FString& Ticket, FRedeemDone Done)
 		}
 		Record->AccountName = Json->GetStringField(TEXT("account_name"));
 		Json->TryGetBoolField(TEXT("first_join"), Record->bFirstJoin);
+		Json->TryGetBoolField(TEXT("is_admin"), Record->bAdmin);
+		// Sessão nova do personagem: as gravações dele recomeçam do número 1.
+		int64 Session = 0;
+		Json->TryGetNumberField(TEXT("session"), Session);
+		if (Weak.IsValid())
+		{
+			FWriteQueue& Q = Weak->Writes.FindOrAdd(Record->Id);
+			Q.Session = Session;
+			Q.NextSeq = 0;
+			Weak->RememberBag(*Record);   // o que o nw-core tem agora
+		}
 		Done(Record, FString());
 	});
 }
 
-void UNWBackend::SaveState(const FNWCharacterRecord& Record)
+void UNWBackend::Write(const FString& CharacterId, const FString& Verb, const FString& Path, TSharedRef<FJsonObject> Body, const FString& Reason,
+	TFunction<void(int32, TSharedPtr<FJsonObject>)> Done)
 {
-	const FString Name = Record.Name;
-	Request(TEXT("PUT"), FString::Printf(TEXT("/internal/characters/%s/state"), *Record.Id), Record.StateJson(), true,
-		[Name](int32 Status, TSharedPtr<FJsonObject>)
+	FWriteQueue* Q = Writes.Find(CharacterId);
+	if (!Q || Q->Session < 0)
+	{
+		UE_LOG(LogNWBackend, Error, TEXT("%s %s: personagem sem sessão aberta; gravação não enviada"), *Verb, *Path);
+		Done(0, nullptr);
+		return;
+	}
+	Body->SetNumberField(TEXT("session"), double(Q->Session));
+	Body->SetNumberField(TEXT("seq"), double(++Q->NextSeq));
+	Body->SetStringField(TEXT("reason"), Reason.Left(80));
+	Q->Pending.Add({Verb, Path, Body, MoveTemp(Done)});
+	PumpWrites(CharacterId);
+}
+
+void UNWBackend::PumpWrites(const FString& CharacterId)
+{
+	FWriteQueue* Q = Writes.Find(CharacterId);
+	if (!Q || Q->bBusy || Q->Pending.Num() == 0)
+	{
+		return;
+	}
+	Q->bBusy = true;
+	const FPendingWrite& W = Q->Pending[0];
+	Request(W.Verb, W.Path, WriteJson(W.Body.ToSharedRef()), true, [Weak = TWeakObjectPtr<UNWBackend>(this), CharacterId](int32 Status, TSharedPtr<FJsonObject> Json)
+	{
+		UNWBackend* Self = Weak.Get();
+		FWriteQueue* Q = Self ? Self->Writes.Find(CharacterId) : nullptr;
+		if (!Q || Q->Pending.Num() == 0)
 		{
-			if (Status == 204)
+			return;
+		}
+		FPendingWrite& W = Q->Pending[0];
+		if ((Status == 0 || Status >= 500) && ++W.Tries < MaxWriteTries)
+		{
+			// Sem resposta: mesmo número de novo, esperando 1, 2, 4, 8, 16 s. A fila fica parada (ordem).
+			const float Wait = float(1 << (W.Tries - 1));
+			UE_LOG(LogNWBackend, Warning, TEXT("%s %s: nova tentativa em %.0f s"), *W.Verb, *W.Path, Wait);
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Weak, CharacterId](float)
+			{
+				if (UNWBackend* S = Weak.Get())
+				{
+					if (FWriteQueue* Q2 = S->Writes.Find(CharacterId))
+					{
+						Q2->bBusy = false;
+						S->PumpWrites(CharacterId);
+					}
+				}
+				return false;
+			}), Wait);
+			return;
+		}
+		FString Code;
+		if (Status == 409 && Json && Json->TryGetStringField(TEXT("error"), Code) && Code == TEXT("duplicate_write"))
+		{
+			Status = 208;   // já estava gravado
+		}
+		if (Status == 0 || Status >= 400)
+		{
+			UE_LOG(LogNWBackend, Error, TEXT("%s %s: gravação %s recusada ou perdida (%d)"), *W.Verb, *W.Path,
+				*FString::Printf(TEXT("%lld"), int64(W.Body->GetNumberField(TEXT("seq")))), Status);
+		}
+		TFunction<void(int32, TSharedPtr<FJsonObject>)> Done = MoveTemp(W.Done);
+		Q->Pending.RemoveAt(0);
+		Q->bBusy = false;
+		Done(Status, Json);
+		Self->PumpWrites(CharacterId);
+	});
+}
+
+void UNWBackend::SaveState(const FNWCharacterRecord& Record, const FString& Reason, TFunction<void(int32)> Done)
+{
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		if (Done)
+		{
+			Done(0);
+		}
+		return;
+	}
+	// Só os espaços que mudaram desde a última gravação (docs/arquitetura-servidor.md, "Banco"): nada mudou, a bolsa não
+	// vai. Cada espaço leva o valor final, então uma diferença calculada antes de outra gravação terminar continua certa.
+	if (const TArray<FNWItem>* Old = PersistedBag.Find(Record.Id))
+	{
+		auto Key = [](const FNWItem& I) { return (I.Container == ENWItemContainer::Equip ? 100000 : 0) + I.Slot; };
+		TMap<int32, const FNWItem*> Before, After;
+		for (const FNWItem& I : *Old)
+		{
+			Before.Add(Key(I), &I);
+		}
+		for (const FNWItem& I : Record.Items)
+		{
+			After.Add(Key(I), &I);
+		}
+		TArray<TSharedPtr<FJsonValue>> Patch;
+		auto Slot = [&Patch](int32 K, const FNWItem* Item)
+		{
+			TSharedRef<FJsonObject> P = MakeShared<FJsonObject>();
+			P->SetStringField(TEXT("container"), K >= 100000 ? TEXT("equip") : TEXT("bag"));
+			P->SetNumberField(TEXT("slot"), K % 100000);
+			if (Item)
+			{
+				TSharedRef<FJsonObject> I = MakeShared<FJsonObject>();
+				I->SetStringField(TEXT("item_id"), Item->ItemId.ToString());
+				I->SetNumberField(TEXT("quantity"), Item->Quantity);
+				I->SetNumberField(TEXT("gear_score"), Item->GearScore);
+				I->SetNumberField(TEXT("rarity"), Item->Rarity);
+				I->SetObjectField(TEXT("props"), NWItemProps::Write(*Item));
+				P->SetObjectField(TEXT("item"), I);
+			}
+			else
+			{
+				P->SetField(TEXT("item"), MakeShared<FJsonValueNull>());
+			}
+			Patch.Add(MakeShared<FJsonValueObject>(P));
+		};
+		for (const TPair<int32, const FNWItem*>& B : Before)
+		{
+			const FNWItem* const* A = After.Find(B.Key);
+			if (!A)
+			{
+				Slot(B.Key, nullptr);
+			}
+			else if (!(*A)->SameKind(*B.Value) || (*A)->Quantity != B.Value->Quantity)
+			{
+				Slot(B.Key, *A);
+			}
+		}
+		for (const TPair<int32, const FNWItem*>& A : After)
+		{
+			if (!Before.Contains(A.Key))
+			{
+				Slot(A.Key, A.Value);
+			}
+		}
+		Body->RemoveField(TEXT("inventory"));
+		if (Patch.Num() > 0)
+		{
+			Body->SetArrayField(TEXT("inventory_patch"), Patch);
+		}
+	}
+	const FString Name = Record.Name;
+	const FString Id = Record.Id;
+	const TArray<FNWItem> Sent = Record.Items;
+	Write(Record.Id, TEXT("PUT"), FString::Printf(TEXT("/internal/characters/%s/state"), *Record.Id), Body.ToSharedRef(), Reason,
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Name, Id, Sent, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject>)
+		{
+			if (Status == 204 || Status == 208)
 			{
 				UE_LOG(LogNWBackend, Verbose, TEXT("salvo: %s"), *Name);
+				if (Weak.IsValid())
+				{
+					Weak->PersistedBag.Add(Id, Sent);
+				}
+			}
+			if (Done)
+			{
+				Done(Status);
 			}
 		});
 }
@@ -352,10 +531,16 @@ void UNWBackend::ClaimNpcReward(const FNWCharacterRecord& Record, const FString&
 	Body->SetStringField(TEXT("npc"), Npc);
 	Body->SetStringField(TEXT("kind"), Kind);
 	Body->SetStringField(TEXT("period"), Period);
-	FString Out;
-	FJsonSerializer::Serialize(Body.ToSharedRef(), TJsonWriterFactory<>::Create(&Out));
-	Request(TEXT("POST"), FString::Printf(TEXT("/internal/characters/%s/npc-rewards"), *Record.Id), Out, true,
-		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject>) { Done(Status == 201, Status); });
+	Write(Record.Id, TEXT("POST"), FString::Printf(TEXT("/internal/characters/%s/npc-rewards"), *Record.Id), Body.ToSharedRef(),
+		FString::Printf(TEXT("npc_reward:%s:%s"), *Kind, *Npc),
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Record, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject>)
+		{
+			if ((Status == 201 || Status == 208) && Weak.IsValid())
+			{
+				Weak->RememberBag(Record);
+			}
+			Done(Status == 201 || Status == 208, Status == 208 ? 201 : Status);
+		});
 }
 
 namespace
@@ -375,6 +560,9 @@ namespace
 				Item.Slot = int32(I->GetNumberField(TEXT("slot")));
 				Item.GearScore = int32(I->GetNumberField(TEXT("gear_score")));
 				Item.Rarity = uint8(I->GetNumberField(TEXT("rarity")));
+				int32 Tab = 0;
+				I->TryGetNumberField(TEXT("tab"), Tab);
+				Item.Tab = uint8(FMath::Clamp(Tab, 0, 4));
 				const TSharedPtr<FJsonObject>* Props = nullptr;
 				if (I->TryGetObjectField(TEXT("props"), Props))
 				{
@@ -399,18 +587,27 @@ void UNWBackend::IssueSerial(const FString& CharacterId, TFunction<void(bool, co
 }
 
 void UNWBackend::GetStorage(const FString& CharacterId, const FString& Location,
-	TFunction<void(bool, int64, const TArray<FNWItem>&)> Done)
+	TFunction<void(bool, int64, const TArray<FNWItem>&, const TArray<FString>&)> Done)
 {
 	Request(TEXT("GET"), FString::Printf(TEXT("/internal/characters/%s/storage/%s"), *CharacterId, *Location), FString(), true,
 		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
 		{
 			const bool bOk = Status == 200 && Json;
-			Done(bOk, bOk ? int64(Json->GetNumberField(TEXT("version"))) : 0, StorageItemsFrom(Json));
+			TArray<FString> Names;
+			const TArray<TSharedPtr<FJsonValue>>* Arr = nullptr;
+			if (bOk && Json->TryGetArrayField(TEXT("tab_names"), Arr))
+			{
+				for (const TSharedPtr<FJsonValue>& V : *Arr)
+				{
+					Names.Add(V->AsString());
+				}
+			}
+			Done(bOk, bOk ? int64(Json->GetNumberField(TEXT("version"))) : 0, StorageItemsFrom(Json), Names);
 		});
 }
 
 void UNWBackend::PutStorage(const FNWCharacterRecord& Record, const FString& Location, int64 Version, const TArray<FNWItem>& Items,
-	TFunction<void(int32, int64)> Done)
+	const TArray<FString>& TabNames, float Capacity, const FString& Reason, TFunction<void(int32, int64)> Done)
 {
 	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
 	if (!Body)
@@ -429,16 +626,299 @@ void UNWBackend::PutStorage(const FNWCharacterRecord& Record, const FString& Loc
 		I->SetNumberField(TEXT("gear_score"), Item.GearScore);
 		I->SetNumberField(TEXT("rarity"), Item.Rarity);
 		I->SetObjectField(TEXT("props"), NWItemProps::Write(Item));
+		I->SetNumberField(TEXT("tab"), Item.Tab);
+		const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
+		I->SetNumberField(TEXT("weight"), D ? D->Weight : 0.0);   // peso unitário: o nw-core soma para o limite do mercado
 		Arr.Add(MakeShared<FJsonValueObject>(I));
 	}
 	Body->SetArrayField(TEXT("items"), Arr);
-	FString Out;
-	FJsonSerializer::Serialize(Body.ToSharedRef(), TJsonWriterFactory<>::Create(&Out));
-	Request(TEXT("PUT"), FString::Printf(TEXT("/internal/characters/%s/storage/%s"), *Record.Id, *Location), Out, true,
-		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+	TArray<TSharedPtr<FJsonValue>> Names;
+	for (const FString& N : TabNames)
+	{
+		Names.Add(MakeShared<FJsonValueString>(N));
+	}
+	Body->SetArrayField(TEXT("tab_names"), Names);
+	Body->SetNumberField(TEXT("capacity"), Capacity);
+	Write(Record.Id, TEXT("PUT"), FString::Printf(TEXT("/internal/characters/%s/storage/%s"), *Record.Id, *Location), Body.ToSharedRef(),
+		Reason, [Weak = TWeakObjectPtr<UNWBackend>(this), Record, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
 		{
+			if ((Status == 200 || Status == 208) && Weak.IsValid())
+			{
+				Weak->RememberBag(Record);
+			}
 			Done(Status, Status == 200 && Json ? int64(Json->GetNumberField(TEXT("version"))) : 0);
 		});
+}
+
+namespace
+{
+	/** Item do armazém e do chão no formato do nw-core (com o peso unitário do catálogo). */
+	TSharedRef<FJsonObject> PlacedItemJson(const FNWItem& Item)
+	{
+		TSharedRef<FJsonObject> I = MakeShared<FJsonObject>();
+		I->SetStringField(TEXT("item_id"), Item.ItemId.ToString());
+		I->SetNumberField(TEXT("quantity"), Item.Quantity);
+		I->SetNumberField(TEXT("slot"), Item.Slot);
+		I->SetNumberField(TEXT("gear_score"), Item.GearScore);
+		I->SetNumberField(TEXT("rarity"), Item.Rarity);
+		I->SetObjectField(TEXT("props"), NWItemProps::Write(Item));
+		I->SetNumberField(TEXT("tab"), Item.Tab);
+		const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
+		I->SetNumberField(TEXT("weight"), D ? D->Weight : 0.0);
+		return I;
+	}
+
+	TArray<TSharedPtr<FJsonValue>> PlacedItemsJson(const TArray<FNWItem>& Items)
+	{
+		TArray<TSharedPtr<FJsonValue>> Arr;
+		for (const FNWItem& Item : Items)
+		{
+			Arr.Add(MakeShared<FJsonValueObject>(PlacedItemJson(Item)));
+		}
+		return Arr;
+	}
+
+	UNWBackend::FGroundBag GroundBagFrom(const TSharedPtr<FJsonObject>& J)
+	{
+		UNWBackend::FGroundBag Bag;
+		if (!J)
+		{
+			return Bag;
+		}
+		J->TryGetStringField(TEXT("id"), Bag.Id);
+		J->TryGetStringField(TEXT("map"), Bag.Map);
+		const TSharedPtr<FJsonObject>* P = nullptr;
+		if (J->TryGetObjectField(TEXT("position"), P))
+		{
+			Bag.Position = FVector((*P)->GetNumberField(TEXT("x")), (*P)->GetNumberField(TEXT("y")), (*P)->GetNumberField(TEXT("z")));
+		}
+		FString Expires;
+		FDateTime When;
+		if (J->TryGetStringField(TEXT("expires_at"), Expires) && FDateTime::ParseIso8601(*Expires, When))
+		{
+			Bag.ExpiresIn = (When - FDateTime::UtcNow()).GetTotalSeconds();
+		}
+		Bag.Items = StorageItemsFrom(J);
+		return Bag;
+	}
+}
+
+void UNWBackend::DropGround(const FNWCharacterRecord& Record, const FString& Map, const FVector& Position, int32 TtlSeconds,
+	const TArray<FNWItem>& Items, const FString& Reason, TFunction<void(int32, const FGroundBag&)> Done)
+{
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		Done(0, FGroundBag());
+		return;
+	}
+	Body->SetStringField(TEXT("map"), Map);
+	TSharedRef<FJsonObject> P = MakeShared<FJsonObject>();
+	P->SetNumberField(TEXT("x"), Position.X);
+	P->SetNumberField(TEXT("y"), Position.Y);
+	P->SetNumberField(TEXT("z"), Position.Z);
+	Body->SetObjectField(TEXT("position"), P);
+	Body->SetNumberField(TEXT("ttl_seconds"), TtlSeconds);
+	Body->SetArrayField(TEXT("items"), PlacedItemsJson(Items));
+	Write(Record.Id, TEXT("POST"), FString::Printf(TEXT("/internal/characters/%s/ground"), *Record.Id), Body.ToSharedRef(), Reason,
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Record, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			if ((Status == 201 || Status == 208) && Weak.IsValid())
+			{
+				Weak->RememberBag(Record);
+			}
+			Done(Status, Status == 201 ? GroundBagFrom(Json) : FGroundBag());
+		});
+}
+
+void UNWBackend::TakeGround(const FNWCharacterRecord& Record, const FString& BagId, const TArray<FNWItem>& Remaining, const FString& Reason,
+	TFunction<void(int32)> Done)
+{
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		Done(0);
+		return;
+	}
+	Body->SetStringField(TEXT("character_id"), Record.Id);
+	Body->SetArrayField(TEXT("items"), PlacedItemsJson(Remaining));
+	Write(Record.Id, TEXT("POST"), FString::Printf(TEXT("/internal/ground/%s/take"), *BagId), Body.ToSharedRef(), Reason,
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Record, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject>)
+		{
+			if ((Status == 200 || Status == 208) && Weak.IsValid())
+			{
+				Weak->RememberBag(Record);
+			}
+			Done(Status);
+		});
+}
+
+void UNWBackend::ListGround(const FString& CharacterId, TFunction<void(bool, const TArray<FGroundBag>&)> Done)
+{
+	Request(TEXT("GET"), FString::Printf(TEXT("/internal/characters/%s/ground"), *CharacterId), FString(), true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			TArray<FGroundBag> Bags;
+			// A rota devolve uma lista: vem em "__array" (ParseJson).
+			const TArray<TSharedPtr<FJsonValue>>* Arr = nullptr;
+			if (Status == 200 && Json && Json->TryGetArrayField(TEXT("__array"), Arr))
+			{
+				for (const TSharedPtr<FJsonValue>& V : *Arr)
+				{
+					Bags.Add(GroundBagFrom(V->AsObject()));
+				}
+			}
+			Done(Status == 200, Bags);
+		});
+}
+
+namespace
+{
+	FString ErrorCode(const TSharedPtr<FJsonObject>& Json)
+	{
+		FString Code;
+		if (Json)
+		{
+			Json->TryGetStringField(TEXT("error"), Code);
+		}
+		return Code;
+	}
+
+	UNWBackend::FMarketOrder MarketOrderFrom(const TSharedPtr<FJsonObject>& J)
+	{
+		UNWBackend::FMarketOrder O;
+		J->TryGetStringField(TEXT("id"), O.Id);
+		O.bSell = J->GetStringField(TEXT("kind")) == TEXT("sell");
+		J->TryGetStringField(TEXT("character_id"), O.CharacterId);
+		O.Item.ItemId = FName(*J->GetStringField(TEXT("item_id")));
+		O.Item.Quantity = int32(J->GetNumberField(TEXT("quantity")));
+		O.Item.GearScore = int32(J->GetNumberField(TEXT("gear_score")));
+		O.Item.Rarity = uint8(J->GetNumberField(TEXT("rarity")));
+		const TSharedPtr<FJsonObject>* Props = nullptr;
+		if (J->TryGetObjectField(TEXT("props"), Props))
+		{
+			NWItemProps::Read(O.Item, *Props);
+		}
+		O.UnitPrice = int64(J->GetNumberField(TEXT("unit_price")));
+		J->TryGetStringField(TEXT("seller"), O.Seller);
+		FString Expires;
+		FDateTime When;
+		if (J->TryGetStringField(TEXT("expires_at"), Expires) && FDateTime::ParseIso8601(*Expires, When))
+		{
+			O.ExpiresIn = (When - FDateTime::UtcNow()).GetTotalSeconds();
+		}
+		return O;
+	}
+}
+
+void UNWBackend::ListOrders(TFunction<void(bool, const TArray<FMarketOrder>&)> Done)
+{
+	Request(TEXT("GET"), TEXT("/internal/market/global/orders"), FString(), true, [Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+	{
+		TArray<FMarketOrder> Orders;
+		const TArray<TSharedPtr<FJsonValue>>* Arr = nullptr;
+		if (Status == 200 && Json && Json->TryGetArrayField(TEXT("__array"), Arr))
+		{
+			for (const TSharedPtr<FJsonValue>& V : *Arr)
+			{
+				Orders.Add(MarketOrderFrom(V->AsObject()));
+			}
+		}
+		Done(Status == 200, Orders);
+	});
+}
+
+void UNWBackend::CreateOrder(const FNWCharacterRecord& Record, bool bSell, const FNWItem& Item, int64 UnitPrice, int32 DurationHours,
+	const FString& Reason, TFunction<void(int32, const FString&)> Done)
+{
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		Done(0, FString());
+		return;
+	}
+	Body->SetStringField(TEXT("character_id"), Record.Id);
+	Body->SetStringField(TEXT("kind"), bSell ? TEXT("sell") : TEXT("buy"));
+	Body->SetStringField(TEXT("item_id"), Item.ItemId.ToString());
+	Body->SetNumberField(TEXT("quantity"), Item.Quantity);
+	Body->SetNumberField(TEXT("gear_score"), Item.GearScore);
+	Body->SetNumberField(TEXT("rarity"), Item.Rarity);
+	Body->SetObjectField(TEXT("props"), NWItemProps::Write(Item));
+	Body->SetNumberField(TEXT("unit_price"), double(UnitPrice));
+	Body->SetNumberField(TEXT("fee"), 0);   // sem taxas (dono, 2026-10-14)
+	Body->SetNumberField(TEXT("duration_hours"), DurationHours);
+	const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
+	Body->SetNumberField(TEXT("weight"), D ? D->Weight : 0.0);
+	Write(Record.Id, TEXT("POST"), TEXT("/internal/market/global/orders"), Body.ToSharedRef(), Reason,
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Record, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			if ((Status == 201 || Status == 208) && Weak.IsValid())
+			{
+				Weak->RememberBag(Record);
+			}
+			Done(Status, ErrorCode(Json));
+		});
+}
+
+void UNWBackend::FillOrder(const FNWCharacterRecord& Record, const FString& OrderId, int32 Quantity, const FNWItem* Delivered, const FString& Reason,
+	TFunction<void(int32, const FString&)> Done)
+{
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		Done(0, FString());
+		return;
+	}
+	Body->SetStringField(TEXT("character_id"), Record.Id);
+	Body->SetNumberField(TEXT("quantity"), Quantity);
+	if (Delivered)
+	{
+		Body->SetNumberField(TEXT("gear_score"), Delivered->GearScore);
+		Body->SetNumberField(TEXT("rarity"), Delivered->Rarity);
+		Body->SetObjectField(TEXT("props"), NWItemProps::Write(*Delivered));
+	}
+	Write(Record.Id, TEXT("POST"), FString::Printf(TEXT("/internal/market/orders/%s/fill"), *OrderId), Body.ToSharedRef(), Reason,
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Record, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			if ((Status == 200 || Status == 208) && Weak.IsValid())
+			{
+				Weak->RememberBag(Record);
+			}
+			Done(Status, ErrorCode(Json));
+		});
+}
+
+void UNWBackend::CancelOrder(const FString& CharacterId, const FString& OrderId, TFunction<void(int32)> Done)
+{
+	TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("character_id"), CharacterId);
+	Request(TEXT("POST"), FString::Printf(TEXT("/internal/market/orders/%s/cancel"), *OrderId), WriteJson(Body), true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject>) { Done(Status); });
+}
+
+void UNWBackend::PendingCredits(const FString& CharacterId, TFunction<void(bool, int64, const FString&)> Done)
+{
+	Request(TEXT("GET"), FString::Printf(TEXT("/internal/characters/%s/credits"), *CharacterId), FString(), true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			FString Until;
+			if (Json)
+			{
+				Json->TryGetStringField(TEXT("until"), Until);
+			}
+			Done(Status == 200 && Json, Status == 200 && Json ? int64(Json->GetNumberField(TEXT("amount"))) : 0, Until);
+		});
+}
+
+void UNWBackend::ClaimCredits(const FNWCharacterRecord& Record, const FString& Until, TFunction<void(int32, int64)> Done)
+{
+	TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	if (!Until.IsEmpty())
+	{
+		Body->SetStringField(TEXT("until"), Until);
+	}
+	Write(Record.Id, TEXT("POST"), FString::Printf(TEXT("/internal/characters/%s/credits/claim"), *Record.Id), Body, TEXT("market_credit"),
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json) { Done(Status, Status == 200 && Json ? int64(Json->GetNumberField(TEXT("amount"))) : 0); });
 }
 
 // ---------------------------------------------------------------- cliente

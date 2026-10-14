@@ -264,6 +264,7 @@ void UNWProgressionComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, ShopBoughtIds, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, ShopBoughtQty, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(UNWProgressionComponent, bFromBackend, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(UNWProgressionComponent, Cities, COND_OwnerOnly);
 }
 
 int32 UNWProgressionComponent::MaxLevel() const
@@ -367,6 +368,14 @@ void UNWProgressionComponent::Load(const TSharedPtr<FJsonObject>& Json)
 			Crafted.AddUnique(FName(*V->AsString()));
 		}
 	}
+	Cities.Reset();
+	if (Json->TryGetArrayField(TEXT("cities"), Done))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *Done)
+		{
+			Cities.AddUnique(V->AsString());
+		}
+	}
 	const TSharedPtr<FJsonObject>* Shop = nullptr;
 	ShopBoughtIds.Reset();
 	ShopBoughtQty.Reset();
@@ -435,6 +444,12 @@ TSharedRef<FJsonObject> UNWProgressionComponent::Save() const
 		Done.Add(MakeShared<FJsonValueString>(R.ToString()));
 	}
 	J->SetArrayField(TEXT("crafted"), Done);
+	TArray<TSharedPtr<FJsonValue>> Known;
+	for (const FString& City : Cities)
+	{
+		Known.Add(MakeShared<FJsonValueString>(City));
+	}
+	J->SetArrayField(TEXT("cities"), Known);
 	TSharedRef<FJsonObject> Shop = MakeShared<FJsonObject>();
 	Shop->SetStringField(TEXT("period"), ShopPeriod);
 	TSharedRef<FJsonObject> Bought = MakeShared<FJsonObject>();
@@ -486,6 +501,17 @@ void UNWProgressionComponent::MarkCrafted(FName Recipe)
 		Crafted.Add(Recipe);
 		GetOwner()->ForceNetUpdate();
 	}
+}
+
+bool UNWProgressionComponent::DiscoverCity(const FString& City)
+{
+	if (GetOwnerRole() != ROLE_Authority || City.IsEmpty() || Cities.Contains(City))
+	{
+		return false;
+	}
+	Cities.Add(City);
+	GetOwner()->ForceNetUpdate();
+	return true;
 }
 
 void UNWProgressionComponent::AddXp(int64 Amount)

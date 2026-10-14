@@ -8,6 +8,7 @@
 #include "NWHUD.h"
 #include "NWItemRules.h"
 #include "NWLootBag.h"
+#include "NWOps.h"
 #include "NWPlayerController.h"
 #include "NWText.h"
 #include "Internationalization/Internationalization.h"
@@ -297,6 +298,11 @@ bool UNWInventoryComponent::CanEquip(const FNWItem& Item, int32 EquipSlot) const
 
 void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromContainer, int32 FromSlot, ENWItemContainer ToContainer, int32 ToSlot)
 {
+	TWeakObjectPtr<UNWInventoryComponent> Self(this);
+	if (NWOps::Defer(Cast<ANWCharacter>(GetOwner()), [Self, FromContainer, FromSlot, ToContainer, ToSlot]() { if (Self.IsValid()) { Self->ServerMove_Implementation(FromContainer, FromSlot, ToContainer, ToSlot); } }))
+	{
+		return;   // uma operação está gravando: entra depois dela
+	}
 	const int32 ToMax = ToContainer == ENWItemContainer::Bag ? BagSize : NWEquip::Count;
 	FNWItem* From = Find(FromContainer, FromSlot);
 	if (!From || ToSlot < 0 || ToSlot >= ToMax || (FromContainer == ToContainer && FromSlot == ToSlot))
@@ -347,6 +353,11 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 
 void UNWInventoryComponent::ServerUseBestPotion_Implementation()
 {
+	TWeakObjectPtr<UNWInventoryComponent> Self(this);
+	if (NWOps::Defer(Cast<ANWCharacter>(GetOwner()), [Self]() { if (Self.IsValid()) { Self->ServerUseBestPotion_Implementation(); } }))
+	{
+		return;   // uma operação está gravando: entra depois dela
+	}
 	const int32 Slot = BestPotionSlot();
 	if (Slot != INDEX_NONE)
 	{
@@ -356,6 +367,11 @@ void UNWInventoryComponent::ServerUseBestPotion_Implementation()
 
 void UNWInventoryComponent::ServerUse_Implementation(int32 BagSlot)
 {
+	TWeakObjectPtr<UNWInventoryComponent> Self(this);
+	if (NWOps::Defer(Cast<ANWCharacter>(GetOwner()), [Self, BagSlot]() { if (Self.IsValid()) { Self->ServerUse_Implementation(BagSlot); } }))
+	{
+		return;   // uma operação está gravando: entra depois dela
+	}
 	FNWItem* I = Find(ENWItemContainer::Bag, BagSlot);
 	const FNWItemDef* D = I ? FNWItemCatalog::Get().Find(I->ItemId) : nullptr;
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
@@ -419,6 +435,14 @@ FString UNWInventoryComponent::Unsocket(ENWItemContainer Container, int32 Slot)
 
 void UNWInventoryComponent::ServerSocket_Implementation(int32 GemBagSlot, ENWItemContainer Container, int32 Slot)
 {
+	TWeakObjectPtr<UNWInventoryComponent> Self(this);
+	// Operação gravada (NWOps): a mesma função roda dentro dela e só vale depois de gravar.
+	if (ANWCharacter* Owner = Cast<ANWCharacter>(GetOwner()); Owner && !NWOps::IsApplying(Owner) && NWOps::Persists(Owner))
+	{
+		NWOps::Run(Owner, TEXT("socket"), [Self, GemBagSlot, Container, Slot]() { if (Self.IsValid()) { Self->ServerSocket_Implementation(GemBagSlot, Container, Slot); } return Self.IsValid(); },
+			NWOps::CommitState(Owner, TEXT("socket")));
+		return;
+	}
 	const FNWItem* GemStack = At(ENWItemContainer::Bag, GemBagSlot);
 	const FNWItem* Item = At(Container, Slot);
 	const FNWItemDef* D = Item ? FNWItemCatalog::Get().Find(Item->ItemId) : nullptr;
@@ -451,6 +475,14 @@ void UNWInventoryComponent::ServerSocket_Implementation(int32 GemBagSlot, ENWIte
 
 void UNWInventoryComponent::ServerUnsocket_Implementation(ENWItemContainer Container, int32 Slot)
 {
+	TWeakObjectPtr<UNWInventoryComponent> Self(this);
+	// Operação gravada (NWOps): a mesma função roda dentro dela e só vale depois de gravar.
+	if (ANWCharacter* Owner = Cast<ANWCharacter>(GetOwner()); Owner && !NWOps::IsApplying(Owner) && NWOps::Persists(Owner))
+	{
+		NWOps::Run(Owner, TEXT("unsocket"), [Self, Container, Slot]() { if (Self.IsValid()) { Self->ServerUnsocket_Implementation(Container, Slot); } return Self.IsValid(); },
+			NWOps::CommitState(Owner, TEXT("unsocket")));
+		return;
+	}
 	const FString Err = Unsocket(Container, Slot);
 	if (!Err.IsEmpty())
 	{
@@ -462,27 +494,42 @@ void UNWInventoryComponent::ServerUnsocket_Implementation(ENWItemContainer Conta
 
 void UNWInventoryComponent::ServerDrop_Implementation(int32 BagSlot, int32 Quantity)
 {
-	const FNWItem* Item = At(ENWItemContainer::Bag, BagSlot);
-	if (!Item || Quantity <= 0)
-	{
-		return;
-	}
-	FNWItem Part = *Item;
-	Part.Quantity = FMath::Min(Quantity, Item->Quantity);
-	FString Error;
-	if (!ANWLootBag::Drop(Cast<ANWCharacter>(GetOwner()), {Part}, true, &Error))
-	{
-		if (!Error.IsEmpty())
+	// Operação gravada: a bolsa sem os itens e o saco no chão numa transação (NWOps::Overflow → ground).
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	TWeakObjectPtr<UNWInventoryComponent> Self(this);
+	NWOps::Run(Me, TEXT("drop"),
+		[Self, Me, BagSlot, Quantity]()
 		{
-			Warn(*Error);
-		}
-		return;
-	}
-	TakeAt(BagSlot, Part.Quantity);
+			const FNWItem* Item = Self.IsValid() ? Self->At(ENWItemContainer::Bag, BagSlot) : nullptr;
+			if (!Item || Quantity <= 0)
+			{
+				return false;
+			}
+			FNWItem Part = *Item;
+			Part.Quantity = FMath::Min(Quantity, Item->Quantity);
+			FString Error;
+			if (!ANWLootBag::CheckLimit(Me, {Part}, &Error))
+			{
+				Self->Warn(*Error);
+				return false;
+			}
+			Self->TakeAt(BagSlot, Part.Quantity);
+			NWOps::Overflow(Me, {Part});
+			return true;
+		},
+		[](const FNWCharacterRecord&, const FNWOpState&, TFunction<void(NWOps::EResult)> Fin) { Fin(NWOps::EResult::Ok); });
 }
 
 void UNWInventoryComponent::ServerDestroy_Implementation(int32 BagSlot, int32 Quantity)
 {
+	TWeakObjectPtr<UNWInventoryComponent> Self(this);
+	// Operação gravada (NWOps): a mesma função roda dentro dela e só vale depois de gravar.
+	if (ANWCharacter* Owner = Cast<ANWCharacter>(GetOwner()); Owner && !NWOps::IsApplying(Owner) && NWOps::Persists(Owner))
+	{
+		NWOps::Run(Owner, TEXT("destroy"), [Self, BagSlot, Quantity]() { if (Self.IsValid()) { Self->ServerDestroy_Implementation(BagSlot, Quantity); } return Self.IsValid(); },
+			NWOps::CommitState(Owner, TEXT("destroy")));
+		return;
+	}
 	FNWItem* Item = Items.FindByPredicate([&](const FNWItem& X) { return X.Container == ENWItemContainer::Bag && X.Slot == BagSlot; });
 	if (!Item || Quantity <= 0)
 	{
@@ -501,6 +548,24 @@ void UNWInventoryComponent::ServerDestroy_Implementation(int32 BagSlot, int32 Qu
 
 void UNWInventoryComponent::Grant(const TArray<FNWItem>& Gained, int64 GainedCoins)
 {
+	// Coleta, saque de criatura, F10: operação gravada (NWOps, só os espaços que mudaram); o aviso de saque e o item
+	// aparecem depois de gravar. Dentro de outra operação (fabricar, refinar) ou sem nw-core, entra na hora.
+	ANWCharacter* Owner = Cast<ANWCharacter>(GetOwner());
+	if (Owner && !NWOps::IsApplying(Owner) && NWOps::Persists(Owner))
+	{
+		TWeakObjectPtr<UNWInventoryComponent> Self(this);
+		const FString Reason = NWOps::CurrentReason(TEXT("grant"));
+		NWOps::Run(Owner, Reason, [Self, Gained, GainedCoins]() { if (Self.IsValid()) { Self->GrantNow(Gained, GainedCoins); } return Self.IsValid(); },
+			NWOps::CommitState(Owner, Reason));
+		return;
+	}
+	GrantNow(Gained, GainedCoins);
+}
+
+void UNWInventoryComponent::GrantNow(const TArray<FNWItem>& Gained, int64 GainedCoins)
+{
+	ANWCharacter* Owner = Cast<ANWCharacter>(GetOwner());
+	TWeakObjectPtr<UNWInventoryComponent> Self(this);
 	TArray<FNWItem> Kept, Over;
 	for (const FNWItem& Item : Gained)
 	{
@@ -520,15 +585,18 @@ void UNWInventoryComponent::Grant(const TArray<FNWItem>& Gained, int64 GainedCoi
 	}
 	const APawn* Pawn = Cast<APawn>(GetOwner());
 	ANWPlayerController* PC = Pawn ? Cast<ANWPlayerController>(Pawn->GetController()) : nullptr;
-	// Bolsa cheia: o resto vai para o chão (não cancela a fabricação nem a coleta), sem o limite de peso no chão.
-	if (Over.Num() > 0 && ANWLootBag::Drop(Cast<ANWCharacter>(GetOwner()), Over, false) && PC)
+	// Bolsa cheia: o resto vai para o chão (não cancela a fabricação nem a coleta), sem o limite de peso no chão. Dentro
+	// de uma operação, o saco é gravado junto com ela (NWOps::Overflow).
+	if (Over.Num() > 0)
 	{
-		PC->Warning(NWText::Key(TEXT("nw.inv.bag_full_ground")));
+		NWOps::Overflow(Owner, Over);
+		TWeakObjectPtr<ANWPlayerController> WeakPC(PC);
+		NWOps::Hold(Owner, [WeakPC]() { if (WeakPC.IsValid()) { WeakPC->Warning(NWText::Key(TEXT("nw.inv.bag_full_ground"))); } });
 	}
 	AddCoins(GainedCoins);
 	if (Kept.Num() > 0 || GainedCoins > 0)
 	{
-		ClientLoot(Kept, GainedCoins);
+		NWOps::Hold(Owner, [Self, Kept, GainedCoins]() { if (Self.IsValid()) { Self->ClientLoot(Kept, GainedCoins); } });
 	}
 }
 

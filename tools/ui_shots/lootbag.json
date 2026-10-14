@@ -1,0 +1,15 @@
+{
+ "screen": "inventory",
+ "coins": 1234567,
+ "items": [
+  ["1hSwordT3", 1, 310, 2], ["1hHatchetT3", 1, 300, 3], ["PotionHealthT5", 12], ["OreT1", 240], ["WoodT1", 180],
+  ["FiberT1", 95], ["StoneT1", 300]
+ ],
+ "equip": [["1hSwordT2", 0, 200, 0], ["1hShieldAT2", 2, 200, 0]],
+ "storage": [["OreT1", 120], ["IngotT2", 32], ["2hPickT3", 1, 280, 1], ["PotionHealthT5", 3], ["WoodT2", 50]],
+ "shots": [
+  {"name": "bolsa_chao", "loot": true, "mouse": [960, 1060]},
+  {"name": "bolsa_chao_dividir", "loot": true, "popup": {"kind": "split", "from": "storage", "item": "OreT1"}, "mouse": [1100, 700]},
+  {"name": "bolsa_chao_arrasto", "loot": true, "drag": {"from": "storage", "item": "IngotT2"}, "mouse": [800, 500]}
+ ]
+}

@@ -47,7 +47,7 @@ tools/rede.sh up
 ```
 
 `build` compila o servidor na engine do código-fonte, cozinha Guardaventos e refaz as imagens (pesado, editor
-fechado). `up` sobe Postgres, nw-core e jogo, e o túnel (<NW_REDE_HOST> + rede privada). `tools/rede.sh invite` gera convites de conta;
+fechado). `up` sobe Postgres, nw-core e jogo, e o túnel (<NW_REDE_HOST> + rede privada). `tools/rede.sh invite` gera convites de conta; `tools/rede.sh admin <conta>` libera o F10 só para essa conta (sem admin, o servidor recusa e o menu não abre);
 `tools/rede.sh down` para tudo (o banco fica); `tools/rede.sh logs` mostra os logs.
 
 ## Cliente Windows (na máquina Windows do dono)

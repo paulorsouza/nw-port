@@ -74,7 +74,7 @@ ANWCharacter* UNWBrainComponent::FindTarget(float& OutDist) const
 	}
 	for (TActorIterator<ANWCharacter> It(GetWorld()); It; ++It)
 	{
-		if (*It != Me && It->IsPlayerControlled() && It->Combat->State != ENWCombatState::Dead)
+		if (*It != Me && It->IsPlayerLike() && It->Combat->State != ENWCombatState::Dead)
 		{
 			const float D = FVector::Dist2D(It->GetActorLocation(), Me->GetActorLocation());
 			if (D < OutDist)

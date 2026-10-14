@@ -1,4 +1,4 @@
-//! Casas: compra e armazém da casa (local `house:<id>`). Custo e standing mínimo vêm de
+//! Casas: compra. Os baús da casa somam capacidade ao armazém compartilhado (migration 0010; o servidor de jogo soma). Custo e standing mínimo vêm de
 //! `javelindata_housetypes`, conferidos pelo servidor de jogo. Decoração e interior ficam para depois.
 
 use axum::extract::{Path, State};
@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::auth::GameServer;
 use crate::error::{is_unique_violation, ApiError, ApiResult};
-use crate::routes::storage::{is_territory, lock_storage, Snapshot};
+use crate::routes::storage::{is_territory, Snapshot};
 use crate::AppState;
 
 #[derive(Serialize, Debug, sqlx::FromRow)]
@@ -77,7 +77,6 @@ pub async fn buy(
             e.into()
         }
     })?;
-    lock_storage(&mut tx, id, &format!("house:{}", house.id)).await?;
     tx.commit().await?;
     Ok((StatusCode::CREATED, Json(house)))
 }

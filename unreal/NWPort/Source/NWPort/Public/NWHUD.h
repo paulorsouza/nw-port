@@ -53,8 +53,11 @@ public:
 	// ANWPlayerController só pergunta por estas quatro funções, sem conhecer cada tela.
 	FNWRefiningMenu Refining;
 	FNWShopMenu Shop;
+	void OpenMarket(class ANWCharacter* Who, class ANWStation* Station);
 	void OpenRefining(class ANWCharacter* Who, class ANWStation* Station);
 	void OpenStorage(class ANWCharacter* Who, class ANWStation* Station);
+	/** Bolsa no chão: inventário com a janela "Itens Derrubados" (catcontainer no modo bolsa de saque). */
+	void OpenLootBag(class ANWCharacter* Who, class ANWLootBag* Bag);
 	void OpenShop(class ANWCharacter* Who, const FString& ShopId, const FString& Title);
 	bool IsStationMenuOpen() const { return Refining.IsOpen() || Shop.IsOpen(); }
 	void CloseStationMenus() { Refining.Close(); Shop.Close(); }

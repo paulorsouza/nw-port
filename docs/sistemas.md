@@ -183,11 +183,17 @@ dono. O que falta na tela: `docs/hud/README.md`.
 - Bolsa cheia: o que chega (fabricar, refinar, coletar, F10) vai para o chão numa bolsa de saque, com aviso; não
   cancela nada (`UNWInventoryComponent::Grant`).
 - Soltar no chão (arrastar para "Soltar itens" ou Ctrl + clique > Soltar) não destrói: cria uma bolsa de saque aos pés
-  (`ANWLootBag`, saco `arc_sacks` do jogo). Só quem soltou vê e pega: [E] Pegar tudo (`ServerLootTake`; o que não
-  couber fica). Some em 2 minutos. Até 1000 kg no chão por jogador (o excesso de bolsa cheia não conta). Não vai para o
-  nw-core: some se o servidor fechar.
-- Tela do jogo para a bolsa: `catcontainer` no modo bolsa de saque (`LootBagLifeTimeWarningText`, `@interact_takeAll`);
-  o port por enquanto só tem o Pegar tudo.
+  (`ANWLootBag`, saco `arc_sacks` do jogo). Só quem soltou vê e pega. Some em 3 minutos (o `@inv_discard_life_warning`
+  do jogo diz 3; era 2 até 2026-10-14). Até 1000 kg no chão por jogador (o excesso de bolsa cheia não conta). Gravado
+  no nw-core (etapa 2 das gravações, `docs/plano-servidor.md`): volta no mesmo lugar se o jogador sair e entrar ou o
+  servidor reiniciar antes de vencer.
+- Tela da bolsa (`catcontainer` no modo bolsa de saque): [E] Abrir abre o inventário com a janela "Itens Derrubados"
+  no lugar do armazém (`FNWInventoryMenu::OpenLootBag`): ícone `icon_dropped_items`, aviso de tempo de vida e "N itens"
+  no lugar da busca e da ordenação, peso da bolsa / 1000 kg. Pega item por item (arrastar para o inventário, clique
+  direito, Ctrl + clique > Pegar com quantidade; `ServerLootTakeItem`), a seção inteira ou Pegar Tudo
+  (`ServerLootTake`); não guarda na bolsa do chão. Bolsa vazia ou expirada: fica só o inventário. Captura:
+  `tools/ui_shots/lootbag.json`. Diferença do jogo: a lista mantém as seções e a largura do armazém (no jogo a janela
+  é estreita, 340, sem seções).
 
 ## 3. Armazém
 
@@ -198,12 +204,21 @@ Jogo: slice `settlement_storage_geo_master` (`@ui_global_storage`). Crescimento 
 Capacidades (`javelindata_encumbrancelimits`, décimos; `docs/analise-re/hud-inventario.md`): `StorageSmall` 150,
 `StorageMedium` 1000, `StorageLarge` 1500, `StorageXLarge` 2000 kg. Tela do jogo: `container/catcontainer.lua`.
 
-Port (esteira 4):
+Port (esteira 4; armazém compartilhado decidido pelo dono em 2026-10-14):
 - 2 despensas de Queda Eterna, lidas do slice (`settlement_storage_geo_master`, nome `ui_global_storage`), entram
   como estações do tipo `storage` (`make_crafting.py`). O cartão é "[E] Abrir".
-- Servidor (`UNWInteractorComponent`, `ServerStorageOpen/Move/Close`):
-  - Um armazém por personagem e cidade: `settlement:queda_eterna`.
-  - Capacidade de 1000 kg por enquanto (`StorageMedium`; o acréscimo por standing é a pergunta `sistemas-002`).
+- Um armazém só por personagem (`shared` no nw-core, migration 0010), o mesmo em qualquer despensa de qualquer cidade.
+  Os itens que estavam em `settlement:*` e `house:*` foram juntados nele.
+- Capacidade = soma das fontes, sem base: 1000 kg por cidade conhecida (`tools/itens.json` `armazem_por_cidade`); os
+  baús das casas e o nível da cidade entram como fontes quando existirem (`UNWInteractorComponent::StorageCapacityNow`).
+  O servidor manda a capacidade ao nw-core no salvamento do personagem e em toda gravação do armazém.
+- Cidade conhecida: entrar na área da cidade (centro dos NPCs e estações do `ANWNpcField`, raio até o mais longe +
+  40 m) ou abrir a despensa dela; aviso "Cidade conhecida: armazém +1000 kg"; salvo em `progression.cities`.
+- 5 abas (`armazem_abas`): cada item guarda a aba; guardar vai para a aba aberta; o mercado entrega na aba 1. Soltar um
+  item numa aba guarda nela (da bolsa) ou passa a pilha para ela (do armazém, `ServerStorageSetTab`); clique duplo na
+  aba aberta renomeia (até 24 letras, `ServerStorageRenameTab`). Peso único para as 5 abas.
+- Acima da capacidade (o mercado entrega mesmo cheio): retira e vende, não guarda nem compra.
+- Servidor (`UNWInteractorComponent`, `ServerStorageOpen/Move/MoveMany/SetTab/RenameTab/Close`):
   - Depositar respeita o peso; retirar deixa no armazém o que não couber na bolsa.
   - Grava no nw-core bolsa e armazém juntos (`UNWBackend::PutStorage`, com versão). Se der 409, relê, refaz e grava
     de novo uma vez.
@@ -252,8 +267,33 @@ Regras (`sistemas-003`, `docs/analise-re/posto-de-trocas.md`; valores em centavo
   - buff de facção: 5%.
 - Limite de 100 contratos de compra e venda.
 
-Port: backend pronto (migration 0005, rotas em `backend/README.md`). O servidor de jogo ainda não chama: falta
-calcular `fee` e `duration_hours` com essas regras, recusar outras durações e cobrar a taxa de quem completa.
+Port (decisões do dono 2026-10-14; as taxas e o limite de 100 acima são do jogo e ficam só como referência):
+- Um mercado só para todas as cidades: o servidor usa o território `global`.
+- Sem taxas: nem de listagem, nem de transação (`fee` = 0).
+- Até 50 pedidos abertos por personagem, compra e venda somadas (`mercado.max_ordens` em `tools/itens.json`;
+  nw-core 409 `too_many_orders`).
+- O que vai ao mercado (`FNWItemRules::CanTrade`, `mercado` em `tools/itens.json`): só item não vinculado e, dele,
+  equipamento fabricado (arma, armadura, joia, ferramenta), gema lapidada (`Cut*`, vidro rúnico) e refinado final com
+  limite diário (`mercado.itens`: Asmodeum e os outros T5.1). Matéria-prima e refinado intermediário (lingotes,
+  tábuas, couros e tecidos abaixo do final) não vão. Venda de matéria-prima será para um NPC comprador (depois).
+- Durações 1, 3, 7 e 14 dias (padrão 3).
+- Tudo cai no armazém compartilhado. Compra (pedido de compra ou comprar de uma venda) só passa se armazém + compras
+  abertas + a compra couberem na capacidade (nw-core, 409 `storage_full`; peso unitário em `weight` do pedido e do
+  item do armazém). Venda não tem limite; venda vencida volta ao armazém mesmo acima da capacidade.
+- Pedido de compra: preço × quantidade sai das moedas na criação. Cancelado ou vencido, o que sobrou vira crédito.
+- Venda completada por outro jogador vira crédito. Créditos são resgatados ao abrir o posto (`GET /credits` e o
+  resgate até `until`, gravados como operação).
+- Vender para um pedido de compra: o item sai da bolsa e as moedas entram na hora, na mesma operação gravada.
+- Só perto do posto de trocas da cidade (estação `tradingpost`, raio da interação), checado no servidor.
+- Tela própria (dono 2026-10-14), primeira do port em Slate (`SNWMarket`), com as cores e fontes do jogo: abas
+  Comprar, Vender e Meus Pedidos; tabela ordenável por coluna (nome, escala, GS, qualidade, vantagens, vendedor,
+  quantidade, preço); filtros (busca por nome ou vantagem, categoria, escala, raridade, GS mínimo, atributo, vantagens
+  que aparecem à venda, pode pagar); painel do item com atributo, qualidade, vantagens com o valor, gema e artesão.
+  Vender sugere o menor preço anunciado do mesmo item.
+- Pedido de compra fica fora da tela (quase nada pode ser pedido); o servidor ainda aceita.
+- Resposta otimista: comprar, vender e cancelar mudam a tela na hora (spinner até o servidor gravar); recusado, volta
+  ao que era e a linha pisca em vermelho com o motivo.
+- Depois: preço médio de itens iguais (histórico de vendas, mediana), NPC comprador de matéria-prima.
 
 ## 6. Casas
 

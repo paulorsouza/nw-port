@@ -1,4 +1,5 @@
 #include "NWCreature.h"
+#include "NWPlayerGrid.h"
 
 #include "Animation/BlendSpace.h"
 #include "Components/CapsuleComponent.h"
@@ -241,15 +242,15 @@ bool ANWCreature::HasTarget() const
 	{
 		return false;
 	}
-	for (TActorIterator<ANWCharacter> It(GetWorld()); It; ++It)
+	bool bFound = false;
+	if (UNWPlayerGrid* Grid = UNWPlayerGrid::Get(GetWorld()))
 	{
-		if (It->IsPlayerControlled() && It->Combat->State != ENWCombatState::Dead
-			&& FVector::Dist2D(It->GetActorLocation(), GetActorLocation()) < AggroRange)
+		Grid->ForEachNear(GetActorLocation(), AggroRange, [&bFound](ANWCharacter* P)
 		{
-			return true;
-		}
+			bFound |= P->Combat->State != ENWCombatState::Dead;
+		});
 	}
-	return false;
+	return bFound;
 }
 
 void ANWCreature::Tick(float DeltaSeconds)

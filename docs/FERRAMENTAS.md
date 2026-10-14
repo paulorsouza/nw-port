@@ -47,6 +47,7 @@ antes dos comandos manuais.
 | Script | Para quê |
 |---|---|
 | `extract_audio.py` | áudio Wwise → `.ogg` (`extract/audio`, índice em `extract/audio/INDEX.md`) |
+| `item_log.py` | log de itens do nw-core (`--personagem`, `--item`, `--serie`, `--desde`): o que entrou e saiu, de onde, por quê |
 | `make_items.py` | catálogo de itens (armas, ferramentas, poções, recursos do saque) e tabelas de saque do jogo |
 | `make_gatherables.py` | coletáveis de Guardaventos: capitals + `region.distribution` → `Data/World/guardaventos_gatherables.json` |
 | `make_terrain.py` | malha do terreno (recorte em volta da cidade ou `--region` inteira) a partir do heightmap |

@@ -86,8 +86,10 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	USkeletalMeshComponent* Body = GetMesh();
 	// Malha exportada do Blender olhando para -Y; no Unreal o ator olha para +X. Ajustar aqui se vier girada.
 	Body->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -86.f), FRotator(0.f, -90.f, 0.f));
-	// O servidor precisa da pose (curvas e posição da lâmina) mesmo sem renderizar.
-	Body->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	// O servidor precisa da pose (curvas das janelas, root motion e posição da lâmina) só com montagem tocando (golpe,
+	// esquiva, reação); parado ou andando, ninguém vê a pose no servidor (docs/arquitetura-servidor.md, medições:
+	// animação era ~80 µs por personagem). No cliente vale para quem está fora da tela.
+	Body->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickMontagesAndRefreshBonesWhenPlayingMontages;
 
 	NockedArrow = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("NockedArrow"));
 	NockedArrow->SetupAttachment(Body, TEXT("right_hand_attach"));
@@ -169,6 +171,13 @@ void ANWCharacter::BeginPlay()
 	{
 		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	}
+	// Servidor dedicado: a malha que não é alvo de golpe (o golpe varre o canal Pawn e acerta a cápsula; criaturas usam
+	// a malha) fica sem colisão, e os corpos de física dela deixam de seguir a animação a cada ciclo.
+	if (GetNetMode() == NM_DedicatedServer && GetMesh()->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Ignore)
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		GetMesh()->SetGenerateOverlapEvents(false);
+	}
 	Combat->SetMainWeapon(Sword);
 	ApplyWeapon();
 	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
@@ -203,6 +212,13 @@ void ANWCharacter::Tick(float DeltaSeconds)
 	}
 	UpdateAutoSprint();
 	ApplySprint();
+	// Braço da câmera (traçado de colisão a cada ciclo) só no personagem do jogador local; no servidor e nos outros
+	// personagens (inclusive criaturas, que no servidor são "controladas localmente" pela IA) fica parado.
+	const bool bLocalView = IsLocallyControlled() && IsPlayerControlled();
+	if (CameraBoom && CameraBoom->IsComponentTickEnabled() != bLocalView)
+	{
+		CameraBoom->SetComponentTickEnabled(bLocalView);
+	}
 	UpdateCamera(DeltaSeconds);
 	UpdateCameraClipHide();
 	if (HasAuthority() && bDummyAttacks && !IsPlayerControlled() && !Brain->IsActive())
@@ -236,7 +252,7 @@ void ANWCharacter::Tick(float DeltaSeconds)
 			const FVector CamFwd = Target.Vector();
 			for (TActorIterator<ANWCharacter> It(GetWorld()); It; ++It)
 			{
-				if (*It == this || It->IsPlayerControlled() || It->Combat->State == ENWCombatState::Dead)
+				if (*It == this || It->IsPlayerLike() || It->Combat->State == ENWCombatState::Dead)
 				{
 					continue;
 				}
@@ -520,7 +536,7 @@ void ANWCharacter::Zoom(const FInputActionValue& Value)
 
 void ANWCharacter::UpdateCamera(float DeltaSeconds)
 {
-	if (!IsLocallyControlled() || !CameraBoom || !Camera)
+	if (!IsLocallyControlled() || !IsPlayerControlled() || !CameraBoom || !Camera)
 	{
 		return;
 	}
@@ -742,7 +758,7 @@ static TAutoConsoleVariable<int32> CVarDebugCamera(TEXT("nw.DebugCamera"), 0, TE
 // ver o personagem (os outros continuam vendo), como nos jogos em terceira pessoa.
 void ANWCharacter::UpdateCameraClipHide()
 {
-	if (!IsLocallyControlled() || !Camera)
+	if (!IsLocallyControlled() || !IsPlayerControlled() || !Camera)
 	{
 		return;
 	}

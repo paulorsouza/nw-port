@@ -26,10 +26,11 @@ public:
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
 
-	/** Copia o estado atual do jogador para o registro e manda para o backend. */
-	void SavePlayer(ANWPlayerController* PC);
+	/** Copia o estado atual do jogador para o registro e manda para o backend; Reason vai para o log de itens. */
+	void SavePlayer(ANWPlayerController* PC, const FString& Reason = TEXT("save"));
 
-	UPROPERTY(EditAnywhere, Category = "NW|Servidor") float SaveInterval = 30.f;
+	/** Salvamento periódico (s): o que não é operação gravada na hora (posição, vida, XP; coleta e saque até a etapa 3). */
+	UPROPERTY(EditAnywhere, Category = "NW|Servidor") float SaveInterval = 5.f;
 
 	// Grupos (até MaxGroupSize). Comandos de chat: /convidar /aceitar /recusar /sair /g.
 	void GroupInvite(ANWPlayerController* From, const FString& TargetName);
@@ -49,7 +50,8 @@ protected:
 private:
 	UNWBackend* Backend() const;
 	bool IsCharacterOnline(const FString& CharacterId) const;
-	void SaveAll();
+	void SaveAll(const TCHAR* Reason);
+	void SavePeriodic() { SaveAll(TEXT("periodic")); }
 	/** Play do editor com backend (docs/teste-backend.md): entra com a conta do editor e aplica o personagem salvo. */
 	void PieEnter(ANWPlayerController* PC);
 	void HandleTearDown(UWorld* World);

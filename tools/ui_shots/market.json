@@ -1,0 +1,35 @@
+{
+  "screen": "market",
+  "title": "Entreposto Comercial",
+  "coins": 1543200,
+  "items": [
+    ["1hSwordT5", 1, 612, 3, {"attr": 0, "quality": 87.5, "perks": ["AmpFisica", "ChanceCritica", "VidaMaxima"]}],
+    ["HeavyHead_PlateT5", 1, 579, 2, {"attr": 4, "quality": 41.2, "perks": ["VidaMaxima", "RegenVigor"]}],
+    ["RingT5", 1, 600, 3, {"attr": 1, "quality": 95.0, "perks": ["DanoCritico", "ChanceCritica"]}],
+    ["EmeraldCutT4", 3],
+    ["IngotT51", 12],
+    ["IngotT5", 40],
+    ["OreT1", 200]
+  ],
+  "orders": [
+    {"item": "1hSwordT5", "gs": 598, "rarity": 2, "props": {"attr": 0, "quality": 72.0, "perks": ["AmpFisica", "RouboVida"]}, "price": 1250000, "seller": "Aranha", "hours": 60},
+    {"item": "1hSwordT5", "gs": 625, "rarity": 3, "props": {"attr": 1, "quality": 91.3, "perks": ["AmpFisica", "ChanceCritica", "DanoCritico"]}, "price": 4890000, "seller": "Besouro", "hours": 20},
+    {"item": "1hHatchetT5", "gs": 610, "rarity": 2, "props": {"attr": 0, "quality": 55.8, "perks": ["ReducaoRecarga", "VidaMaxima"]}, "price": 980000, "seller": "Lagarto", "hours": 140},
+    {"item": "AmuletT5", "gs": 590, "rarity": 1, "props": {"attr": 3, "quality": 33.4, "perks": ["CuraCausada"]}, "price": 450000, "seller": "Aranha", "hours": 30},
+    {"item": "EarringT5", "gs": 605, "rarity": 2, "props": {"attr": 2, "quality": 64.0, "perks": ["ReducaoRecarga", "RegenVigor"]}, "price": 720000, "seller": "Coruja", "hours": 8},
+    {"item": "HeavyChest_PlateT5", "gs": 618, "rarity": 3, "props": {"attr": 4, "quality": 88.0, "perks": ["VidaMaxima", "RegenVigor", "AmpFisica"]}, "price": 3150000, "seller": "Besouro", "hours": 100},
+    {"item": "EmeraldCutT4", "qty": 14, "price": 18000, "seller": "Lagarto", "hours": 200},
+    {"item": "DiamondCutT3", "qty": 5, "price": 9500, "seller": "Coruja", "hours": 70},
+    {"item": "IngotT51", "qty": 30, "price": 65000, "seller": "Aranha", "hours": 150},
+    {"item": "ClothT51", "qty": 8, "price": 52000, "seller": "Besouro", "hours": 40},
+    {"item": "RingT5", "gs": 600, "rarity": 3, "props": {"attr": 1, "quality": 70.0, "perks": ["DanoCritico", "ChanceCritica"]}, "price": 2100000, "seller": "Exilado", "mine": true, "hours": 71},
+    {"item": "EmeraldCutT4", "qty": 2, "price": 21000, "seller": "Exilado", "mine": true, "hours": 23}
+  ],
+  "shots": [
+    {"name": "comprar", "tab": 0},
+    {"name": "comprar_item", "tab": 0, "select": 3},
+    {"name": "comprar_filtro", "tab": 0, "perk": "AmpFisica", "select": 0},
+    {"name": "vender", "tab": 1, "select": 0},
+    {"name": "pedidos", "tab": 2}
+  ]
+}

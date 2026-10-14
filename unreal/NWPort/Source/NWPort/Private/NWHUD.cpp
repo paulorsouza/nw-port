@@ -1,5 +1,6 @@
 #include "NWHUD.h"
 #include "NWShop.h"
+#include "SNWMarket.h"
 #include "NWProgressionComponent.h"
 #include "NWCreature.h"
 #include "NWText.h"
@@ -1579,10 +1580,34 @@ void ANWHUD::OpenStorage(ANWCharacter* Who, ANWStation* Station)
 		return;
 	}
 	PC->CloseMenus();
-	// Armazém da cidade: um por personagem em cada assentamento (backend: settlement:<cidade>).
-	Who->Interactor->ServerStorageOpen(TEXT("settlement:") + Station->City);
+	// Armazém compartilhado: o mesmo em qualquer despensa (nw-core: shared); a cidade da despensa passa a ser conhecida.
+	Who->Interactor->ServerStorageOpen(Station->City);
 	// Inventário com o armazém à esquerda (catcontainer.lua): arrastar entre os dois.
 	Inventory.OpenStorage(Who, Station->Interact->DisplayName.ToString());
+	PC->EnterCanvasMenu();
+}
+
+void ANWHUD::OpenMarket(ANWCharacter* Who, ANWStation* Station)
+{
+	ANWPlayerController* PC = Cast<ANWPlayerController>(GetOwningPlayerController());
+	if (!PC || !Who || !Station || !Who->Interactor)
+	{
+		return;
+	}
+	// Entreposto: tela própria em Slate (SNWMarket); Esc e CloseMenus fecham como o menu F10.
+	TSharedRef<SNWMarket> Menu = SNew(SNWMarket).Character(Who).Title(Station->Interact->DisplayName.ToString());
+	PC->ShowMenu(Menu, Menu);
+}
+
+void ANWHUD::OpenLootBag(ANWCharacter* Who, ANWLootBag* Bag)
+{
+	ANWPlayerController* PC = Cast<ANWPlayerController>(GetOwningPlayerController());
+	if (!PC || !Who || !Bag)
+	{
+		return;
+	}
+	PC->CloseMenus();
+	Inventory.OpenLootBag(Who, Bag);
 	PC->EnterCanvasMenu();
 }
 

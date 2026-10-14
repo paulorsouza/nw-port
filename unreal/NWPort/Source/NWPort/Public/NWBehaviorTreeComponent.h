@@ -133,6 +133,9 @@ private:
 	double LastEval = -100.0;
 	TArray<double> WatchedValues;
 	TWeakObjectPtr<ANWCharacter> Target;
+	/** Próxima procura de alvo (visão): a cada LookEvery s, defasada por criatura, não a cada ciclo. */
+	double NextLookAt = 0.0;
+	static constexpr double LookEvery = 0.25;
 	double TargetLostAt = -1.0;
 	FVector HomePos = FVector::ZeroVector;
 	TArray<FVector> Path;

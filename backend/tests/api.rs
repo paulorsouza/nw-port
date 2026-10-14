@@ -1,6 +1,7 @@
 //! Fluxo completo contra Postgres real. `#[sqlx::test]` cria um banco temporário por teste a partir de
 //! `DATABASE_URL` (ver README).
 
+use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
 
 use axum::body::Body;
@@ -16,14 +17,45 @@ const SECRET: &str = "segredo-do-servidor-de-teste";
 
 struct Api {
     router: axum::Router,
+    db: PgPool,
+    seq: AtomicI64,
 }
 
 impl Api {
     fn new(db: PgPool) -> Self {
-        Self { router: app(AppState { db, server_secret: Arc::from(SECRET) }) }
+        Self { router: app(AppState { db: db.clone(), server_secret: Arc::from(SECRET) }), db, seq: AtomicI64::new(0) }
+    }
+
+    /// Gravações do servidor de jogo levam sessão e número (journal.rs): quando o teste não manda, usa a sessão atual do
+    /// personagem e um número crescente, como o servidor faz.
+    async fn with_seq(&self, method: &str, uri: &str, server: bool, body: Option<Value>) -> Option<Value> {
+        let write = ["/state", "/storage/", "/houses", "/npc-rewards", "/credits/claim", "/orders", "/fill", "/ground", "/take"];
+        if !server || method == "GET" || !write.iter().any(|w| uri.contains(w)) || uri.contains("/cancel") {
+            return body;
+        }
+        let mut b = body.unwrap_or_else(|| json!({}));
+        if b.get("seq").is_some() || !b.is_object() {
+            return Some(b);
+        }
+        let id = uri
+            .strip_prefix("/internal/characters/")
+            .and_then(|r| r.split('/').next())
+            .map(str::to_string)
+            .or_else(|| b["character_id"].as_str().map(str::to_string));
+        let Some(id) = id else { return Some(b) };
+        let session: Option<(i64,)> = sqlx::query_as("select session from characters where id::text = $1").bind(&id).fetch_optional(&self.db).await.unwrap();
+        b["session"] = json!(session.map_or(0, |s| s.0));
+        b["seq"] = json!(self.seq.fetch_add(1, Ordering::SeqCst) + 1);
+        Some(b)
     }
 
     async fn call(&self, method: &str, uri: &str, token: Option<&str>, server: bool, body: Option<Value>) -> (StatusCode, Value) {
+        let body = self.with_seq(method, uri, server, body).await;
+        self.send(method, uri, token, server, body.map(|b| b.to_string())).await
+    }
+
+    /// Corpo em texto, como o servidor de jogo manda (números com 17 dígitos, por exemplo).
+    async fn send(&self, method: &str, uri: &str, token: Option<&str>, server: bool, body: Option<String>) -> (StatusCode, Value) {
         let mut req = Request::builder().method(method).uri(uri);
         if let Some(t) = token {
             req = req.header("authorization", format!("Bearer {t}"));
@@ -32,7 +64,7 @@ impl Api {
             req = req.header("x-nw-server-secret", SECRET);
         }
         let req = match body {
-            Some(b) => req.header("content-type", "application/json").body(Body::from(b.to_string())),
+            Some(b) => req.header("content-type", "application/json").body(Body::from(b)),
             None => req.body(Body::empty()),
         }
         .unwrap();
@@ -161,6 +193,7 @@ async fn entrar_no_servidor_e_salvar(db: PgPool) {
     let (status, got) = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": ticket }))).await;
     assert_eq!(status, StatusCode::OK, "{got}");
     assert_eq!(got["account_name"], "Paulo");
+    assert_eq!(got["is_admin"], false);
     assert_eq!(got["character"]["name"], "Aranha");
     // Uso único.
     let (status, err) = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": ticket }))).await;
@@ -290,11 +323,11 @@ async fn coins_of(db: &PgPool, id: &str) -> i64 {
 async fn armazem_grava_com_a_bolsa_e_confere_versao(db: PgPool) {
     let api = Api::new(db.clone());
     let id = character(&api, &db, "Paulo", "Aranha").await;
-    let url = format!("/internal/characters/{id}/storage/settlement:4");
+    let url = format!("/internal/characters/{id}/storage/shared");
 
     let (status, s) = api.call("GET", &url, None, true, None).await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(s, json!({ "version": 0, "items": [] }));
+    assert_eq!(s, json!({ "version": 0, "items": [], "tab_names": [], "capacity": 0.0 }));
 
     // Deposita 30 de 37 minérios: bolsa e armazém na mesma chamada.
     let put = json!({ "version": 0, "coins": 50,
@@ -316,14 +349,84 @@ async fn armazem_grava_com_a_bolsa_e_confere_versao(db: PgPool) {
     let (_, s) = api.call("GET", &url, None, true, None).await;
     assert_eq!(s["items"][0]["quantity"], 30);
 
-    // Local inválido e armazém de casa que não é dele.
-    let (status, _) = api.call("GET", &format!("/internal/characters/{id}/storage/cidade"), None, true, None).await;
+    // Só existe o armazém compartilhado.
+    for other in ["cidade".to_string(), "settlement:4".to_string(), format!("house:{}", uuid::Uuid::new_v4())] {
+        let (status, _) = api.call("GET", &format!("/internal/characters/{id}/storage/{other}"), None, true, None).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{other}");
+    }
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn armazem_abas_peso_e_capacidade(db: PgPool) {
+    let api = Api::new(db.clone());
+    let id = character(&api, &db, "Paulo", "Aranha").await;
+    let url = format!("/internal/characters/{id}/storage/shared");
+    let put = json!({ "version": 0, "coins": 0, "inventory": [], "capacity": 2000.0, "tab_names": ["Minério", "", "", "", "Armas"],
+                      "items": [{ "item_id": "OreT1", "quantity": 30, "slot": 0, "tab": 0, "weight": 0.1 },
+                                { "item_id": "WoodT1", "quantity": 10, "slot": 1, "tab": 4, "weight": 0.2 }] });
+    let (status, s) = api.call("PUT", &url, None, true, Some(put)).await;
+    assert_eq!(status, StatusCode::OK, "{s}");
+    let (_, s) = api.call("GET", &url, None, true, None).await;
+    assert_eq!(s["capacity"], 2000.0);
+    assert_eq!(s["tab_names"][4], "Armas");
+    assert_eq!(s["items"][1]["tab"], 4);
+
+    // Aba fora de 0–4, peso negativo e nome comprido: recusa.
+    for bad in [json!({ "item_id": "OreT1", "quantity": 1, "slot": 0, "tab": 5 }), json!({ "item_id": "OreT1", "quantity": 1, "slot": 0, "weight": -1.0 })] {
+        let (status, _) = api.call("PUT", &url, None, true, Some(json!({ "version": 1, "coins": 0, "inventory": [], "items": [bad] }))).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+    let long = json!({ "version": 1, "coins": 0, "inventory": [], "items": [], "tab_names": ["x".repeat(25)] });
+    let (status, _) = api.call("PUT", &url, None, true, Some(long)).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
-    let mut house = put.clone();
-    house["version"] = json!(0);
-    let other = format!("/internal/characters/{id}/storage/house:{}", uuid::Uuid::new_v4());
-    let (status, _) = api.call("PUT", &other, None, true, Some(house)).await;
-    assert_eq!(status, StatusCode::NOT_FOUND);
+    // O salvamento do personagem também atualiza a capacidade (cidade nova sem abrir o armazém).
+    let st = json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {}, "storage_capacity": 3000.0 });
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(st)).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
+    let (_, s) = api.call("GET", &url, None, true, None).await;
+    assert_eq!(s["capacity"], 3000.0);
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn mercado_compra_respeita_o_armazem(db: PgPool) {
+    let api = Api::new(db.clone());
+    let buyer = character(&api, &db, "Paulo", "Aranha").await;
+    let seller = character(&api, &db, "Joao", "Besouro").await;
+    // Armazém de 10 kg com 6 kg ocupados.
+    let url = format!("/internal/characters/{buyer}/storage/shared");
+    let put = json!({ "version": 0, "coins": 1000, "inventory": [], "capacity": 10.0,
+                      "items": [{ "item_id": "StoneT1", "quantity": 6, "slot": 0, "weight": 1.0 }] });
+    let (status, s) = api.call("PUT", &url, None, true, Some(put)).await;
+    assert_eq!(status, StatusCode::OK, "{s}");
+    let buy = |q: i32| json!({ "character_id": buyer, "kind": "buy", "item_id": "WoodT1", "quantity": q, "unit_price": 10,
+                               "duration_hours": 1, "weight": 1.0, "coins": 900, "inventory": [] });
+
+    // 3 kg cabem; depois mais 2 kg não (6 + 3 em aberto + 2 > 10).
+    let (status, o) = api.call("POST", "/internal/market/4/orders", None, true, Some(buy(3))).await;
+    assert_eq!(status, StatusCode::CREATED, "{o}");
+    let (status, e) = api.call("POST", "/internal/market/4/orders", None, true, Some(buy(2))).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(e["error"], "storage_full");
+
+    // Venda não tem limite, e a venda vencida volta ao armazém mesmo passando da capacidade.
+    let sell = json!({ "character_id": buyer, "kind": "sell", "item_id": "OreT1", "quantity": 50, "unit_price": 5,
+                       "duration_hours": 1, "weight": 1.0, "coins": 900, "inventory": [] });
+    let (status, o) = api.call("POST", "/internal/market/4/orders", None, true, Some(sell)).await;
+    assert_eq!(status, StatusCode::CREATED, "{o}");
+    sqlx::query("update market_orders set expires_at = now() - interval '1 minute' where kind = 'sell'").execute(&db).await.unwrap();
+    api.call("GET", "/internal/market/4/orders", None, true, None).await;
+    let (_, s) = api.call("GET", &url, None, true, None).await;
+    assert_eq!(s["items"].as_array().unwrap().len(), 2, "{s}");
+
+    // Acima do limite: comprar de uma ordem de venda também recusa.
+    let other = json!({ "character_id": seller, "kind": "sell", "item_id": "FiberT1", "quantity": 1, "unit_price": 5,
+                        "duration_hours": 1, "weight": 0.1, "coins": 0, "inventory": [] });
+    let (_, o) = api.call("POST", "/internal/market/4/orders", None, true, Some(other)).await;
+    let oid = o["id"].as_str().unwrap().to_string();
+    let fill = json!({ "character_id": buyer, "quantity": 1, "coins": 895, "inventory": [] });
+    let (status, e) = api.call("POST", &format!("/internal/market/orders/{oid}/fill"), None, true, Some(fill)).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(e["error"], "storage_full");
 }
 
 #[sqlx::test(migrator = "nw_core::MIGRATOR")]
@@ -342,6 +445,7 @@ async fn mercado_venda_compra_e_credito(db: PgPool) {
 
     let (_, list) = api.call("GET", "/internal/market/4/orders?item_id=OreT1", None, true, None).await;
     assert_eq!(list.as_array().unwrap().len(), 1);
+    assert_eq!(list[0]["seller"], "Aranha");
 
     // Não compra da própria ordem nem mais do que há.
     let fill = |who: &str, q: i32, coins: i64| json!({ "character_id": who, "quantity": q, "coins": coins, "inventory": [] });
@@ -355,7 +459,7 @@ async fn mercado_venda_compra_e_credito(db: PgPool) {
     assert_eq!(status, StatusCode::OK, "{o}");
     assert_eq!(o["quantity"], 6);
     assert_eq!(coins_of(&db, &buyer).await, 80);
-    let (_, s) = api.call("GET", &format!("/internal/characters/{buyer}/storage/settlement:4"), None, true, None).await;
+    let (_, s) = api.call("GET", &format!("/internal/characters/{buyer}/storage/shared"), None, true, None).await;
     assert_eq!(s["items"][0]["item_id"], "OreT1");
     assert_eq!(s["items"][0]["quantity"], 4);
     assert_eq!(s["version"], 1);
@@ -365,7 +469,7 @@ async fn mercado_venda_compra_e_credito(db: PgPool) {
     assert_eq!(status, StatusCode::FORBIDDEN);
     let (status, _) = api.call("POST", &format!("/internal/market/orders/{oid}/cancel"), None, true, Some(json!({ "character_id": seller }))).await;
     assert_eq!(status, StatusCode::NO_CONTENT);
-    let (_, s) = api.call("GET", &format!("/internal/characters/{seller}/storage/settlement:4"), None, true, None).await;
+    let (_, s) = api.call("GET", &format!("/internal/characters/{seller}/storage/shared"), None, true, None).await;
     assert_eq!(s["items"][0]["quantity"], 6);
     let (status, _) = api.call("POST", &format!("/internal/market/orders/{oid}/fill"), None, true, Some(fill(&buyer, 1, 0))).await;
     assert_eq!(status, StatusCode::CONFLICT);
@@ -391,7 +495,7 @@ async fn mercado_ordem_de_compra_e_vencimento(db: PgPool) {
     let fill = json!({ "character_id": seller, "quantity": 2, "coins": 20, "inventory": [] });
     let (status, o) = api.call("POST", &format!("/internal/market/orders/{oid}/fill"), None, true, Some(fill)).await;
     assert_eq!(status, StatusCode::OK, "{o}");
-    let (_, s) = api.call("GET", &format!("/internal/characters/{buyer}/storage/settlement:4"), None, true, None).await;
+    let (_, s) = api.call("GET", &format!("/internal/characters/{buyer}/storage/shared"), None, true, None).await;
     assert_eq!(s["items"][0]["quantity"], 2);
 
     // Vence: o que sobrou da garantia (1 × 10) volta em crédito.
@@ -403,7 +507,7 @@ async fn mercado_ordem_de_compra_e_vencimento(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "nw_core::MIGRATOR")]
-async fn casa_compra_e_armazem(db: PgPool) {
+async fn casa_compra(db: PgPool) {
     let api = Api::new(db.clone());
     let id = character(&api, &db, "Paulo", "Aranha").await;
     let buy = json!({ "territory": "4", "address": "cityd_house_address_001", "house_type": "Tier1", "price": 500000,
@@ -415,10 +519,6 @@ async fn casa_compra_e_armazem(db: PgPool) {
     assert_eq!(status, StatusCode::CONFLICT);
     assert_eq!(err["error"], "house_owned");
 
-    let url = format!("/internal/characters/{id}/storage/house:{}", h["id"].as_str().unwrap());
-    let put = json!({ "version": 0, "coins": 1000, "items": [{ "item_id": "OreT1", "quantity": 3, "slot": 0 }], "inventory": [] });
-    let (status, s) = api.call("PUT", &url, None, true, Some(put)).await;
-    assert_eq!(status, StatusCode::OK, "{s}");
     let (_, houses) = api.call("GET", &format!("/internal/characters/{id}/houses"), None, true, None).await;
     assert_eq!(houses[0]["address"], "cityd_house_address_001");
 }
@@ -460,7 +560,7 @@ async fn brindes_de_npc_uma_vez_por_periodo(db: PgPool) {
 async fn item_com_props(db: PgPool) {
     let api = Api::new(db.clone());
     let id = character(&api, &db, "Paulo", "Aranha").await;
-    let url = format!("/internal/characters/{id}/storage/settlement:4");
+    let url = format!("/internal/characters/{id}/storage/shared");
     let props = json!({ "attr": 4, "quality": 87.5, "perks": ["ChanceCritica"], "bind": "equip", "signed": "Aranha" });
 
     // Armazém com props: volta igual.
@@ -528,7 +628,7 @@ async fn item_assinado_nao_duplica(db: PgPool) {
     assert_eq!(status, StatusCode::CONFLICT, "{e}");
 
     // Guardar: sai da bolsa e entra no armazém na mesma gravação: ok; no armazém e na bolsa ao mesmo tempo: recusa.
-    let url = format!("/internal/characters/{id}/storage/settlement:4");
+    let url = format!("/internal/characters/{id}/storage/shared");
     let stored = json!([{ "item_id": "1hSwordT5", "quantity": 1, "slot": 0, "props": { "serial": serial, "quality": 91.0 } }]);
     let (status, e) = api.call("PUT", &url, None, true, Some(json!({ "version": 0, "coins": 0, "inventory": [], "items": stored }))).await;
     assert_eq!(status, StatusCode::OK, "{e}");
@@ -536,5 +636,226 @@ async fn item_assinado_nao_duplica(db: PgPool) {
     assert_eq!(status, StatusCode::CONFLICT);
     assert_eq!(e["error"], "item_duplicate");
     let (loc,): (String,) = sqlx::query_as("select location from item_serials where serial = $1").bind(&serial).fetch_one(&db).await.unwrap();
-    assert_eq!(loc, "settlement:4");
+    assert_eq!(loc, "shared");
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn gravacao_fora_de_ordem_e_sessao_velha(db: PgPool) {
+    let api = Api::new(db.clone());
+    let t = api.register(&db, "Paulo").await;
+    let (_, ch) = api.call("POST", "/v1/characters", Some(&t), false, Some(json!({ "name": "Aranha" }))).await;
+    let id = ch["id"].as_str().unwrap().to_string();
+    let (_, join) = api.call("POST", &format!("/v1/characters/{id}/join"), Some(&t), false, None).await;
+    let (_, got) = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": join["ticket"] }))).await;
+    let session = got["session"].as_i64().unwrap();
+    assert_eq!(session, 1);
+    let url = format!("/internal/characters/{id}/state");
+    let state = |seq: i64, session: i64, coins: i64, ore: i32| json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword",
+        "loadout": {}, "mastery": {}, "session": session, "seq": seq, "reason": "teste", "coins": coins,
+        "inventory": [{ "item_id": "OreT1", "quantity": ore, "container": "bag", "slot": 0 }] });
+
+    let (status, e) = api.call("PUT", &url, None, true, Some(state(2, session, 50, 10))).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
+    // A gravação 1 chega depois da 2: recusada; a mesma 2 de novo: já aplicada.
+    let (status, e) = api.call("PUT", &url, None, true, Some(state(1, session, 0, 99))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("stale_write")));
+    let (status, e) = api.call("PUT", &url, None, true, Some(state(2, session, 0, 99))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("duplicate_write")));
+    // Sem número: recusada.
+    let (status, e) = api.call("PUT", &url, None, false, None).await;
+    assert_ne!(status, StatusCode::NO_CONTENT, "{e}");
+
+    // Entrou de novo (outro servidor): a gravação atrasada da sessão anterior não passa, mesmo com número alto.
+    let (_, join) = api.call("POST", &format!("/v1/characters/{id}/join"), Some(&t), false, None).await;
+    let (_, got) = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": join["ticket"] }))).await;
+    assert_eq!(got["character"]["coins"], 50);
+    assert_eq!(got["character"]["inventory"][0]["quantity"], 10);
+    let (status, e) = api.call("PUT", &url, None, true, Some(state(100, session, 0, 99))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("stale_write")));
+    let (status, e) = api.call("PUT", &url, None, true, Some(state(1, session + 1, 60, 12))).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn log_de_itens(db: PgPool) {
+    let api = Api::new(db.clone());
+    let id = character(&api, &db, "Paulo", "Aranha").await;
+    let state = |coins: i64, items: Value| json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword",
+        "loadout": {}, "mastery": {}, "reason": "periodic", "coins": coins, "inventory": items });
+    let ore = |q: i32| json!([{ "item_id": "OreT1", "quantity": q, "container": "bag", "slot": 0 }]);
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state(10, ore(40)))).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
+    // Guarda 30 na aba 2.
+    let put = json!({ "version": 0, "coins": 10, "reason": "storage", "inventory": ore(10),
+                      "items": [{ "item_id": "OreT1", "quantity": 30, "slot": 0, "tab": 2, "weight": 0.1 }] });
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/storage/shared"), None, true, Some(put)).await;
+    assert_eq!(status, StatusCode::OK, "{e}");
+
+    let (_, log) = api.call("GET", &format!("/internal/item-log?character_id={id}"), None, true, None).await;
+    let rows: Vec<(String, String, i64)> = log.as_array().unwrap().iter()
+        .map(|r| (r["reason"].as_str().unwrap().to_string(), r["place"].as_str().unwrap().to_string(), r["quantity"].as_i64().unwrap()))
+        .collect();
+    assert!(rows.contains(&("periodic".into(), "bag".into(), 40)), "{rows:?}");
+    assert!(rows.contains(&("periodic".into(), "coins".into(), 10)), "{rows:?}");
+    assert!(rows.contains(&("storage".into(), "bag".into(), -30)), "{rows:?}");
+    assert!(rows.contains(&("storage".into(), "storage:2".into(), 30)), "{rows:?}");
+    assert_eq!(rows.len(), 4, "{rows:?}");
+    let (_, by_item) = api.call("GET", "/internal/item-log?item_id=WoodT1", None, true, None).await;
+    assert_eq!(by_item, json!([]));
+
+    // Item com decimal (qualidade em float do jogo, impressa com 17 dígitos): gravar duas vezes igual não gera linha.
+    let sword = json!([{ "item_id": "1hSwordT5", "quantity": 1, "container": "bag", "slot": 0, "props": { "quality": 0.5, "attr": 4 } }]);
+    let url = format!("/internal/characters/{id}/state");
+    for _ in 0..2 {
+        let body = api.with_seq("PUT", &url, true, Some(state(10, sword.clone()))).await.unwrap().to_string().replace("0.5", "99.300003051757812");
+        let (status, e) = api.send("PUT", &url, None, true, Some(body)).await;
+        assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
+    }
+    let (_, log) = api.call("GET", "/internal/item-log?item_id=1hSwordT5", None, true, None).await;
+    assert_eq!(log.as_array().unwrap().len(), 1, "{log}");
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn chao_soltar_pegar_e_vencer(db: PgPool) {
+    let api = Api::new(db.clone());
+    let id = character(&api, &db, "Paulo", "Aranha").await;
+    let ore = |q: i32| json!([{ "item_id": "OreT1", "quantity": q, "container": "bag", "slot": 0 }]);
+    let stack = |q: i32| json!([{ "item_id": "OreT1", "quantity": q, "slot": 0, "weight": 0.1 }]);
+    let st = json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {}, "coins": 0, "inventory": ore(40) });
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(st)).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
+
+    // Solta 10: a bolsa fica com 30 e o saco com 10, numa gravação.
+    let drop = json!({ "map": "L_QuedaEterna", "position": { "x": 1.0, "y": 2.0, "z": 3.0 }, "ttl_seconds": 180,
+                       "items": stack(10), "inventory": ore(30), "coins": 0, "reason": "drop" });
+    let (status, bag) = api.call("POST", &format!("/internal/characters/{id}/ground"), None, true, Some(drop)).await;
+    assert_eq!(status, StatusCode::CREATED, "{bag}");
+    let bag_id = bag["id"].as_str().unwrap().to_string();
+    let (_, list) = api.call("GET", &format!("/internal/characters/{id}/ground"), None, true, None).await;
+    assert_eq!(list[0]["items"][0]["quantity"], 10);
+    assert_eq!(list[0]["position"]["z"], 3.0);
+
+    // Pega 4 (sobram 6), depois o resto: o saco some; pegar de novo dá ground_gone.
+    let take = |left: Value, bag_ore: i32| json!({ "character_id": id, "items": left, "inventory": ore(bag_ore), "coins": 0, "reason": "ground_take" });
+    let (status, e) = api.call("POST", &format!("/internal/ground/{bag_id}/take"), None, true, Some(take(stack(6), 34))).await;
+    assert_eq!(status, StatusCode::OK, "{e}");
+    let (status, e) = api.call("POST", &format!("/internal/ground/{bag_id}/take"), None, true, Some(take(json!([]), 40))).await;
+    assert_eq!(status, StatusCode::OK, "{e}");
+    let (status, e) = api.call("POST", &format!("/internal/ground/{bag_id}/take"), None, true, Some(take(json!([]), 50))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("ground_gone")));
+    let (_, list) = api.call("GET", &format!("/internal/characters/{id}/ground"), None, true, None).await;
+    assert_eq!(list, json!([]));
+
+    // Saco vencido: some na listagem e fica no log como ground_expired.
+    let drop = json!({ "map": "L_QuedaEterna", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "ttl_seconds": 180,
+                       "items": stack(5), "inventory": ore(35), "coins": 0, "reason": "drop" });
+    let (_, bag) = api.call("POST", &format!("/internal/characters/{id}/ground"), None, true, Some(drop)).await;
+    sqlx::query("update ground_bags set expires_at = now() - interval '1 second'").execute(&db).await.unwrap();
+    let (_, list) = api.call("GET", &format!("/internal/characters/{id}/ground"), None, true, None).await;
+    assert_eq!(list, json!([]));
+    let (_, log) = api.call("GET", &format!("/internal/item-log?character_id={id}"), None, true, None).await;
+    let place = format!("ground:{}", bag["id"].as_str().unwrap());
+    assert!(log.as_array().unwrap().iter().any(|r| r["reason"] == "ground_expired" && r["place"] == place.as_str() && r["quantity"] == -5), "{log}");
+    assert!(log.as_array().unwrap().iter().any(|r| r["reason"] == "drop" && r["place"] == "bag" && r["quantity"] == -10), "{log}");
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn chao_item_assinado_nao_duplica(db: PgPool) {
+    let api = Api::new(db.clone());
+    let id = character(&api, &db, "Paulo", "Aranha").await;
+    let (_, s) = api.call("POST", &format!("/internal/characters/{id}/serials"), None, true, None).await;
+    let serial = s["serial"].as_str().unwrap().to_string();
+    let sword = json!({ "item_id": "1hSwordT5", "quantity": 1, "slot": 0, "props": { "serial": serial } });
+    let drop = json!({ "map": "L_QuedaEterna", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "ttl_seconds": 180,
+                       "items": [sword.clone()], "inventory": [], "coins": 0, "reason": "drop" });
+    let (status, e) = api.call("POST", &format!("/internal/characters/{id}/ground"), None, true, Some(drop)).await;
+    assert_eq!(status, StatusCode::CREATED, "{e}");
+    // No chão e na bolsa ao mesmo tempo: recusa.
+    let mut in_bag = sword.clone();
+    in_bag["container"] = json!("bag");
+    let st = json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {}, "inventory": [in_bag] });
+    let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(st)).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("item_duplicate")));
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn bolsa_por_diferenca(db: PgPool) {
+    let api = Api::new(db.clone());
+    let id = character(&api, &db, "Paulo", "Aranha").await;
+    let url = format!("/internal/characters/{id}/state");
+    let base = || json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {} });
+    let mut st = base();
+    st["inventory"] = json!([{ "item_id": "OreT1", "quantity": 10, "container": "bag", "slot": 0 },
+                             { "item_id": "WoodT1", "quantity": 5, "container": "bag", "slot": 1 }]);
+    st["reason"] = json!("periodic");
+    let (status, e) = api.call("PUT", &url, None, true, Some(st)).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
+
+    // Coleta: só o espaço 0 muda (10 → 13) e entra fibra no espaço 2; o 1 apaga.
+    let mut st = base();
+    st["reason"] = json!("gather");
+    st["inventory_patch"] = json!([
+        { "container": "bag", "slot": 0, "item": { "item_id": "OreT1", "quantity": 13 } },
+        { "container": "bag", "slot": 1, "item": null },
+        { "container": "bag", "slot": 2, "item": { "item_id": "FiberT1", "quantity": 4 } }]);
+    let (status, e) = api.call("PUT", &url, None, true, Some(st)).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
+    let rows: Vec<(String, i32, i32)> = sqlx::query_as("select item_id, quantity, slot from items where character_id = $1::uuid order by slot")
+        .bind(&id).fetch_all(&db).await.unwrap();
+    assert_eq!(rows, vec![("OreT1".into(), 13, 0), ("FiberT1".into(), 4, 2)]);
+    let (_, log) = api.call("GET", &format!("/internal/item-log?character_id={id}"), None, true, None).await;
+    let gather: Vec<(String, i64)> = log.as_array().unwrap().iter().filter(|r| r["reason"] == "gather")
+        .map(|r| (r["item_id"].as_str().unwrap().to_string(), r["quantity"].as_i64().unwrap())).collect();
+    assert_eq!(gather.len(), 3, "{gather:?}");
+    assert!(gather.contains(&("OreT1".into(), 3)) && gather.contains(&("WoodT1".into(), -5)) && gather.contains(&("FiberT1".into(), 4)), "{gather:?}");
+
+    // Espaço repetido ou contêiner errado: recusa sem mudar nada.
+    for bad in [json!([{ "container": "bag", "slot": 0, "item": null }, { "container": "bag", "slot": 0, "item": null }]),
+                json!([{ "container": "chest", "slot": 0, "item": null }])] {
+        let mut st = base();
+        st["inventory_patch"] = bad;
+        let (status, _) = api.call("PUT", &url, None, true, Some(st)).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+
+    // Item assinado em dois espaços pelo patch: recusa.
+    let (_, s) = api.call("POST", &format!("/internal/characters/{id}/serials"), None, true, None).await;
+    let serial = s["serial"].as_str().unwrap().to_string();
+    let sword = json!({ "item_id": "1hSwordT5", "quantity": 1, "props": { "serial": serial } });
+    let mut st = base();
+    st["inventory_patch"] = json!([{ "container": "bag", "slot": 5, "item": sword }, { "container": "bag", "slot": 6, "item": sword }]);
+    let (status, e) = api.call("PUT", &url, None, true, Some(st)).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("item_duplicate")));
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn creditos_ate_e_limite_de_ordens(db: PgPool) {
+    let api = Api::new(db.clone());
+    let id = character(&api, &db, "Paulo", "Aranha").await;
+    for amount in [100_i64, 250] {
+        sqlx::query("insert into coin_credits (id, character_id, amount, reason) values (gen_random_uuid(), $1::uuid, $2, 'market_sale')")
+            .bind(&id).bind(amount).execute(&db).await.unwrap();
+    }
+    let (_, p) = api.call("GET", &format!("/internal/characters/{id}/credits"), None, true, None).await;
+    assert_eq!(p["amount"], 350);
+    // Um crédito novo depois da consulta não entra neste resgate.
+    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    sqlx::query("insert into coin_credits (id, character_id, amount, reason) values (gen_random_uuid(), $1::uuid, 7, 'market_sale')")
+        .bind(&id).execute(&db).await.unwrap();
+    let (status, c) = api.call("POST", &format!("/internal/characters/{id}/credits/claim"), None, true,
+        Some(json!({ "until": p["until"], "reason": "market_credit" }))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert_eq!(c["amount"], 350);
+    assert_eq!(coins_of(&db, &id).await, 350);
+    let (_, p) = api.call("GET", &format!("/internal/characters/{id}/credits"), None, true, None).await;
+    assert_eq!(p["amount"], 7);
+
+    // 50 ordens abertas: a 51ª é recusada.
+    sqlx::query("insert into market_orders (id, territory, kind, character_id, item_id, quantity, unit_price, expires_at)
+                 select gen_random_uuid(), 'global', 'buy', $1::uuid, 'OreT1', 1, 1, now() + interval '1 day' from generate_series(1, 50)")
+        .bind(&id).execute(&db).await.unwrap();
+    let buy = json!({ "character_id": id, "kind": "buy", "item_id": "WoodT1", "quantity": 1, "unit_price": 1,
+                      "duration_hours": 24, "coins": 0, "inventory": [] });
+    let (status, e) = api.call("POST", "/internal/market/global/orders", None, true, Some(buy)).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("too_many_orders")));
 }

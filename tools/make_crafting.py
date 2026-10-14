@@ -94,6 +94,12 @@ def stations():
                     sa = c.get("m_sliceasset")
                     if isinstance(sa, dict):
                         hint = sa.get("hint", "")
+                if tm and "settlement_trading_post" in hint.lower():
+                    # Posto de trocas (mercado, docs/sistemas.md §5): estação do tipo "tradingpost".
+                    yaw = math.degrees(math.atan2(tm[1], tm[0]))
+                    out.append({"type": "tradingpost", "skill": "", "tier": 0,
+                                "pos": [round(-tm[9] * 100, 1), round(tm[10] * 100, 1), round(tm[11] * 100, 1)],
+                                "yaw": round(180 - yaw, 1), "slice": os.path.basename(hint)})
                 if tm and "settlement_storage" in hint.lower():
                     yaw = math.degrees(math.atan2(tm[1], tm[0]))
                     out.append({"type": "storage", "skill": "", "tier": 0,
@@ -220,7 +226,8 @@ def main():
     # Nome da estação no jogo: <Tipo>T<tier>_MasterName (ex. SmeltingT5_MasterName = "Fundição Escala 5").
     for s in st:
         # Despensa: ui_global_storage ("Despensa" / "Storage Shed").
-        key = "ui_global_storage" if s["type"] == "storage" else f"{s['type'].capitalize()}T{s['tier']}_MasterName".lower()
+        # Posto de trocas: ui_tradingpost ("Entreposto Comercial" / "Trading Post").
+        key = {"storage": "ui_global_storage", "tradingpost": "ui_tradingpost"}.get(s["type"]) or f"{s['type'].capitalize()}T{s['tier']}_MasterName".lower()
         s["name"] = {lang: loc.get(key, s["type"]) for lang, loc in locs.items()}
     out = {"stations": st, "recipes": recipes,
            "categories": {c: sorted(categories.get(c, [])) for c in sorted(used_cats)}}

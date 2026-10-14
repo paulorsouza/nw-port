@@ -10,6 +10,12 @@
 #include "Misc/Paths.h"
 #include "NWCharacter.h"
 #include "NWCrafting.h"
+#include "NWBackend.h"
+#include "NWGameMode.h"
+#include "NWItemRules.h"
+#include "NWProgressionComponent.h"
+#include "TimerManager.h"
+#include "Engine/GameInstance.h"
 #include "NWHUD.h"
 #include "NWInteractable.h"
 #include "NWPlayerController.h"
@@ -97,7 +103,6 @@ void ANWNpcField::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("NPCs: não li %s"), *File);
 		return;
 	}
-	FString City;
 	Root->TryGetStringField(TEXT("city"), City);
 	for (const TSharedPtr<FJsonValue>& V : Root->GetArrayField(TEXT("npcs")))
 	{
@@ -193,6 +198,55 @@ void ANWNpcField::BeginPlay()
 		{
 			St->City = City;
 			St->Setup(Data);
+		}
+	}
+
+	// Área da cidade: centro dos NPCs e estações, raio até o mais longe + CityMargin. Só o servidor marca.
+	TArray<FVector> Points;
+	for (const ANWNpc* Npc : Npcs)
+	{
+		Points.Add(Npc->GetActorLocation());
+	}
+	for (const FNWCrafting::FStation& Data : FNWCrafting::Get().Stations())
+	{
+		Points.Add(Data.Pos);
+	}
+	if (HasAuthority() && !City.IsEmpty() && Points.Num() > 0)
+	{
+		for (const FVector& P : Points)
+		{
+			CityCenter += P / float(Points.Num());
+		}
+		for (const FVector& P : Points)
+		{
+			CityRadius = FMath::Max(CityRadius, float(FVector::Dist2D(P, CityCenter)));
+		}
+		CityRadius += CityMargin;
+		GetWorldTimerManager().SetTimer(DiscoverTimer, this, &ANWNpcField::CheckDiscover, 1.f, true);
+	}
+}
+
+void ANWNpcField::CheckDiscover()
+{
+	// Com nw-core, só depois que o personagem carregou dele (senão o Load apagaria a cidade marcada).
+	const UGameInstance* GI = GetGameInstance();
+	const UNWBackend* B = GI ? GI->GetSubsystem<UNWBackend>() : nullptr;
+	const bool bBackend = B && B->IsServerEnabled();
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		ANWPlayerController* PC = Cast<ANWPlayerController>(It->Get());
+		ANWCharacter* Me = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		if (!Me || !Me->Progression || (bBackend && !PC->Record) || FVector::Dist2D(Me->GetActorLocation(), CityCenter) > CityRadius)
+		{
+			continue;
+		}
+		if (Me->Progression->DiscoverCity(City))
+		{
+			PC->Warning(NWText::Key(TEXT("nw.storage.city_known"), {FString::FromInt(FMath::RoundToInt(FNWItemRules::Get().StoragePerCity))}));
+			if (ANWGameMode* GM = GetWorld()->GetAuthGameMode<ANWGameMode>())
+			{
+				GM->SavePlayer(PC, TEXT("city:") + City);   // cidade e capacidade no nw-core na hora
+			}
 		}
 	}
 }

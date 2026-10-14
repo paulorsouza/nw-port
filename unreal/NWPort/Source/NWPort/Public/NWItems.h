@@ -65,6 +65,8 @@ struct FNWItem
 	UPROPERTY() FString Signer;
 	/** Número de série do item assinado (emitido pelo nw-core; o banco recusa o mesmo número em dois lugares). */
 	UPROPERTY() FString Serial;
+	/** Aba do armazém compartilhado (0..4); fora do armazém, 0. Não entra no SameKind. */
+	UPROPERTY() uint8 Tab = 0;
 
 	bool HasProps() const { return Attr != 255 || Quality >= 0.f || Perks.Num() > 0 || !Gem.IsNone() || Bind != 0 || !Signer.IsEmpty() || !Serial.IsEmpty(); }
 	/** Mesmo item para empilhar ou achar no armazém: id, GS, raridade e props iguais. */

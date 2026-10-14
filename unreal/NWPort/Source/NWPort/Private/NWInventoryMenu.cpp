@@ -1,4 +1,5 @@
 #include "NWInventoryMenu.h"
+#include "NWLootBag.h"
 
 #include "CanvasItem.h"
 #include "Engine/Canvas.h"
@@ -38,6 +39,7 @@ static constexpr int32 PerRow = 4;
 static constexpr float EquipCell = 63.f, DragSize = 75.f, DragStart = 6.f;
 // catcontainer: a janela do armazém fica 316 à direita do lugar do inventário; o inventário vai 300 para a esquerda.
 static constexpr float StorageShift = 316.f, InvShift = -300.f;
+static constexpr float LootListTop = 214.f;   // lista da bolsa de saque, abaixo do aviso e da contagem
 
 namespace
 {
@@ -187,7 +189,9 @@ void FNWInventoryMenu::Open(ANWCharacter* InCharacter)
 	{
 		Character = InCharacter;
 		bPressed = bDragging = false;
-		bStorage = false;
+		bStorage = bLoot = false;
+		LootBag.Reset();
+		RenameTab = INDEX_NONE;
 		Lists[0].Scroll = 0.f;
 		ShowSearch();
 	}
@@ -204,14 +208,140 @@ void FNWInventoryMenu::OpenStorage(ANWCharacter* InCharacter, const FString& InT
 	}
 }
 
+void FNWInventoryMenu::OpenLootBag(ANWCharacter* InCharacter, ANWLootBag* Bag)
+{
+	OpenStorage(InCharacter, NWText::Get(TEXT("inv_droppeditems")));
+	if (IsOpen())
+	{
+		bLoot = true;
+		LootBag = Bag;
+	}
+}
+
+int32 FNWInventoryMenu::TabAt(const FVector2f& M) const
+{
+	for (int32 t = 0; t < MaxTabs; ++t)
+	{
+		if (TabRectsStorage[t].bIsValid && TabRectsStorage[t].IsInside(M))
+		{
+			return t;
+		}
+	}
+	return INDEX_NONE;
+}
+
+FBox2f FNWInventoryMenu::RenameRect() const
+{
+	return IsOpen() && ShowsTabs() && RenameTab >= 0 && RenameTab < MaxTabs ? TabRectsStorage[RenameTab] : FBox2f(ForceInit);
+}
+
+void FNWInventoryMenu::CommitRename(const FString& Name)
+{
+	ANWCharacter* Me = Character.Get();
+	if (Me && Me->Interactor && RenameTab != INDEX_NONE)
+	{
+		Me->Interactor->ServerStorageRenameTab(uint8(RenameTab), Name);
+	}
+	RenameTab = INDEX_NONE;
+}
+
+void FNWInventoryMenu::DrawTabs(UCanvas* Canvas, const FVector2D& Mouse)
+{
+	// Cinco abas como botões do jogo (buttonbg #2c251b + primarybuttonframe); a aberta com a moldura cheia e o texto claro.
+	// Arrastando um item, a aba sob o mouse acende (soltar guarda ou passa para ela).
+	const ANWCharacter* Me = Character.Get();
+	const TArray<FString>* Names = Me && Me->Interactor ? &Me->Interactor->StorageTabNames : nullptr;
+	const float S = UIScale;
+	const int32 Hot = TabAt(FVector2f(Mouse));
+	for (int32 t = 0; t < MaxTabs; ++t)
+	{
+		const FBox2f& R = TabRectsStorage[t];
+		if (!R.bIsValid)
+		{
+			continue;
+		}
+		const bool bSel = t == StorageTab, bHot = t == Hot;
+		DrawTexture(Canvas, TEXT("lyshineui/images/slices/button/buttonbg.dds"), R, FLinearColor(FColor(0x2C, 0x25, 0x1B)));
+		DrawTexture(Canvas, TEXT("lyshineui/images/slices/button/primarybuttonframe.dds"), R,
+			FLinearColor(1.f, 1.f, 1.f, bSel ? 1.f : bHot ? 0.8f : 0.4f));
+		if (bDragging && bHot)
+		{
+			DrawDropZone(Canvas, R, InvTan);
+		}
+		if (t == RenameTab && RenameEdit.IsValid())
+		{
+			continue;   // o campo de texto do Slate fica por cima
+		}
+		FString Label = Names && Names->IsValidIndex(t) && !(*Names)[t].IsEmpty() ? (*Names)[t]
+			: NWText::Get(TEXT("nw.storage.tab")).Replace(TEXT("{0}"), *FString::FromInt(t + 1));
+		const float MaxW = R.GetSize().X - 12.f * S;
+		while (Label.Len() > 1 && GameTextWidth(Label, 22.f, TEXT("nimbus_medium")) > MaxW)
+		{
+			Label.LeftChopInline(1);
+		}
+		DrawGameText(Canvas, Label, R.GetCenter().X - GameTextWidth(Label, 22.f, TEXT("nimbus_medium")) * 0.5f, R.Min.Y + 7.f * S, 22.f,
+			bSel || bHot ? InvTan : InvGray, TEXT("nimbus_medium"));
+	}
+}
+
+const TArray<FNWItem>* FNWInventoryMenu::ContainerItems() const
+{
+	const ANWCharacter* Me = Character.Get();
+	if (bLoot)
+	{
+		return LootBag.IsValid() ? &LootBag->Items : nullptr;
+	}
+	return Me && Me->Interactor ? &Me->Interactor->StorageItems : nullptr;
+}
+
+void FNWInventoryMenu::ContainerMove(bool bDeposit, int32 Slot, int32 Quantity)
+{
+	ANWCharacter* Me = Character.Get();
+	if (!Me || !Me->Interactor)
+	{
+		return;
+	}
+	if (!bLoot)
+	{
+		Me->Interactor->ServerStorageMove(bDeposit, Slot, Quantity, uint8(StorageTab));
+	}
+	else if (!bDeposit && LootBag.IsValid())
+	{
+		Me->Interactor->ServerLootTakeItem(LootBag.Get(), Slot, Quantity);
+	}
+}
+
+void FNWInventoryMenu::ContainerMoveMany(bool bDeposit, const TArray<int32>& InSlots)
+{
+	ANWCharacter* Me = Character.Get();
+	if (!Me || !Me->Interactor)
+	{
+		return;
+	}
+	if (!bLoot)
+	{
+		Me->Interactor->ServerStorageMoveMany(bDeposit, InSlots, uint8(StorageTab));
+		return;
+	}
+	const TArray<FNWItem>* Items = ContainerItems();
+	for (int32 Slot : bDeposit || !Items ? TArray<int32>() : InSlots)
+	{
+		if (const FNWItem* I = Items->FindByPredicate([Slot](const FNWItem& It) { return It.Slot == Slot; }))
+		{
+			Me->Interactor->ServerLootTakeItem(LootBag.Get(), Slot, I->Quantity);
+		}
+	}
+}
+
 void FNWInventoryMenu::Close()
 {
-	if (ANWCharacter* Me = Character.Get(); Me && bStorage && Me->Interactor)
+	if (ANWCharacter* Me = Character.Get(); Me && bStorage && !bLoot && Me->Interactor)
 	{
 		Me->Interactor->ServerStorageClose();
 	}
 	Character.Reset();
-	bStorage = bPressed = bDragging = false;
+	bStorage = bLoot = bPressed = bDragging = false;
+	LootBag.Reset();
 	Popup = EPopup::None;
 	HideSearch();
 }
@@ -232,7 +362,8 @@ const FNWItem* FNWInventoryMenu::ItemOf(const FSlotRef& S) const
 	}
 	if (S.bStorage)
 	{
-		return Me->Interactor ? Me->Interactor->StorageItems.FindByPredicate([&S](const FNWItem& I) { return I.Slot == S.Slot; }) : nullptr;
+		const TArray<FNWItem>* Items = ContainerItems();
+		return Items ? Items->FindByPredicate([&S](const FNWItem& I) { return I.Slot == S.Slot; }) : nullptr;
 	}
 	return Me->Inventory ? Me->Inventory->At(S.Container, S.Slot) : nullptr;
 }
@@ -380,12 +511,12 @@ TArray<int32> FNWInventoryMenu::SectionSlots(FName Class, bool bStorageItems) co
 {
 	TArray<int32> Out;
 	const ANWCharacter* Me = Character.Get();
-	const TArray<FNWItem>* Items = !Me ? nullptr : bStorageItems ? (Me->Interactor ? &Me->Interactor->StorageItems : nullptr)
-		: (Me->Inventory ? &Me->Inventory->Items : nullptr);
+	const TArray<FNWItem>* Items = !Me ? nullptr : bStorageItems ? ContainerItems() : (Me->Inventory ? &Me->Inventory->Items : nullptr);
 	for (const FNWItem& I : Items ? *Items : TArray<FNWItem>())
 	{
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(I.ItemId);
-		if (D && (bStorageItems || I.Container == ENWItemContainer::Bag) && FName(SectionDefs[SectionIndex(D->UiClass)].Class) == Class)
+		if (D && (bStorageItems || I.Container == ENWItemContainer::Bag) && InList(I, bStorageItems)
+			&& FName(SectionDefs[SectionIndex(D->UiClass)].Class) == Class)
 		{
 			Out.Add(I.Slot);
 		}
@@ -398,15 +529,14 @@ void FNWInventoryMenu::LayoutList(FList& L, bool bStorageItems)
 	// dynamicitemlist.lua UpdateSizes: seções empilhadas em duas colunas (cada uma com a própria altura); seção vazia
 	// some; recolhida fica só com o cabeçalho.
 	const ANWCharacter* Me = Character.Get();
-	const TArray<FNWItem>* Items = !Me ? nullptr : bStorageItems ? (Me->Interactor ? &Me->Interactor->StorageItems : nullptr)
-		: (Me->Inventory ? &Me->Inventory->Items : nullptr);
+	const TArray<FNWItem>* Items = !Me ? nullptr : bStorageItems ? ContainerItems() : (Me->Inventory ? &Me->Inventory->Items : nullptr);
 	TArray<TArray<const FNWItem*>> BySection;
 	BySection.SetNum(UE_ARRAY_COUNT(SectionDefs));
 	const FString Query = Fold(L.Search.TrimStartAndEnd());
 	for (const FNWItem& I : Items ? *Items : TArray<FNWItem>())
 	{
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(I.ItemId);
-		if (D && (bStorageItems || I.Container == ENWItemContainer::Bag)
+		if (D && (bStorageItems || I.Container == ENWItemContainer::Bag) && InList(I, bStorageItems)
 			&& (Query.IsEmpty() || Fold(D->Name).Contains(Query) || Fold(D->TypeName).Contains(Query)))
 		{
 			BySection[SectionIndex(D->UiClass)].Add(&I);
@@ -505,6 +635,10 @@ void FNWInventoryMenu::Layout(UCanvas* Canvas)
 	// Content do canvas: âncora no centro + 6,5 (x 966 de 1920), largura 623.
 	const float W0 = Canvas->ClipX / S * 0.5f + 6.5f;
 	InvLeft = W0;
+	if (bLoot && !LootBag.IsValid())
+	{
+		bStorage = bLoot = false;   // a bolsa sumiu (vazia ou 3 min): fica só o inventário
+	}
 	InvOffsetX = bStorage ? InvShift : 0.f;
 	auto SetWindow = [S](FList& L, float Left)
 	{
@@ -522,6 +656,29 @@ void FNWInventoryMenu::Layout(UCanvas* Canvas)
 	if (bStorage)
 	{
 		SetWindow(Lists[1], W0 + StorageShift);
+		if (bLoot)
+		{
+			// Bolsa de saque: sem busca nem ordenação; aviso e contagem no lugar (LootBagInfoContainer), lista mais abaixo.
+			Lists[1].SearchBox = FBox2f(ForceInit);
+			for (FBox2f& R : Lists[1].SortRects)
+			{
+				R = FBox2f(ForceInit);
+			}
+			Lists[1].Area.Min.Y = LootListTop * S;
+		}
+		else
+		{
+			// Abas embaixo da busca, a lista desce.
+			const float L0 = W0 + StorageShift + 36.f, L1 = W0 + StorageShift + 593.f, Gap = 6.f;
+			const float W = (L1 - L0 - Gap * (MaxTabs - 1)) / MaxTabs;
+			const int32 N = FMath::Clamp(FNWItemRules::Get().StorageTabs, 1, MaxTabs);
+			for (int32 t = 0; t < MaxTabs; ++t)
+			{
+				const float X = L0 + t * (W + Gap);
+				TabRectsStorage[t] = t < N ? FBox2f(FVector2f(X, 174.f) * S, FVector2f(X + W, 212.f) * S) : FBox2f(ForceInit);
+			}
+			Lists[1].Area.Min.Y = 222.f * S;
+		}
 		LayoutList(Lists[1], true);
 		TakeAllRect = FBox2f(FVector2f(W0 + StorageShift + 425.f, 935.f) * S, FVector2f(W0 + StorageShift + 595.f, 985.f) * S);
 	}
@@ -619,7 +776,8 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 	if (FNWUIElement* Icon = Window.FindOne(TEXT("inventory"), TEXT("Content/InventoryIcon")))
 	{
 		// catcontainer: ícone do galpão 36x36 no lugar do ícone da mochila.
-		Icon->TextureOverride = bStorageWindow ? TEXT("lyshineui/images/catcontainer/icon_storage_shed.dds") : FString();
+		Icon->TextureOverride = !bStorageWindow ? FString() : bLoot ? TEXT("lyshineui/images/catcontainer/icon_dropped_items.dds")
+			: TEXT("lyshineui/images/catcontainer/icon_storage_shed.dds");
 	}
 	if (FNWUIElement* Coins = Window.FindOne(TEXT("inventory"), TEXT("Content/CurrencyText")))
 	{
@@ -630,7 +788,13 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 
 	// Peso (weightbar): valor Pica 28 #ebe3d6 + "/ máximo" Pica 28 #b2aea1, ícone 16x16, à direita do cabeçalho.
 	float Cur = 0.f, Max = 1.f;
-	if (bStorageWindow && Me && Me->Interactor)
+	if (bStorageWindow && bLoot)
+	{
+		// Bolsa no chão: peso dela contra o limite de itens no chão do jogador.
+		Cur = LootBag.IsValid() ? LootBag->Weight() : 0.f;
+		Max = ANWLootBag::MaxGroundWeight;
+	}
+	else if (bStorageWindow && Me && Me->Interactor)
 	{
 		Cur = Me->Interactor->StorageWeight();
 		Max = Me->Interactor->StorageCapacity;
@@ -652,7 +816,8 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 	// Ordenação (itemfilterbutton.lua): #a5987d, selecionado e hover #ebe3d6, barra 34x2 embaixo do selecionado.
 	static const TCHAR* SortIcons[4] = {TEXT("icon_filter_chrono"), TEXT("icon_weight"), TEXT("icon_filter_gearscore"), TEXT("icon_filter_tier")};
 	static const FVector2f SortSize[4] = {FVector2f(33.f, 33.f), FVector2f(22.f, 20.f), FVector2f(30.f, 30.f), FVector2f(30.f, 30.f)};
-	for (int32 i = 0; i < 4; ++i)
+	const bool bLootWindow = bStorageWindow && bLoot;   // bolsa de saque: sem ordenação nem busca
+	for (int32 i = 0; i < (bLootWindow ? 0 : 4); ++i)
 	{
 		const FBox2f& B = L.SortRects[i];
 		const bool bSel = L.Sort == i + 1;
@@ -668,6 +833,7 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 	}
 	// Busca (textinputsearch): fundo 360x45, lupa, "Buscar" em Nimbus médio 25 #b2aea1. O texto digitado é do campo do
 	// Slate por cima; sem ele (captura offline), o canvas desenha o texto.
+	if (!bLootWindow)
 	{
 		const FBox2f& B = L.SearchBox;
 		const int32 Li = bStorageWindow ? 1 : 0;
@@ -684,10 +850,47 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 			DrawGameText(Canvas, L.Search, B.Min.X + 44.f * S, B.Min.Y + 9.f * S, 25.f, InvTan, TEXT("nimbus_medium"));
 		}
 	}
+	if (bLootWindow)
+	{
+		// LootBagInfoContainer: aviso de tempo de vida (Nimbus 23 #c8c8c8, quebra por palavra, entrelinha −4) e a contagem
+		// "N itens" embaixo.
+		const FLinearColor Info(FColor(0xC8, 0xC8, 0xC8));
+		const float InfoX = L.Area.Min.X, InfoW = L.Area.GetSize().X - 24.f * S;
+		float InfoY = 108.f * S;
+		FString Line;
+		TArray<FString> Words;
+		NWText::Get(TEXT("inv_discard_life_warning")).ParseIntoArrayWS(Words);
+		for (int32 w = 0; w <= Words.Num(); ++w)
+		{
+			const FString Try = w < Words.Num() ? (Line.IsEmpty() ? Words[w] : Line + TEXT(" ") + Words[w]) : FString();
+			if (w == Words.Num() || (!Line.IsEmpty() && GameTextWidth(Try, 23.f, TEXT("nimbus_regular")) > InfoW))
+			{
+				DrawGameText(Canvas, Line, InfoX, InfoY, 23.f, Info, TEXT("nimbus_regular"));
+				InfoY += 23.f * S;
+				Line = w < Words.Num() ? Words[w] : FString();
+			}
+			else
+			{
+				Line = Try;
+			}
+		}
+		int32 N = 0;
+		for (const FNWItem& I : ContainerItems() ? *ContainerItems() : TArray<FNWItem>())
+		{
+			N += I.Quantity;
+		}
+		const FString Count = N == 1 ? NWText::Get(TEXT("ui_loot_bag_1_item"))
+			: NWText::Get(TEXT("ui_loot_bag_items")).Replace(TEXT("{amount}"), *FString::FromInt(N));
+		DrawGameText(Canvas, Count, InfoX, InfoY + 8.f * S, 23.f, Info, TEXT("nimbus_regular"));
+	}
 	// Linha embaixo da barra de ordenação, como o fundo da busca do jogo.
-	FCanvasTileItem Sep(FVector2D(L.Area.Min.X, 166.f * S), FVector2D(L.Area.GetSize().X - 16.f * S, 1.f * S), FLinearColor(InvLine.R, InvLine.G, InvLine.B, 0.25f));
+	FCanvasTileItem Sep(FVector2D(L.Area.Min.X, (bLootWindow ? LootListTop - 18.f : 166.f) * S), FVector2D(L.Area.GetSize().X - 16.f * S, 1.f * S), FLinearColor(InvLine.R, InvLine.G, InvLine.B, 0.25f));
 	Sep.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(Sep);
+	if (bStorageWindow && ShowsTabs())
+	{
+		DrawTabs(Canvas, Mouse);
+	}
 
 	if (bStorageWindow)
 	{
@@ -745,11 +948,12 @@ void FNWInventoryMenu::DrawList(UCanvas* Canvas, const FList& L, bool bStorageIt
 			}
 		}
 		const FString WT = FString::Printf(TEXT("%.1f"), W);
-		const float WR = bStorage ? H.Transfer.Min.X - 8.f * S : H.Transfer.Max.X;
+		const bool bTransfer = bStorage && (bStorageItems || !bLoot);   // bolsa no chão: só pegar
+		const float WR = bTransfer ? H.Transfer.Min.X - 8.f * S : H.Transfer.Max.X;
 		DrawGameText(Canvas, WT, WR, H.Transfer.Min.Y, 24.f, InvGray, TEXT("pica_regular"), true);
 		const float IX = WR - GameTextWidth(WT, 24.f, TEXT("pica_regular")) - 16.f * S;
 		DrawTexture(Canvas, FString(MiscDir) + TEXT("icon_weight.dds"), FBox2f(FVector2f(IX, H.Transfer.Min.Y + 9.f * S), FVector2f(IX + 12.f * S, H.Transfer.Min.Y + 21.f * S)), InvGray);
-		if (bStorage)
+		if (bTransfer)
 		{
 			// TransferAll: icon_smallArrowNarrow, apontando para o outro lado (espelhado no inventário).
 			const bool bHot = H.Transfer.IsInside(M);
@@ -785,7 +989,7 @@ void FNWInventoryMenu::DrawList(UCanvas* Canvas, const FList& L, bool bStorageIt
 		Canvas->DrawItem(Thumb);
 	}
 	// Alvo de soltar (containerareadroptarget): dropzoneglow acende com o mouse em cima, vindo do outro lado.
-	const bool bFromOther = bStorageItems ? Pressed.Source() != ESource::Storage : Pressed.Source() != ESource::Bag;
+	const bool bFromOther = bStorageItems ? Pressed.Source() != ESource::Storage && !bLoot : Pressed.Source() != ESource::Bag;
 	if (bDragging && bFromOther && L.Window.IsInside(M))
 	{
 		DrawDropZone(Canvas, L.Window, InvTan);
@@ -1029,6 +1233,30 @@ void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 				return;
 			}
 		}
+		if (const int32 T = ShowsTabs() ? TabAt(M) : INDEX_NONE; T != INDEX_NONE)
+		{
+			// Clique troca de aba; clique duplo na aba aberta renomeia.
+			const double Now = FPlatformTime::Seconds();
+			if (T == StorageTab && LastTabClicked == T && Now - LastTabClick < 0.4)
+			{
+				RenameTab = T;
+				if (RenameEdit.IsValid() && FSlateApplication::IsInitialized())
+				{
+					const TArray<FString>* Names = Me->Interactor ? &Me->Interactor->StorageTabNames : nullptr;
+					RenameEdit->SetText(FText::FromString(Names && Names->IsValidIndex(T) ? (*Names)[T] : FString()));
+					FSlateApplication::Get().SetKeyboardFocus(RenameEdit);
+				}
+			}
+			else if (T != StorageTab)
+			{
+				StorageTab = T;
+				Lists[1].Scroll = 0.f;
+				RenameTab = INDEX_NONE;
+			}
+			LastTabClicked = T;
+			LastTabClick = Now;
+			return;
+		}
 		for (int32 l = 0; l < (bStorage ? 2 : 1); ++l)
 		{
 			FList& L = Lists[l];
@@ -1056,22 +1284,33 @@ void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 					}
 					return;
 				}
-				if (bStorage && H.Transfer.IsInside(M) && Me->Interactor)
+				if (bStorage && (l == 1 || !bLoot) && H.Transfer.IsInside(M))
 				{
 					// TransferAll: a seção inteira para o outro lado.
-					Me->Interactor->ServerStorageMoveMany(l == 0, SectionSlots(H.Class, l == 1));
+					ContainerMoveMany(l == 0, SectionSlots(H.Class, l == 1));
 					return;
 				}
 			}
 		}
 		if (bStorage && TakeAllRect.IsInside(M) && Me->Interactor)
 		{
+			if (bLoot)
+			{
+				if (LootBag.IsValid())
+				{
+					Me->Interactor->ServerLootTake(LootBag.Get());
+				}
+				return;
+			}
 			TArray<int32> All;
 			for (const FNWItem& I : Me->Interactor->StorageItems)
 			{
-				All.Add(I.Slot);
+				if (InList(I, true))   // Pegar tudo da aba aberta
+				{
+					All.Add(I.Slot);
+				}
 			}
-			Me->Interactor->ServerStorageMoveMany(false, All);
+			Me->Interactor->ServerStorageMoveMany(false, All, uint8(StorageTab));
 			return;
 		}
 	}
@@ -1182,9 +1421,17 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 		{
 			Inv->ServerMove(ENWItemContainer::Bag, Pressed.Slot, ENWItemContainer::Equip, Target->Slot);
 		}
-		else if (bStorage && Lists[1].Window.IsInside(M) && Me->Interactor)
+		else if (const int32 T = ShowsTabs() ? TabAt(M) : INDEX_NONE; T != INDEX_NONE)
 		{
-			Me->Interactor->ServerStorageMove(true, Pressed.Slot, Item->Quantity);
+			// Soltar na aba: guarda direto nela.
+			const int32 Was = StorageTab;
+			StorageTab = T;
+			ContainerMove(true, Pressed.Slot, Item->Quantity);
+			StorageTab = Was;
+		}
+		else if (bStorage && Lists[1].Window.IsInside(M))
+		{
+			ContainerMove(true, Pressed.Slot, Item->Quantity);   // na bolsa no chão não guarda
 		}
 		else if (!bStorage && GroundZone().IsInside(M))
 		{
@@ -1212,9 +1459,13 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 		}
 		break;
 	case ESource::Storage:
-		if (Lists[0].Window.IsInside(M) && Me->Interactor)
+		if (const int32 T = ShowsTabs() ? TabAt(M) : INDEX_NONE; T != INDEX_NONE && Me->Interactor)
 		{
-			Me->Interactor->ServerStorageMove(false, Pressed.Slot, Item->Quantity);
+			Me->Interactor->ServerStorageSetTab(Pressed.Slot, uint8(T));   // passa a pilha para a aba
+		}
+		else if (Lists[0].Window.IsInside(M))
+		{
+			ContainerMove(false, Pressed.Slot, Item->Quantity);
 		}
 		break;
 	}
@@ -1235,7 +1486,7 @@ void FNWInventoryMenu::RightClick(const FSlotRef& S)
 	{
 		OpenPopup(EPopup::Unsocket, S);   // Shift + clique direito: retirar a gema
 	}
-	else if (S.Source() == ESource::Storage || (bStorage && S.Source() == ESource::Bag))
+	else if (S.Source() == ESource::Storage || (bStorage && !bLoot && S.Source() == ESource::Bag))
 	{
 		QuickMove(S);
 	}
@@ -1265,13 +1516,9 @@ void FNWInventoryMenu::QuickMove(const FSlotRef& S)
 	{
 		return;
 	}
-	if (S.Source() == ESource::Bag)
+	if (S.Source() == ESource::Bag || S.Source() == ESource::Storage)
 	{
-		Me->Interactor->ServerStorageMove(true, S.Slot, Item->Quantity);
-	}
-	else if (S.Source() == ESource::Storage)
-	{
-		Me->Interactor->ServerStorageMove(false, S.Slot, Item->Quantity);
+		ContainerMove(S.Source() == ESource::Bag, S.Slot, Item->Quantity);
 	}
 }
 
@@ -1354,7 +1601,7 @@ void FNWInventoryMenu::OpenPopup(EPopup Kind, const FSlotRef& S)
 		const bool bPay = Cost.IsNone() || (Me && Me->Inventory && Me->Inventory->CountOf(Cost) >= Qty);
 		Add(Kind == EPopup::Socket ? EAction::Socket : EAction::Unsocket, TEXT("ui_confirm"), bPay);
 	}
-	else if (bStorage)
+	else if (bStorage && !(bLoot && S.Source() == ESource::Bag))
 	{
 		Add(EAction::Move, S.Source() == ESource::Storage ? TEXT("ui_tooltip_take") : TEXT("ui_move"));
 	}
@@ -1386,10 +1633,7 @@ void FNWInventoryMenu::RunAction(EAction Action)
 	switch (Action)
 	{
 	case EAction::Move:
-		if (Me->Interactor)
-		{
-			Me->Interactor->ServerStorageMove(PopupSlot.Source() == ESource::Bag, PopupSlot.Slot, PopupQty);
-		}
+		ContainerMove(PopupSlot.Source() == ESource::Bag, PopupSlot.Slot, PopupQty);
 		break;
 	case EAction::Drop:
 		// Soltar a parte escolhida numa bolsa no chão (ANWLootBag).
@@ -1602,6 +1846,7 @@ namespace
 		SLATE_END_ARGS()
 
 		TSharedPtr<SEditableText> Edit[2];
+		TSharedPtr<SEditableText> Rename;
 
 		void Construct(const FArguments& Args)
 		{
@@ -1642,6 +1887,28 @@ namespace
 						]
 					];
 			}
+			// Nome da aba do armazém (clique duplo): Enter ou sair do campo grava.
+			Canvas->AddSlot()
+				.Position(TAttribute<FVector2D>::CreateLambda([this, Menu]() { return FVector2D(Menu->RenameRect().Min) / Scale(); }))
+				.Size(TAttribute<FVector2D>::CreateLambda([this, Menu]() { return FVector2D(Menu->RenameRect().GetSize()) / Scale(); }))
+				[
+					SNew(SBox)
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(6.f, 0.f))
+					.Visibility(TAttribute<EVisibility>::CreateLambda([Menu]() { return Menu->RenameRect().bIsValid ? EVisibility::Visible : EVisibility::Collapsed; }))
+					[
+						SAssignNew(Rename, SEditableText)
+						.Font(TAttribute<FSlateFontInfo>::CreateLambda([this, Menu]()
+						{
+							const float Px = Menu->RenameRect().GetSize().Y * 22.f / 38.f;
+							return FSlateFontInfo(FNWUILayout::GameFont(7), FMath::Max(8, FMath::RoundToInt(Px / Scale() * 0.8f)));
+						}))
+						.ColorAndOpacity(FSlateColor(FLinearColor(FColor(0xEB, 0xE3, 0xD6))))
+						.ClearKeyboardFocusOnCommit(true)
+						.SelectAllTextWhenFocused(true)
+						.OnTextCommitted_Lambda([Menu](const FText& T, ETextCommit::Type) { if (Menu->RenameRect().bIsValid) { Menu->CommitRename(T.ToString()); } })
+					]
+				];
 			ChildSlot[Canvas];
 		}
 
@@ -1663,6 +1930,7 @@ void FNWInventoryMenu::ShowSearch()
 	TSharedRef<SNWInventorySearch> W = SNew(SNWInventorySearch).Menu(this).StorageShown([this]() { return bStorage; });
 	SearchEdit[0] = W->Edit[0];
 	SearchEdit[1] = W->Edit[1];
+	RenameEdit = W->Rename;
 	for (int32 i = 0; i < 2; ++i)
 	{
 		SearchEdit[i]->SetText(FText::FromString(Lists[i].Search));
@@ -1684,6 +1952,7 @@ void FNWInventoryMenu::HideSearch()
 	SearchHost.Reset();
 	SearchEdit[0].Reset();
 	SearchEdit[1].Reset();
+	RenameEdit.Reset();
 }
 
 // ------------------------------------------------------------------------------------------------------------ tooltip

@@ -53,4 +53,15 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NW|Npc") FString AssetRoot = TEXT("/Game/NW/NpcQuedaEterna");
 
 	UPROPERTY(Transient) TArray<TObjectPtr<ANWNpc>> Npcs;
+
+	/** Área da cidade (centro e raio em volta dos NPCs e estações + CityMargin): quem entra passa a conhecer a cidade
+	 *  (armazém compartilhado, docs/sistemas.md "Armazém"). */
+	UPROPERTY(EditAnywhere, Category = "NW|Npc") float CityMargin = 4000.f;
+
+private:
+	FString City;
+	FVector CityCenter = FVector::ZeroVector;
+	float CityRadius = 0.f;
+	FTimerHandle DiscoverTimer;
+	void CheckDiscover();
 };
