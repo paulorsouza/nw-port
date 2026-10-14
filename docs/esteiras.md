@@ -1,6 +1,6 @@
 # Esteiras de trabalho
 
-Quatro frentes do port; a de armas tem duas sub-esteiras (1a, 1b). Cada uma pode ser uma sessão na mesma máquina
+Cinco frentes do port; a de armas tem duas sub-esteiras (1a, 1b). Cada uma pode ser uma sessão na mesma máquina
 (mesmo checkout) ou uma pessoa na própria máquina, num branch (seção "Várias pessoas").
 A engenharia reversa (RE) do `NewWorld.exe` não é uma esteira: qualquer sessão pede uma pergunta específica pela
 skill `nw-re`, que roda o agente `nw-re` em segundo plano.
@@ -13,6 +13,7 @@ skill `nw-re`, que roda o agente `nw-re` em segundo plano.
 | 2. Coleta | `nw-coleta` | `docs/coleta.md` | `docs/testes/coleta.md` | `L_SouthWindsward` |
 | 3. Montarias | `nw-montaria` | `docs/montarias.md` | `docs/testes/montarias.md` | `L_SouthWindsward` |
 | 4. Sistemas e Queda Eterna | `nw-sistemas` | `docs/sistemas.md` | `docs/testes/sistemas.md` | `L_QuedaEterna` |
+| 5. Iluminação | `nw-iluminacao` | `docs/iluminacao.md` | `docs/testes/iluminacao.md` | `L_QuedaEterna`, `L_SouthWindsward` |
 
 Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, a `nw-re`.
 
@@ -80,6 +81,7 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 | Coleta | `tools/sets/player/coleta.json`, `tools/etapas/coleta.*`, `docs/analise-re/perguntas/coleta-*`, `tools/strings/coleta.json`; `NWGatherComponent`, `NWGatherField`; `tools/make_gatherables.py`, `convert_gatherables.sh`, `tools/ue/import_gatherables.py`; `docs/coleta.md` |
 | Montarias | `NWMountComponent` (já criado, vazio), `tools/sets/player/montaria.json`, `tools/etapas/montarias.*`, `tools/strings/montarias.json`; `NWMount*`; `tools/sets/mount_*.json`; `docs/montarias.md` |
 | Sistemas | `NWCharacterSave.cpp`, `tools/strings/sistemas.json`, `tools/etapas/sistemas.*`; `NWHUD`, `NWInventory*`, `NWProgression*`, `NWItems`, `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWTradeskillMenu`, `NWAttributesMenu`; `backend/`; `tools/make_items.py`, `make_progression.py`, `ui_build_*.py`, `convert_city.sh`, `tools/ue/import_city.py`, `fix_city.py`; `NWRefiningMenu`, `NWStorageMenu`, `NWLootBag`, `NWShop*`, `tools/shops.json`, `NWCrafting`, `NWInteractable`, `NWNpc*`, `NWEvents`, `NWUIShotCommandlet`; `tools/ui_screens/`, `ui_shots/`, `ui_shot.sh`, `ui_styles.py`, `ui_compare.py`, `make_crafting.py`, `make_npcs.py`; `docs/hud/`, `docs/hud-*.md`, `docs/sistemas.md` |
+| Iluminação | `tools/etapas/iluminacao.*`, `tools/ue/city_exposure.py` (vem da esteira 4), scripts de luz em `tools/ue/`, `docs/analise-re/perguntas/iluminacao-*`, `docs/iluminacao.md`, `docs/testes/iluminacao.md`; atores na pasta `Iluminacao/` dos mapas. O `sliceLight` do patch do nwbt (`vendor/nw-buddy`, `patches/nwbt-nwport.patch`) |
 | Servidor e rede (por enquanto com a esteira 4) | `NWLoadTest`, `NWPlayerGrid`, `tools/perf_csv.py`, `tools/item_log.py`, `docs/arquitetura-servidor.md` (regras de desempenho para todas as esteiras, rascunho até o dono aprovar) |
 | RE (agente `nw-re`) | `docs/analise-re/`, `tools/re/` |
 | Compartilhados | `NWCharacter.h`, `NWCharacter.cpp`, `NWPlayerController`, `SNWDevMenu`, `NWCombatTypes.h`, `NWMasteryMenu`, `NWRules`, `NWInputRegistry`, `NWDevRegistry`, `NWUILayout`, `tools/ui_canvas.py`, `NWAnimInstance`, `ABP_NW` (dono único, abaixo); `tools/sets/sword_shield.json`, `tools/strings/geral.json`, `build_all.sh`, `ue_import_all.sh`, `make_data.sh`; `docs/ESTADO.md` |
@@ -342,6 +344,19 @@ pilha de teste em rede no PC do dono com Cloudflare Tunnel (`docs/rede-teste.md`
     servidor; grade de jogadores para a IA; envio de movimento a 30/s. Faltam os testes do dono (combate, rede) e os
     "caminhos abertos" do documento.
 
+## Esteira 5: Iluminação
+
+Luz igual à do jogo com custo aceitável em 8 GB: ciclo do dia, sol, céu, exposição, luzes locais (velas, lareiras,
+postes), interiores e GI. Cada item decide entre converter o dado do jogo e usar o recurso da Unreal (Lumen,
+MegaLights, unidades físicas, Local Exposure, Volumetric Fog), medindo contra o print do jogo original.
+
+Estado (2026-10-13): levantamento inicial em `docs/iluminacao.md` (dados do ciclo do dia de Queda Eterna, 744 luzes da
+cidade com todos os parâmetros, perguntas para a RE). Uma primeira tentativa da esteira 4 (luzes convertidas com escala
+única) foi desfeita: não repetir.
+
+Ordem: levantamento e RE → sol, céu, ciclo do dia e exposição em unidades físicas → luzes locais num prédio (igreja de
+Queda Eterna) até bater com o print → interiores e cintilação → desempenho medido → cidade inteira → Guardaventos.
+
 ## Prompts das sessões
 
 Colar numa sessão nova do Claude Code aberta em `~/workspace/nw-port`.
@@ -498,6 +513,24 @@ em docs/itens.md e docs/oficio.md, armaduras em docs/armaduras.md. Testes com ba
 (tools/backend_dev.sh antes de abrir o editor); rede: docs/rede-teste.md. Telas: siga
 docs/hud/README.md (captura sem o jogo com tools/ui_shot.sh, comparação com o print do original). Me mostre o plano
 antes de mexer no backend.
+
+Sem fonte nos dados: skill nw-re. Teste: abra o editor no mapa e me peça o print; nunca rode o jogo sozinho.
+Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da esteira.
+```
+
+### Esteira 5: Iluminação
+
+```
+Projeto: port do New World para Unreal 5.8 em ~/workspace/nw-port. Responda em pt-BR, texto direto.
+Você é a sessão da esteira 5 (Iluminação). Leia docs/ESTADO.md, docs/esteiras.md (regras comuns e a seção Esteira 5)
+e docs/iluminacao.md, e use as skills nw-esteira e nw-iluminacao. Outras sessões trabalham no mesmo checkout ao mesmo
+tempo.
+
+Objetivo: iluminação igual à do jogo (ciclo do dia, sol, céu, exposição, luzes locais, interiores, GI) com custo
+aceitável numa placa de 8 GB, decidindo item a item entre converter os dados do jogo e usar recursos da Unreal.
+Comece pelo levantamento: abra as perguntas de docs/iluminacao.md na RE (skill nw-re), liste os pontos fixos para eu
+tirar print no jogo original (praça, igreja e taverna de Queda Eterna, rua à noite) e me mostre o plano com a escolha
+de cada item, o custo esperado e como vai medir, antes de mudar código ou o mapa.
 
 Sem fonte nos dados: skill nw-re. Teste: abra o editor no mapa e me peça o print; nunca rode o jogo sozinho.
 Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da esteira.

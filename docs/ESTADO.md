@@ -7,7 +7,7 @@ Ponto de partida para quem chega (pessoa ou sessão nova de IA). Atualizado em 2
 Port do New World para Unreal 5.8.3 para o clã jogar num servidor próprio. Assets da instalação de cada um
 (nada do jogo no repositório). Cliente principal Windows, servidor Linux, desenvolvimento no Linux. Só pt-BR e
 en-US. Escopo atual: o território de Guardaventos inteiro (região `r_+04_+01`) e a capital de Queda Eterna
-(só a cidade, para os sistemas). O trabalho corre em quatro esteiras paralelas (armas, coleta, montarias, sistemas):
+(só a cidade, para os sistemas). O trabalho corre em cinco esteiras paralelas (armas, coleta, montarias, sistemas, iluminação):
 `docs/esteiras.md` (armas com as sub-esteiras manopla de gelo e espada grande).
 
 Decisões fechadas: Unreal é o plano principal; o cliente original com servidor emulado (Discord OpenWorld) é um
@@ -39,6 +39,8 @@ Testes no editor usam o nw-core local com conta fixa: `docs/teste-backend.md`.
 
 Lista completa em `docs/pendencias.md`. Os principais agora:
 
+- Iluminação: só sol, céu e neblina; nenhuma luz do jogo (velas, lareiras, postes), interiores escuros. Esteira 5,
+  `docs/iluminacao.md`.
 - Chão com uma textura só (falta o material por bioma do jogo: `region.tractmap.tif` + materiais de terreno).
 - Personagem "voando" em alguns pontos e pedregulho flutuando: sem diagnóstico ainda.
 - Copas das árvores da cidade com placas coloridas (folhagem masked).

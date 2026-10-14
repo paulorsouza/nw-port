@@ -51,6 +51,7 @@ antes dos comandos manuais.
 | `make_items.py` | catálogo de itens (armas, ferramentas, poções, recursos do saque) e tabelas de saque do jogo |
 | `make_gatherables.py` | coletáveis de Guardaventos: capitals + `region.distribution` → `Data/World/guardaventos_gatherables.json` |
 | `make_terrain.py` | malha do terreno (recorte em volta da cidade ou `--region` inteira) a partir do heightmap |
+| `catalog_meshes.py` | hash da geometria de cada malha dos glb de cenário → `extract/ue/catalogo_malhas.json` (para `tools/ue/catalog.py`) |
 | `make_abilities.py` | habilidades por arma para a HUD e a maestria |
 | `make_worldmap.py` | mapa do mundo (M): referencial da cidade, limites da região e tiles do jogo (níveis 2 e 3) em volta de Guardaventos → `Data/World/worldmap.json` e `extract/ui/worldmap_textures.txt` |
 | `make_progression.py` | nível do personagem (XP total por nível, pontos de atributo) e efeito de cada valor de atributo → `Data/Progression/progression.json` |
@@ -95,6 +96,7 @@ Dados escritos à mão: `tools/strings/<esteira>.json` (textos nossos pt/en e ch
 | `fix_spawn.py <Nome>` | PlayerStart num ponto livre |
 | `import_gatherables.py <pasta> [filtro]` | malhas dos coletáveis (uma pasta por malha, pipeline glTF) |
 | `import_region_scene.py <glb> <Nome>` | cenário da região (mundo → referencial do mapa) |
+| `catalog.py [--dry-run]` | catálogo único: texturas, materiais e malhas repetidos entre camadas, cidades e coletáveis viram um original em `/Game/NW/Catalogo`; rodar depois de cada import de cenário |
 | `fix_nanite_materials.py <pastas>` | flags de Nanite e instâncias; copia os pais do Interchange para o projeto |
 | `cap_textures.py <pasta> <max\|0>` | limita (ou libera, com 0) o tamanho das texturas |
 | `import_ui.py` | texturas e fontes das telas |
