@@ -34,6 +34,18 @@ public:
 	TMap<FName, TArray<FName>> Ability;        // conjunto da arma (Sword, Hatchet...) -> perks de habilidade
 	TArray<FName> HealWeapons;                 // armas que também rolam Cura causada
 
+	/** Tetos do refinar GS (docs/itens.md "Gear score"): até UpTo acima do mínimo da faixa, o sucesso sobe até Max e a
+	 *  falha desce até −Min. Sem UpTo (MAX_int32), vale para o resto. */
+	struct FGsStep { int32 UpTo = MAX_int32; int32 Min = 0; int32 Max = 0; };
+	TArray<FGsStep> GsSteps;
+	float GsSuccess = 51.f;                    // % de sucesso do refinar GS
+	/** Material que paga as melhorias, à escolha na tela: ingrediente RecipeIndex da receita ou o item Item. Steps vazio
+	 *  usa GsSteps. */
+	struct FImproveMaterial { int32 RecipeIndex = INDEX_NONE; FName Item; TArray<FGsStep> Steps; };
+	TArray<FImproveMaterial> ImproveMaterials;
+	int32 CostAttr = 2, CostGs = 2, CostUnbind = 2;
+	float UnbindQualityPer = 10.f;             // desvincular: +1 a cada tantos % de qualidade
+
 	/** Gema ou vidro rúnico (docs/itens.md "Slot"): classe (armadura, arma), efeitos em %, gema bruta do custo de retirar. */
 	struct FGem
 	{

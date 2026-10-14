@@ -58,6 +58,8 @@ public:
 	UFUNCTION(Server, Reliable) void ServerNpcInteract(const FString& Variant);
 	/** Chaves "<kind>:<npc>:<period>" do que o personagem já pegou (nw-core; só o dono recebe). */
 	UPROPERTY(Replicated) TArray<FString> RewardClaims;
+	/** Bolsa no chão (NWLootBag.h): o servidor confere dono e distância e passa o que couber para a bolsa. */
+	UFUNCTION(Server, Reliable) void ServerLootTake(class ANWLootBag* Bag);
 	/** Refino (NWCrafting.h): o servidor confere estação perto, nível, materiais e taxa; erro vira aviso ao dono. */
 	UFUNCTION(Server, Reliable) void ServerRefine(const FString& StationType, FName Recipe, int32 Count);
 	/** Loja (NWShop.h): o servidor confere NPC perto, preço, limite semanal e peso; grava na hora (SavePlayer). */
@@ -65,8 +67,9 @@ public:
 	/** Fabricar arma, escudo ou ferramenta (docs/oficio.md; FNWCrafting::Craft): na hora, item na bolsa; treino abaixo do
 	 *  nível de fabricar. */
 	UFUNCTION(Server, Reliable) void ServerCraft(const FString& StationType, FName Recipe);
-	/** Melhoria do item da bolsa na mesa do ofício dele, pagando materiais (docs/itens.md): Kind = ENWImprove. */
-	UFUNCTION(Server, Reliable) void ServerImprove(const FString& StationType, int32 BagSlot, uint8 Kind);
+	/** Melhoria do item da bolsa na mesa do ofício dele, pagando materiais (docs/itens.md): Kind = ENWImprove, Mat =
+	 *  material escolhido (FNWCrafting::ImproveMaterials). */
+	UFUNCTION(Server, Reliable) void ServerImprove(const FString& StationType, int32 BagSlot, uint8 Kind, uint8 Mat);
 	/** Resultado da última fabricação (Kind 255) ou melhoria (ENWImprove) para a tela da mesa: o item antes e depois. */
 	UFUNCTION(Client, Reliable) void ClientCraftResult(const FNWItem& Before, const FNWItem& After, uint8 Kind);
 	struct FCraftResult { FNWItem Before, After; uint8 Kind = 255; int32 Seq = 0; };

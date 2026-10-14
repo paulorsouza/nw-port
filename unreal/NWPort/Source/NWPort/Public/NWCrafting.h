@@ -83,13 +83,20 @@ public:
 	const FNWRecipe* RecipeFor(FName ItemId, const FString& StationType) const;
 	/** Faixa de GS do item da receita para o personagem: faixa do catálogo + bônus do artesão pelo nível (teto gs_maximo). */
 	FIntPoint GsRange(const ANWCharacter* Who, const FNWRecipe& R) const;
-	/** Custo da melhoria em material (provisório, tools/itens.json "_custos": primeiro material da receita; sortear 2,
-	 *  sortear GS 2, desvincular 2 + qualidade/10). Qty 0 = não dá para fazer neste item. */
-	FNWRecipe::FIngredient ImproveCost(const FNWRecipe& R, const FNWItem& Item, ENWImprove Kind) const;
-	/** Servidor: melhoria no item da bolsa (só a parte dela muda); Before e After recebem o item antes e depois. Devolve
-	 *  a chave do erro ou vazio. */
-	FString Improve(ANWCharacter* Who, const FString& StationType, int32 BagSlot, ENWImprove Kind, FNWItem* Before = nullptr,
-		FNWItem* After = nullptr) const;
+	/** Materiais que pagam as melhorias deste item, na ordem de FNWItemRules::ImproveMaterials (None = a receita não tem
+	 *  aquele ingrediente). */
+	TArray<FName> ImproveMaterials(const FNWRecipe& R) const;
+	/** Custo da melhoria no material Mat (índice de ImproveMaterials; provisório, tools/itens.json "_custos").
+	 *  Qty 0 = não dá para fazer neste item. */
+	FNWRecipe::FIngredient ImproveCost(const FNWRecipe& R, const FNWItem& Item, ENWImprove Kind, uint8 Mat = 0) const;
+	/** Refinar GS: quanto pode subir (sucesso) e descer (falha), já presos na faixa da fabricação, e o GS mínimo e
+	 *  máximo possíveis. */
+	struct FGsOdds { FIntPoint Range = FIntPoint::ZeroValue; int32 UpMax = 0, DownMax = 0; };
+	FGsOdds GsOdds(const ANWCharacter* Who, const FNWRecipe& R, const FNWItem& Item, uint8 Mat) const;
+	/** Servidor: melhoria no item da bolsa (só a parte dela muda) paga com o material Mat; Before e After recebem o item
+	 *  antes e depois. Devolve a chave do erro ou vazio. */
+	FString Improve(ANWCharacter* Who, const FString& StationType, int32 BagSlot, ENWImprove Kind, uint8 Mat,
+		FNWItem* Before = nullptr, FNWItem* After = nullptr) const;
 
 private:
 	FNWCrafting();

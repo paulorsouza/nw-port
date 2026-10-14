@@ -366,19 +366,7 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 	const int32 Level = Who->Progression->TradeLevel(Skill);
 	const int32 Xp = R->XpFor(1, !Who->Progression->HasCrafted(R->Id));
 	const bool bTraining = Level < Rules.CraftLevel;
-	if (!bTraining)
-	{
-		// O item precisa de um espaço livre na bolsa (não se perde nada).
-		int32 Used = 0;
-		for (const FNWItem& I : Who->Inventory->Items)
-		{
-			Used += I.Container == ENWItemContainer::Bag ? 1 : 0;
-		}
-		if (Used >= UNWInventoryComponent::BagSize)
-		{
-			return TEXT("nw.inv.bag_full");
-		}
-	}
+	// Bolsa cheia: o item vai para o chão (UNWInventoryComponent::Grant), não cancela a fabricação.
 	Spend(Who, *R, 1);
 	FNWItem Out;
 	if (!bTraining)
@@ -420,25 +408,37 @@ FIntPoint FNWCrafting::GsRange(const ANWCharacter* Who, const FNWRecipe& R) cons
 	return FIntPoint(FMath::Min(Min, Cap), FMath::Min(FMath::Max(Min, Max), Cap));
 }
 
-FNWRecipe::FIngredient FNWCrafting::ImproveCost(const FNWRecipe& R, const FNWItem& Item, ENWImprove Kind) const
+TArray<FName> FNWCrafting::ImproveMaterials(const FNWRecipe& R) const
+{
+	TArray<FName> Out;
+	for (const FNWItemRules::FImproveMaterial& M : FNWItemRules::Get().ImproveMaterials)
+	{
+		const bool bRecipe = R.Ingredients.IsValidIndex(M.RecipeIndex) && !R.Ingredients[M.RecipeIndex].bCategory;
+		Out.Add(!M.Item.IsNone() ? M.Item : bRecipe ? R.Ingredients[M.RecipeIndex].Id : FName());
+	}
+	return Out;
+}
+
+FNWRecipe::FIngredient FNWCrafting::ImproveCost(const FNWRecipe& R, const FNWItem& Item, ENWImprove Kind, uint8 Mat) const
 {
 	FNWRecipe::FIngredient Cost;
 	const FNWItemRules& Rules = FNWItemRules::Get();
-	if (R.Ingredients.Num() == 0)
+	const TArray<FName> Mats = ImproveMaterials(R);
+	if (!Mats.IsValidIndex(Mat) || Mats[Mat].IsNone())
 	{
 		return Cost;
 	}
-	Cost.Id = R.Ingredients[0].Id;
+	Cost.Id = Mats[Mat];
 	switch (Kind)
 	{
 	case ENWImprove::Attribute:
-		Cost.Qty = Item.Attr != 255 && Rules.Attributes.Num() > 1 ? 2 : 0;
+		Cost.Qty = Item.Attr != 255 && Rules.Attributes.Num() > 1 ? Rules.CostAttr : 0;
 		break;
 	case ENWImprove::GearScore:
-		Cost.Qty = Item.Quality >= 0.f ? 2 : 0;
+		Cost.Qty = Item.Quality >= 0.f ? Rules.CostGs : 0;
 		break;
 	case ENWImprove::Unbind:
-		Cost.Qty = Item.Bind == 2 ? 2 + FMath::FloorToInt(FMath::Max(0.f, Item.Quality) / 10.f) : 0;
+		Cost.Qty = Item.Bind == 2 ? Rules.CostUnbind + FMath::FloorToInt(FMath::Max(0.f, Item.Quality) / FMath::Max(1.f, Rules.UnbindQualityPer)) : 0;
 		break;
 	default:
 		break;
@@ -446,7 +446,54 @@ FNWRecipe::FIngredient FNWCrafting::ImproveCost(const FNWRecipe& R, const FNWIte
 	return Cost;
 }
 
-FString FNWCrafting::Improve(ANWCharacter* Who, const FString& StationType, int32 BagSlot, ENWImprove Kind, FNWItem* Before,
+FNWCrafting::FGsOdds FNWCrafting::GsOdds(const ANWCharacter* Who, const FNWRecipe& R, const FNWItem& Item, uint8 Mat) const
+{
+	// Tetos de subida e descida (docs/itens.md "Gear score"): quanto mais acima do mínimo da faixa, menor o teto de subir;
+	// nunca sai da faixa da fabricação.
+	const FNWItemRules& Rules = FNWItemRules::Get();
+	const TArray<FNWItemRules::FGsStep>& Steps = Rules.ImproveMaterials.IsValidIndex(Mat) && Rules.ImproveMaterials[Mat].Steps.Num()
+		? Rules.ImproveMaterials[Mat].Steps : Rules.GsSteps;
+	const FIntPoint Range = GsRange(Who, R);
+	const int32 Cur = Item.GearScore;
+	FIntPoint Step(0, 0);
+	for (const FNWItemRules::FGsStep& St : Steps)
+	{
+		Step = FIntPoint(St.Min, St.Max);
+		if (Cur - Range.X <= St.UpTo)
+		{
+			break;
+		}
+	}
+	FGsOdds Odds;
+	Odds.UpMax = FMath::Clamp(Range.Y - Cur, 0, FMath::Max(0, Step.Y));
+	Odds.DownMax = FMath::Clamp(Cur - Range.X, 0, FMath::Max(0, -Step.X));
+	Odds.Range = FIntPoint(Cur - Odds.DownMax, Cur + Odds.UpMax);
+	return Odds;
+}
+
+namespace
+{
+	/** 1..N com 1 mais provável que 2 e assim por diante (pesos N, N−1, ..., 1); 0 se N = 0. */
+	int32 RollStep(int32 N)
+	{
+		if (N <= 0)
+		{
+			return 0;
+		}
+		int32 Pick = FMath::RandRange(1, N * (N + 1) / 2);
+		for (int32 k = 1; k <= N; ++k)
+		{
+			Pick -= N + 1 - k;
+			if (Pick <= 0)
+			{
+				return k;
+			}
+		}
+		return N;
+	}
+}
+
+FString FNWCrafting::Improve(ANWCharacter* Who, const FString& StationType, int32 BagSlot, ENWImprove Kind, uint8 Mat, FNWItem* Before,
 	FNWItem* After) const
 {
 	if (!Who || !Who->Inventory || !NearStation(Who, StationType))
@@ -460,7 +507,7 @@ FString FNWCrafting::Improve(ANWCharacter* Who, const FString& StationType, int3
 	{
 		return TEXT("nw.craft.missing");
 	}
-	const FNWRecipe::FIngredient Cost = ImproveCost(*R, *Item, Kind);
+	const FNWRecipe::FIngredient Cost = ImproveCost(*R, *Item, Kind, Mat);
 	if (Cost.Qty <= 0 || Who->Inventory->CountOf(Cost.Id) < Cost.Qty)
 	{
 		return TEXT("nw.craft.missing");
@@ -487,10 +534,10 @@ FString FNWCrafting::Improve(ANWCharacter* Who, const FString& StationType, int3
 	}
 	case ENWImprove::GearScore:
 	{
-		// Sorteia o GS de novo na faixa da fabricação (pode subir ou descer); com ele muda o atributo. Qualidade e perks
-		// ficam.
-		const FIntPoint Range = GsRange(Who, *R);
-		Item->GearScore = FMath::RandRange(Range.X, Range.Y);
+		// Refinar: chance_sucesso_gs de subir, senão desce, de 1 até o teto (GsOdds); com o GS muda o atributo. Qualidade e
+		// perks ficam.
+		const FGsOdds Odds = GsOdds(Who, *R, *Item, Mat);
+		Item->GearScore += FMath::FRand() * 100.f < Rules.GsSuccess ? RollStep(Odds.UpMax) : -RollStep(Odds.DownMax);
 		break;
 	}
 	case ENWImprove::Unbind:

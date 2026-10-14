@@ -334,8 +334,12 @@
       "en-us": "Reroll attribute"
     },
     "nw.craft.improve_gs": {
-      "pt-br": "Sortear GS",
-      "en-us": "Reroll GS"
+      "pt-br": "Refinar GS",
+      "en-us": "Refine GS"
+    },
+    "nw.craft.attr_odds": {
+      "pt-br": "{0}% cada",
+      "en-us": "{0}% each"
     },
     "nw.craft.improve_unbind": {
       "pt-br": "Desvincular",
@@ -400,6 +404,14 @@
     "nw.dev.dev_armor": {
       "pt-br": "Armaduras e joias (níveis e materiais)",
       "en-us": "Armor and jewelry (levels and materials)"
+    },
+    "nw.inv.ground_full": {
+      "pt-br": "Você já tem 1000 kg de itens no chão",
+      "en-us": "You already have 1000 kg of items on the ground"
+    },
+    "nw.inv.bag_full_ground": {
+      "pt-br": "Bolsa cheia: o item foi para o chão",
+      "en-us": "Bag full: the item was dropped on the ground"
     }
   },
   "chaves_do_jogo": [
@@ -536,6 +548,9 @@
     "cr_exit_station",
     "inv_equip",
     "ui_tooltip_setactivetool",
-    "ui_armoring"
+    "ui_armoring",
+    "ui_takeall",
+    "ui_loot_bag_items",
+    "ui_loot_bag_1_item"
   ]
 }

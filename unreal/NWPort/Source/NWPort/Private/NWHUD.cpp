@@ -1593,7 +1593,7 @@ bool ANWHUD::StationMenuWheel(float Delta)
 		Refining.Wheel(Delta);
 		return true;
 	}
-	if (Inventory.IsStorageMode())
+	if (Inventory.IsOpen())   // bolsa sozinha (Tab) ou com o armazém
 	{
 		float MX = 0.f, MY = 0.f;
 		if (APlayerController* PC = GetOwningPlayerController())

@@ -1,0 +1,8 @@
+# Teste em rede do clã neste PC (docs/rede-teste.md). Por cima do compose.yaml:
+#   docker compose -p nw-rede -f compose.yaml -f compose.rede.yaml up -d
+# nw-core só em 127.0.0.1:8091 (o Cloudflare Tunnel publica em https://<NW_REDE_HOST>); o 8090 fica para o
+# nw-core de desenvolvimento (tools/backend_dev.sh). Jogo em UDP 7777, aberto no roteador.
+services:
+  core:
+    ports: !override
+      - "127.0.0.1:8091:8090"

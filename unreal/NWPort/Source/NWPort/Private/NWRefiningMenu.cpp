@@ -1026,6 +1026,15 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 	}
 	if (bReroll)
 	{
+		for (const FImproveButton& B : MatButtons)
+		{
+			if (B.Rect.IsInside(M))
+			{
+				ImproveMat.Add(B.Slot, B.Mat);
+				Sound(TEXT("ui_crafting_item_select"));
+				return true;
+			}
+		}
 		for (const FImproveButton& B : RerollButtons)
 		{
 			if (B.Rect.IsInside(M) && Me && Me->Interactor && Station.IsValid())
@@ -1033,7 +1042,7 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 				// Mesma contagem da fabricação, até o resultado que o servidor devolve (ClientCraftResult).
 				const FNWItem* It = Me->Inventory->Items.FindByPredicate([&B](const FNWItem& I) { return I.Container == ENWItemContainer::Bag && I.Slot == B.Slot; });
 				StartResultRoll(It ? It->ItemId : FName(), B.Kind);
-				Me->Interactor->ServerImprove(Station->Type, B.Slot, B.Kind);
+				Me->Interactor->ServerImprove(Station->Type, B.Slot, B.Kind, B.Mat);
 				return true;
 			}
 		}
@@ -1341,6 +1350,7 @@ void FNWRefiningMenu::DrawTab(UCanvas* Canvas, const FVector2D& Mouse)
 void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 {
 	RerollButtons.Reset();
+	MatButtons.Reset();
 	ANWCharacter* Me = Character.Get();
 	ANWStation* St = Station.Get();
 	const FBox2f Button = Ui.RectOf(E(TEXT("OffsetContainer/CraftButton")));
@@ -1350,11 +1360,11 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 	}
 	const float S = Canvas->ClipY / 1080.f;
 	const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6)), Gray(FColor(0xB2, 0xAE, 0xA1));
-	auto ImproveMaterial = [](const FNWRecipe& R) { return R.Ingredients.Num() ? R.Ingredients[0].Id : FName(); };
 	// Cobre o painel da receita e o da direita.
 	const FBox2f Panel(FVector2f(Button.Min.X - 752.f * S, 150.f * S), FVector2f(Button.Max.X + 36.f * S, 1010.f * S));
-	FCanvasTileItem Bg(FVector2D(Panel.Min), FVector2D(Panel.GetSize()), FLinearColor(0.02f, 0.02f, 0.03f, 0.94f));
-	Bg.BlendMode = SE_BLEND_Translucent;
+	// Opaco: a tela de receitas embaixo não pode aparecer.
+	FCanvasTileItem Bg(FVector2D(Panel.Min), FVector2D(Panel.GetSize()), FLinearColor(0.02f, 0.02f, 0.03f, 1.f));
+	Bg.BlendMode = SE_BLEND_Opaque;
 	Canvas->DrawItem(Bg);
 	FCanvasBoxItem Frame(FVector2D(Panel.Min), FVector2D(Panel.GetSize()));
 	Frame.SetColor(FLinearColor(0.42f, 0.38f, 0.28f));
@@ -1369,7 +1379,7 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 	{
 		const FNWRecipe* R = I.Container == ENWItemContainer::Bag && I.Quality >= 0.f ? FNWCrafting::Get().RecipeFor(I.ItemId, St->Type) : nullptr;
 		const FNWItemDef* D = R ? FNWItemCatalog::Get().Find(I.ItemId) : nullptr;
-		if (!D || Y > Panel.Max.Y - 100.f * S)
+		if (!D || Y > Panel.Max.Y - 130.f * S)
 		{
 			continue;
 		}
@@ -1384,18 +1394,67 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 		CraftText(Canvas, D->Name, Panel.Min.X + 108.f * S, Y - 4.f * S, 24.f, Tan, 1);
 		CraftText(Canvas, FString::Printf(TEXT("GS %d  ·  +%d %s  ·  %s"), I.GearScore, Rules.AttrValue(I.GearScore), *Attr,
 			*NWText::Format(TEXT("nw.item.quality"), {FString::Printf(TEXT("%.1f"), I.Quality)})), Panel.Min.X + 108.f * S, Y + 26.f * S, 21.f, Gold);
-		// Material das melhorias: o primeiro da receita.
-		const FName Mat = ImproveMaterial(*R);
-		const FNWItemDef* MD = FNWItemCatalog::Get().Find(Mat);
-		const int32 Have = Me->Inventory->CountOf(Mat);
+		// Materiais que pagam as melhorias (lingote, tábua, couro da receita...): um clique escolhe; sem escolha, o primeiro
+		// que dá para sortear o GS.
+		const FNWCrafting& Crafting = FNWCrafting::Get();
+		const TArray<FName> Mats = Crafting.ImproveMaterials(*R);
+		uint8 Mat = 255;
+		if (const uint8* Chosen = ImproveMat.Find(I.Slot); Chosen && Mats.IsValidIndex(*Chosen) && !Mats[*Chosen].IsNone())
+		{
+			Mat = *Chosen;
+		}
+		for (int32 m = 0; m < Mats.Num() && Mat == 255; ++m)
+		{
+			if (!Mats[m].IsNone() && Me->Inventory->CountOf(Mats[m]) >= Crafting.ImproveCost(*R, I, ENWImprove::GearScore, uint8(m)).Qty)
+			{
+				Mat = uint8(m);
+			}
+		}
+		for (int32 m = 0; m < Mats.Num() && Mat == 255; ++m)
+		{
+			Mat = Mats[m].IsNone() ? Mat : uint8(m);
+		}
+		if (Mat == 255)
+		{
+			Y += 130.f * S;
+			continue;
+		}
+		const FLinearColor Red(FColor(0xF2, 0x5D, 0x5D)), Frame0(0.42f, 0.38f, 0.28f);
+		float MX = Panel.Min.X + 108.f * S;
+		for (int32 m = 0; m < Mats.Num(); ++m)
+		{
+			const FNWItemDef* MD = Mats[m].IsNone() ? nullptr : FNWItemCatalog::Get().Find(Mats[m]);
+			if (!MD)
+			{
+				continue;
+			}
+			const FBox2f Chip(FVector2f(MX, Y + 62.f * S), FVector2f(MX + 104.f * S, Y + 102.f * S));
+			const bool bSel = m == Mat, bHover = Chip.IsInside(FVector2f(Mouse));
+			FCanvasTileItem ChipBg(FVector2D(Chip.Min), FVector2D(Chip.GetSize()), FLinearColor(1.f, 1.f, 1.f, bSel ? 0.08f : bHover ? 0.05f : 0.f));
+			ChipBg.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(ChipBg);
+			FCanvasBoxItem ChipFrame(FVector2D(Chip.Min), FVector2D(Chip.GetSize()));
+			ChipFrame.SetColor(bSel ? Gold : Frame0);
+			Canvas->DrawItem(ChipFrame);
+			if (UTexture2D* MatIcon = FNWUILayout::GameTexture(MD->Icon))
+			{
+				FCanvasTileItem T(FVector2D(Chip.Min.X + 4.f * S, Chip.Min.Y + 4.f * S), MatIcon->GetResource(), FVector2D(32.f * S, 32.f * S), FLinearColor::White);
+				T.BlendMode = SE_BLEND_Translucent;
+				Canvas->DrawItem(T);
+			}
+			CraftText(Canvas, FString::FromInt(Me->Inventory->CountOf(Mats[m])), Chip.Min.X + 44.f * S, Chip.Min.Y + 7.f * S, 22.f, bSel ? Tan : Gray);
+			MatButtons.Add({Chip, I.Slot, 0, uint8(m)});
+			MX += 114.f * S;
+		}
+		const FNWItemDef* MD = FNWItemCatalog::Get().Find(Mats[Mat]);
+		const int32 Have = Me->Inventory->CountOf(Mats[Mat]);
 		// Três botões à direita: sortear atributo, sortear GS, desvincular; embaixo de cada um, o ícone do material e
-		// quanto custa (vermelho se faltar).
-		const FLinearColor Red(FColor(0xF2, 0x5D, 0x5D));
+		// quanto custa (vermelho se faltar); no atributo a chance, no GS os limites.
 		float BX = Panel.Max.X - 30.f * S;
 		for (int32 k = int32(ENWImprove::Num) - 1; k >= 0; --k)
 		{
 			const ENWImprove Kind = ENWImprove(k);
-			const FNWRecipe::FIngredient Cost = FNWCrafting::Get().ImproveCost(*R, I, Kind);
+			const FNWRecipe::FIngredient Cost = Crafting.ImproveCost(*R, I, Kind, Mat);
 			const FString Label = Kind == ENWImprove::Attribute ? NWText::Get(TEXT("nw.craft.improve_attr"))
 				: Kind == ENWImprove::GearScore ? NWText::Get(TEXT("nw.craft.improve_gs"))
 				: NWText::Get(I.Bind == 2 ? TEXT("nw.craft.improve_unbind") : TEXT("nw.item.bind_equip"));
@@ -1405,8 +1464,6 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 			if (Cost.Qty > 0)
 			{
 				const FString Text = FString::Printf(TEXT("%d / %d"), Cost.Qty, Have);
-				float TW = 0.f, TH = 0.f;
-				Canvas->TextSize(FNWUILayout::GameFont(0), *Text, TW, TH, 1.f, 1.f);
 				UTexture2D* MatIcon = MD ? FNWUILayout::GameTexture(MD->Icon) : nullptr;
 				const float CX = B.GetCenter().X - 50.f * S;
 				if (MatIcon)
@@ -1416,14 +1473,35 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 					Canvas->DrawItem(T);
 				}
 				CraftText(Canvas, Text, CX + 38.f * S, Y + 50.f * S, 22.f, Have >= Cost.Qty ? Tan : Red);
+				// Chances: atributo = um dos outros, igual para todos; GS = só os limites.
+				TArray<FString> Odds;
+				if (Kind == ENWImprove::Attribute)
+				{
+					Odds.Add(NWText::Format(TEXT("nw.craft.attr_odds"), {FString::FromInt(FMath::RoundToInt(100.f / FMath::Max(1, Rules.Attributes.Num() - 1)))}));
+				}
+				else if (Kind == ENWImprove::GearScore)
+				{
+					const FNWCrafting::FGsOdds G = Crafting.GsOdds(Me, *R, I, Mat);
+					Odds.Add(FString::Printf(TEXT("GS %d–%d"), G.Range.X, G.Range.Y));
+				}
+				float OY = Y + 82.f * S;
+				for (const FString& Line : Odds)
+				{
+					// Mesma escala do CraftText (tamanho = altura da linha), para centrar embaixo do botão.
+					float TW = 0.f, TH = 0.f, AW = 0.f, AH = 1.f;
+					Canvas->TextSize(FNWUILayout::GameFont(0), *Line, TW, TH, 1.f, 1.f);
+					Canvas->TextSize(FNWUILayout::GameFont(0), TEXT("Ag"), AW, AH, 1.f, 1.f);
+					CraftText(Canvas, Line, B.GetCenter().X - TW * 0.5f * 20.f * S / FMath::Max(1.f, AH), OY, 20.f, Gray);
+					OY += 22.f * S;
+				}
 			}
 			if (bOk)
 			{
-				RerollButtons.Add({B, I.Slot, uint8(Kind)});
+				RerollButtons.Add({B, I.Slot, uint8(Kind), Mat});
 			}
 			BX -= 202.f * S;
 		}
-		Y += 100.f * S;
+		Y += 130.f * S;
 	}
 	if (Shown == 0)
 	{

@@ -33,6 +33,8 @@ public:
 	void ClickCraft();
 	/** Escolhe a receita e a quantidade (captura offline). */
 	void Select(FName RecipeId, int32 InCount);
+	/** Abre a aba "Melhorar itens" com o material Mat escolhido para o item do espaço Slot da bolsa (captura offline). */
+	void ShowImprove(int32 Slot, uint8 Mat) { bReroll = true; if (Slot != INDEX_NONE) { ImproveMat.Add(Slot, Mat); } }
 	/** Retângulos e estado dos elementos cujo caminho contém Filter, no último desenho (captura offline). */
 	void Dump(const FString& Filter) const;
 	/** Relógio fixo para a captura offline (NWUIShotCommandlet); 0 = relógio real. */
@@ -103,8 +105,12 @@ private:
 	// Aba "Melhorar itens" (docs/itens.md): itens da bolsa deste ofício com sortear atributo, subir GS e desvincular.
 	bool bReroll = false;
 	FBox2f TabRect = FBox2f(ForceInit);
-	struct FImproveButton { FBox2f Rect; int32 Slot = INDEX_NONE; uint8 Kind = 0; };
+	struct FImproveButton { FBox2f Rect; int32 Slot = INDEX_NONE; uint8 Kind = 0; uint8 Mat = 0; };
 	TArray<FImproveButton> RerollButtons;
+	// Material das melhorias escolhido por item (espaço da bolsa -> índice de FNWCrafting::ImproveMaterials) e os
+	// retângulos dos materiais para o clique.
+	TMap<int32, uint8> ImproveMat;
+	TArray<FImproveButton> MatButtons;
 	void DrawReroll(UCanvas* Canvas, const FVector2D& Mouse);
 	void DrawTab(UCanvas* Canvas, const FVector2D& Mouse);
 

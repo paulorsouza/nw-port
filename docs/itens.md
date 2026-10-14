@@ -21,12 +21,14 @@ https://claude.ai/artifact/QCkhEVRxbP2xFBCGMpjiYD.
 - O GS muda só esse atributo. Ex.: item de ferro em GS 800 dá CON 40.
 - GS ao fabricar: sorteado na faixa do material, mais o bônus do artesão.
 - Sortear o GS muda só o GS e o atributo. Qualidade, perks, dano e resistência não mudam.
-- Aprimorar o GS é sortear de novo na faixa da fabricação (material + bônus do artesão pelo nível, teto `gs_maximo`,
-  provisório 800): pode subir ou descer. Na mesa do ofício do item, aba "Melhorar itens", pagando materiais de ofício.
-- A mudar (pedido do dono 2026-10-13, ainda não implementado): o sorteio do GS deixa de cobrir a faixa inteira e vira um
-  passo em volta do GS atual, sempre dentro da faixa da fabricação. Perto do GS base do item o passo favorece subir
-  (ex. −10 a +15); quanto mais longe do base, mais difícil subir (−10 a +10, depois −20 a +10). Números e a curva a
-  fechar no balanceamento.
+- Refinar GS (dono, 2026-10-14): 51% de sucesso (`chance_sucesso_gs`). Sucesso sobe de 1 até o teto; falha desce de 1
+  até o teto de descida. Nos dois, 1 é mais provável que 2 e assim por diante (pesos N, N−1, ..., 1). Nunca sai da faixa
+  da fabricação (material + bônus do artesão pelo nível, teto `gs_maximo`, provisório 800). Os tetos caem conforme o
+  GS sobe acima do mínimo da faixa (provisório, `tools/itens.json` `passo_gs`): até +10, sobe até 15 e desce até 10;
+  até +25, 10 e 10; acima, 10 e 20. Na mesa do ofício do item, aba "Melhorar itens", pagando materiais de ofício.
+- Material das melhorias: o jogador escolhe na tela entre os materiais da receita (lingote, tábua, couro do tier;
+  `materiais_melhoria`). Cada material pode ter o próprio `passo_gs` (hoje todos usam o mesmo). A tela mostra só o GS
+  mínimo e máximo possíveis (sem a chance de sucesso); no atributo, a chance de cada um dos outros.
 
 ## Qualidade
 

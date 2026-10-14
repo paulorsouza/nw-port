@@ -58,7 +58,7 @@ pub struct ItemInstance {
     pub props: Value,
 }
 
-pub(crate) const MAX_BAG_SLOTS: i32 = 200;
+pub(crate) const MAX_BAG_SLOTS: i32 = 500;
 pub(crate) const MAX_PROPS_BYTES: usize = 2048;
 
 pub(crate) fn empty_props() -> Value {

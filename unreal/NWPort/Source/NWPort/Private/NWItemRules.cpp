@@ -94,6 +94,52 @@ FNWItemRules::FNWItemRules()
 			ChestResistance.Add(FName(*R.Key), FVector2f(float(A[0]->AsNumber()), float(A[1]->AsNumber())));
 		}
 	}
+	auto ReadSteps = [](const TArray<TSharedPtr<FJsonValue>>& In, TArray<FGsStep>& Out)
+	{
+		for (const TSharedPtr<FJsonValue>& V : In)
+		{
+			const TSharedPtr<FJsonObject> O = V->AsObject();
+			FGsStep& Step = Out.AddDefaulted_GetRef();
+			O->TryGetNumberField(TEXT("ate"), Step.UpTo);
+			O->TryGetNumberField(TEXT("min"), Step.Min);
+			O->TryGetNumberField(TEXT("max"), Step.Max);
+		}
+	};
+	Root->TryGetNumberField(TEXT("chance_sucesso_gs"), GsSuccess);
+	if (Root->TryGetArrayField(TEXT("passo_gs"), Arr))
+	{
+		ReadSteps(*Arr, GsSteps);
+	}
+	if (Root->TryGetArrayField(TEXT("materiais_melhoria"), Arr))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *Arr)
+		{
+			const TSharedPtr<FJsonObject> O = V->AsObject();
+			FImproveMaterial& M = ImproveMaterials.AddDefaulted_GetRef();
+			O->TryGetNumberField(TEXT("receita"), M.RecipeIndex);
+			FString Item;
+			if (O->TryGetStringField(TEXT("item"), Item))
+			{
+				M.Item = FName(*Item);
+			}
+			const TArray<TSharedPtr<FJsonValue>>* Steps = nullptr;
+			if (O->TryGetArrayField(TEXT("passo_gs"), Steps))
+			{
+				ReadSteps(*Steps, M.Steps);
+			}
+		}
+	}
+	if (ImproveMaterials.Num() == 0)
+	{
+		ImproveMaterials.AddDefaulted_GetRef().RecipeIndex = 0;
+	}
+	if (Root->TryGetObjectField(TEXT("custo_melhoria"), Obj))
+	{
+		(*Obj)->TryGetNumberField(TEXT("atributo"), CostAttr);
+		(*Obj)->TryGetNumberField(TEXT("gs"), CostGs);
+		(*Obj)->TryGetNumberField(TEXT("desvincular"), CostUnbind);
+		(*Obj)->TryGetNumberField(TEXT("desvincular_qualidade_por"), UnbindQualityPer);
+	}
 	if (Root->TryGetObjectField(TEXT("resistencia_slot"), Obj))
 	{
 		for (const auto& R : (*Obj)->Values)

@@ -1,4 +1,5 @@
 #include "NWInteractable.h"
+#include "NWLootBag.h"
 
 #include "EngineUtils.h"
 #include "Engine/GameInstance.h"
@@ -120,6 +121,17 @@ void UNWInteractorComponent::LoadClaims()
 			Self->ClaimsPeriod = Period;
 		}
 	});
+}
+
+void UNWInteractorComponent::ServerLootTake_Implementation(ANWLootBag* Bag)
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	if (!Me || !Bag || Bag->GetOwner() != Me->GetController()
+		|| FVector::Dist(Bag->GetActorLocation(), Me->GetActorLocation()) > Bag->Interact->Radius + 200.f)
+	{
+		return;   // só o dono, de perto (folga de 2 m pela altura do personagem)
+	}
+	Bag->TakeAll(Me);
 }
 
 void UNWInteractorComponent::ServerNpcInteract_Implementation(const FString& Variant)
@@ -321,14 +333,14 @@ void UNWInteractorComponent::ServerCraft_Implementation(const FString& StationTy
 	});
 }
 
-void UNWInteractorComponent::ServerImprove_Implementation(const FString& StationType, int32 BagSlot, uint8 Kind)
+void UNWInteractorComponent::ServerImprove_Implementation(const FString& StationType, int32 BagSlot, uint8 Kind, uint8 Mat)
 {
 	if (Kind >= uint8(ENWImprove::Num))
 	{
 		return;
 	}
 	FNWItem Before, After;
-	const FString Error = FNWCrafting::Get().Improve(Cast<ANWCharacter>(GetOwner()), StationType, BagSlot, ENWImprove(Kind), &Before, &After);
+	const FString Error = FNWCrafting::Get().Improve(Cast<ANWCharacter>(GetOwner()), StationType, BagSlot, ENWImprove(Kind), Mat, &Before, &After);
 	ANWPlayerController* PC = ControllerOf(this);
 	if (!Error.IsEmpty())
 	{

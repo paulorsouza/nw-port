@@ -1188,8 +1188,8 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 		}
 		else if (!bStorage && GroundZone().IsInside(M))
 		{
-			// O port não tem saco de saque no chão: largar destrói, com confirmação.
-			OpenPopup(EPopup::Destroy, Pressed);
+			// Solta a pilha numa bolsa no chão (ANWLootBag), como o grounddroptarget do jogo.
+			Inv->ServerDrop(Pressed.Slot, Item->Quantity);
 		}
 		else if (EquipArea.IsInside(M))
 		{
@@ -1392,12 +1392,11 @@ void FNWInventoryMenu::RunAction(EAction Action)
 		}
 		break;
 	case EAction::Drop:
-		// Largar uma parte: confirma antes de destruir (sem saco de saque no port).
-	{
-		const int32 Qty = PopupQty;
-		OpenPopup(EPopup::Destroy, PopupSlot);
-		PopupQty = FMath::Min(Qty, PopupMax);
-	}
+		// Soltar a parte escolhida numa bolsa no chão (ANWLootBag).
+		if (Me->Inventory && PopupSlot.Source() == ESource::Bag)
+		{
+			Me->Inventory->ServerDrop(PopupSlot.Slot, PopupQty);
+		}
 		break;
 	case EAction::Destroy:
 		if (Me->Inventory && PopupSlot.Source() == ESource::Bag)

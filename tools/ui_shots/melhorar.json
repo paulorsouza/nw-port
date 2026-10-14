@@ -1,0 +1,20 @@
+{
+ "screen": "refining",
+ "station": {"type": "blacksmith", "tier": 5, "name": "Forja Escala 5"},
+ "coins": 77914,
+ "trade": {"Weaponsmithing": 120},
+ "items": [
+  ["1hSwordT5", 1, 505, 3, {"attr": 0, "quality": 84.2, "perks": ["ChanceCritica", "RouboVida", "PerkID_Ability_Sword_ReverseStab"], "bind": "equip"}],
+  ["1hShieldBT5", 1, 530, 2, {"attr": 4, "quality": 41.0, "perks": ["RegenVigor", "ReducaoRecarga"], "bind": "equip"}],
+  ["1hSwordT3", 1, 315, 2, {"attr": 1, "quality": 63.5, "perks": ["DanoCritico", "ReducaoRecarga"], "bind": "equip"}],
+  ["IngotT5", 40],
+  ["TimberT5", 1],
+  ["LeatherT5", 10],
+  ["IngotT3", 12],
+  ["TimberT3", 6]
+ ],
+ "shots": [
+  {"name": "melhorar", "improve": {}},
+  {"name": "melhorar_couro", "improve": {"slot": 1, "mat": 2}, "mouse": [700, 400]}
+ ]
+}

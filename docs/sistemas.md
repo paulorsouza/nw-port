@@ -129,8 +129,9 @@ Port (fabricar, esteira 4, 2026-10-13; regras em `docs/oficio.md` e `docs/itens.
   diante o item é sorteado (`FNWItemRules::Roll`, faixa `FNWCrafting::GsRange`) e vai para a bolsa; item assinado
   (qualidade ≥ 80%) pega o número de série no nw-core antes (migração 0009, `backend/src/routes/serials.rs`).
 - Melhorar (aba "Melhorar itens" da mesa): `ServerImprove` / `FNWCrafting::Improve` com `ENWImprove` Attribute (outro
-  atributo), GearScore (sorteia de novo na faixa da fabricação, sobe ou desce) e Unbind. Custo provisório em
-  `FNWCrafting::ImproveCost` (`tools/itens.json` `_custos`).
+  atributo), GearScore (refinar: 51% sobe, senão desce, 1 mais provável que 2, dentro da faixa da fabricação, `FNWCrafting::GsOdds`) e Unbind,
+  pagas no material escolhido na tela (`FNWCrafting::ImproveMaterials`, `materiais_melhoria`). Custo provisório em
+  `FNWCrafting::ImproveCost` (`tools/itens.json` `_custos`, `custo_melhoria`). Captura: `tools/ui_shots/melhorar.json`.
 - Resultado: `ClientCraftResult` (item antes e depois) → `UNWInteractorComponent::CraftResult`; a tela espera o `Seq`
   e mostra o roll de equipamento do jogo (`FNWRefiningMenu::DrawGearRoll`, `docs/analise-re/craftroll-equipamento.md`).
 - Item: `FNWItem` com atributo, qualidade, perks, gema, vínculo e assinatura (`props` no nw-core, migração 0008);
@@ -174,6 +175,19 @@ Port (polimento da tela de resultado, esteira 4, 2026-10-13):
 Tela (2026-10-13): `craftingscreenv4` no modo refino com estilos e posições do Lua (`docs/hud/refino.md`,
 `tools/ui_screens/refining.json`), conferida pela captura sem o jogo (`tools/ui_shots/refining.json`) e testada pelo
 dono. O que falta na tela: `docs/hud/README.md`.
+
+## Bolsa e chão (decisão do dono 2026-10-13)
+
+- Bolsa com 500 espaços (pilha única por espaço; `UNWInventoryComponent::BagSize`, `MAX_BAG_SLOTS` no nw-core). O peso
+  dá a sobrecarga, como antes.
+- Bolsa cheia: o que chega (fabricar, refinar, coletar, F10) vai para o chão numa bolsa de saque, com aviso; não
+  cancela nada (`UNWInventoryComponent::Grant`).
+- Soltar no chão (arrastar para "Soltar itens" ou Ctrl + clique > Soltar) não destrói: cria uma bolsa de saque aos pés
+  (`ANWLootBag`, saco `arc_sacks` do jogo). Só quem soltou vê e pega: [E] Pegar tudo (`ServerLootTake`; o que não
+  couber fica). Some em 2 minutos. Até 1000 kg no chão por jogador (o excesso de bolsa cheia não conta). Não vai para o
+  nw-core: some se o servidor fechar.
+- Tela do jogo para a bolsa: `catcontainer` no modo bolsa de saque (`LootBagLifeTimeWarningText`, `@interact_takeAll`);
+  o port por enquanto só tem o Pegar tudo.
 
 ## 3. Armazém
 

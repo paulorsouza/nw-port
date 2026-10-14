@@ -27,7 +27,9 @@
 #include "RenderingThread.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+#if WITH_EDITOR
 #include "TextureCompiler.h"
+#endif
 #include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNWUIShot, Log, All);
@@ -64,7 +66,9 @@ namespace
 	// Texturas da UI chegam ao render target só depois de compiladas e com todos os mips.
 	void SettleTextures()
 	{
-		FTextureCompilingManager::Get().FinishAllCompilation();
+#if WITH_EDITOR
+		FTextureCompilingManager::Get().FinishAllCompilation();   // só existe no editor (o servidor compila o arquivo também)
+#endif
 		for (TObjectIterator<UTexture2D> It; It; ++It)
 		{
 			It->SetForceMipLevelsToBeResident(30.f);
@@ -347,6 +351,12 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			if (Shot->TryGetStringField(TEXT("recipe"), Recipe))
 			{
 				Menu.Select(FName(Recipe), Count);
+			}
+			const TSharedPtr<FJsonObject>* Improve = nullptr;
+			if (Shot->TryGetObjectField(TEXT("improve"), Improve))   // aba "Melhorar itens": {"slot": espaço da bolsa, "mat": material}
+			{
+				Menu.ShowImprove((*Improve)->HasField(TEXT("slot")) ? int32((*Improve)->GetNumberField(TEXT("slot"))) : INDEX_NONE,
+					(*Improve)->HasField(TEXT("mat")) ? uint8((*Improve)->GetNumberField(TEXT("mat"))) : 0);
 			}
 		}
 

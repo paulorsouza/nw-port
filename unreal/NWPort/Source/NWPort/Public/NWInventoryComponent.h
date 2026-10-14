@@ -18,7 +18,9 @@ class NWPORT_API UNWInventoryComponent : public UActorComponent
 public:
 	UNWInventoryComponent();
 
-	static constexpr int32 BagSize = 40;
+	// Espaços da bolsa (pilha única por espaço): 500, o teto do nw-core (MAX_BAG_SLOTS). Cheia, o que chega vai para o chão
+	// (ANWLootBag); o peso continua dando a sobrecarga.
+	static constexpr int32 BagSize = 500;
 	// Peso máximo sem sobrecarga (inventário base do jogo); acima disso não corre, não esquiva, não pula.
 	static constexpr float BaseMaxWeight = 1000.f;
 	// Peso máximo deste personagem: o base, ou 10.000.000 com a bolsa de dev (F10, não salva).
@@ -52,7 +54,7 @@ public:
 	void AddCoins(int64 Amount);
 	/** Moedas em centavos como no jogo (common.lua GetLocalizedCurrency: ÷100, 2 casas, separadores do idioma). */
 	static FString FormatCoins(int64 Cents);
-	/** Entrega um saque: põe na bolsa, avisa se não coube e mostra o aviso de saque ao dono. */
+	/** Entrega um saque: põe na bolsa; o que não couber vai para o chão (bolsa de saque) com aviso; mostra o saque ao dono. */
 	void Grant(const TArray<FNWItem>& Gained, int64 Coins);
 	void Load(const TArray<FNWItem>& InItems, int64 InCoins);
 	void GiveStarterKit();
@@ -65,8 +67,10 @@ public:
 	UFUNCTION(Server, Reliable) void ServerMove(ENWItemContainer FromContainer, int32 FromSlot, ENWItemContainer ToContainer, int32 ToSlot);
 	UFUNCTION(Server, Reliable) void ServerUse(int32 BagSlot);
 	UFUNCTION(Server, Reliable) void ServerUseBestPotion();
-	/** Destrói Quantity da pilha (largar no chão: o port não tem saco de saque). */
+	/** Destrói Quantity da pilha. */
 	UFUNCTION(Server, Reliable) void ServerDestroy(int32 BagSlot, int32 Quantity);
+	/** Solta Quantity da pilha no chão, numa bolsa (ANWLootBag; até 1000 kg no chão por jogador). */
+	UFUNCTION(Server, Reliable) void ServerDrop(int32 BagSlot, int32 Quantity);
 	/**
 	 * Encaixa a gema ou o vidro rúnico do espaço GemBagSlot da bolsa no item (bolsa ou equipado; docs/itens.md "Slot").
 	 * Só em slot vazio: com gema, recusa e avisa (retirar antes, pagando).

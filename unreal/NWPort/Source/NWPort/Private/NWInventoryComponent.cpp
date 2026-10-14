@@ -7,6 +7,7 @@
 #include "NWCombatComponent.h"
 #include "NWHUD.h"
 #include "NWItemRules.h"
+#include "NWLootBag.h"
 #include "NWPlayerController.h"
 #include "NWText.h"
 #include "Internationalization/Internationalization.h"
@@ -459,6 +460,27 @@ void UNWInventoryComponent::ServerUnsocket_Implementation(ENWItemContainer Conta
 	Changed();
 }
 
+void UNWInventoryComponent::ServerDrop_Implementation(int32 BagSlot, int32 Quantity)
+{
+	const FNWItem* Item = At(ENWItemContainer::Bag, BagSlot);
+	if (!Item || Quantity <= 0)
+	{
+		return;
+	}
+	FNWItem Part = *Item;
+	Part.Quantity = FMath::Min(Quantity, Item->Quantity);
+	FString Error;
+	if (!ANWLootBag::Drop(Cast<ANWCharacter>(GetOwner()), {Part}, true, &Error))
+	{
+		if (!Error.IsEmpty())
+		{
+			Warn(*Error);
+		}
+		return;
+	}
+	TakeAt(BagSlot, Part.Quantity);
+}
+
 void UNWInventoryComponent::ServerDestroy_Implementation(int32 BagSlot, int32 Quantity)
 {
 	FNWItem* Item = Items.FindByPredicate([&](const FNWItem& X) { return X.Container == ENWItemContainer::Bag && X.Slot == BagSlot; });
@@ -479,8 +501,7 @@ void UNWInventoryComponent::ServerDestroy_Implementation(int32 BagSlot, int32 Qu
 
 void UNWInventoryComponent::Grant(const TArray<FNWItem>& Gained, int64 GainedCoins)
 {
-	TArray<FNWItem> Kept;
-	bool bFull = false;
+	TArray<FNWItem> Kept, Over;
 	for (const FNWItem& Item : Gained)
 	{
 		const int32 Left = AddItem(Item);
@@ -490,13 +511,19 @@ void UNWInventoryComponent::Grant(const TArray<FNWItem>& Gained, int64 GainedCoi
 			K.Quantity = Item.Quantity - Left;
 			Kept.Add(K);
 		}
-		bFull |= Left > 0;
+		if (Left > 0)
+		{
+			FNWItem O = Item;
+			O.Quantity = Left;
+			Over.Add(O);
+		}
 	}
 	const APawn* Pawn = Cast<APawn>(GetOwner());
 	ANWPlayerController* PC = Pawn ? Cast<ANWPlayerController>(Pawn->GetController()) : nullptr;
-	if (bFull && PC)
+	// Bolsa cheia: o resto vai para o chão (não cancela a fabricação nem a coleta), sem o limite de peso no chão.
+	if (Over.Num() > 0 && ANWLootBag::Drop(Cast<ANWCharacter>(GetOwner()), Over, false) && PC)
 	{
-		PC->Warning(NWText::Key(TEXT("nw.inv.bag_full")));
+		PC->Warning(NWText::Key(TEXT("nw.inv.bag_full_ground")));
 	}
 	AddCoins(GainedCoins);
 	if (Kept.Num() > 0 || GainedCoins > 0)

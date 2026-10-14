@@ -16,9 +16,21 @@
  "perks_por_item": 3,
  "perks_por_item_anel": 2,
  "perks_habilidade_max": 1,
- "_gs": "provisório (balanceamento): teto de GS de qualquer item; sortear GS de novo usa a faixa da fabricação",
+ "_gs": "provisório (balanceamento): teto de GS de qualquer item. Refinar GS: chance_sucesso_gs % de subir, senão desce; sobe de 1 a 'max' e desce de 1 a −'min', 1 mais provável que 2 e assim por diante (peso linear), sempre dentro da faixa da fabricação. O teto depende de quanto o GS está acima do mínimo da faixa (passo_gs: 'ate' = diferença máxima, sem 'ate' = o resto)",
+ "chance_sucesso_gs": 51,
  "gs_maximo": 800,
- "_custos": "provisório: sortear atributo = 2, sortear GS = 2, desvincular = 2 + qualidade/10 do primeiro material da receita; retirar gema = 1 gema bruta do mesmo tipo e tier",
+ "passo_gs": [
+  {"ate": 10, "min": -10, "max": 15},
+  {"ate": 25, "min": -10, "max": 10},
+  {"min": -20, "max": 10}
+ ],
+ "_custos": "provisório: sortear atributo = 2, sortear GS = 2, desvincular = 2 + qualidade/10 de um material da receita, à escolha na tela (materiais_melhoria: 'receita' = índice do ingrediente, ou 'item' = id; 'passo_gs' opcional troca o passo para aquele material); retirar gema = 1 gema bruta do mesmo tipo e tier",
+ "custo_melhoria": {"atributo": 2, "gs": 2, "desvincular": 2, "desvincular_qualidade_por": 10},
+ "materiais_melhoria": [
+  {"receita": 0},
+  {"receita": 1},
+  {"receita": 2}
+ ],
  "chance_critica_teto": 50,
  "_gemas": "docs/itens.md 'Slot': as 4 lapidações do jogo (<Gema>CutT1..T4, Tier de item 2..5) dão o % do tier; uma gema, um efeito; híbrida divide o total. Vidro rúnico = Runeglass_Gem_<Gema>_<Cápsula>: efeito da gema Pura mais a amplificação da cápsula (provisório: vidro_amplificacao). Retirar custa 1 gema bruta do mesmo tipo e tier (<Gema>T<n>; provisório).",
  "gema_pct_por_tier": {

@@ -96,7 +96,7 @@ se algo estiver errado.
 43. No armazém: arrastar entre bolsa e armazém, Shift + clique, a seta da seção (move a seção inteira) e "Pegar tudo".
 44. Ctrl + clique numa pilha: o diálogo começa na metade; Mover/Pegar leva só a parte escolhida; sem armazém, Soltar
     pede confirmação e destrói só a parte escolhida.
-45. Arrastar da bolsa para "Soltar itens" (à direita, sem armazém aberto) pede confirmação e destrói a pilha.
+45. Arrastar da bolsa para "Soltar itens" (à direita, sem armazém aberto) solta a pilha numa bolsa no chão (teste 72).
 46. Buscar: digitar no campo filtra a lista pelo nome, sem acento ("fundicao" acha Fundição); clicar fora devolve o
     teclado ao jogo.
 47. Forja, oficina e repositório arcano abrem a tela; receita de arma ou ferramenta mostra a faixa de Gear score e de
@@ -149,4 +149,14 @@ se algo estiver errado.
 68. Equipar cada peça e cada joia no seu espaço (arrastar, clique direito ou Equipar no fim da fabricação). Tooltip com
     a resistência e comparação com o equipado; GS do painel muda. Sair e entrar: tudo continua equipado.
 69. Gema de armadura (Ônix, Opala, Diamante, Safira, Jaspe) acopla na armadura; gema de arma não.
-
+70. Bolsa aberta pelo Tab: a roda do mouse rola a lista.
+71. A bolsa aceita até 500 pilhas; o peso dá a sobrecarga. Com os 500 espaços ocupados, fabricar, coletar e o F10
+    continuam: o que não cabe aparece numa bolsa no chão, com o aviso "Bolsa cheia: o item foi para o chão".
+72. Arrastar uma pilha para "Soltar itens": sai da bolsa e aparece um saco aos pés com o cartão "N itens" e [E] Pegar
+    tudo. E devolve tudo para a bolsa. Ctrl + clique > Soltar solta só a parte escolhida.
+73. O saco some 2 minutos depois de solto. Soltar mais de 1000 kg no total recusa com "Você já tem 1000 kg de itens no
+    chão".
+74. Mesa de fabricar > Melhorar itens: cada item mostra os materiais da receita (lingote, tábua, couro) com a quantidade
+    na bolsa; clicar num muda o ícone e o custo embaixo dos botões. Sem material suficiente, o custo fica vermelho.
+75. Botão "Refinar GS" com só "GS a–b" embaixo. Refinar várias vezes: sobe e desce perto de metade das vezes, quase
+    sempre 1 ou 2 pontos, nunca fora de a–b. Embaixo de Sortear atributo: "25% cada".
