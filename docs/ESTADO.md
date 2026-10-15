@@ -10,8 +10,7 @@ en-US. Escopo atual: o território de Guardaventos inteiro (região `r_+04_+01`)
 (só a cidade, para os sistemas). O trabalho corre em cinco esteiras paralelas (armas, coleta, montarias, sistemas, iluminação):
 `docs/esteiras.md` (armas com as sub-esteiras manopla de gelo e espada grande).
 
-Decisões fechadas: Unreal é o plano principal; o cliente original com servidor emulado (Discord OpenWorld) é um
-plano paralelo do dono (agora no repo cliente original (fora deste repositório): https://github.com/paulorsouza/cliente original (fora deste repositório)); Lumberyard/O3DE descartado. Tema jurídico encerrado.
+Decisões fechadas: Unreal é o plano; Lumberyard/O3DE descartado. Tema jurídico encerrado.
 
 ## Funciona
 

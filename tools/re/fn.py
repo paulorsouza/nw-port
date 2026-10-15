@@ -1,6 +1,6 @@
 """Mostra a descompilação de funções já salvas em extract/ghidra/dec/*.c (saída do RangeDecompile.java).
 
-    python3 -I tools/re/fn.py 0x... [0x...] [-n 120] [--decl]
+    python3 -I tools/re/fn.py 0x<endereço> [0x...] [-n 120] [--decl]
 
 Mantém um índice endereço -> (arquivo, posição) em extract/ghidra/dec/.index.json, refeito quando algum .c muda.
 Sem --decl, esconde as linhas de declaração de variáveis locais.

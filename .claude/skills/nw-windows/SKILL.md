@@ -1,6 +1,6 @@
 ---
 name: nw-windows
-description: Comandos do port no Windows nativo (porte para Windows, docs/windows-convert.md) — fila de trabalho pesado, extração, import, Data/, diagnóstico e build do nwbt.exe/ooz.dll (tools/windows/ e o Python do pipeline), e a alternativa pelo WSL2. Usar quando o Claude Code estiver no Windows ou uma skill de esteira mandar "pela skill da plataforma".
+description: Comandos do port no Windows nativo (docs/windows-convert.md) — fila de trabalho pesado, extração, import, Data/, diagnóstico e build do nwbt.exe/ooz.dll (tools/windows/ e o Python do pipeline), e a alternativa pelo WSL2. Usar quando o Claude Code estiver no Windows ou uma skill de esteira mandar "pela skill da plataforma".
 ---
 
 # Windows: comandos de plataforma

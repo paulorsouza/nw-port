@@ -121,12 +121,6 @@ Dados escritos à mão: `tools/strings/<esteira>.json` (textos nossos pt/en e ch
 | `import_ui.py` | texturas e fontes das telas |
 | `import_audio.py` | música e ambiente em loop |
 
-## Cliente original contra servidor local (plano B)
-
-Esse caminho (rodar o `NewWorld.exe` oficial contra um servidor local) foi separado para o repo
-**[cliente original (fora deste repositório)](https://github.com/paulorsouza/cliente original (fora deste repositório))** (privado): `tools/oc/`, a doc completa
-e a RE do login no Ghidra. A RE usa o Ghidra compartilhado — ver [docs/ghidra.md](ghidra.md).
-
 ## Skills do Claude Code
 
 Em `.claude/skills/` há uma skill por script principal, com quando usar, pré-condições e o que conferir no

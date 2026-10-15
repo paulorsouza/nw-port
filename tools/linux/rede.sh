@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Teste em rede do clã neste PC (docs/rede-teste.md): Postgres + nw-core + servidor de jogo em Docker (projeto
-# nw-rede) e o nw-core publicado pelo Cloudflare Tunnel em https://<NW_REDE_HOST>.
+# nw-rede) e o nw-core publicado pelo Cloudflare Tunnel em https://$NW_REDE_HOST (local.env).
 #
 #     tools/linux/rede.sh build     # servidor (engine do fonte) + cozinha Guardaventos + imagens; editor fechado
-#     tools/linux/rede.sh tunnel    # uma vez, depois do `cloudflared tunnel login`: cria o túnel, <NW_REDE_HOST> e a rota
+#     tools/linux/rede.sh tunnel    # uma vez, depois do `cloudflared tunnel login`: cria o túnel, o $NW_REDE_HOST e a rota
 #                             # privada para este PC (os amigos chegam no jogo pelo WARP; o provedor usa CGNAT)
 #     tools/linux/rede.sh up        # sobe tudo e o túnel
 #     tools/linux/rede.sh down      # para tudo (o banco fica no volume nw-rede_db)
@@ -12,15 +12,16 @@
 #     tools/linux/rede.sh logs      # últimas linhas do jogo, do nw-core e do túnel
 #     tools/linux/rede.sh status
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SRC_ENGINE=/mnt/jogos/UnrealEngine/src-5.8.3
 OUT="$ROOT/unreal/NWPort/Saved/Rede"
 TUNNEL=nw-rede
-HOST=<NW_REDE_HOST>
+HOST="${NW_REDE_HOST:?defina NW_REDE_HOST (ex. core.seudominio.com) em local.env}"
 LAN_IP="$(ip -4 route get 1.1.1.1 | grep -o 'src [0-9.]*' | cut -d' ' -f2)"
 mkdir -p "$OUT"
 tunnel_config() {
-    # nw-core em https://<NW_REDE_HOST> e a rede deste PC pelo WARP (warp-routing).
+    # nw-core em https://$HOST e a rede deste PC pelo WARP (warp-routing).
     local id
     id="$(cloudflared tunnel list -o json | python3 -c "import json,sys; print(next(t['id'] for t in json.load(sys.stdin) if t['name']=='$TUNNEL'))")"
     cat > "$OUT/cloudflared.yml" <<CFG
@@ -60,7 +61,7 @@ case "${1:-status}" in
         fi
         for _ in $(seq 60); do curl -sf http://127.0.0.1:8091/health >/dev/null && break; sleep 1; done
         echo "nw-core local: $(curl -sf http://127.0.0.1:8091/health || echo fora)"
-        echo "nw-core público: $(curl -sf https://<NW_REDE_HOST>/health || echo 'fora (o túnel leva alguns segundos)')"
+        echo "nw-core público: $(curl -sf "https://$HOST/health" || echo 'fora (o túnel leva alguns segundos)')"
         ;;
     down)
         [ -f "$OUT/tunnel.pid" ] && kill "$(cat "$OUT/tunnel.pid")" 2>/dev/null || true

@@ -5,10 +5,21 @@ de 64 bits em .rdata/.data, com a função dona tirada da tabela .pdata.
     python3 -I tools/re/xref.py va   0x1480xxxxx ...          # endereços
     python3 -I tools/re/xref.py func 0x1400xxxxx ...          # limites da função que contém o endereço
 """
-import mmap, struct, sys, bisect
+import json, mmap, os, struct, sys, bisect
 import numpy as np
 
-EXE = "/mnt/jogos/Steam/steamapps/common/New World/Bin64/NewWorld.exe"
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import nwplatform  # noqa: E402
+
+EXE = os.path.join(nwplatform.game_directory(), "Bin64", "NewWorld.exe")
+
+
+def local_addresses():
+    """Endereços da build atual achados pelo agente nw-re (re-local/enderecos.json, fora do git); {} se não houver."""
+    path = nwplatform.ROOT / "re-local" / "enderecos.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+
 f = open(EXE, "rb"); mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
 pe = struct.unpack_from("<I", mm, 0x3C)[0]
 nsec = struct.unpack_from("<H", mm, pe + 6)[0]; optsz = struct.unpack_from("<H", mm, pe + 20)[0]

@@ -1,4 +1,4 @@
-import sys,re,struct,subprocess; sys.path.insert(0,'<repo>/tools/re'); import xref
+import sys,re,struct,subprocess; import os; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); import xref
 a,b=sys.argv[1],sys.argv[2]
 out=subprocess.run(['objdump','-d','-M','intel','--no-show-raw-insn',f'--start-address={a}',f'--stop-address={b}',xref.EXE],capture_output=True,text=True).stdout.splitlines()[7:]
 for l in out:

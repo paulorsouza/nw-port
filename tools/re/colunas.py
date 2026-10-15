@@ -4,7 +4,7 @@
 
 Lista as strings que cada parser carrega (lea com rip) e fica com as que parecem nome de coluna. Variantes _AI e
 X/Y/Z não aparecem como string: o parser monta o nome com sufixo (ex.: "ImpactDistance" lê ImpactDistanceX/Y/Z).
-Para outro datasheet, achar o parser pela string de uma coluna (xref.py str "Coluna") e acrescentar em PARSERS.
+Para outro datasheet, achar o parser pela string de uma coluna (xref.py str "Coluna") e gravar em re-local/enderecos.json ("colunas": {datasheet: endereço}).
 """
 import json
 import os
@@ -16,8 +16,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import xref  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# datasheet → início do parser de linha (build de tools/jogo.versao).
-PARSERS = {"javelindata_damagetable": 0x...}
+# datasheet → início do parser de linha (re-local/enderecos.json, build de tools/jogo.versao).
+PARSERS = {k: int(v, 16) for k, v in xref.local_addresses().get("colunas", {}).items()}
 NOT_COLUMNS = {"Default", "none"}
 
 

@@ -203,8 +203,8 @@ FName FNWCrafting::ChosenFor(const UNWInventoryComponent* Inv, const FNWRecipe::
 
 float FNWCrafting::BonusChance(const FNWRecipe& R, int32 RollBonus, const TArray<FName>& Chosen) const
 {
-	// crafting.bonus_chance (C, 0x...): max(0, f + roll * 0,0001). f = BonusItemChance + ajuste de tier dos
-	// reagentes de categoria contra o tier do ingrediente 0 (crafting.bonus_tier_ajuste, 0x...).
+	// crafting.bonus_chance (C): max(0, f + roll * 0,0001). f = BonusItemChance + ajuste de tier dos
+	// reagentes de categoria contra o tier do ingrediente 0 (crafting.bonus_tier_ajuste).
 	float F = R.Bonus;
 	auto TierOf = [](FName Id) { const FNWItemDef* D = FNWItemCatalog::Get().Find(Id); return D ? D->Tier : 0; };
 	if (R.Ingredients.Num() > 0 && Chosen.Num() == R.Ingredients.Num() && R.BonusInc.Num() > 0)

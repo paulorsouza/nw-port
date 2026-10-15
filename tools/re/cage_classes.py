@@ -4,7 +4,8 @@ Padrão (C): cada classe tem um "GetName" no slot 1 da vtable que termina em `le
 depois de `test rdx,rdx; je; jmp [rax+8]`). O script acha esses `lea; ret` no .text, sobe ao início da função pela
 .pdata, acha os ponteiros para ela no .rdata (vtable = ponteiro - 8) e lista os slots. Fica com as funções da faixa
 CAGE, com os nomes `ActionCondition*` e com os tipos usados nas actionlists de extract/serverpak/client.
-Funções vazias compartilhadas: ret = 0x..., falso = 0x..., verdadeiro = 0x..., zero = 0x....
+Faixa CAGE e funções vazias compartilhadas (ret, falso, verdadeiro, zero) vêm de re-local/enderecos.json
+("cage_classes": {"faixa": [ini, fim], "stubs": {endereço: nome}}), achadas pelo agente nw-re para a build atual.
 
     python3 -I tools/re/cage_classes.py [0xINI 0xFIM] > saida.tsv
 """
@@ -13,8 +14,14 @@ sys.path.insert(0, os.path.dirname(__file__))
 import xref
 from xref import mm
 
-LO, HI = (int(sys.argv[1], 16), int(sys.argv[2], 16)) if len(sys.argv) > 2 else (0x..., 0x...)
-STUB = {0x...: "ret", 0x...: "falso", 0x...: "verdadeiro", 0x...: "zero"}
+_CFG = xref.local_addresses().get("cage_classes", {})
+if len(sys.argv) > 2:
+    LO, HI = int(sys.argv[1], 16), int(sys.argv[2], 16)
+elif "faixa" in _CFG:
+    LO, HI = (int(x, 16) for x in _CFG["faixa"])
+else:
+    sys.exit("faixa CAGE: passe 0xINI 0xFIM ou grave re-local/enderecos.json")
+STUB = {int(k, 16): v for k, v in _CFG.get("stubs", {}).items()}
 NSLOTS = 24
 
 def q(v):

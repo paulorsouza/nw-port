@@ -17,14 +17,14 @@ Segredos da rede em `deploy/.env` (fora do git).
 
 ## Por que WARP
 
-O provedor usa CGNAT (o salto depois do roteador é `<salto do provedor>`): abrir a porta no roteador não traz o jogo de
+O provedor usa CGNAT: abrir a porta no roteador não traz o jogo de
 fora. O nw-core sai pelo túnel (HTTP); o jogo (UDP) chega pela rede privada do mesmo túnel: cada amigo liga o app
 WARP da organização Zero Trust do dono e o cliente conecta em `<IP do PC>:7777` como se estivesse na rede local.
 Reservar esse IP para o PC no DHCP do roteador, para ele não mudar.
 
 ## Uma vez
 
-1. No terminal: `cloudflared tunnel login` (abre o navegador; escolher `<seu domínio>`). Depois `tools/linux/rede.sh tunnel`
+1. No terminal: `cloudflared tunnel login` (abre o navegador; escolher o seu domínio). Depois `tools/linux/rede.sh tunnel`
    (cria o túnel `nw-rede`, o `<NW_REDE_HOST>` e a rota privada `<IP do PC>/32`).
 2. Painel Zero Trust (one.dash.cloudflare.com), organização gratuita:
    - Settings > Custom pages / Team name: escolher o nome da equipe (os amigos digitam no WARP).
