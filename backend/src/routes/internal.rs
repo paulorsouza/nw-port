@@ -107,6 +107,9 @@ pub async fn save_state(
     let mut tx = state.db.begin().await?;
     let ctx = journal::claim(&mut tx, id, &WriteSeq { session: s.session, seq: s.seq, reason: s.reason.clone() }).await?;
     journal::write_bag(&mut tx, &ctx, None, s.coins).await?;
+    if let Some(t) = &s.city_tax {
+        crate::routes::city::apply_tax(&mut tx, id, t).await?;
+    }
     let done = sqlx::query(
         "update characters
             set map = $2, pos_x = $3, pos_y = $4, pos_z = $5, yaw = $6, health = $7,

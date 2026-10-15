@@ -1,5 +1,6 @@
 mod account;
 mod characters;
+mod city;
 mod ground;
 mod houses;
 mod internal;
@@ -16,6 +17,7 @@ use crate::AppState;
 
 pub use account::insert_invite;
 pub use characters::{Character, CharacterState, ItemInstance, Position};
+pub use city::advance_all as advance_cities;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -40,6 +42,14 @@ pub fn router() -> Router<AppState> {
         .route("/internal/market/orders/{id}/fill", post(market::fill))
         .route("/internal/market/orders/{id}/cancel", post(market::cancel))
         .route("/internal/item-log", get(journal::list))
+        .route("/internal/regions/{region}/city", get(city::get).put(city::manage))
+        .route("/internal/regions/{region}/city/log", get(city::log_list))
+        .route("/internal/regions/{region}/city/buy", post(city::buy_city))
+        .route("/internal/regions/{region}/city/sale", post(city::sale))
+        .route("/internal/regions/{region}/city/sell-raw", post(city::sell_raw))
+        .route("/internal/regions/{region}/city/buy-item", post(city::buy_item))
+        .route("/internal/regions/{region}/city/projects", post(city::project))
+        .route("/internal/cities/advance", post(city::advance))
         .route("/internal/characters/{id}/ground", get(ground::list).post(ground::drop_items))
         .route("/internal/ground/{bag}/take", post(ground::take))
 }

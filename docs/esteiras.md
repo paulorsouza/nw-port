@@ -331,6 +331,9 @@ pilha de teste em rede no PC do dono com Cloudflare Tunnel (`docs/rede-teste.md`
    vendedor, vantagens e resposta otimista (testes 98–105, captura `tools/ui_shots/market.json`). Dono aprovou o estilo
    (2026-10-14): telas novas seguem este estilo Slate; as copiadas do jogo ficam. Feitos: ícone de moeda, quadro do
    item ao passar o mouse, botão de sair. Depois: NPC comprador de matéria-prima. Preço médio fica fora da primeira versão.
+11. Governança das cidades (plano em `docs/plano-governanca.md`, 2026-10-14): dono por região, NPC que compra
+    matéria-prima e vende a lista, balancete, mesas e buffs da cidade, ataques simulados, prêmio semanal. Inclui o
+    NPC comprador do item 8. Dungeon simples para outra esteira: `docs/plano-dungeon.md`.
 9. Gravações sem rollback (`docs/plano-servidor.md` "Gravações"): etapa 1 feita 2026-10-14 (sessão e número em toda
    gravação, fila por personagem, log de itens, salvamento a cada 5 s; migration 0011, testes 84–86). Etapa 2 feita
    2026-10-14 (armazém, refinar, fabricar, melhorar, soltar e pegar do chão gravados antes de valer, `NWOps`; chão no

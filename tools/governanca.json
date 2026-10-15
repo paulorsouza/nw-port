@@ -1,0 +1,44 @@
+{
+  "_comment": "Regras da governança das cidades (docs/plano-governanca.md), lidas pelo nw-core (include_str) e pelo servidor de jogo. Moedas em centavos. Números 'proposta' do simulador (tools/sim_economia.py, tools/economia.json); faixas de preço em tools/precos_cidade.json.",
+  "regioes": [
+    {"id": "1", "nome": "Queda Eterna", "cidade": "queda_eterna", "mapas": ["L_QuedaEterna"]}
+  ],
+  "preco_cidade": 25000000,
+  "balancete_inicial": 15000000,
+  "taxa_revenda": 0.10,
+  "carencia_dias": 14,
+  "imposto": {"min": 0.0, "max": 0.10, "padrao": 0.05},
+  "limite_semanal": {"compra_por_materia_prima": 10000, "venda_por_item": 1000},
+  "mesas": {
+    "smelting": ["OreT1", "OreT4", "OreT5"],
+    "blacksmith": ["OreT1", "OreT4", "OreT5"],
+    "engineering": ["WoodT1", "WoodT4", "WoodT5"],
+    "carpentry": ["WoodT1", "WoodT4", "WoodT5"],
+    "weaving": ["FiberT1", "FiberT4", "FiberT5"],
+    "outfitting": ["FiberT1", "FiberT4", "FiberT5"],
+    "tanning": ["RawhideT1", "RawhideT4", "RawhideT5"],
+    "masonry": ["StoneT1", "StoneT4", "StoneT4"],
+    "alchemy": ["OrePreciousT1", "OrePreciousT2", "OrePreciousT3"]
+  },
+  "evoluir": [
+    {"materia_prima": 2000, "moedas": 10000},
+    {"materia_prima": 12000, "moedas": 500000},
+    {"materia_prima": 30000, "moedas": 1000000}
+  ],
+  "conserto_fracao": 0.3,
+  "manutencao_por_fabricacao_nivel": 2,
+  "efeito_por_nivel": {"gs": 2, "qualidade_minima": 1},
+  "buffs": {
+    "xp": {"custo": 400000, "valor": 10},
+    "extra": {"custo": 400000, "valor": 5},
+    "economia": {"custo": 400000, "valor": 5}
+  },
+  "arma_custo": 300000,
+  "ataque": {"primeiro_apos_dias": 7, "intervalo_horas": 48, "base": 2.0, "por_semana": 0.5, "por_nivel": 0.15,
+             "variacao": 0.3, "mesas_perdidas": 2},
+  "premio": {"tenebroso": 500000, "ruim": 1000000, "bom": 2500000, "muito_bom": 5000000, "excelente": 10000000,
+             "melhor": 20000000,
+             "faixas": {"bom": 0.8, "muito_bom": 1.2, "excelente": 1.6},
+             "peso_nivel": 2000000,
+             "tenebroso_materia_prima": 5000, "tenebroso_lista": 500}
+}

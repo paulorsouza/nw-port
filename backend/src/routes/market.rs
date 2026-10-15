@@ -125,7 +125,7 @@ pub struct ClaimRequest {
     pub until: Option<OffsetDateTime>,
 }
 
-async fn credit(tx: &mut sqlx::PgConnection, character_id: Uuid, amount: i64, reason: &str, order: Uuid) -> ApiResult<()> {
+pub(crate) async fn credit(tx: &mut sqlx::PgConnection, character_id: Uuid, amount: i64, reason: &str, order: Option<Uuid>) -> ApiResult<()> {
     if amount <= 0 {
         return Ok(());
     }
@@ -149,7 +149,7 @@ async fn close(tx: &mut sqlx::PgConnection, o: &Order, status: &str) -> ApiResul
             journal::log(tx, &Ctx::core(o.character_id, &reason), &format!("market:{}", o.id), Some(&o.item_id), -(o.quantity as i64), o.gear_score, o.rarity, &o.props).await?;
             deliver(tx, o.character_id, SHARED, &o.item_id, o.quantity, o.gear_score, o.rarity, &o.props, o.weight, &reason).await?;
         } else {
-            credit(tx, o.character_id, o.unit_price * o.quantity as i64, "market_refund", o.id).await?;
+            credit(tx, o.character_id, o.unit_price * o.quantity as i64, "market_refund", Some(o.id)).await?;
         }
     }
     sqlx::query("update market_orders set status = $2, closed_at = now() where id = $1")
@@ -315,7 +315,7 @@ pub async fn fill(
     if o.kind == "sell" {
         journal::log(&mut tx, &Ctx::core(o.character_id, "market_sold"), &format!("market:{}", o.id), Some(&o.item_id), -(f.quantity as i64), o.gear_score, o.rarity, &o.props).await?;
         deliver(&mut tx, f.character_id, place, &o.item_id, f.quantity, o.gear_score, o.rarity, &o.props, o.weight, "market_bought").await?;
-        credit(&mut tx, o.character_id, total, "market_sale", o.id).await?;
+        credit(&mut tx, o.character_id, total, "market_sale", Some(o.id)).await?;
     } else {
         let gs = f.gear_score.unwrap_or(o.gear_score);
         let rarity = f.rarity.unwrap_or(o.rarity);

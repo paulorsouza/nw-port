@@ -1,0 +1,135 @@
+{
+  "_comment": "Faixas de preço do NPC da cidade (docs/plano-governanca.md), centavos. O governador escolhe dentro da faixa; sem governador vale 'padrao' (meio da faixa). Faixa = 0,4× a 2,1× o central de tools/precos_referencia.json (exemplo do dono: minério de ferro 0,20 a 1,00), múltiplo de 0,05. A cidade só compra matéria-prima; vende a lista fixa.",
+  "limite_semanal_por_personagem": {
+    "compra_materia_prima": 10000,
+    "venda_por_tipo": 1000
+  },
+  "compra": {
+    "OreT1": {
+      "min": 20,
+      "max": 100,
+      "padrao": 60
+    },
+    "OrePreciousT1": {
+      "min": 15,
+      "max": 80,
+      "padrao": 50
+    },
+    "OrePreciousT2": {
+      "min": 10,
+      "max": 60,
+      "padrao": 35
+    },
+    "OrePreciousT3": {
+      "min": 15,
+      "max": 90,
+      "padrao": 50
+    },
+    "OreT4": {
+      "min": 30,
+      "max": 155,
+      "padrao": 90
+    },
+    "OreT5": {
+      "min": 35,
+      "max": 185,
+      "padrao": 110,
+      "nota": "T5 do jogo tardio mais barato que T4: 1,2× o T4"
+    },
+    "WoodT1": {
+      "min": 10,
+      "max": 40,
+      "padrao": 25
+    },
+    "WoodT2": {
+      "min": 20,
+      "max": 95,
+      "padrao": 60
+    },
+    "WoodT4": {
+      "min": 25,
+      "max": 140,
+      "padrao": 80
+    },
+    "WoodT5": {
+      "min": 30,
+      "max": 165,
+      "padrao": 100
+    },
+    "FiberT1": {
+      "min": 15,
+      "max": 80,
+      "padrao": 50
+    },
+    "FiberT4": {
+      "min": 25,
+      "max": 130,
+      "padrao": 80
+    },
+    "FiberT5": {
+      "min": 30,
+      "max": 155,
+      "padrao": 90,
+      "nota": "T5 do jogo tardio mais barato que T4: 1,2× o T4"
+    },
+    "RawhideT1": {
+      "min": 20,
+      "max": 115,
+      "padrao": 70
+    },
+    "RawhideT4": {
+      "min": 20,
+      "max": 95,
+      "padrao": 60
+    },
+    "RawhideT5": {
+      "min": 20,
+      "max": 115,
+      "padrao": 70,
+      "nota": "T5 do jogo tardio mais barato que T4: 1,2× o T4"
+    },
+    "StoneT1": {
+      "min": 15,
+      "max": 75,
+      "padrao": 45
+    },
+    "StoneT4": {
+      "min": 40,
+      "max": 210,
+      "padrao": 125
+    }
+  },
+  "venda": {
+    "PotionHealthT5": {
+      "min": 20,
+      "max": 200,
+      "padrao": 110,
+      "nota": "dono 2026-10-14: 0,20 a 2,00"
+    },
+    "FluxT5": {
+      "min": 105,
+      "max": 560,
+      "padrao": 330
+    },
+    "SandpaperT5": {
+      "min": 65,
+      "max": 340,
+      "padrao": 200
+    },
+    "TanninT5": {
+      "min": 15,
+      "max": 85,
+      "padrao": 50
+    },
+    "ClothWeaveT5": {
+      "min": 15,
+      "max": 65,
+      "padrao": 40
+    },
+    "SolventT5": {
+      "min": 5,
+      "max": 35,
+      "padrao": 20
+    }
+  }
+}

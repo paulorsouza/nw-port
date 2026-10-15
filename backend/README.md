@@ -58,6 +58,15 @@ Servidor de jogo (`X-NW-Server-Secret`):
 | POST | `/internal/characters/{id}/serials` | | 201 `serial` (número de série do item assinado; o personagem é o artesão) |
 | GET | `/internal/characters/{id}/npc-rewards` | `period` (terça da semana) | `claims`: brindes já pegos (`once` + o período) |
 | POST | `/internal/characters/{id}/npc-rewards` | `npc`, `kind` (`starter`/`weekly`), `period` (`once`/`AAAA-MM-DD`), `inventory`, `coins` | 201; 409 `already_claimed` |
+| GET | `/internal/regions/{região}/city` | `character_id` (opcional: limites já usados na semana) | cidade: dono, balancete, preços (`buy`/`sell` com faixa, limite e uso), imposto, mesas, estoque, buffs, armas, ataques, semana |
+| PUT | `/internal/regions/{região}/city` | `character_id` (governador), `buy_prices`, `sell_prices` (item → centavos), `tax` | cidade; 400 `price_out_of_range`/`tax_out_of_range`; 409 `not_governor` |
+| POST | `/internal/regions/{região}/city/buy` | `character_id`, `price` (o que viu), `inventory`, `coins` | cidade; 409 `price_changed`/`city_not_for_sale` |
+| POST | `/internal/regions/{região}/city/sale` | `character_id` (governador), `price` (nulo tira da venda) | cidade; 409 `city_grace`/`forced_sale` |
+| POST | `/internal/regions/{região}/city/sell-raw` | `character_id`, `item_id`, `quantity`, `unit_price`, `inventory`, `coins` | cidade; 409 `price_changed`/`city_limit`/`city_no_funds` |
+| POST | `/internal/regions/{região}/city/buy-item` | idem (item da lista) | cidade; 409 `price_changed`/`city_limit` |
+| POST | `/internal/regions/{região}/city/projects` | `character_id` (governador), `kind` (`station`/`buff`/`weapon`), `station`, `buff` | cidade; 409 `city_no_stock`/`city_no_funds`/`buff_active`/`station_max` |
+| GET | `/internal/regions/{região}/city/log` | `limit` | log da cidade, mais novo primeiro |
+| POST | `/internal/cities/advance` | `now` (opcional, testes) | 204: virada da semana e ataques vencidos (o nw-core roda sozinho a cada minuto) |
 
 Item (bolsa, armazém e ordem): `item_id`, `quantity`, `slot` (bolsa: `container`), `gear_score`, `rarity` e `props`
 (objeto até 2 KB com atributo, qualidade, perks, gema, vínculo e assinatura; `docs/itens.md`). O banco não interpreta
@@ -79,6 +88,12 @@ do personagem como ficam depois dela (`inventory`, `coins`), gravadas na mesma t
   `until` lido e soma às moedas na mesma gravação.
 - Ordem cancelada ou vencida devolve o item ao armazém (venda) ou a garantia em crédito (compra).
 - Sem taxas no port (`fee` = 0); duração vem do servidor de jogo. Até 50 ordens abertas por personagem.
+
+- Cidades (migration 0013, `docs/plano-governanca.md`): uma por região, regras em `tools/governanca.json` e faixas
+  de preço em `tools/precos_cidade.json` (lidos no build). A cidade compra matéria-prima (sai do balancete) e vende
+  a lista (entra no balancete); o governador recebe no máximo o padrão vendendo à própria cidade. Imposto de
+  fabricação vem no `state` (`city_tax`: `region`, `station`, `amount`). Prêmio do governador e venda da cidade viram
+  `coin_credits` (`city_prize`, `city_sold`).
 
 Estado do personagem: `map`, `position` (`x`, `y`, `z` em cm do Unreal, ou null), `yaw`, `health`,
 `active_weapon`, `loadout` e `mastery` (JSON livre, por arma).

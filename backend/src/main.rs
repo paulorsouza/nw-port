@@ -62,6 +62,17 @@ async fn main() -> anyhow::Result<()> {
             MIGRATOR.run(&db).await?;
             let listener = tokio::net::TcpListener::bind(&bind).await.with_context(|| format!("bind {bind}"))?;
             tracing::info!(%bind, "nw-core no ar");
+            // Cidades: ataques e virada da semana em dia mesmo sem ninguém mexer nelas.
+            let cities_db = db.clone();
+            tokio::spawn(async move {
+                let mut tick = tokio::time::interval(std::time::Duration::from_secs(60));
+                loop {
+                    tick.tick().await;
+                    if let Err(e) = nw_core::routes::advance_cities(&cities_db, time::OffsetDateTime::now_utc()).await {
+                        tracing::warn!(?e, "cidades: virada/ataques");
+                    }
+                }
+            });
             let state = AppState { db, server_secret: Arc::from(server_secret) };
             axum::serve(listener, app(state)).with_graceful_shutdown(shutdown()).await?;
         }

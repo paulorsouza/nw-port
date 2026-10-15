@@ -1,0 +1,110 @@
+{
+  "_comment": "Parâmetros do simulador da economia (tools/sim_economia.py, docs/plano-governanca.md). Moedas em moedas (não centavos). Valores 'proposta' são chutes a calibrar; os fixos vêm do dono ou dos dados.",
+  "semanas": 12,
+  "cidades": 4,
+  "jogadores_por_regiao": 50,
+  "jogador": {
+    "horas_semana": 10,
+    "fracao_dungeon": 0.5,
+    "minutos_por_dungeon": 8,
+    "moedas_por_dungeon": 1000,
+    "fracao_coleta": 0.3,
+    "unidades_coleta_hora": 600,
+    "brinde_moedas_semana": 2000,
+    "pocoes_semana": 60,
+    "catalisadores_semana": 80,
+    "valor_fabricado_semana": 15000,
+    "elasticidade": 1.5
+  },
+  "cidade": {
+    "balancete_inicial": 150000,
+    "preco_cidade": 250000,
+    "taxa_revenda": 0.1,
+    "imposto_padrao": 0.05,
+    "limite_compra_por_tipo": 10000,
+    "limite_venda_por_tipo": 1000,
+    "mesas": 9,
+    "nivel_max": 3,
+    "evoluir": [
+      {
+        "materia_prima": 2000,
+        "moedas": 100
+      },
+      {
+        "materia_prima": 12000,
+        "moedas": 5000
+      },
+      {
+        "materia_prima": 30000,
+        "moedas": 10000
+      }
+    ],
+    "conserto_fracao": 0.3,
+    "buff_moedas": 4000,
+    "arma_moedas": 3000,
+    "ataque_base": 2,
+    "ataque_por_semana": 0.5,
+    "ataque_por_nivel_cidade": 0.15,
+    "mesas_perdidas_por_ataque": 2,
+    "efeito_gs_por_nivel": 2,
+    "efeito_qualidade_por_nivel": 1,
+    "manutencao_por_jogador_nivel": 40
+  },
+  "premio": {
+    "tenebroso": 5000,
+    "ruim": 10000,
+    "bom": 25000,
+    "muito_bom": 50000,
+    "excelente": 100000,
+    "melhor": 200000,
+    "faixas": {
+      "bom": 0.8,
+      "muito_bom": 1.2,
+      "excelente": 1.6
+    },
+    "tenebroso_materia_prima": 5000,
+    "tenebroso_lista": 500,
+    "peso_lista": 0,
+    "peso_imposto": 0,
+    "peso_nivel": 20000
+  },
+  "governadores": [
+    {
+      "nome": "ativo",
+      "preco_compra": 0.45,
+      "preco_venda": 0.45,
+      "imposto": 0.06,
+      "buffs": 2,
+      "atividade": 1.0,
+      "margem_defesa": 1.3
+    },
+    {
+      "nome": "medio",
+      "preco_compra": 0.5,
+      "preco_venda": 0.5,
+      "imposto": 0.05,
+      "buffs": 1,
+      "atividade": 0.7,
+      "margem_defesa": 1.1
+    },
+    {
+      "nome": "ganancioso",
+      "preco_compra": 0.2,
+      "preco_venda": 0.9,
+      "imposto": 0.1,
+      "buffs": 1,
+      "atividade": 0.8,
+      "margem_defesa": 1.0
+    },
+    {
+      "nome": "ausente",
+      "preco_compra": 0.5,
+      "preco_venda": 0.5,
+      "imposto": 0.05,
+      "buffs": 0,
+      "atividade": 0.0,
+      "margem_defesa": 1.0
+    }
+  ],
+  "semente": 1
+}

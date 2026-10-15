@@ -52,6 +52,9 @@ pub struct CharacterState {
     pub seq: Option<i64>,
     #[serde(default, skip_serializing)]
     pub reason: Option<String>,
+    /// Imposto de fabricação nas mesas de uma cidade (governança), na mesma transação.
+    #[serde(default, skip_serializing)]
+    pub city_tax: Option<crate::routes::city::CityTax>,
 }
 
 /// Um item do personagem (ItemID do jogo, ver Data/Items/items.*.json no projeto Unreal).
@@ -220,6 +223,7 @@ impl From<CharacterRow> for Character {
                 progression: Some(r.progression),
                 storage_capacity: None,
                 inventory_patch: None,
+                city_tax: None,
                 session: None,
                 seq: None,
                 reason: None,

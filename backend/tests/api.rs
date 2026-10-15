@@ -29,7 +29,7 @@ impl Api {
     /// Gravações do servidor de jogo levam sessão e número (journal.rs): quando o teste não manda, usa a sessão atual do
     /// personagem e um número crescente, como o servidor faz.
     async fn with_seq(&self, method: &str, uri: &str, server: bool, body: Option<Value>) -> Option<Value> {
-        let write = ["/state", "/storage/", "/houses", "/npc-rewards", "/credits/claim", "/orders", "/fill", "/ground", "/take"];
+        let write = ["/state", "/storage/", "/houses", "/npc-rewards", "/credits/claim", "/orders", "/fill", "/ground", "/take", "/city/buy", "/sell-raw", "/buy-item"];
         if !server || method == "GET" || !write.iter().any(|w| uri.contains(w)) || uri.contains("/cancel") {
             return body;
         }
@@ -859,3 +859,146 @@ async fn creditos_ate_e_limite_de_ordens(db: PgPool) {
     let (status, e) = api.call("POST", "/internal/market/global/orders", None, true, Some(buy)).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("too_many_orders")));
 }
+
+// ---------------------------------------------------------------- cidades (migration 0013)
+
+const CITY: &str = "/internal/regions/1/city";
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
+    let api = Api::new(db.clone());
+    let gov = character(&api, &db, "Paulo", "Aranha").await;
+    let player = character(&api, &db, "Joao", "Besouro").await;
+
+    let (status, c) = api.call("GET", CITY, None, true, None).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert!(c["owner_id"].is_null());
+    assert_eq!(c["treasury"], 15_000_000);
+    let price = c["price"].as_i64().unwrap();
+
+    // Compra pelo preço fixo; outro preço = 409.
+    let (status, e) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": gov, "price": 1, "coins": 0, "inventory": [] }))).await;
+    assert_eq!(status, StatusCode::CONFLICT, "{e}");
+    assert_eq!(e["error"], "price_changed");
+    let (status, c) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": gov, "price": price, "coins": 0, "inventory": [] }))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert_eq!(c["owner_name"], "Aranha");
+
+    // Jogador vende minério de ferro pelo padrão (meio da faixa): sai do balancete, entra no estoque.
+    let ore = c["buy"].as_array().unwrap().iter().find(|r| r["item_id"] == "OreT1").unwrap().clone();
+    let p = ore["padrao"].as_i64().unwrap();
+    assert_eq!((ore["min"].as_i64().unwrap(), ore["max"].as_i64().unwrap()), (20, 100));
+    let sell = |who: &str, qty: i64, unit: i64, coins: i64| json!({ "character_id": who, "item_id": "OreT1", "quantity": qty, "unit_price": unit, "coins": coins, "inventory": [] });
+    let (status, c) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 100, p, 100 * p))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert_eq!(c["treasury"], 15_000_000 - 100 * p);
+    assert_eq!(c["stock"]["OreT1"], 100);
+    assert_eq!(coins_of(&db, &player).await, 100 * p);
+    // Limite de 10 mil por semana por personagem.
+    let (status, e) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 9_901, p, 0))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("city_limit")));
+
+    // Só o governador mexe nos preços, e dentro da faixa.
+    let (status, e) = api.call("PUT", CITY, None, true, Some(json!({ "character_id": player, "tax": 0.02 }))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("not_governor")));
+    let (status, e) = api.call("PUT", CITY, None, true, Some(json!({ "character_id": gov, "buy_prices": { "OreT1": 101 } }))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::BAD_REQUEST, Some("price_out_of_range")));
+    let (status, c) = api.call("PUT", CITY, None, true, Some(json!({ "character_id": gov, "buy_prices": { "OreT1": 100 }, "tax": 0.08 }))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert!((c["tax"].as_f64().unwrap() - 0.08).abs() < 1e-6);
+    // Preço velho = 409; o governador vendendo à própria cidade recebe no máximo o padrão.
+    let (status, e) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 10, p, 0))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("price_changed")));
+    let (status, _) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 10, 100, 0))).await;
+    assert_eq!(status, StatusCode::OK);
+    let (status, e) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&gov, 10, 100, 0))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("price_changed")));
+    let (status, _) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&gov, 10, p, 0))).await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Lista: poção pelo padrão, entra no balancete.
+    let (_, before) = api.call("GET", CITY, None, true, None).await;
+    let pot = before["sell"].as_array().unwrap().iter().find(|r| r["item_id"] == "PotionHealthT5").unwrap()["price"].as_i64().unwrap();
+    let buy = json!({ "character_id": player, "item_id": "PotionHealthT5", "quantity": 10, "unit_price": pot, "coins": 0,
+                      "inventory": [{ "item_id": "PotionHealthT5", "quantity": 10, "container": "bag", "slot": 0 }] });
+    let (status, c) = api.call("POST", &format!("{CITY}/buy-item"), None, true, Some(buy)).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert_eq!(c["treasury"].as_i64().unwrap(), before["treasury"].as_i64().unwrap() + 10 * pot);
+    assert_eq!(c["this_week"]["list_units"], 10);
+
+    // Projetos: mesa sem material = 409; arma e buff saem do balancete.
+    let proj = |kind: &str, station: Option<&str>, buff: Option<&str>| json!({ "character_id": gov, "kind": kind, "station": station, "buff": buff });
+    let (status, e) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("station", Some("smelting"), None))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("city_no_stock")));
+    let (status, c) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("weapon", None, None))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert_eq!(c["weapons"], 1);
+    let (status, c) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("buff", Some("smelting"), Some("xp")))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert_eq!(c["buffs"], json!([["smelting", "xp"]]));
+    let (status, e) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("buff", Some("smelting"), Some("xp")))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("buff_active")));
+    // Com 2000 minérios no estoque a fundição sobe para o nível 1.
+    sqlx::query("update city_stock set quantity = 2000 where region = '1' and item_id = 'OreT1'").execute(&db).await.unwrap();
+    let (status, c) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("station", Some("smelting"), None))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    let st = c["stations"].as_array().unwrap().iter().find(|s| s["station"] == "smelting").unwrap().clone();
+    assert_eq!((st["level"].as_i64(), st["reached"].as_i64()), (Some(1), Some(1)));
+
+    // Imposto de fabricação no salvamento do personagem: entra no balancete e conta a fabricação na mesa.
+    let (_, before) = api.call("GET", CITY, None, true, None).await;
+    let state = json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {},
+                        "city_tax": { "region": "1", "station": "smelting", "amount": 500 } });
+    let (status, b) = api.call("PUT", &format!("/internal/characters/{player}/state"), None, true, Some(state)).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{b}");
+    let (_, c) = api.call("GET", CITY, None, true, None).await;
+    assert_eq!(c["treasury"].as_i64().unwrap(), before["treasury"].as_i64().unwrap() + 500);
+    let st = c["stations"].as_array().unwrap().iter().find(|s| s["station"] == "smelting").unwrap().clone();
+    assert_eq!(st["crafts"], 1);
+
+    // Venda da cidade só depois da carência.
+    let (status, e) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": 30_000_000 }))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("city_grace")));
+
+    let (status, log) = api.call("GET", &format!("{CITY}/log"), None, true, None).await;
+    assert_eq!(status, StatusCode::OK);
+    let kinds: Vec<&str> = log.as_array().unwrap().iter().map(|l| l["kind"].as_str().unwrap()).collect();
+    for k in ["owner", "raw_bought", "manage", "list_sold", "weapon", "buff", "upgrade", "tax"] {
+        assert!(kinds.contains(&k), "falta {k} no log: {kinds:?}");
+    }
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn cidade_semana_tenebroso_e_venda_obrigatoria(db: PgPool) {
+    let api = Api::new(db.clone());
+    let gov = character(&api, &db, "Paulo", "Aranha").await;
+    let other = character(&api, &db, "Joao", "Besouro").await;
+    let (_, c) = api.call("GET", CITY, None, true, None).await;
+    let price = c["price"].as_i64().unwrap();
+    let (status, _) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": gov, "price": price, "coins": 0, "inventory": [] }))).await;
+    assert_eq!(status, StatusCode::OK);
+
+    // Uma semana e um dia sem nada: virada da semana (tenebroso) e o primeiro ataque.
+    let later = (time::OffsetDateTime::now_utc() + time::Duration::days(8)).format(&time::format_description::well_known::Rfc3339).unwrap();
+    let (status, _) = api.call("POST", "/internal/cities/advance", None, true, Some(json!({ "now": later }))).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (tier, prize): (Option<String>, Option<i64>) = sqlx::query_as("select tier, prize from city_weeks where region = '1' and score is not null order by week limit 1")
+        .fetch_one(&db).await.unwrap();
+    assert_eq!((tier.as_deref(), prize), (Some("tenebroso"), Some(500_000)));
+    let (_, credits) = api.call("GET", &format!("/internal/characters/{gov}/credits"), None, true, None).await;
+    assert_eq!(credits["amount"], 500_000);
+    let (_, c) = api.call("GET", CITY, None, true, None).await;
+    assert_eq!((c["forced_sale"].as_bool(), c["for_sale"].as_i64()), (Some(true), Some(price)));
+    assert!(!c["last_attack"].is_null(), "{c}");
+
+    // Em venda obrigatória o dono não tira da venda; outro compra pelo preço inicial e o antigo recebe o valor inteiro.
+    let (status, e) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": null }))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("forced_sale")));
+    let (status, c) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": other, "price": price, "coins": 0, "inventory": [] }))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert_eq!(c["owner_name"], "Besouro");
+    assert_eq!(c["forced_sale"], false);
+    let (_, credits) = api.call("GET", &format!("/internal/characters/{gov}/credits"), None, true, None).await;
+    assert_eq!(credits["amount"], 500_000 + price);
+}
+

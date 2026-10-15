@@ -1,0 +1,312 @@
+{
+  "_comment": "Preço de referência dos itens (docs/plano-governanca.md), em centavos, do mercado do jogo original: mediana entre ~36 servidores das medianas diárias, nov/2024 a jul/2026, https://nwmp.gaming.tools/items/<id> (histórico em scdn.gaming.tools). Valores do jogo, sem escala; a escala para a renda do port (~40 mil por semana) entra no simulador. T5 cru mais barato que T4 é efeito do jogo tardio.",
+  "fonte": "https://nwmp.gaming.tools",
+  "periodo": "2024-11..2026-07",
+  "itens": {
+    "OreT1": {
+      "central": 47,
+      "p25": 41,
+      "p75": 55
+    },
+    "OrePreciousT1": {
+      "central": 39,
+      "p25": 32,
+      "p75": 56
+    },
+    "OrePreciousT2": {
+      "central": 29,
+      "p25": 24,
+      "p75": 35
+    },
+    "OrePreciousT3": {
+      "central": 42,
+      "p25": 33,
+      "p75": 50
+    },
+    "OreT4": {
+      "central": 73,
+      "p25": 59,
+      "p75": 83
+    },
+    "OreT5": {
+      "central": 18,
+      "p25": 15,
+      "p75": 27
+    },
+    "WoodT1": {
+      "central": 19,
+      "p25": 15,
+      "p75": 29
+    },
+    "WoodT2": {
+      "central": 45,
+      "p25": 36,
+      "p75": 55
+    },
+    "WoodT4": {
+      "central": 67,
+      "p25": 59,
+      "p75": 82
+    },
+    "WoodT5": {
+      "central": 78,
+      "p25": 61,
+      "p75": 86
+    },
+    "FiberT1": {
+      "central": 38,
+      "p25": 34,
+      "p75": 44
+    },
+    "FiberT4": {
+      "central": 61,
+      "p25": 52,
+      "p75": 66
+    },
+    "FiberT5": {
+      "central": 41,
+      "p25": 34,
+      "p75": 46
+    },
+    "RawhideT1": {
+      "central": 54,
+      "p25": 40,
+      "p75": 61
+    },
+    "RawhideT4": {
+      "central": 46,
+      "p25": 37,
+      "p75": 59
+    },
+    "RawhideT5": {
+      "central": 15,
+      "p25": 10,
+      "p75": 20
+    },
+    "StoneT1": {
+      "central": 36,
+      "p25": 30,
+      "p75": 43
+    },
+    "StoneT4": {
+      "central": 99,
+      "p25": 79,
+      "p75": 200
+    },
+    "OilT1": {
+      "central": 217,
+      "p25": 157,
+      "p75": 300
+    },
+    "WaterT1": {
+      "central": 14,
+      "p25": 8,
+      "p75": 24
+    },
+    "CharcoalT1": {
+      "central": 34,
+      "p25": 25,
+      "p75": 47
+    },
+    "IngotT2": {
+      "central": 170,
+      "p25": 144,
+      "p75": 188
+    },
+    "IngotT3": {
+      "central": 599,
+      "p25": 557,
+      "p75": 756
+    },
+    "IngotT4": {
+      "central": 1539,
+      "p25": 1379,
+      "p75": 1796
+    },
+    "IngotT5": {
+      "central": 2070,
+      "p25": 1891,
+      "p75": 2451
+    },
+    "IngotT51": {
+      "central": 6366,
+      "p25": 4506,
+      "p75": 7964
+    },
+    "TimberT2": {
+      "central": 47,
+      "p25": 39,
+      "p75": 63
+    },
+    "TimberT3": {
+      "central": 429,
+      "p25": 270,
+      "p75": 558
+    },
+    "TimberT4": {
+      "central": 1364,
+      "p25": 954,
+      "p75": 1686
+    },
+    "TimberT5": {
+      "central": 2367,
+      "p25": 1914,
+      "p75": 2893
+    },
+    "TimberT51": {
+      "central": 3975,
+      "p25": 2869,
+      "p75": 5302
+    },
+    "LeatherT2": {
+      "central": 213,
+      "p25": 179,
+      "p75": 270
+    },
+    "LeatherT3": {
+      "central": 594,
+      "p25": 530,
+      "p75": 781
+    },
+    "LeatherT4": {
+      "central": 1198,
+      "p25": 942,
+      "p75": 1534
+    },
+    "LeatherT5": {
+      "central": 1604,
+      "p25": 1398,
+      "p75": 1809
+    },
+    "LeatherT51": {
+      "central": 7690,
+      "p25": 6270,
+      "p75": 9056
+    },
+    "ClothT2": {
+      "central": 134,
+      "p25": 116,
+      "p75": 157
+    },
+    "ClothT3": {
+      "central": 299,
+      "p25": 271,
+      "p75": 371
+    },
+    "ClothT4": {
+      "central": 846,
+      "p25": 707,
+      "p75": 971
+    },
+    "ClothT5": {
+      "central": 1411,
+      "p25": 1221,
+      "p75": 1548
+    },
+    "ClothT51": {
+      "central": 7275,
+      "p25": 5023,
+      "p75": 8982
+    },
+    "BlockT2": {
+      "central": 112,
+      "p25": 83,
+      "p75": 146
+    },
+    "BlockT3": {
+      "central": 460,
+      "p25": 374,
+      "p75": 642
+    },
+    "BlockT4": {
+      "central": 1635,
+      "p25": 1405,
+      "p75": 2007
+    },
+    "BlockT5": {
+      "central": 8990,
+      "p25": 7231,
+      "p75": 12324
+    },
+    "BlockT51": {
+      "central": 21281,
+      "p25": 12259,
+      "p75": 29477
+    },
+    "EmeraldCutT4": {
+      "central": 5088,
+      "p25": 3768,
+      "p75": 7597
+    },
+    "DiamondCutT4": {
+      "central": 9174,
+      "p25": 6934,
+      "p75": 12486
+    },
+    "EmeraldCutT3": {
+      "central": 1454,
+      "p25": 807,
+      "p75": 3045
+    },
+    "DiamondCutT3": {
+      "central": 4828,
+      "p25": 3341,
+      "p75": 7375
+    },
+    "FluxT5": {
+      "central": 266,
+      "p25": 79,
+      "p75": 391
+    },
+    "SandpaperT5": {
+      "central": 161,
+      "p25": 76,
+      "p75": 376
+    },
+    "TanninT5": {
+      "central": 40,
+      "p25": 32,
+      "p75": 69
+    },
+    "ClothWeaveT5": {
+      "central": 32,
+      "p25": 24,
+      "p75": 45
+    },
+    "SolventT5": {
+      "central": 17,
+      "p25": 9,
+      "p75": 37
+    },
+    "PotionHealthT5": {
+      "central": 51,
+      "p25": 28,
+      "p75": 90
+    },
+    "PotionHealthT4": {
+      "central": 495,
+      "p25": 191,
+      "p75": 730
+    },
+    "FoodConT5": {
+      "central": 11096,
+      "p25": 9838,
+      "p75": 14420
+    },
+    "FoodStrT5": {
+      "central": 20598,
+      "p25": 17222,
+      "p75": 24921
+    },
+    "FoodIntT5": {
+      "central": 20653,
+      "p25": 18764,
+      "p75": 27227
+    },
+    "FoodDexT5": {
+      "central": 25022,
+      "p25": 21973,
+      "p75": 29758
+    }
+  }
+}
