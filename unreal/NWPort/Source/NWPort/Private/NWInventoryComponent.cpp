@@ -369,7 +369,7 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 	}
 	From->Container = ToContainer;
 	From->Slot = ToSlot;
-	// Vincula ao equipar (docs/itens.md): equipado uma vez, fica preso ao personagem.
+	// Vincula ao equipar (docs/game/items.md): equipado uma vez, fica preso ao personagem.
 	if (ToContainer == ENWItemContainer::Equip && From->Bind == 1)
 	{
 		From->Bind = 2;
@@ -482,7 +482,7 @@ void UNWInventoryComponent::ServerSocket_Implementation(int32 GemBagSlot, ENWIte
 		Warn(TEXT("nw.item.gem_wrong"));
 		return;
 	}
-	// Slot ocupado: retirar antes, pagando (docs/itens.md "Slot"); acoplar não troca.
+	// Slot ocupado: retirar antes, pagando (docs/game/items.md "Slot"); acoplar não troca.
 	if (!Item->Gem.IsNone())
 	{
 		Warn(TEXT("nw.item.gem_occupied"));

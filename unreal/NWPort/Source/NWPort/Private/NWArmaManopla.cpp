@@ -1,4 +1,4 @@
-// Manopla de gelo (sub-esteira 1a): docs/armas/manopla-gelo.md.
+// Manopla de gelo (sub-esteira 1a): docs/game/weapons/ice-gauntlet.md.
 #include "NWArmaManopla.h"
 #include "NWCharacter.h"
 #include "NWDevRegistry.h"
@@ -103,7 +103,7 @@ NW_REGISTER_DEV(IceGauntletLoadout, TEXT("armas.icegauntlet_loadout"), TEXT("nw.
 
 // ---------------------------------------------------------------- números do jogo
 // Fontes: playeractions_ability_icemagic.actionlist, player_magicgauntlet_ice.adb (procclips), spelltable,
-// statuseffects e slices items/weapons/* do jogo (extract/weapons_icegauntlet); docs/armas/manopla-gelo.md §3.
+// statuseffects e slices items/weapons/* do jogo (extract/weapons_icegauntlet); docs/game/weapons/ice-gauntlet.md §3.
 namespace NWIce
 {
 	// Efeitos do jogo convertidos (tools/ue/import_fx.py): peças items/weapons/* e procclips do .adb.
@@ -641,7 +641,7 @@ void UNWIceGauntletComponent::Step(FName Action, float T)
 				Area->TickSeconds = NWIce::StormTick;
 				Area->SlowID = TEXT("IceMagic_IceStorm");
 				Area->SlowMove = -0.25f;
-				// spell_aoe_blizzard: wfxo_IceGaunt_Tempest.Blizzard_AOE (docs/particulas-estudo.md).
+				// spell_aoe_blizzard: wfxo_IceGaunt_Tempest.Blizzard_AOE (docs/tech/particles.md).
 				Area->FxPath = TEXT("/Game/NW/FX/NS_wfxo_IceGaunt_Tempest_Blizzard_AOE.NS_wfxo_IceGaunt_Tempest_Blizzard_AOE");
 				Area->FinishSpawning(FTransform(GroundTarget));
 			}

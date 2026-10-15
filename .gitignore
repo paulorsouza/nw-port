@@ -1,4 +1,4 @@
-# Nada que venha da instalação do jogo entra no repositório: cada um extrai da própria cópia (docs/SETUP.md).
+# Nada que venha da instalação do jogo entra no repositório: cada um extrai da própria cópia (docs/setup.md).
 extract/
 # Caminhos desta máquina (modelo em local.env.example).
 local.env
@@ -12,7 +12,7 @@ inspiracao/*
 !inspiracao/README.md
 .nwbt/
 *.nwbt/
-# Código de terceiros clonado (versões e build em docs/FERRAMENTAS.md).
+# Código de terceiros clonado (versões e build em docs/tech/tools.md).
 vendor/
 __pycache__/
 # Ferramentas baixadas ou compiladas pelo setup (tools/linux/get_tools.sh, tools/windows/build_*.ps1).

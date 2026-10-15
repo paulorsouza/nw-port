@@ -613,7 +613,7 @@ const FNWActionRow* UNWCombatComponent::CheckAction(FName& Action) const
 	{
 		return nullptr;
 	}
-	// IfManaCost GreaterThanOrEqual (armas mágicas, docs/armas/manopla-gelo.md §2).
+	// IfManaCost GreaterThanOrEqual (armas mágicas, docs/game/weapons/ice-gauntlet.md §2).
 	const UNWManaComponent* Mana = Row->ManaCost > 0.f ? GetOwner()->FindComponentByClass<UNWManaComponent>() : nullptr;
 	if (Mana && !Mana->CanPay(Row->ManaCost))
 	{

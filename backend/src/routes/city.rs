@@ -1,4 +1,4 @@
-//! Governança das cidades (migration 0013, docs/plano-governanca.md). Uma cidade por região; canais da mesma região
+//! Governança das cidades (migration 0013, docs/game/economy.md). Uma cidade por região; canais da mesma região
 //! dividem tudo. A cidade compra matéria-prima e vende a lista pelo preço do governador (dentro das faixas de
 //! tools/precos_cidade.json), recebe o imposto de fabricação e gasta o balancete em mesas, buffs e armas. Na virada da
 //! semana: manutenção das mesas, meta, faixa e prêmio do governador (tenebroso = venda obrigatória). A cada 2 dias

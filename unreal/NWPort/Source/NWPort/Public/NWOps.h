@@ -8,7 +8,7 @@ class ANWCharacter;
 struct FNWCharacterRecord;
 
 /**
- * Operações gravadas antes de valer (etapa 2 das gravações, docs/plano-servidor.md "Gravações").
+ * Operações gravadas antes de valer (etapa 2 das gravações, docs/tech/server.md "Gravações").
  *
  * Uma operação (guardar, fabricar, refinar, melhorar, soltar, pegar do chão) roda assim, uma por vez por personagem:
  * 1. Apply muda o estado real (bolsa, moedas, armazém) como sempre; os avisos ao cliente feitos com NWOps::Hold

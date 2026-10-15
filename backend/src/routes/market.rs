@@ -1,6 +1,6 @@
 //! Posto de trocas. Ordem de venda guarda o item; ordem de compra guarda as moedas. O que se compra cai no armazém
 //! da cidade da ordem; o que o dono da ordem de venda recebe vira crédito de moedas (`coin_credits`), resgatado pelo
-//! servidor de jogo. Taxas e duração vêm do servidor de jogo (sem fonte nos dados; docs/sistemas.md).
+//! servidor de jogo. Taxas e duração vêm do servidor de jogo (sem fonte nos dados; docs/game/city.md).
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;

@@ -7,7 +7,7 @@ class UCanvas;
 
 /**
  * Menu do Esc (`lyshineui/escapemenu`) e configurações (`lyshineui/options`), com os textos do jogo
- * (docs/hud-original.md). Desenhado pela HUD; cliques pelo controlador. As opções ficam em FNWOptions.
+ * (docs/game/ui/original.md). Desenhado pela HUD; cliques pelo controlador. As opções ficam em FNWOptions.
  */
 class NWPORT_API FNWGameMenu
 {

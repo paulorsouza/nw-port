@@ -69,7 +69,7 @@ pub struct ItemInstance {
     pub gear_score: i32,
     #[serde(default)]
     pub rarity: i16,
-    /// Atributo, qualidade, perks, gema, vínculo e assinatura (docs/itens.md); o banco não interpreta.
+    /// Atributo, qualidade, perks, gema, vínculo e assinatura (docs/game/items.md); o banco não interpreta.
     #[serde(default = "empty_props")]
     pub props: Value,
 }

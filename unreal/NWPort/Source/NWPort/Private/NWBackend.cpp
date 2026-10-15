@@ -422,7 +422,7 @@ void UNWBackend::SaveState(const FNWCharacterRecord& Record, const FString& Reas
 			Body->SetField(F.Key, F.Value);
 		}
 	}
-	// Só os espaços que mudaram desde a última gravação (docs/arquitetura-servidor.md, "Banco"): nada mudou, a bolsa não
+	// Só os espaços que mudaram desde a última gravação (docs/tech/architecture.md, "Banco"): nada mudou, a bolsa não
 	// vai. Cada espaço leva o valor final, então uma diferença calculada antes de outra gravação terminar continua certa.
 	if (const TArray<FNWItem>* Old = PersistedBag.Find(Record.Id))
 	{
@@ -1307,7 +1307,7 @@ void UNWBackend::PieEnter(FRedeemDone Done)
 			}
 			if (Id.IsEmpty())
 			{
-				Done({}, FString::Printf(TEXT("personagem %s não existe (rode tools/backend_dev.sh)"), *PieCharacter));
+				Done({}, FString::Printf(TEXT("personagem %s não existe (rode tools/linux/backend_dev.sh)"), *PieCharacter));
 				return;
 			}
 			Request(TEXT("POST"), FString::Printf(TEXT("/v1/characters/%s/join"), *Id), FString(), false,

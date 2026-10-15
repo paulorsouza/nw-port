@@ -23,7 +23,7 @@ namespace NWTradeskill
 	/** Ofícios de coleta (0..3); os de refino vêm depois (4..8). */
 	constexpr int32 NumGathering = 4;
 	/** Mining, Logging, Harvesting, Skinning -> 0..3; Smelting, Woodworking, Leatherworking, Weaving, Stonecutting
-	 *  -> 4..8 (refino, esteira 4); Weaponsmithing, Engineering, Arcana -> 9..11 (fabricar, docs/oficio.md); Jewelcrafting -> 12, Armoring -> 13; outro ->
+	 *  -> 4..8 (refino, esteira 4); Weaponsmithing, Engineering, Arcana -> 9..11 (fabricar, docs/game/crafting.md); Jewelcrafting -> 12, Armoring -> 13; outro ->
 	 *  INDEX_NONE. */
 	NWPORT_API int32 Index(FName Tradeskill);
 	NWPORT_API FName Name(int32 Index);
@@ -102,7 +102,7 @@ public:
 
 	UFUNCTION(Client, Reliable) void ClientXpGained(int64 Amount, int32 NewLevel);
 
-	// ---- tutoriais de nível (esteira 4, tools/tutorials.json; docs/sistemas.md)
+	// ---- tutoriais de nível (esteira 4, tools/tutorials.json; docs/game/city.md)
 	/** Progresso de cada missão (índice do tools/tutorials.json); -1 = concluída. Só o dono recebe. */
 	UPROPERTY(Replicated) TArray<int32> TutorialCount;
 	/** Receitas já confeccionadas (bônus de primeira confecção; salvo em progression.crafted). Só o dono recebe. */

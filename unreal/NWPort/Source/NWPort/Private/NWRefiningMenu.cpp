@@ -23,7 +23,7 @@
 
 namespace
 {
-	// Cores do jogo (_common/uistyle.lua; docs/hud/refino.md §2).
+	// Cores do jogo (_common/uistyle.lua; docs/game/ui/refining.md §2).
 	const FLinearColor TanWarm(FColor(0xEB, 0xE3, 0xD6));
 	const FLinearColor GrayNew(FColor(0xB2, 0xAE, 0xA1));
 	const FLinearColor Gray50(FColor(0x80, 0x80, 0x80));
@@ -697,7 +697,7 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 	SetShown(E(TEXT("PrimaryBaseValue/PrimaryValue")), false);
 
 	// Armadura (RO/Stats/Armor, craftroll-equipamento.md §6): base da receita (qualidade 0) → resistência do item, física e
-	// mágica iguais no port (docs/itens.md "Armaduras e joias"). Joia (RO/Stats/Trinket): só o divisor.
+	// mágica iguais no port (docs/game/items.md "Armaduras e joias"). Joia (RO/Stats/Trinket): só o divisor.
 	const bool bArmor = Class == TEXT("armadura");
 	FNWUIElement* Ar = E(TEXT("RarityOffset/Stats/Armor"));
 	SetShown(Ar, bArmor);
@@ -806,7 +806,7 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		static const float GemY[] = {112.f, 112.f, 186.f, 260.f, 334.f, 408.f};
 		Gem->Translate.Y = GemY[FMath::Clamp(NumPerks, 0, 5)] - 408.f;   // canvas: 408
 		Row(Gem, 0.55 + 0.15 * NumPerks);
-		// Com gema: nome e ícone dela e os efeitos (docs/itens.md "Slot"); vazio: o soquete do jogo.
+		// Com gema: nome e ícone dela e os efeitos (docs/game/items.md "Slot"); vazio: o soquete do jogo.
 		const FNWItemDef* GD = It->Gem.IsNone() ? nullptr : FNWItemCatalog::Get().Find(It->Gem);
 		SetText(E(TEXT("GemPerkSlot/Bg/PerkName")), GD ? GD->Name : NWText::Get(TEXT("nw.item.gem_empty")));
 		SetText(E(TEXT("GemPerkSlot/Bg/PerkDesc")), GD ? FString::Join(FNWItemRules::Get().GemLines(It->Gem), TEXT("  ")) : FString());

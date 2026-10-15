@@ -5,7 +5,7 @@
 #include "NWCity.generated.h"
 
 /**
- * Governança das cidades (docs/plano-governanca.md; nw-core: backend/src/routes/city.rs). Uma cidade por região; o
+ * Governança das cidades (docs/game/economy.md; nw-core: backend/src/routes/city.rs). Uma cidade por região; o
  * nw-core guarda tudo e o servidor de jogo mantém uma cópia curta por região (preços, imposto, nível das mesas, buffs)
  * para a fabricação. Regras em Data/World/governanca.json, faixas em precos_cidade.json, referência do imposto em
  * precos_referencia.json (cópias de tools/, make_crafting.py).

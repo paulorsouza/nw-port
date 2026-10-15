@@ -76,7 +76,7 @@ public:
 	/** Solta Quantity da pilha no chão, numa bolsa (ANWLootBag; até 1000 kg no chão por jogador). */
 	UFUNCTION(Server, Reliable) void ServerDrop(int32 BagSlot, int32 Quantity);
 	/**
-	 * Encaixa a gema ou o vidro rúnico do espaço GemBagSlot da bolsa no item (bolsa ou equipado; docs/itens.md "Slot").
+	 * Encaixa a gema ou o vidro rúnico do espaço GemBagSlot da bolsa no item (bolsa ou equipado; docs/game/items.md "Slot").
 	 * Só em slot vazio: com gema, recusa e avisa (retirar antes, pagando).
 	 */
 	UFUNCTION(Server, Reliable) void ServerSocket(int32 GemBagSlot, ENWItemContainer Container, int32 Slot);

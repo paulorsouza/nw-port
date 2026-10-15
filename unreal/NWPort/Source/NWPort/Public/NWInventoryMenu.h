@@ -12,7 +12,7 @@ class SWidget;
 class UCanvas;
 
 /**
- * Inventário (Tab), equipamento e armazém no estilo do jogo (spec: docs/hud/inventario.md).
+ * Inventário (Tab), equipamento e armazém no estilo do jogo (spec: docs/game/ui/inventory.md).
  * - Janela do inventário: moldura do canvas inventory/newinventory (Data/UI/inventory_layout.json), lista com as seções
  *   do jogo (dynamicitemlist.lua: UiItemClass do item) em duas colunas, peças 60x60 quadradas ou redondas
  *   (itemlayout.lua), ordenação por chegada/peso/gear score/tier, peso atual/máximo.
@@ -93,7 +93,7 @@ private:
 	};
 
 	// Popup do jogo (popup.lua): dividir pilha (Ctrl + clique), confirmar destruir (soltar no chão), acoplar gema (soltar
-	// a gema no item; ui_attach_gem / ui_replace_gem) e retirar gema (Shift + clique direito no item; docs/itens.md).
+	// a gema no item; ui_attach_gem / ui_replace_gem) e retirar gema (Shift + clique direito no item; docs/game/items.md).
 	enum class EPopup : uint8 { None, Split, Destroy, Socket, Unsocket };
 	enum class EAction : uint8 { Cancel, Move, Drop, Destroy, Socket, Unsocket };
 	struct FPopupButton

@@ -37,7 +37,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float WeaponBaseDamage = 100.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números", meta = (ClampMin = 0, ClampMax = 0.95)) float ArmorMitigation = 0.3f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float MaxStamina = 100.f;
-	// StaminaComponent do jogador (docs/combate-regras-jogo.md §7): 33,33/s; 10/s com a guarda levantada; 1 s de
+	// StaminaComponent do jogador (docs/game/combat.md §7): 33,33/s; 10/s com a guarda levantada; 1 s de
 	// espera depois de gastar (esquiva) ou soltar a guarda; exausto em 0 até encher de novo.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenPerSecond = 33.33f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenBlocking = 10.f;

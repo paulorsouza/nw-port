@@ -12,7 +12,7 @@ class UMaterialInstanceDynamic;
 struct FNWWeaponSet;
 
 /**
- * Manopla de gelo (sub-esteira 1a, docs/armas/manopla-gelo.md): registro da arma e a luva com pele, que segue a pose
+ * Manopla de gelo (sub-esteira 1a, docs/game/weapons/ice-gauntlet.md): registro da arma e a luva com pele, que segue a pose
  * do corpo. O combate usa o UNWCombatComponent pela tabela DT_IceGauntletActions; a mana, o UNWManaComponent; as
  * habilidades, o UNWIceGauntletComponent (criado no servidor quando a manopla é equipada).
  */

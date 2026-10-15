@@ -5,7 +5,7 @@
 #include "NWNiagaraTools.generated.h"
 
 /**
- * Ferramentas de editor para montar sistemas Niagara a partir dos efeitos do jogo (docs/particulas-estudo.md).
+ * Ferramentas de editor para montar sistemas Niagara a partir dos efeitos do jogo (docs/tech/particles.md).
  * Chamadas pelo Python do editor (scripts em tools/ue/); só fazem algo em build de editor.
  */
 UCLASS()
@@ -20,7 +20,7 @@ public:
 	static FString ProbeNiagara(const FString& PackagePath, const FString& TemplatePath, float SpawnRate);
 
 	/**
-	 * Monta PackagePath a partir de uma receita JSON (tools/ue/import_fx.py, docs/particulas-estudo.md). Por emissor:
+	 * Monta PackagePath a partir de uma receita JSON (tools/ue/import_fx.py, docs/tech/particles.md). Por emissor:
 	 * name, template (emissor do motor), disable (módulos), add [{usage, script}], params [{usage, name, type, value}],
 	 * renderer {kind sprite|mesh|decal, material, mesh, subuv [x, y], mesh_scale}, constants {"Modulo.Entrada": valor},
 	 * curves [{function, index, keys [[t, v]...] ou channels {r,g,b,a: keys}}]. Devolve o relatório.

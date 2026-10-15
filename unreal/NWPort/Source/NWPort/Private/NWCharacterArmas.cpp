@@ -1,4 +1,4 @@
-// Parte do ANWCharacter da esteira de armas (docs/esteiras.md): armas do jogador, troca e loadout, ataque, bloqueio,
+// Parte do ANWCharacter da esteira de armas (docs/workflow.md): armas do jogador, troca e loadout, ataque, bloqueio,
 // esquiva, habilidades de Q/R/F, cérebro de IA e boneco de treino. O resto do personagem fica em NWCharacter.cpp.
 #include "NWCharacter.h"
 #include "Misc/App.h"

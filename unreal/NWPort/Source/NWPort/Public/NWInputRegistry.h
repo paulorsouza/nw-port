@@ -6,7 +6,7 @@
 class ANWCharacter;
 
 /**
- * Teclas registradas por cada esteira no próprio arquivo (docs/esteiras.md), sem mexer no ANWCharacter nem no
+ * Teclas registradas por cada esteira no próprio arquivo (docs/workflow.md), sem mexer no ANWCharacter nem no
  * FNWOptions. Entram na aba Atalhos (trocáveis) e são ligadas no SetupPlayerInputComponent do personagem.
  *
  *     NW_REGISTER_INPUT(MountSummon, TEXT("MountSummon"), TEXT("ui_mount_summon"), EKeys::T,

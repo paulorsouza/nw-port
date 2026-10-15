@@ -27,7 +27,7 @@ ANWLost::ANWLost(const FObjectInitializer& ObjectInitializer)
 	DummyAttackActions = {TEXT("Attack1"), TEXT("Attack2"), TEXT("Heavy"), TEXT("Leap")};
 
 	Combat->MaxHealth = 600.f;
-	// damned_grunt: resistência a stagger 20, empurrão recebido ×1,2, mitigação 0,35 (docs/combate-regras-jogo.md).
+	// damned_grunt: resistência a stagger 20, empurrão recebido ×1,2, mitigação 0,35 (docs/game/combat.md).
 	Combat->StaggerResistRating = 20.f;
 	Combat->ImpactDistanceScale = 1.2f;
 	Combat->ArmorMitigation = 0.35f;

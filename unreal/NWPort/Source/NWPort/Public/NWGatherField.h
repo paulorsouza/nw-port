@@ -68,7 +68,7 @@ public:
 		FString NameKey;
 		FName Tradeskill, Action, Restriction, Loot;
 		float Time = 0.f;
-		int32 RequiredLevel = 0;   // RequiredTradeskillLevel (ainda não exigido; docs/pendencias.md)
+		int32 RequiredLevel = 0;   // RequiredTradeskillLevel (ainda não exigido; docs/backlog.md)
 		int32 TradeXp = 0;         // XP de ofício por coleta (evento do coletável)
 		float RespawnMin = 0.f, RespawnMax = 0.f;
 		bool bCollides = false;

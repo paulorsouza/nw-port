@@ -14,7 +14,7 @@ class SWidgetSwitcher;
 
 /**
  * Entreposto comercial (esteira 4): primeira tela própria do port, em Slate, com as cores e fontes do jogo
- * (docs/sistemas.md §5). Abas Comprar (pedidos de venda dos outros, filtros e tabela ordenável), Vender (itens da bolsa
+ * (docs/game/city.md §5). Abas Comprar (pedidos de venda dos outros, filtros e tabela ordenável), Vender (itens da bolsa
  * que vão ao mercado) e Meus Pedidos. Pedido de compra fica fora da tela (dono 2026-10-14); o servidor ainda aceita.
  *
  * Resposta otimista: comprar, vender e cancelar mudam a tela na hora (linha nova com spinner, linha some, moedas caem) e

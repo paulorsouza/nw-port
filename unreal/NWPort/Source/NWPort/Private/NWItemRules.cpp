@@ -251,7 +251,7 @@ float FNWItemRules::Resistance(const FNWItemDef& D, float Quality) const
 
 bool FNWItemRules::HasSocket(const FNWItemDef& D, const FNWItem& Item)
 {
-	// 1 slot por arma, escudo e armadura fabricados; joias e ferramentas não têm (docs/itens.md).
+	// 1 slot por arma, escudo e armadura fabricados; joias e ferramentas não têm (docs/game/items.md).
 	const FString Class = EquipClass(D);
 	return Item.Quality >= 0.f && (Class == TEXT("arma") || Class == TEXT("escudo") || Class == TEXT("armadura"));
 }
@@ -364,7 +364,7 @@ FNWItem FNWItemRules::Roll(FName ItemId, int32 RollMin, int32 RollMax, float Qua
 		return Out;
 	}
 	Out.GearScore = FMath::Min(FMath::RandRange(FMath::Min(RollMin, RollMax), FMath::Max(RollMin, RollMax)), GsMax);
-	// Um atributo por item; provisório: sorteado entre os 5 (docs/itens.md).
+	// Um atributo por item; provisório: sorteado entre os 5 (docs/game/items.md).
 	if (Attributes.Num() > 0 && EquipClass(*D) != TEXT("ferramenta"))
 	{
 		Out.Attr = uint8(FMath::RandRange(0, Attributes.Num() - 1));

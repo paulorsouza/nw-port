@@ -11,7 +11,7 @@ struct FNWItem;
 
 /**
  * Tela de refino de uma estação (esteira 4) com o layout do jogo: lyshineui/crafting/craftingscreenv4 no modo refino
- * (tools/ui_screens/refining.json; o que liga, desliga e preenche: docs/hud/refino.md), a barra de título de
+ * (tools/ui_screens/refining.json; o que liga, desliga e preenche: docs/game/ui/refining.md), a barra de título de
  * stationproperties (screen_header.json) e o rodapé de atalhos (helpbar.json).
  * Estados: escolha da receita; roll (contagem do produto, 1 s, craftroll.lua); fim (clique continua).
  */
@@ -98,11 +98,11 @@ private:
 	double Now() const { return FixedNow > 0.0 ? FixedNow : FPlatformTime::Seconds(); }
 	bool CanCraft(const FNWRecipe& R) const;
 
-	// Fabricar arma, escudo ou ferramenta (docs/oficio.md): uma por vez, sem quantidade; faixa de GS e de qualidade, ou o
+	// Fabricar arma, escudo ou ferramenta (docs/game/crafting.md): uma por vez, sem quantidade; faixa de GS e de qualidade, ou o
 	// aviso de treino abaixo do nível de fabricar.
 	void DrawCraftInfo(UCanvas* Canvas, const FNWRecipe& R, const FVector2D& Mouse);
 
-	// Aba "Melhorar itens" (docs/itens.md): itens da bolsa deste ofício com sortear atributo, subir GS e desvincular.
+	// Aba "Melhorar itens" (docs/game/items.md): itens da bolsa deste ofício com sortear atributo, subir GS e desvincular.
 	bool bReroll = false;
 	FBox2f TabRect = FBox2f(ForceInit);
 	struct FImproveButton { FBox2f Rect; int32 Slot = INDEX_NONE; uint8 Kind = 0; uint8 Mat = 0; };

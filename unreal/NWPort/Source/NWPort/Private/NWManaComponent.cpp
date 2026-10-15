@@ -1,4 +1,4 @@
-// Mana do jogador (sub-esteira 1a): docs/armas/manopla-gelo.md §2.
+// Mana do jogador (sub-esteira 1a): docs/game/weapons/ice-gauntlet.md §2.
 #include "NWManaComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "NWDevRegistry.h"

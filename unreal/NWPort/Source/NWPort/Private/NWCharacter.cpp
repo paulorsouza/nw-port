@@ -90,7 +90,7 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	// Personagens não recebem decalques do chão (áreas de efeito das armas, como no jogo).
 	Body->SetReceivesDecals(false);
 	// O servidor precisa da pose (curvas das janelas, root motion e posição da lâmina) só com montagem tocando (golpe,
-	// esquiva, reação); parado ou andando, ninguém vê a pose no servidor (docs/arquitetura-servidor.md, medições:
+	// esquiva, reação); parado ou andando, ninguém vê a pose no servidor (docs/tech/architecture.md, medições:
 	// animação era ~80 µs por personagem). No cliente vale para quem está fora da tela.
 	Body->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickMontagesAndRefreshBonesWhenPlayingMontages;
 

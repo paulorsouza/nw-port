@@ -19,7 +19,7 @@
 #include "NWProgressionComponent.h"
 #include "NWText.h"
 
-// Spec: docs/hud/inventario.md (posições em px da tela de 1080 de altura).
+// Spec: docs/game/ui/inventory.md (posições em px da tela de 1080 de altura).
 static const FLinearColor InvTan(FColor(0xEB, 0xE3, 0xD6));      // COLOR_TAN_WARM
 static const FLinearColor InvTanNew(FColor(0xC6, 0xB6, 0x94));   // títulos de seção, rótulos dos atributos
 static const FLinearColor InvGray(FColor(0xB2, 0xAE, 0xA1));     // peso da seção, máximo do peso
@@ -87,7 +87,7 @@ namespace
 	const FEquipPos CombatSlots[] = {
 		{NWEquip::Sword, 548.f, 216.f, TEXT("iconweapon")}, {NWEquip::Hatchet, 548.f, 284.f, TEXT("iconweapon")},
 		{NWEquip::Shield, 30.f, 556.f, TEXT("iconshield")},
-		// Armadura e joias (docs/armaduras.md).
+		// Armadura e joias (docs/game/items.md).
 		{NWEquip::Head, 30.f, 216.f, TEXT("iconhead")}, {NWEquip::Chest, 30.f, 284.f, TEXT("iconchest")},
 		{NWEquip::Hands, 30.f, 352.f, TEXT("iconhand")}, {NWEquip::Legs, 30.f, 420.f, TEXT("iconlegs")},
 		{NWEquip::Feet, 30.f, 488.f, TEXT("iconfeet")}, {NWEquip::Amulet, 548.f, 438.f, TEXT("iconamulet")},
@@ -731,7 +731,7 @@ void FNWInventoryMenu::DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWI
 	{
 		DrawGameText(Canvas, Roman(D->Tier), R.Min.X + 5.f * S, R.Min.Y + 1.f * S, 14.f * K, TextA, TEXT("pica_italic"));
 	}
-	// Gema acoplada: ícone dela no canto de baixo à direita, sobre o soquete do tooltip (docs/itens.md "Slot").
+	// Gema acoplada: ícone dela no canto de baixo à direita, sobre o soquete do tooltip (docs/game/items.md "Slot").
 	if (const FNWItemDef* GD = Item->Gem.IsNone() ? nullptr : FNWItemCatalog::Get().Find(Item->Gem))
 	{
 		// Pouco mais de metade da peça (34 de 60), para a gema ser reconhecível na bolsa.
@@ -2012,10 +2012,10 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 	{
 		Rows.Add({FString::Printf(TEXT("+%.0f%%  %s"), (D->Efficiency - 1.f) * 100.f, *NWText::Get(TEXT("ui_tooltip_gatherspeed"))), FLinearColor(0.67f, 0.67f, 0.67f), 23.f, 0, 4.f});
 	}
-	// Item fabricado (docs/itens.md): atributo, qualidade (entre resistências e perks), perks com o valor da qualidade e
+	// Item fabricado (docs/game/items.md): atributo, qualidade (entre resistências e perks), perks com o valor da qualidade e
 	// o slot de gema.
 	const FNWItemRules& IR = FNWItemRules::Get();
-	// Armadura: resistência física e mágica (iguais; docs/itens.md "Armaduras e joias"), no lugar do dano base.
+	// Armadura: resistência física e mágica (iguais; docs/game/items.md "Armaduras e joias"), no lugar do dano base.
 	if (const float Res = IR.Resistance(*D, Item.Quality); Res > 0.f)
 	{
 		for (const TCHAR* Key : {TEXT("nw.item.res_physical"), TEXT("nw.item.res_magic")})
@@ -2047,7 +2047,7 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 			}
 		}
 	}
-	// Um slot em arma, escudo e armadura; joias e ferramentas não têm (docs/itens.md). Com gema: ícone e nome dela e os
+	// Um slot em arma, escudo e armadura; joias e ferramentas não têm (docs/game/items.md). Com gema: ícone e nome dela e os
 	// efeitos (dynamictooltip_perk.lua mostra a gema como perk).
 	if (FNWItemRules::HasSocket(*D, Item))
 	{

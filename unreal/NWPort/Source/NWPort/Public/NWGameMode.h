@@ -52,7 +52,7 @@ private:
 	bool IsCharacterOnline(const FString& CharacterId) const;
 	void SaveAll(const TCHAR* Reason);
 	void SavePeriodic() { SaveAll(TEXT("periodic")); }
-	/** Play do editor com backend (docs/teste-backend.md): entra com a conta do editor e aplica o personagem salvo. */
+	/** Play do editor com backend (docs/tech/backend-testing.md): entra com a conta do editor e aplica o personagem salvo. */
 	void PieEnter(ANWPlayerController* PC);
 	void HandleTearDown(UWorld* World);
 	FDelegateHandle TearDownHandle;

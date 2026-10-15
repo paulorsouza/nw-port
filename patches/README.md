@@ -1,43 +1,52 @@
-# Patches do nwbt
+# nwbt patches
 
-O código do nwbt fica no fork `paulorsouza/nw-buddy`, branch `nw-port` (nunca dar push para o upstream
-`giniedp/nw-buddy`).
+The nwbt code lives in the nw-port fork of nw-buddy (`FORK` in `tools/build_nwbt.py`), branch `nw-port`. Never push
+to the upstream `giniedp/nw-buddy`.
 
-| Arquivo | O que é |
+| File | What it is |
 |---|---|
-| `nwbt-nwport.patch` | Referência: o que o fork tem sobre o upstream `81b2302` (já está no commit base, não é aplicado) |
-| `nwbt.patch` | O patch do nw-port sobre o commit base do fork (`BASE` em `tools/build_nwbt.py`), aplicado nas duas compilações |
+| `nwbt-nwport.patch` | Reference: what the fork has over upstream `81b2302` (already in the base commit; not applied) |
+| `nwbt.patch` | The nw-port patch over the fork's base commit (`BASE` in `tools/build_nwbt.py`), applied in both builds |
 
-## Compilar
+## Build
 
-Linux e Windows usam o mesmo script, que exporta o commit base para `.nwbt/build/src` (fim de linha LF), aplica o
-`nwbt.patch` e grava a versão no binário. O checkout do fork (`vendor/nw-buddy` ou `NW_BUDDY`) não é alterado.
+Linux and Windows use the same script. It exports the base commit to `.nwbt/build/src` (LF line endings), applies
+`nwbt.patch` and writes the version into the binary. The fork checkout (`vendor/nw-buddy` or `NW_BUDDY`) is not
+changed.
 
 ```bash
-tools/pesado.sh python3 tools/build_nwbt.py --test
+tools/linux/pesado.sh python3 tools/build_nwbt.py --test
 ```
 
 ```powershell
 ./tools/windows/build_nwbt.ps1 -Test
 ```
 
-`nwbt --version` mostra `nwport-patch=<base>-<hash do patch>`. `tools/check.sh` e `tools/windows/doctor.py` acusam
-binário compilado com outro patch (ou sem versão) e testam a conversão por `@lista`.
+`tools/linux/pesado.sh` and `tools/linux/check.sh` are shortcuts to `tools/linux/pesado.sh` and `tools/linux/check.sh`.
 
-## Mudar o nwbt
+`nwbt --version` shows `nwport-patch=<base>-<hash do patch>`. `tools/linux/check.sh` and `tools/windows/doctor.py` flag a
+binary built with another patch (or without a version) and test conversion through `@lista`.
 
-1. `python3 tools/build_nwbt.py --preparar` monta `.nwbt/build/src` (base + patch, repositório git próprio).
-   Edite em `.nwbt/build/src/tools/nwbt`.
-2. `python3 tools/build_nwbt.py --gerar-patch` grava o `patches/nwbt.patch` (o cabeçalho é mantido). O build
-   recusa apagar `.nwbt/build/src` com edição que ainda não foi para o patch.
-3. Recompile (`tools/pesado.sh python3 tools/build_nwbt.py --test`) e commite o `patches/nwbt.patch` junto com o
-   `bin/nwbt`; no Windows, cada um recompila o `nwbt.exe`.
+## Change nwbt
 
-O `vendor/nw-buddy` não é usado para compilar (só como fonte do commit base). Mudança feita lá (fontes CRLF) entra no
-patch copiando os arquivos para `.nwbt/build/src` antes do passo 2.
+1. `python3 tools/build_nwbt.py --preparar` sets up `.nwbt/build/src` (base + patch, its own git repository).
+   Edit in `.nwbt/build/src/tools/nwbt`.
+2. `python3 tools/build_nwbt.py --gerar-patch` writes `patches/nwbt.patch` (the header is kept). The build refuses
+   to delete `.nwbt/build/src` while it has edits that have not gone into the patch.
+3. Rebuild (`tools/linux/pesado.sh python3 tools/build_nwbt.py --test`) and commit `patches/nwbt.patch` together with
+   `bin/nwbt`. On Windows, each person rebuilds `nwbt.exe`.
 
-Para trocar o commit base (mudanças levadas para o fork), atualize `BASE` em `tools/build_nwbt.py` e refaça o
-patch sobre ele.
+`vendor/nw-buddy` is not used to build (only as the source of the base commit). A change made there (CRLF sources)
+goes into the patch by copying the files to `.nwbt/build/src` before step 2.
 
-Partes do patch e donos: `sliceLight` (luzes do slice) é da esteira 5; o resto (Windows, `@lista`, erro sem arquivo,
-versão) é das ferramentas.
+To change the base commit (changes moved into the fork), update `BASE` in `tools/build_nwbt.py` and redo the patch
+on top of it.
+
+## Patch parts and owners
+
+| Part | Owner |
+|---|---|
+| `sliceLight` (slice lights) | lighting area |
+| Everything else (Windows, `@lista`, error when no file is found, version) | tools |
+
+Areas: [docs/workflow.md](../docs/workflow.md). Windows build details: [docs/tech/windows.md](../docs/tech/windows.md).

@@ -7,7 +7,7 @@ class ANWCharacter;
 
 /**
  * Eventos de jogo no servidor, para sistemas que precisam saber o que aconteceu sem mexer em quem faz (esteira 4:
- * tutoriais de nível, docs/sistemas.md). Quem dispara: abate em UNWCombatComponent::Die, XP de ofício em
+ * tutoriais de nível, docs/game/city.md). Quem dispara: abate em UNWCombatComponent::Die, XP de ofício em
  * UNWProgressionComponent::AddTradeXp (coleta e refino), refino em FNWCrafting::Refine.
  */
 struct NWPORT_API FNWEvents

@@ -14,7 +14,7 @@ struct FNWKeyAction
 };
 
 /**
- * Configurações do jogador (tela de configurações do jogo, `lyshineui/options`, docs/hud-original.md), salvas em
+ * Configurações do jogador (tela de configurações do jogo, `lyshineui/options`, docs/game/ui/original.md), salvas em
  * GameUserSettings.ini [NW.Options]. Só no cliente.
  */
 struct NWPORT_API FNWOptions

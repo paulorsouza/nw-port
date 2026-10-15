@@ -9,7 +9,7 @@ class UNWInteractableComponent;
 class USkeletalMeshComponent;
 
 /**
- * NPC parado da cidade (esteira 4, docs/sistemas.md): aparência do .cdf, animação parada da IdleTimeline, nome.
+ * NPC parado da cidade (esteira 4, docs/game/city.md): aparência do .cdf, animação parada da IdleTimeline, nome.
  * Criado por ANWNpcField em cada máquina (não replica: é fixo e sai do mesmo arquivo de dados).
  * Interagir vira o NPC para o jogador e, se ele é o sorteado da semana do ofício, entrega o brinde
  * (FNWNpcRewards, servidor); sem diálogo, porque as missões do jogo não são convertidas.
@@ -55,7 +55,7 @@ public:
 	UPROPERTY(Transient) TArray<TObjectPtr<ANWNpc>> Npcs;
 
 	/** Área da cidade (centro e raio em volta dos NPCs e estações + CityMargin): quem entra passa a conhecer a cidade
-	 *  (armazém compartilhado, docs/sistemas.md "Armazém"). */
+	 *  (armazém compartilhado, docs/game/city.md "Armazém"). */
 	UPROPERTY(EditAnywhere, Category = "NW|Npc") float CityMargin = 4000.f;
 
 private:

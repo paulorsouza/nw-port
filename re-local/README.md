@@ -1,6 +1,6 @@
 # re-local
 
-Cache das respostas de engenharia reversa desta máquina, gravado pelo agente `nw-re` (`docs/ghidra.md`). Fora do
+Cache das respostas de engenharia reversa desta máquina, gravado pelo agente `nw-re` (`docs/tech/reverse-engineering.md`). Fora do
 git: só este arquivo é versionado. Pode apagar; o agente refaz a pergunta quando precisar.
 
 ```

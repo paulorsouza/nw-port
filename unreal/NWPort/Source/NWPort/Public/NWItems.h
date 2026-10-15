@@ -23,7 +23,7 @@ namespace NWEquip
 	constexpr int32 Sickle = 4;
 	constexpr int32 LoggingAxe = 5;
 	constexpr int32 SkinningKnife = 6;
-	// Armadura e joias (docs/armaduras.md); o nw-core aceita espaços 0..15.
+	// Armadura e joias (docs/game/items.md); o nw-core aceita espaços 0..15.
 	constexpr int32 Head = 7;
 	constexpr int32 Chest = 8;
 	constexpr int32 Hands = 9;
@@ -54,7 +54,7 @@ struct FNWItem
 	UPROPERTY() int32 Slot = 0;
 	UPROPERTY() int32 GearScore = 0;
 	UPROPERTY() uint8 Rarity = 0;   // 0 comum, 1 incomum, 2 raro, 3 épico, 4 lendário
-	// Item fabricado (docs/itens.md), gravado em `props` no nw-core: atributo (índice de FNWItemRules::Attributes; 255 =
+	// Item fabricado (docs/game/items.md), gravado em `props` no nw-core: atributo (índice de FNWItemRules::Attributes; 255 =
 	// sem), qualidade 0..100 (< 0 = sem), perks, gema, vínculo (0 sem, 1 vincula ao equipar, 2 vinculado) e artesão
 	// que assinou (qualidade >= assinatura_qualidade).
 	UPROPERTY() uint8 Attr = 255;

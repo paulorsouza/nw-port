@@ -61,7 +61,7 @@ struct FNWWeaponSet
 };
 
 /**
- * Personagem do jogador (e base do Lost e das criaturas). A implementação é dividida por esteira (docs/esteiras.md):
+ * Personagem do jogador (e base do Lost e das criaturas). A implementação é dividida por esteira (docs/workflow.md):
  * NWCharacter.cpp (movimento, câmera, input, menus), NWCharacterArmas.cpp (armas, combate, habilidades, boneco),
  * NWCharacterSave.cpp (salvar/restaurar). Coleta e montaria ficam nos componentes (Gather, Mount); teclas novas pelo
  * NW_REGISTER_INPUT (NWInputRegistry.h), comandos do F10 pelo NW_REGISTER_DEV (NWDevRegistry.h).
@@ -215,7 +215,7 @@ protected:
 	void SkillMenuPressed();
 	void DevMenuPressed();
 	void UpdateCameraClipHide();
-	/** Câmera com os estados do jogo (libs/camera/gamecamera.xml, docs/hud-original.md): normal, sprint, inventário. */
+	/** Câmera com os estados do jogo (libs/camera/gamecamera.xml, docs/game/ui/original.md): normal, sprint, inventário. */
 	void UpdateCamera(float DeltaSeconds);
 	void Zoom(const FInputActionValue& Value);
 	bool bHiddenForCamera = false;

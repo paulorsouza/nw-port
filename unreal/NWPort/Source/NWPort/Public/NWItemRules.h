@@ -4,7 +4,7 @@
 #include "NWItems.h"
 
 /**
- * Regras de item e de ofício do port (docs/itens.md, docs/oficio.md), em Data/Items/regras_itens.json
+ * Regras de item e de ofício do port (docs/game/items.md, docs/game/crafting.md), em Data/Items/regras_itens.json
  * (tools/make_itens.py a partir de tools/itens.json e tools/perks_decisoes.json).
  */
 class NWPORT_API FNWItemRules
@@ -34,7 +34,7 @@ public:
 	TMap<FName, TArray<FName>> Ability;        // conjunto da arma (Sword, Hatchet...) -> perks de habilidade
 	TArray<FName> HealWeapons;                 // armas que também rolam Cura causada
 
-	/** Tetos do refinar GS (docs/itens.md "Gear score"): até UpTo acima do mínimo da faixa, o sucesso sobe até Max e a
+	/** Tetos do refinar GS (docs/game/items.md "Gear score"): até UpTo acima do mínimo da faixa, o sucesso sobe até Max e a
 	 *  falha desce até −Min. Sem UpTo (MAX_int32), vale para o resto. */
 	struct FGsStep { int32 UpTo = MAX_int32; int32 Min = 0; int32 Max = 0; };
 	TArray<FGsStep> GsSteps;
@@ -45,18 +45,18 @@ public:
 	TArray<FImproveMaterial> ImproveMaterials;
 	int32 CostAttr = 2, CostGs = 2, CostUnbind = 2;
 	float UnbindQualityPer = 10.f;             // desvincular: +1 a cada tantos % de qualidade
-	/** Mercado (docs/sistemas.md §5): ordens abertas por personagem e o que pode ir ao mercado. */
+	/** Mercado (docs/game/city.md §5): ordens abertas por personagem e o que pode ir ao mercado. */
 	int32 MarketMaxOrders = 50;
 	TArray<FString> MarketPatterns;
 	TArray<FName> MarketItems;
 	/** O item pode ir ao mercado: equipamento fabricado, padrões (gema lapidada, vidro rúnico) ou a lista de itens; nunca
 	 *  vinculado. */
 	bool CanTrade(const FNWItemDef& D, const FNWItem& Item) const;
-	/** Armazém compartilhado (docs/sistemas.md "Armazém"): kg por cidade conhecida e número de abas. */
+	/** Armazém compartilhado (docs/game/city.md "Armazém"): kg por cidade conhecida e número de abas. */
 	float StoragePerCity = 1000.f;
 	int32 StorageTabs = 5;
 
-	/** Gema ou vidro rúnico (docs/itens.md "Slot"): classe (armadura, arma), efeitos em %, gema bruta do custo de retirar. */
+	/** Gema ou vidro rúnico (docs/game/items.md "Slot"): classe (armadura, arma), efeitos em %, gema bruta do custo de retirar. */
 	struct FGem
 	{
 		FString Class;
@@ -68,7 +68,7 @@ public:
 	TMap<FString, TArray<FString>> GemClasses;           // classe da gema -> classes de equipamento
 	TMap<FName, TMap<FString, FString>> GemEffectText;   // efeito -> texto por idioma, com {v}
 
-	/** Resistência do peito por classe de peso (mín, máx) e fração de cada peça (docs/itens.md "Armaduras e joias"). */
+	/** Resistência do peito por classe de peso (mín, máx) e fração de cada peça (docs/game/items.md "Armaduras e joias"). */
 	TMap<FName, FVector2f> ChestResistance;
 	TMap<FName, float> SlotResistance;
 	/** Resistência física (= mágica) da peça de armadura com a qualidade do item; 0 fora de armadura. */
@@ -91,7 +91,7 @@ public:
 	float PerkValue(FName Perk, float Quality) const;
 	/** Texto da perk no idioma atual, com o valor da qualidade. */
 	FString PerkText(FName Perk, float Quality, bool bName) const;
-	/** Valor do atributo pelo gear score (docs/itens.md, provisório). */
+	/** Valor do atributo pelo gear score (docs/game/items.md, provisório). */
 	int32 AttrValue(int32 GearScore) const;
 	/** Qualidade mínima do sorteio pelo nível do ofício (0 no nível 0, QualityMinCraftMax no máximo). */
 	float QualityMin(int32 SkillLevel, int32 MaxLevel) const;

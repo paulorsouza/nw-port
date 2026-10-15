@@ -109,7 +109,7 @@ public:
 		TFunction<void(int32 Status)> Done);
 	void ListGround(const FString& CharacterId, TFunction<void(bool bOk, const TArray<FGroundBag>& Bags)> Done);
 
-	// Mercado (posto de trocas, docs/sistemas.md §5): um só para todos (território "global"). Erro do nw-core em Code
+	// Mercado (posto de trocas, docs/game/city.md §5): um só para todos (território "global"). Erro do nw-core em Code
 	// (order_closed, storage_full, too_many_orders...).
 	struct FMarketOrder
 	{
@@ -146,7 +146,7 @@ public:
 	void PendingCredits(const FString& CharacterId, TFunction<void(bool bOk, int64 Amount, const FString& Until)> Done);
 	void ClaimCredits(const FNWCharacterRecord& Record, const FString& Until, TFunction<void(int32 Status, int64 Amount)> Done);
 
-	// ---- Play do editor com o nw-core local de teste (docs/teste-backend.md)
+	// ---- Play do editor com o nw-core local de teste (docs/tech/backend-testing.md)
 	/** Só no editor: lê backend/dev.env (NW_BACKEND, NW_SERVER_SECRET, NW_PIE_ACCOUNT, NW_PIE_CHARACTER, NW_TEST_PASSWORD)
 	 *  e liga o backend no Play sozinho (standalone). Sem NW_PIE_ACCOUNT, devolve false e o Play segue sem backend. */
 	bool EnablePie();
@@ -163,7 +163,7 @@ public:
 	// Armazém compartilhado (esteira 4, local "shared"): ler e gravar com a versão lida; a gravação leva junto a bolsa e
 	// as moedas do Record, o peso unitário de cada item (catálogo), os nomes das abas e a capacidade somada pelo
 	// servidor. Status 200 ok, 409 o armazém mudou (ler de novo).
-	/** Número de série de um item assinado; o personagem é o artesão (docs/itens.md, Assinatura). */
+	/** Número de série de um item assinado; o personagem é o artesão (docs/game/items.md, Assinatura). */
 	void IssueSerial(const FString& CharacterId, TFunction<void(bool bOk, const FString& Serial)> Done);
 	void GetStorage(const FString& CharacterId, const FString& Location,
 		TFunction<void(bool bOk, int64 Version, const TArray<FNWItem>& Items, const TArray<FString>& TabNames)> Done);
@@ -174,7 +174,7 @@ public:
 
 private:
 	/**
-	 * Gravações de bolsa, moedas e armazém (docs/plano-servidor.md "Gravações"): uma fila por personagem, uma de cada
+	 * Gravações de bolsa, moedas e armazém (docs/tech/server.md "Gravações"): uma fila por personagem, uma de cada
 	 * vez, na ordem. Cada uma leva a sessão aberta no resgate do passe e um número crescente; o nw-core recusa gravação
 	 * velha. Sem resposta (rede, nw-core reiniciando): tenta de novo com o mesmo número (até MaxWriteTries); o nw-core
 	 * responde 409 duplicate_write se já tinha aplicado, que vira 208 para quem chamou.

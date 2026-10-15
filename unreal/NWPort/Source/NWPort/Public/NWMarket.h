@@ -5,7 +5,7 @@
 #include "NWMarket.generated.h"
 
 /**
- * Mercado (posto de trocas, docs/sistemas.md §5; regras do dono 2026-10-14): um mercado só, sem taxas, até
+ * Mercado (posto de trocas, docs/game/city.md §5; regras do dono 2026-10-14): um mercado só, sem taxas, até
  * FNWItemRules::MarketMaxOrders ordens abertas por personagem, só itens que podem ir ao mercado (FNWItemRules::CanTrade).
  * O servidor lê as ordens do nw-core (cache curto) e manda ao dono as linhas (ClientMarketOrders); comprar, vender e criar
  * ordem são operações gravadas (NWOps): moedas e itens só mudam depois do nw-core gravar. O que se compra vai para o

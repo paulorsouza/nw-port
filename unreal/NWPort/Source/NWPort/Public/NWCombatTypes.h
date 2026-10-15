@@ -22,7 +22,7 @@ struct FNWDamageRow : public FTableRowBase
 	// Empurrão para trás do alvo, em metros (ImpactDistanceY do jogo).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ImpactDistance = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool Unblockable = false;
-	// Regras completas: docs/combate-regras-jogo.md. Light/Heavy/Ability (limitador de reação da IA).
+	// Regras completas: docs/game/combat.md. Light/Heavy/Ability (limitador de reação da IA).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString AttackType;
 	// Empurrão lateral (m, + = direita de quem bate) e fator de decaimento por quadro de 1/30 s (0 = instantâneo).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ImpactDistanceX = 0.f;
@@ -98,7 +98,7 @@ struct FNWActionRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ManaCost = 0.f;
 	// Ataque básico durante esta ação vira esta ação (quebrar a tumba, Estaca Poderosa antecipada), se a janela dela abrir.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName AttackAction;
-	// Sistema Niagara do projétil (efeito do jogo convertido, docs/particulas-estudo.md); substitui a malha e o rastro.
+	// Sistema Niagara do projétil (efeito do jogo convertido, docs/tech/particles.md); substitui a malha e o rastro.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString ProjectileFx;
 	// Próxima ação do combo (Light1 -> Light2 -> Light3).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName ComboNext;

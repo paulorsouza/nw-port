@@ -1,4 +1,4 @@
-//! Número de série dos itens assinados (docs/itens.md, Assinatura). O servidor de jogo pede o número ao fabricar; o
+//! Número de série dos itens assinados (docs/game/items.md, Assinatura). O servidor de jogo pede o número ao fabricar; o
 //! item leva o número em `props.serial`. Toda gravação que leva item com número chama `verify` no fim da transação:
 //! o número tem que existir no registro e aparecer uma vez só (bolsa + armazém + ordens abertas), senão a gravação
 //! inteira é recusada. A linha do registro fica travada até o fim, então duas gravações com o mesmo item não passam juntas.

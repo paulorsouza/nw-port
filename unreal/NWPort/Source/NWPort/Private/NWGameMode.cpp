@@ -49,7 +49,7 @@ void ANWGameMode::BeginPlay()
 	{
 		GetWorld()->SpawnActor<ANWSpawnField>();
 	}
-	// Play do editor sozinho: nw-core local de teste com a conta do editor (docs/teste-backend.md). O jogador local já
+	// Play do editor sozinho: nw-core local de teste com a conta do editor (docs/tech/backend-testing.md). O jogador local já
 	// entrou (PostLogin vem antes do BeginPlay no Play).
 	UNWBackend* PieBackend = Backend();
 	if (GetWorld()->WorldType == EWorldType::PIE && GetNetMode() == NM_Standalone && PieBackend && PieBackend->EnablePie())

@@ -388,7 +388,7 @@ void UNWGatherComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 		return;
 	}
 	// Foco do [E] só no jogador local: no servidor, criaturas e IA contam como "controladas localmente" e procuravam
-	// coletável a cada ciclo (docs/arquitetura-servidor.md, medições).
+	// coletável a cada ciclo (docs/tech/architecture.md, medições).
 	if (Me->IsLocallyControlled() && Me->IsPlayerControlled())
 	{
 		UpdateFocus();

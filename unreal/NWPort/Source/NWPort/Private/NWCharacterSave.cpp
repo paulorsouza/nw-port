@@ -1,4 +1,4 @@
-// Parte do ANWCharacter da esteira de sistemas (docs/esteiras.md): salvar e restaurar o personagem (nw-core).
+// Parte do ANWCharacter da esteira de sistemas (docs/workflow.md): salvar e restaurar o personagem (nw-core).
 #include "NWCharacter.h"
 #include "Misc/App.h"
 #include "NWRules.h"

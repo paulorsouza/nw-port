@@ -10,12 +10,12 @@ class UNWInteractableComponent;
 class UNWInventoryComponent;
 
 /**
- * Refino nas estações da cidade (esteira 4, docs/sistemas.md "Estações de refino"; dados em
+ * Refino nas estações da cidade (esteira 4, docs/game/city.md "Estações de refino"; dados em
  * Data/Crafting/refining.json, tools/make_crafting.py). Receitas do jogo (javelindata_crafting_refining): ingredientes
  * por item ou por categoria, nível mínimo do ofício, tier da estação, taxa em moedas e XP do ofício. Instantâneo: o jogo
  * não tem tempo de refino.
  */
-/** Melhorias do item na mesa do ofício dele (docs/itens.md): sortear o atributo, subir o GS, desvincular. */
+/** Melhorias do item na mesa do ofício dele (docs/game/items.md): sortear o atributo, subir o GS, desvincular. */
 enum class ENWImprove : uint8 { Attribute, GearScore, Unbind, Num };
 
 struct NWPORT_API FNWRecipe
@@ -42,7 +42,7 @@ struct NWPORT_API FNWRecipe
 	/** Chance de item extra: BonusItemChance e o ajuste por tier do reagente de categoria (Increase/Decrease). */
 	float Bonus = 0.f;
 	TArray<float> BonusInc, BonusDec;
-	/** Fabricar arma, escudo ou ferramenta (item com GS, perks e qualidade; docs/oficio.md): tier do item e GS base. */
+	/** Fabricar arma, escudo ou ferramenta (item com GS, perks e qualidade; docs/game/crafting.md): tier do item e GS base. */
 	bool bGear = false;
 	int32 ItemTier = 0;
 	int32 GsBase = 0;
@@ -75,7 +75,7 @@ public:
 	/** Tax: imposto da cidade da mesa (governança), para ir no salvamento da operação. */
 	FString Refine(ANWCharacter* Who, const FString& StationType, FName RecipeId, int32 Count, struct FNWCityTaxNote* Tax = nullptr) const;
 	/**
-	 * Servidor (docs/oficio.md): arma, escudo ou ferramenta, na hora. Abaixo do nível de fabricar é treino (gasta, dá XP,
+	 * Servidor (docs/game/crafting.md): arma, escudo ou ferramenta, na hora. Abaixo do nível de fabricar é treino (gasta, dá XP,
 	 * sem item). Do nível em diante gasta material e taxa e sorteia o item. Com OutItem o item volta para quem chamou (que
 	 * pede o número de série e põe na bolsa); sem OutItem vai direto para a bolsa. Devolve a chave do erro ou vazio.
 	 */

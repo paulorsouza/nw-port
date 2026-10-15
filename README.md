@@ -1,44 +1,66 @@
-# nw-port
+# NW Exiles (nw-port)
 
-Port do New World para Unreal Engine 5.8.3, para o clã jogar num servidor próprio. Os assets saem da instalação
-do New World de cada um: nada do jogo entra neste repositório.
+A fan port of New World to Unreal Engine 5.8, for the community to keep playing and reworking the game after the
+official servers close.
 
-## Começar
+This is an unofficial project, not affiliated with Amazon Games ([NOTICE.md](NOTICE.md)). The repository holds code,
+tools and documentation only. Every game asset is extracted on your machine from your own New World install;
+nothing from the game is in the repository or downloaded from anywhere else.
 
-Windows nativo (em andamento): [plano, builds e validacao](docs/windows-convert.md).
+## What works
 
-| Para | Leia |
-|---|---|
-| montar tudo do zero (ferramentas, extração, Unreal) | [docs/SETUP.md](docs/SETUP.md) |
-| saber o que funciona, o que falta e as armadilhas | [docs/ESTADO.md](docs/ESTADO.md) |
-| o território de Guardaventos (coleta, cenário, criaturas) | [docs/guardaventos.md](docs/guardaventos.md) |
-| servidor, backend e fases | [docs/plano-servidor.md](docs/plano-servidor.md) |
-| combate e mecânicas | [docs/plano-mecanicas.md](docs/plano-mecanicas.md) |
-| pendências de polimento | [docs/pendencias.md](docs/pendencias.md) |
-| todas as ferramentas e scripts (origem, versão, uso) | [docs/FERRAMENTAS.md](docs/FERRAMENTAS.md) |
-| como cada asset sai do jogo (nwbt, áudio, animações) | [docs/ASSETS.md](docs/ASSETS.md) |
-| skills do Claude Code para os scripts | `.claude/skills/` |
+- Windsward: the town, 2 km of region terrain, pre-generated scenery, 100,000 gatherables with tools, loot and
+  respawn, music and ambient sound.
+- Everfall: the town with NPCs, refining and crafting stations using the game's crafting screen, storage, a shop,
+  levels from tutorials.
+- Combat with the game's rules: sword and shield, hatchet, bow, rapier, ice gauntlet; creatures (wolf, boar) driven
+  by the game's behavior trees.
+- Dedicated Linux server, nw-core backend (Rust + Postgres: invite-only accounts, characters, inventory, storage),
+  Docker images.
+- Game screens: Esc menu, options, world map, compass, tooltips, XP and level, attributes, trade skills, mastery.
 
-Resumo do setup, depois das ferramentas instaladas:
+Details and known problems: [docs/status.md](docs/status.md).
+
+## What you need
+
+- New World installed through Steam, at the build in [tools/jogo.versao](tools/jogo.versao).
+- Unreal Engine 5.8.3.
+- Linux (tested on Ubuntu) or Windows (tools build and pass their tests; a full extraction on Windows is not
+  accepted yet). 32 GB of RAM (64 GB recommended), a GPU with 8 GB of VRAM, about 150 GB free.
+
+## Getting started
 
 ```bash
-tools/linux/build_all.sh         # extrai e converte da sua instalação do New World (2 a 4 h)
-tools/linux/ue_import_all.sh     # monta o projeto Unreal (editor fechado, ~1 h 30)
+git clone https://github.com/paulorsouza/nw-port.git
+cd nw-port
+python3 tools/setup_status.py
 ```
 
-## Estrutura
+`setup_status.py` reports what the machine has and which path applies. With [Claude Code](https://claude.com/claude-code),
+ask for "setup": the `nw-setup` skill installs the tools, extracts, imports and opens the editor, and tells you
+what only you can do (accounts, downloads). Without it, follow
+[.claude/skills/nw-setup/](.claude/skills/nw-setup/SKILL.md) by hand: every step is a command. The first full build
+takes 4 to 6 hours, almost all unattended.
 
-Montar do zero com o Claude Code: skill `setup` (`.claude/skills/setup/`).
+## Repository
 
-| Pasta | Conteúdo |
+| Folder | Contents |
 |---|---|
-| `unreal/NWPort` | projeto Unreal (C++ em `Source/`, configuração em `Config/`) |
-| `tools/` | extração e conversão; `tools/ue/` roda dentro da Unreal |
-| `backend/` | nw-core (Rust + Postgres): contas, personagens, inventário |
-| `deploy/` | Docker do servidor dedicado e do backend |
-| `patches/` | diff do nw-buddy; o código fica em `paulorsouza/nw-buddy`, branch `nw-port` |
-| `docs/` | documentação |
-| `bin/` | binários prontos das ferramentas (Linux x86-64): nwbt, libooz, vgmstream-cli, oggenc, texconv |
-| `.claude/skills/` | skills do Claude Code para os scripts |
+| `unreal/NWPort` | Unreal project (C++ in `Source/`, settings in `Config/`) |
+| `tools/` | extraction and conversion pipeline (Python, shared by Linux and Windows); `tools/ue/` runs inside Unreal; `tools/linux/`, `tools/windows/` system scripts |
+| `backend/` | nw-core: accounts, characters, inventory, storage, market |
+| `deploy/` | Docker for the dedicated server and the backend |
+| `patches/` | changes to nwbt (nw-buddy) and ooz, applied by the build scripts |
+| `docs/` | documentation: [docs/README.md](docs/README.md) |
+| `.claude/` | Claude Code skills (tool usage) and the reverse-engineering agent |
 
-Fora do git (gerados ou grandes): `extract/`, `vendor/`, `unreal/NWPort/{Content,Data,Binaries,Intermediate,Saved}`.
+Not tracked: `extract/`, `bin/`, `vendor/`, `re-local/`, `local.env`, `unreal/NWPort/{Content,Data,Binaries,Intermediate,Saved}`.
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md). Game rules and specs live in [docs/game/](docs/game/); open work in
+[docs/backlog.md](docs/backlog.md).
+
+## License
+
+Code and documentation: [MIT](LICENSE). Third-party tools keep their own licenses ([NOTICE.md](NOTICE.md)).

@@ -7,7 +7,7 @@
 class ANWCharacter;
 
 /**
- * Jogadores perto de um ponto sem varrer o mundo (docs/arquitetura-servidor.md, regra 1).
+ * Jogadores perto de um ponto sem varrer o mundo (docs/tech/architecture.md, regra 1).
  *
  * Grade uniforme (células de CellSize) com os personagens que contam como jogador (ANWCharacter::IsPlayerLike: com
  * conexão ou simulado do teste de carga), refeita a cada RebuildSeconds com uma passada só pelos personagens. Quem

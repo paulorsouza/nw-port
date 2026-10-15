@@ -6,7 +6,7 @@ struct FNWItem;
 class ANWNpc;
 
 /**
- * Brindes dos NPCs (docs/sistemas.md, "Brindes dos NPCs"; dados em Data/World/npc_rewards.json, tools/npc_rewards.json).
+ * Brindes dos NPCs (docs/game/city.md, "Brindes dos NPCs"; dados em Data/World/npc_rewards.json, tools/npc_rewards.json).
  * Um grupo por ofício: a cada semana um NPC do grupo, sorteado igual para todos (cidade + ofício + semana), entrega
  * naquela cidade. Itens iniciais uma vez por personagem por ofício; brinde semanal uma vez por semana, cidade e ofício.
  * Chave do que já foi pego (igual no servidor, no cliente e no nw-core): "<kind>:<npc>:<period>".

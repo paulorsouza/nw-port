@@ -429,7 +429,7 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 		{
 			Crafter = PC->Record->Name;
 		}
-		// Mesa evoluída: um pouco de GS e de qualidade mínima por nível (docs/plano-governanca.md).
+		// Mesa evoluída: um pouco de GS e de qualidade mínima por nível (docs/game/economy.md).
 		const float QualMin = FMath::Min(100.f, Rules.QualityMin(Level, Who->Progression->TradeMaxLevel(Skill)) + QualUp);
 		Out = Rules.Roll(R->Out, FMath::Min(Range.X + GsUp, Rules.GsMax), FMath::Min(Range.Y + GsUp, Rules.GsMax), QualMin, Crafter);
 	}
@@ -506,7 +506,7 @@ FNWRecipe::FIngredient FNWCrafting::ImproveCost(const FNWRecipe& R, const FNWIte
 
 FNWCrafting::FGsOdds FNWCrafting::GsOdds(const ANWCharacter* Who, const FNWRecipe& R, const FNWItem& Item, uint8 Mat) const
 {
-	// Tetos de subida e descida (docs/itens.md "Gear score"): quanto mais acima do mínimo da faixa, menor o teto de subir;
+	// Tetos de subida e descida (docs/game/items.md "Gear score"): quanto mais acima do mínimo da faixa, menor o teto de subir;
 	// nunca sai da faixa da fabricação.
 	const FNWItemRules& Rules = FNWItemRules::Get();
 	const TArray<FNWItemRules::FGsStep>& Steps = Rules.ImproveMaterials.IsValidIndex(Mat) && Rules.ImproveMaterials[Mat].Steps.Num()
@@ -666,7 +666,7 @@ void ANWStation::Setup(const FNWCrafting::FStation& Data)
 	};
 }
 
-// Testar gemas (docs/itens.md "Slot"): Joalheria e Cantaria no 200 (vidro rúnico pede 180), as 7 gemas Puras, 2 vidros
+// Testar gemas (docs/game/items.md "Slot"): Joalheria e Cantaria no 200 (vidro rúnico pede 180), as 7 gemas Puras, 2 vidros
 // rúnicos, gema bruta T4 para o custo de retirar, material para lapidar uma T1 e montar um vidro.
 NW_REGISTER_DEV(DevGems, TEXT("sistemas.dev_gems"), TEXT("nw.dev.dev_gems"),
 	[](ANWPlayerController* PC)
@@ -710,7 +710,7 @@ NW_REGISTER_DEV(DevGems, TEXT("sistemas.dev_gems"), TEXT("nw.dev.dev_gems"),
 		C->Inventory->Grant(Gift, 0);
 	});
 
-// Testar armaduras e joias (docs/armaduras.md): Armoraria e Joalheria no 200 (receitas T5 pedem 150) e material refinado
+// Testar armaduras e joias (docs/game/items.md): Armoraria e Joalheria no 200 (receitas T5 pedem 150) e material refinado
 // T2–T5 de placa, couro e tecido, mais os lingotes preciosos das joias (prata, ouro, platina; oricalco é o IngotT5).
 NW_REGISTER_DEV(DevArmor, TEXT("sistemas.dev_armor"), TEXT("nw.dev.dev_armor"),
 	[](ANWPlayerController* PC)

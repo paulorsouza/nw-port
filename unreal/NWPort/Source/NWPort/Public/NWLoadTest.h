@@ -7,7 +7,7 @@
 class ANWCharacter;
 
 /**
- * Teste de carga do servidor (docs/arquitetura-servidor.md, "Teste de carga").
+ * Teste de carga do servidor (docs/tech/architecture.md, "Teste de carga").
  *
  * - Jogadores simulados: `nw.sim <n> [raio_m]` (ou `-nwsim=<n> -nwsimraio=<m>` na linha de comando do servidor) cria n
  *   personagens no servidor, sem conexão, com controle de IA e marcados como jogador (ANWCharacter::bSimPlayer: o spawn

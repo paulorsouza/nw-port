@@ -69,10 +69,10 @@ public:
 	UFUNCTION(Server, Reliable) void ServerRefine(const FString& StationType, FName Recipe, int32 Count);
 	/** Loja (NWShop.h): o servidor confere NPC perto, preço, limite semanal e peso; grava na hora (SavePlayer). */
 	UFUNCTION(Server, Reliable) void ServerShopBuy(const FString& ShopId, FName Item, int32 Quantity);
-	/** Fabricar arma, escudo ou ferramenta (docs/oficio.md; FNWCrafting::Craft): na hora, item na bolsa; treino abaixo do
+	/** Fabricar arma, escudo ou ferramenta (docs/game/crafting.md; FNWCrafting::Craft): na hora, item na bolsa; treino abaixo do
 	 *  nível de fabricar. */
 	UFUNCTION(Server, Reliable) void ServerCraft(const FString& StationType, FName Recipe);
-	/** Melhoria do item da bolsa na mesa do ofício dele, pagando materiais (docs/itens.md): Kind = ENWImprove, Mat =
+	/** Melhoria do item da bolsa na mesa do ofício dele, pagando materiais (docs/game/items.md): Kind = ENWImprove, Mat =
 	 *  material escolhido (FNWCrafting::ImproveMaterials). */
 	UFUNCTION(Server, Reliable) void ServerImprove(const FString& StationType, int32 BagSlot, uint8 Kind, uint8 Mat);
 	/** Resultado da última fabricação (Kind 255) ou melhoria (ENWImprove) para a tela da mesa: o item antes e depois. */
@@ -81,7 +81,7 @@ public:
 	/** Só no dono: Seq sobe a cada resultado (a tela espera um Seq maior que o do clique). */
 	FCraftResult CraftResult;
 
-	// ---- armazém compartilhado (esteira 4, docs/sistemas.md "Armazém"): um por personagem, aberto em qualquer despensa,
+	// ---- armazém compartilhado (esteira 4, docs/game/city.md "Armazém"): um por personagem, aberto em qualquer despensa,
 	// 5 abas; o servidor guarda e grava no nw-core (bolsa + armazém numa transação).
 	/** Aberto ("shared") ou fechado (vazio), os itens (Tab = aba), nomes das abas e capacidade; só o dono recebe. */
 	UPROPERTY(Replicated) FString StorageLocation;

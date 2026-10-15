@@ -4,7 +4,7 @@
 
 /**
  * Lojas do port (esteira 4; Data/World/shops.json, de tools/shops.json). O jogo não tem vendedor com preço em moedas:
- * lista, preço (centavos) e limite semanal por personagem são decisão do dono (docs/sistemas.md "Lojas").
+ * lista, preço (centavos) e limite semanal por personagem são decisão do dono (docs/game/city.md "Lojas").
  * A compra é do servidor (UNWInteractorComponent::ServerShopBuy); o limite renova com os brindes (FNWNpcRewards::Period).
  */
 struct NWPORT_API FNWShopItem

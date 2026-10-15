@@ -318,7 +318,7 @@ void UNWInteractorComponent::ServerRefine_Implementation(const FString& StationT
 		NWOps::CommitState(Me, Reason, [Tax]() { return Tax->Json(); }));
 }
 
-// ---------------------------------------------------------------- fabricar (docs/oficio.md)
+// ---------------------------------------------------------------- fabricar (docs/game/crafting.md)
 
 void UNWInteractorComponent::ServerCraft_Implementation(const FString& StationType, FName Recipe)
 {
@@ -560,7 +560,7 @@ namespace
 
 float UNWInteractorComponent::StorageCapacityNow() const
 {
-	// docs/sistemas.md "Armazém": sem base; cada cidade conhecida soma armazem_por_cidade.
+	// docs/game/city.md "Armazém": sem base; cada cidade conhecida soma armazem_por_cidade.
 	const ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	const int32 Cities = Me && Me->Progression ? Me->Progression->Cities.Num() : 0;
 	return FNWItemRules::Get().StoragePerCity * float(Cities);

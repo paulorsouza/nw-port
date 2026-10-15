@@ -5,7 +5,7 @@
 #include "NWManaComponent.generated.h"
 
 /**
- * Mana do jogador (sub-esteira 1a, docs/armas/manopla-gelo.md §2). Recurso das armas mágicas: manopla de gelo agora,
+ * Mana do jogador (sub-esteira 1a, docs/game/weapons/ice-gauntlet.md §2). Recurso das armas mágicas: manopla de gelo agora,
  * depois cajados e manopla do vazio. Servidor decide; Mana replica para a HUD.
  *
  * ManaComponent do slice do jogador e javelindata_basevitals_player (Player): mín 0, máx 100, inicial 100.

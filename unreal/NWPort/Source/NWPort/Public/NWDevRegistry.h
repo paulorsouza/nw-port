@@ -5,7 +5,7 @@
 class ANWPlayerController;
 
 /**
- * Botões do menu de dev (F10) registrados por cada esteira no próprio arquivo (docs/esteiras.md), sem mexer no
+ * Botões do menu de dev (F10) registrados por cada esteira no próprio arquivo (docs/workflow.md), sem mexer no
  * ENWDevCommand, no ServerDev nem no SNWDevMenu. Server roda no servidor (com as mesmas regras do ServerDev); State,
  * se houver, mostra o estado no botão (no cliente).
  *

@@ -5,7 +5,7 @@ As imagens ficam fora do git (conteúdo do jogo; `.gitignore`), só este índice
 pede os prints ao dono ou tira os seus e acrescenta aqui.
 
 Resolução: os prints 01–16 foram tirados com o jogo em **1920x1080 num monitor ultrawide** (a imagem sai esticada na
-horizontal; para comparar com a captura do port, redimensione para 16:9, `docs/hud/README.md`). Do 17 em diante, o jogo
+horizontal; para comparar com a captura do port, redimensione para 16:9, `docs/game/ui/README.md`). Do 17 em diante, o jogo
 já estava na **resolução ultrawide nativa**. Os arquivos estão em 2000x845.
 
 Para comparar com uma captura do port: `python3 tools/ui_compare.py inspiracao/<print>.webp extract/ui/shots/<captura>.png saida.png`.

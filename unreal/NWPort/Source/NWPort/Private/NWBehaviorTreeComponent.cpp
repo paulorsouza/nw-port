@@ -984,7 +984,7 @@ ANWCharacter* UNWBehaviorTreeComponent::LookForTarget() const
 	{
 		return nullptr;
 	}
-	// Só os jogadores perto (grade), não o mundo inteiro (docs/arquitetura-servidor.md, regra 1).
+	// Só os jogadores perto (grade), não o mundo inteiro (docs/tech/architecture.md, regra 1).
 	Grid->ForEachNear(Self->GetActorLocation(), Dist, [&](ANWCharacter* It)
 	{
 		if (It->Combat->State == ENWCombatState::Dead)

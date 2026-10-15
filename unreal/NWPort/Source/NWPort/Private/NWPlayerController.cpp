@@ -906,7 +906,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		}
 		break;
 	case ENWDevCommand::GiveCraftLevels:
-		// +50 níveis nos ofícios de fabricar (testar fabricar e espectro, docs/oficio.md).
+		// +50 níveis nos ofícios de fabricar (testar fabricar e espectro, docs/game/crafting.md).
 		if (Me && Me->Progression)
 		{
 			for (const TCHAR* Skill : {TEXT("Weaponsmithing"), TEXT("Engineering"), TEXT("Arcana")})
@@ -920,7 +920,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		}
 		break;
 	case ENWDevCommand::GiveCraftMaterials:
-		// Materiais refinados T2–T5 das receitas de fabricar e moedas para a taxa (docs/oficio.md).
+		// Materiais refinados T2–T5 das receitas de fabricar e moedas para a taxa (docs/game/crafting.md).
 		if (Me && Me->Inventory)
 		{
 			TArray<FNWItem> Gift;

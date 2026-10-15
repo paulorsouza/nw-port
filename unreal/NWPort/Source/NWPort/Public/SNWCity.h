@@ -9,7 +9,7 @@ class SBox;
 class SEditableTextBox;
 
 /**
- * Tela da cidade (governança, docs/plano-governanca.md), estilo das telas novas (NWSlate). Dois quadros da cidade:
+ * Tela da cidade (governança, docs/game/economy.md), estilo das telas novas (NWSlate). Dois quadros da cidade:
  * - Quadro do Projeto de Vila (bGovernance falso): vender matéria-prima à cidade, comprar da lista, ver a cidade.
  * - Quadro de Planejamento do Território (bGovernance): resumo da semana, preços e imposto, mesas e buffs, defesa e
  *   governo (comprar ou vender a cidade). Quem não é governador vê o resumo e pode comprar a cidade.
