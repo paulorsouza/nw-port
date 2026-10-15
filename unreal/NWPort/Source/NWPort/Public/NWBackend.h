@@ -97,7 +97,9 @@ public:
 	void RedeemTicket(const FString& Ticket, FRedeemDone Done);
 	/** Salva o estado; Reason vai para o log de itens do nw-core ("periodic", "logout", "craft:<receita>"...). Done recebe
 	 *  o status (204 gravado, 208 já estava gravado). */
-	void SaveState(const FNWCharacterRecord& Record, const FString& Reason = TEXT("save"), TFunction<void(int32 Status)> Done = nullptr);
+	/** Extra: campos a mais no corpo (ex. `city_tax`, imposto de fabricação da cidade, na mesma transação). */
+	void SaveState(const FNWCharacterRecord& Record, const FString& Reason = TEXT("save"), TFunction<void(int32 Status)> Done = nullptr,
+		TSharedPtr<FJsonObject> Extra = nullptr);
 	/** Saco no chão (etapa 2 das gravações): soltar grava a bolsa do Record e o saco numa transação; pegar grava a bolsa e
 	 *  o que sobra no saco (vazio = some; 409 ground_gone = venceu ou já foi pego); a lista traz os sacos vivos. */
 	struct FGroundBag { FString Id; FString Map; FVector Position = FVector::ZeroVector; double ExpiresIn = 0.0; TArray<FNWItem> Items; };
@@ -125,6 +127,19 @@ public:
 	void FillOrder(const FNWCharacterRecord& Record, const FString& OrderId, int32 Quantity, const FNWItem* Delivered, const FString& Reason,
 		TFunction<void(int32 Status, const FString& Code)> Done);
 	void CancelOrder(const FString& CharacterId, const FString& OrderId, TFunction<void(int32 Status)> Done);
+
+	// ---- governança das cidades (backend/src/routes/city.rs). Done: status, código do erro, cidade (corpo).
+	using FCityDone = TFunction<void(int32 Status, const FString& Code, TSharedPtr<FJsonObject> City)>;
+	void GetCity(const FString& Region, const FString& CharacterId, FCityDone Done);
+	/** Vender matéria-prima à cidade (bSellRaw) ou comprar da lista; Record já com a bolsa e as moedas depois. */
+	void CityTrade(const FNWCharacterRecord& Record, const FString& Region, bool bSellRaw, FName Item, int32 Quantity, int64 UnitPrice,
+		const FString& Reason, FCityDone Done);
+	/** Comprar a cidade pelo preço visto; Record já sem as moedas. */
+	void CityBuy(const FNWCharacterRecord& Record, const FString& Region, int64 Price, const FString& Reason, FCityDone Done);
+	/** Lance no leilão da cidade; Record já sem as moedas do lance. */
+	void CityBid(const FNWCharacterRecord& Record, const FString& Region, int64 Amount, const FString& Reason, FCityDone Done);
+	/** Ações do governador sem bolsa: Sub = "" (PUT preços/imposto), "sale", "projects". */
+	void CityAction(const FString& Verb, const FString& Region, const FString& Sub, TSharedRef<FJsonObject> Body, FCityDone Done);
 	/** Créditos de venda pendentes e o instante até onde valem (o resgate leva esse instante). */
 	void PendingCredits(const FString& CharacterId, TFunction<void(bool bOk, int64 Amount, const FString& Until)> Done);
 	void ClaimCredits(const FNWCharacterRecord& Record, const FString& Until, TFunction<void(int32 Status, int64 Amount)> Done);

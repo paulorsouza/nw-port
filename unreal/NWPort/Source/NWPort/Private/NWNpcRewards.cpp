@@ -46,6 +46,12 @@ FNWNpcRewards::FNWNpcRewards()
 		{
 			Ranges(List.Value->AsArray(), Type.WeeklyLists.AddDefaulted_GetRef());
 		}
+		const TArray<TSharedPtr<FJsonValue>>* Coins = nullptr;
+		if (T->TryGetArrayField(TEXT("moedas_semanal"), Coins) && Coins->Num() == 2)
+		{
+			Type.WeeklyCoinsMin = int64((*Coins)[0]->AsNumber());
+			Type.WeeklyCoinsMax = int64((*Coins)[1]->AsNumber());
+		}
 	}
 }
 
@@ -113,12 +119,16 @@ void FNWNpcRewards::Starter(const FString& Type, TArray<FNWItem>& Out) const
 	}
 }
 
-void FNWNpcRewards::Weekly(const FString& Type, TArray<FNWItem>& Out) const
+void FNWNpcRewards::Weekly(const FString& Type, TArray<FNWItem>& Out, int64* OutCoins) const
 {
 	const FType* T = Types.Find(Type);
 	if (!T)
 	{
 		return;
+	}
+	if (OutCoins && T->WeeklyCoinsMax > 0)
+	{
+		*OutCoins = FMath::RandRange(T->WeeklyCoinsMin, T->WeeklyCoinsMax);
 	}
 	for (const TArray<FRange>& List : T->WeeklyLists)
 	{

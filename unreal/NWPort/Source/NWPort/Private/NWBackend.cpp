@@ -404,7 +404,7 @@ void UNWBackend::PumpWrites(const FString& CharacterId)
 	});
 }
 
-void UNWBackend::SaveState(const FNWCharacterRecord& Record, const FString& Reason, TFunction<void(int32)> Done)
+void UNWBackend::SaveState(const FNWCharacterRecord& Record, const FString& Reason, TFunction<void(int32)> Done, TSharedPtr<FJsonObject> Extra)
 {
 	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
 	if (!Body)
@@ -414,6 +414,13 @@ void UNWBackend::SaveState(const FNWCharacterRecord& Record, const FString& Reas
 			Done(0);
 		}
 		return;
+	}
+	if (Extra)
+	{
+		for (const auto& F : Extra->Values)
+		{
+			Body->SetField(F.Key, F.Value);
+		}
 	}
 	// Só os espaços que mudaram desde a última gravação (docs/arquitetura-servidor.md, "Banco"): nada mudou, a bolsa não
 	// vai. Cada espaço leva o valor final, então uma diferença calculada antes de outra gravação terminar continua certa.
@@ -894,6 +901,87 @@ void UNWBackend::CancelOrder(const FString& CharacterId, const FString& OrderId,
 	Body->SetStringField(TEXT("character_id"), CharacterId);
 	Request(TEXT("POST"), FString::Printf(TEXT("/internal/market/orders/%s/cancel"), *OrderId), WriteJson(Body), true,
 		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject>) { Done(Status); });
+}
+
+void UNWBackend::GetCity(const FString& Region, const FString& CharacterId, FCityDone Done)
+{
+	const FString Query = CharacterId.IsEmpty() ? FString() : TEXT("?character_id=") + CharacterId;
+	Request(TEXT("GET"), FString::Printf(TEXT("/internal/regions/%s/city%s"), *Region, *Query), FString(), true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json) { Done(Status, ErrorCode(Json), Json); });
+}
+
+void UNWBackend::CityTrade(const FNWCharacterRecord& Record, const FString& Region, bool bSellRaw, FName Item, int32 Quantity, int64 UnitPrice,
+	const FString& Reason, FCityDone Done)
+{
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		Done(0, FString(), nullptr);
+		return;
+	}
+	Body->SetStringField(TEXT("character_id"), Record.Id);
+	Body->SetStringField(TEXT("item_id"), Item.ToString());
+	Body->SetNumberField(TEXT("quantity"), Quantity);
+	Body->SetNumberField(TEXT("unit_price"), double(UnitPrice));
+	Write(Record.Id, TEXT("POST"), FString::Printf(TEXT("/internal/regions/%s/city/%s"), *Region, bSellRaw ? TEXT("sell-raw") : TEXT("buy-item")),
+		Body.ToSharedRef(), Reason,
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Record, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			if ((Status == 200 || Status == 208) && Weak.IsValid())
+			{
+				Weak->RememberBag(Record);
+			}
+			Done(Status, ErrorCode(Json), Json);
+		});
+}
+
+void UNWBackend::CityBuy(const FNWCharacterRecord& Record, const FString& Region, int64 Price, const FString& Reason, FCityDone Done)
+{
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		Done(0, FString(), nullptr);
+		return;
+	}
+	Body->SetStringField(TEXT("character_id"), Record.Id);
+	Body->SetNumberField(TEXT("price"), double(Price));
+	Write(Record.Id, TEXT("POST"), FString::Printf(TEXT("/internal/regions/%s/city/buy"), *Region), Body.ToSharedRef(), Reason,
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Record, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			if ((Status == 200 || Status == 208) && Weak.IsValid())
+			{
+				Weak->RememberBag(Record);
+			}
+			Done(Status, ErrorCode(Json), Json);
+		});
+}
+
+void UNWBackend::CityBid(const FNWCharacterRecord& Record, const FString& Region, int64 Amount, const FString& Reason, FCityDone Done)
+{
+	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
+	if (!Body)
+	{
+		Done(0, FString(), nullptr);
+		return;
+	}
+	Body->SetStringField(TEXT("character_id"), Record.Id);
+	Body->SetNumberField(TEXT("amount"), double(Amount));
+	Write(Record.Id, TEXT("POST"), FString::Printf(TEXT("/internal/regions/%s/city/bid"), *Region), Body.ToSharedRef(), Reason,
+		[Weak = TWeakObjectPtr<UNWBackend>(this), Record, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+		{
+			if ((Status == 200 || Status == 208) && Weak.IsValid())
+			{
+				Weak->RememberBag(Record);
+			}
+			Done(Status, ErrorCode(Json), Json);
+		});
+}
+
+void UNWBackend::CityAction(const FString& Verb, const FString& Region, const FString& Sub, TSharedRef<FJsonObject> Body, FCityDone Done)
+{
+	const FString Path = FString::Printf(TEXT("/internal/regions/%s/city"), *Region) + (Sub.IsEmpty() ? FString() : TEXT("/") + Sub);
+	Request(Verb, Path, WriteJson(Body), true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json) { Done(Status, ErrorCode(Json), Json); });
 }
 
 void UNWBackend::PendingCredits(const FString& CharacterId, TFunction<void(bool, int64, const FString&)> Done)

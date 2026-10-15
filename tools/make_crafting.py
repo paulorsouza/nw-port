@@ -100,6 +100,14 @@ def stations():
                     out.append({"type": "tradingpost", "skill": "", "tier": 0,
                                 "pos": [round(-tm[9] * 100, 1), round(tm[10] * 100, 1), round(tm[11] * 100, 1)],
                                 "yaw": round(180 - yaw, 1), "slice": os.path.basename(hint)})
+                # Quadros da cidade (governança, docs/plano-governanca.md): projeto de vila = balcão da cidade
+                # (vender matéria-prima, comprar a lista); planejamento do território = painel do governador.
+                for board, kind in (("town_project_board", "cityboard"), ("territory_planning_board", "governance")):
+                    if tm and board in hint.lower():
+                        yaw = math.degrees(math.atan2(tm[1], tm[0]))
+                        out.append({"type": kind, "skill": "", "tier": 0,
+                                    "pos": [round(-tm[9] * 100, 1), round(tm[10] * 100, 1), round(tm[11] * 100, 1)],
+                                    "yaw": round(180 - yaw, 1), "slice": os.path.basename(hint)})
                 if tm and "settlement_storage" in hint.lower():
                     yaw = math.degrees(math.atan2(tm[1], tm[0]))
                     out.append({"type": "storage", "skill": "", "tier": 0,
@@ -227,7 +235,9 @@ def main():
     for s in st:
         # Despensa: ui_global_storage ("Despensa" / "Storage Shed").
         # Posto de trocas: ui_tradingpost ("Entreposto Comercial" / "Trading Post").
-        key = {"storage": "ui_global_storage", "tradingpost": "ui_tradingpost"}.get(s["type"]) or f"{s['type'].capitalize()}T{s['tier']}_MasterName".lower()
+        key = {"storage": "ui_global_storage", "tradingpost": "ui_tradingpost",
+               "cityboard": "ui_territory_board_town_project",
+               "governance": "ui_territory_planning_board"}.get(s["type"]) or f"{s['type'].capitalize()}T{s['tier']}_MasterName".lower()
         s["name"] = {lang: loc.get(key, s["type"]) for lang, loc in locs.items()}
     out = {"stations": st, "recipes": recipes,
            "categories": {c: sorted(categories.get(c, [])) for c in sorted(used_cats)}}
@@ -239,6 +249,10 @@ def main():
     world = os.path.join(ROOT, "unreal/NWPort/Data/World")
     os.makedirs(world, exist_ok=True)
     json.dump(shops, open(os.path.join(world, "shops.json"), "w"), ensure_ascii=False, indent=1)
+    # Governança das cidades: regras, faixas de preço e preços de referência (o nw-core lê os mesmos arquivos).
+    for name in ("governanca.json", "precos_cidade.json", "precos_referencia.json"):
+        data = json.load(open(os.path.join(ROOT, "tools", name)))
+        json.dump(data, open(os.path.join(world, name), "w"), ensure_ascii=False, indent=1)
     by_skill = {}
     for r in recipes:
         by_skill[r["skill"]] = by_skill.get(r["skill"], 0) + 1

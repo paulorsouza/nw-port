@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Dom/JsonObject.h"
 #include "NWItems.h"
 
 class ANWCharacter;
@@ -40,6 +41,8 @@ namespace NWOps
 	NWPORT_API void Run(ANWCharacter* Who, const FString& Reason, TFunction<bool()> Apply, FCommit Commit, TFunction<void(bool)> Done = nullptr);
 	/** Grava estado inteiro (PUT state; bolsa, moedas e progressão). */
 	NWPORT_API FCommit CommitState(ANWCharacter* Who, const FString& Reason);
+	/** Igual, com campos a mais no corpo lidos na hora de gravar (o Apply já rodou): ex. o imposto da cidade. */
+	NWPORT_API FCommit CommitState(ANWCharacter* Who, const FString& Reason, TFunction<TSharedPtr<FJsonObject>()> Extra);
 
 	/** Com nw-core (as operações gravam); sem, valem na hora. */
 	NWPORT_API bool Persists(const ANWCharacter* Who);

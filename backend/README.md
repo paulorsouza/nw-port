@@ -60,8 +60,9 @@ Servidor de jogo (`X-NW-Server-Secret`):
 | POST | `/internal/characters/{id}/npc-rewards` | `npc`, `kind` (`starter`/`weekly`), `period` (`once`/`AAAA-MM-DD`), `inventory`, `coins` | 201; 409 `already_claimed` |
 | GET | `/internal/regions/{região}/city` | `character_id` (opcional: limites já usados na semana) | cidade: dono, balancete, preços (`buy`/`sell` com faixa, limite e uso), imposto, mesas, estoque, buffs, armas, ataques, semana |
 | PUT | `/internal/regions/{região}/city` | `character_id` (governador), `buy_prices`, `sell_prices` (item → centavos), `tax` | cidade; 400 `price_out_of_range`/`tax_out_of_range`; 409 `not_governor` |
-| POST | `/internal/regions/{região}/city/buy` | `character_id`, `price` (o que viu), `inventory`, `coins` | cidade; 409 `price_changed`/`city_not_for_sale` |
-| POST | `/internal/regions/{região}/city/sale` | `character_id` (governador), `price` (nulo tira da venda) | cidade; 409 `city_grace`/`forced_sale` |
+| POST | `/internal/regions/{região}/city/buy` | `character_id`, `price` (o que viu), `inventory`, `coins` | cidade sem dono pelo preço fixo; 409 `price_changed`/`city_not_for_sale` |
+| POST | `/internal/regions/{região}/city/sale` | `character_id` (governador), `price` (lance inicial; nulo cancela) | abre ou cancela o leilão de 24 h; 409 `city_grace`/`forced_sale`/`auction_running`/`auction_has_bids` |
+| POST | `/internal/regions/{região}/city/bid` | `character_id`, `amount`, `inventory`, `coins` (já sem o lance) | cidade; 409 `no_auction`/`bid_too_low`/`own_city` |
 | POST | `/internal/regions/{região}/city/sell-raw` | `character_id`, `item_id`, `quantity`, `unit_price`, `inventory`, `coins` | cidade; 409 `price_changed`/`city_limit`/`city_no_funds` |
 | POST | `/internal/regions/{região}/city/buy-item` | idem (item da lista) | cidade; 409 `price_changed`/`city_limit` |
 | POST | `/internal/regions/{região}/city/projects` | `character_id` (governador), `kind` (`station`/`buff`/`weapon`), `station`, `buff` | cidade; 409 `city_no_stock`/`city_no_funds`/`buff_active`/`station_max` |
@@ -92,8 +93,9 @@ do personagem como ficam depois dela (`inventory`, `coins`), gravadas na mesma t
 - Cidades (migration 0013, `docs/plano-governanca.md`): uma por região, regras em `tools/governanca.json` e faixas
   de preço em `tools/precos_cidade.json` (lidos no build). A cidade compra matéria-prima (sai do balancete) e vende
   a lista (entra no balancete); o governador recebe no máximo o padrão vendendo à própria cidade. Imposto de
-  fabricação vem no `state` (`city_tax`: `region`, `station`, `amount`). Prêmio do governador e venda da cidade viram
-  `coin_credits` (`city_prize`, `city_sold`).
+  fabricação vem no `state` (`city_tax`: `region`, `station`, `amount`). Prêmio do governador, venda da cidade e lance coberto
+  viram `coin_credits` (`city_prize`, `city_sold`, `city_bid_refund`). Venda da cidade com dono é leilão de 24 h
+  (migration 0014): do governador (lance inicial dele, taxa de 10%) ou obrigatório no tenebroso (preço inicial).
 
 Estado do personagem: `map`, `position` (`x`, `y`, `z` em cm do Unreal, ou null), `yaw`, `health`,
 `active_weapon`, `loadout` e `mastery` (JSON livre, por arma).

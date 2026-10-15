@@ -1,5 +1,6 @@
 #include "NWHUD.h"
 #include "NWShop.h"
+#include "SNWCity.h"
 #include "SNWMarket.h"
 #include "NWProgressionComponent.h"
 #include "NWCreature.h"
@@ -1596,6 +1597,17 @@ void ANWHUD::OpenMarket(ANWCharacter* Who, ANWStation* Station)
 	}
 	// Entreposto: tela própria em Slate (SNWMarket); Esc e CloseMenus fecham como o menu F10.
 	TSharedRef<SNWMarket> Menu = SNew(SNWMarket).Character(Who).Title(Station->Interact->DisplayName.ToString());
+	PC->ShowMenu(Menu, Menu);
+}
+
+void ANWHUD::OpenCity(ANWCharacter* Who, ANWStation* Station, bool bGovernance)
+{
+	ANWPlayerController* PC = Cast<ANWPlayerController>(GetOwningPlayerController());
+	if (!PC || !Who || !Station || !Who->Interactor)
+	{
+		return;
+	}
+	TSharedRef<SNWCity> Menu = SNew(SNWCity).Character(Who).Title(Station->Interact->DisplayName.ToString()).bGovernance(bGovernance);
 	PC->ShowMenu(Menu, Menu);
 }
 

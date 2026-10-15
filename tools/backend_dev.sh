@@ -46,7 +46,7 @@ case "${1:-up}" in
         if ! up; then
             (cd "$ROOT/backend" && docker compose up -d >/dev/null)
             # Compilar é trabalho pesado (fila); só quando o fonte mudou.
-            if [ ! -x "$BIN" ] || [ -n "$(find "$ROOT/backend/src" "$ROOT/backend/migrations" "$ROOT/backend/Cargo.toml" -newer "$BIN" -print -quit)" ]; then
+            if [ ! -x "$BIN" ] || [ -n "$(find "$ROOT/backend/src" "$ROOT/backend/migrations" "$ROOT/backend/Cargo.toml" "$ROOT/tools/governanca.json" "$ROOT/tools/precos_cidade.json" -newer "$BIN" -print -quit)" ]; then
                 "$ROOT/tools/pesado.sh" bash -c "cd '$ROOT/backend' && cargo build -q"
             fi
             NW_BIND=127.0.0.1:8090 setsid nohup "$BIN" serve >"$LOG" 2>&1 < /dev/null &

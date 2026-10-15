@@ -215,3 +215,28 @@ se algo estiver errado.
 104. Criar 50 pedidos: o botão de vender apaga no 50º.
 105. `tools/item_log.py --personagem Exilado`: `market_post_sell`, `market_buy` e `market_credit` com o item e as
      moedas de cada ação.
+
+Governança das cidades (docs/plano-governanca.md):
+
+106. Queda Eterna: [E] no Quadro do Projeto de Vila abre a tela com Vender à Cidade, Comprar e Cidade; no Quadro de
+     Planejamento do Território, sem governador, Resumo e Governo com o preço da cidade.
+107. Vender à Cidade: escolher minério de ferro, quantidade, Vender: o minério sai da bolsa, as moedas entram na hora
+     e o limite da semana sobe; o spinner some quando o nw-core grava. Pedir mais que o limite (5 mil): recusa.
+108. Comprar: poção ou fundente pela lista; as moedas caem e o item entra na bolsa.
+109. Governo > Comprar a Cidade (com moedas suficientes, F10 dá moedas): passa a governador; o Quadro de Planejamento
+     mostra Resumo, Preços, Mesas, Defesa e Governo.
+110. Preços: mudar o preço do minério de ferro e o imposto, Salvar; no Quadro do Projeto de Vila o preço novo aparece.
+     Preço fora da faixa fica vermelho e não salva.
+111. Mesas: com material no estoque (vendido à cidade), Evoluir a fundição: nível 1. Buff +10% XP de ofício na
+     fundição: aparece em Cidade; refinar na fundição dá mais XP.
+112. Fabricar numa mesa com nível: GS e qualidade mínima um pouco maiores; as moedas caem o custo + o imposto da
+     cidade, e o balancete sobe o imposto.
+113. Defesa: Comprar Arma soma uma arma e desconta do balancete.
+114. `tools/item_log.py --personagem Exilado`: `city_sell:*`, `city_buy:*`, `city_buy_city` com itens e moedas.
+115. Brinde semanal de um NPC: além do material, 200 a 400 moedas.
+116. Governo, como governador depois da carência (ou com `owner_since` antigo no banco): lance inicial e Pôr em
+     Leilão: aparece "Leilão", termina em 24 h; sem lance, Cancelar Leilão.
+117. Com outra conta (`tools/net_test.sh`): Dar Lance no mínimo: as moedas caem; outra conta cobre: o primeiro recebe
+     o lance de volta (crédito ao abrir o quadro). No fim (ou `POST /internal/cities/advance` com `now` 25 h depois),
+     o maior lance vira governador e o antigo recebe o lance menos 10%.
+

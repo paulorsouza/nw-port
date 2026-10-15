@@ -44,6 +44,13 @@ pub(crate) struct Rules {
     pub arma_custo: i64,
     pub ataque: Attack,
     pub premio: Prize,
+    pub leilao: AuctionRule,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct AuctionRule {
+    pub horas: i64,
+    pub incremento_minimo: f64,
 }
 
 #[derive(Deserialize)]
@@ -113,6 +120,9 @@ pub(crate) struct PriceRange {
     pub min: i64,
     pub max: i64,
     pub padrao: i64,
+    /// Limite semanal por personagem só deste item (sem ele vale `limite_semanal` das regras).
+    #[serde(default, skip_serializing)]
+    pub limite: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -156,8 +166,6 @@ struct CityRow {
     owner_id: Option<Uuid>,
     owner_since: Option<OffsetDateTime>,
     paid: i64,
-    for_sale: Option<i64>,
-    forced_sale: bool,
     treasury: i64,
     tax: f32,
     buy_prices: Value,
@@ -166,6 +174,11 @@ struct CityRow {
     next_attack_at: Option<OffsetDateTime>,
     last_attack: Option<Value>,
     week: String,
+    auction_start: Option<i64>,
+    auction_ends_at: Option<OffsetDateTime>,
+    auction_forced: bool,
+    auction_bid: Option<i64>,
+    auction_bidder: Option<Uuid>,
 }
 
 #[derive(sqlx::FromRow, Debug, Clone, Serialize)]
@@ -286,8 +299,8 @@ pub struct CityView {
     pub price: i64,
     /// Quanto o dono atual pagou.
     pub paid: i64,
-    pub for_sale: Option<i64>,
-    pub forced_sale: bool,
+    /// Leilão em andamento (venda da cidade).
+    pub auction: Option<AuctionView>,
     pub treasury: i64,
     pub tax: f32,
     pub tax_min: f64,
@@ -303,6 +316,27 @@ pub struct CityView {
     pub last_attack: Option<Value>,
     pub week: String,
     pub this_week: Value,
+}
+
+#[derive(Serialize)]
+pub struct AuctionView {
+    pub start: i64,
+    #[serde(with = "time::serde::rfc3339")]
+    pub ends_at: OffsetDateTime,
+    pub forced: bool,
+    pub bid: Option<i64>,
+    pub bidder_name: Option<String>,
+    /// Menor lance aceito agora.
+    pub min_bid: i64,
+    /// Quem consulta é o maior lance.
+    pub mine: bool,
+}
+
+fn min_bid(c: &CityRow) -> i64 {
+    match c.auction_bid {
+        Some(b) => b + ((b as f64 * RULES.leilao.incremento_minimo).ceil() as i64).max(1),
+        None => c.auction_start.unwrap_or(0),
+    }
 }
 
 #[derive(Deserialize)]
@@ -363,8 +397,21 @@ async fn view(tx: &mut sqlx::PgConnection, region: &str, who: Option<Uuid>) -> A
         owner_since: c.owner_since,
         price: RULES.preco_cidade,
         paid: c.paid,
-        for_sale: c.for_sale,
-        forced_sale: c.forced_sale,
+        auction: match (c.auction_start, c.auction_ends_at) {
+            (Some(start), Some(ends_at)) => Some(AuctionView {
+                start,
+                ends_at,
+                forced: c.auction_forced,
+                bid: c.auction_bid,
+                bidder_name: match c.auction_bidder {
+                    Some(id) => sqlx::query_scalar("select name from characters where id = $1").bind(id).fetch_optional(&mut *tx).await?,
+                    None => None,
+                },
+                min_bid: min_bid(&c),
+                mine: who.is_some() && c.auction_bidder == who,
+            }),
+            _ => None,
+        },
         treasury: c.treasury,
         tax: c.tax,
         tax_min: RULES.imposto.min,
@@ -374,14 +421,14 @@ async fn view(tx: &mut sqlx::PgConnection, region: &str, who: Option<Uuid>) -> A
             price: price_of(&c.buy_prices, i, r),
             range: *r,
             used: used.get(i).map(|u| u.0).unwrap_or(0),
-            limit: lim.compra_por_materia_prima,
+            limit: r.limite.unwrap_or(lim.compra_por_materia_prima),
         }).collect(),
         sell: PRICES.venda.iter().map(|(i, r)| PriceView {
             item_id: i.clone(),
             price: price_of(&c.sell_prices, i, r),
             range: *r,
             used: used.get(i).map(|u| u.1).unwrap_or(0),
-            limit: lim.venda_por_item,
+            limit: r.limite.unwrap_or(lim.venda_por_item),
         }).collect(),
         stations,
         stock: stock.into_iter().collect(),
@@ -444,7 +491,7 @@ pub async fn sell_raw(State(state): State<AppState>, _server: GameServer, Path(r
         return Err(ApiError::conflict("price_changed", "O preço mudou."));
     }
     let used = limit_add(&mut tx, &region, &c.week, t.character_id, &t.item_id, t.quantity, 0).await?;
-    if used > RULES.limite_semanal.compra_por_materia_prima {
+    if used > range.limite.unwrap_or(RULES.limite_semanal.compra_por_materia_prima) {
         return Err(ApiError::conflict("city_limit", "Limite da semana para este item."));
     }
     let total = price * t.quantity;
@@ -477,7 +524,7 @@ pub async fn buy_item(State(state): State<AppState>, _server: GameServer, Path(r
         return Err(ApiError::conflict("price_changed", "O preço mudou."));
     }
     let used = limit_add(&mut tx, &region, &c.week, t.character_id, &t.item_id, 0, t.quantity).await?;
-    if used > RULES.limite_semanal.venda_por_item {
+    if used > range.limite.unwrap_or(RULES.limite_semanal.venda_por_item) {
         return Err(ApiError::conflict("city_limit", "Limite da semana para este item."));
     }
     let total = price * t.quantity;
@@ -588,73 +635,181 @@ pub async fn buy_city(State(state): State<AppState>, _server: GameServer, Path(r
     let now = OffsetDateTime::now_utc();
     advance_city(&mut tx, &region, now).await?;
     let c = lock_city(&mut tx, &region).await?;
-    let asked = match (c.owner_id, c.for_sale) {
-        (None, _) => RULES.preco_cidade,
-        (Some(owner), Some(p)) if owner != b.character_id => p,
-        _ => return Err(ApiError::conflict("city_not_for_sale", "A cidade não está à venda.")),
-    };
+    // Cidade sem dono: preço fixo, o valor some. Com dono, só por leilão (`bid`).
+    if c.owner_id.is_some() {
+        return Err(ApiError::conflict("city_not_for_sale", "A cidade tem governador; a venda é por leilão."));
+    }
+    let asked = RULES.preco_cidade;
     if asked != b.price {
         return Err(ApiError::conflict("price_changed", "O preço mudou."));
     }
     let ctx = b.snapshot.apply(&mut tx, b.character_id).await?;
-    if let Some(seller) = c.owner_id {
-        // Venda obrigatória: o governador que sai recebe o preço inteiro; revenda normal paga a taxa.
-        let net = if c.forced_sale { asked } else { asked - (asked as f64 * RULES.taxa_revenda).round() as i64 };
-        credit(&mut tx, seller, net, "city_sold", None).await?;
-    }
-    sqlx::query(
-        "update cities set owner_id = $2, owner_since = $3, paid = $4, for_sale = null, forced_sale = false, next_attack_at = $5
-          where region = $1",
-    )
-    .bind(&region)
-    .bind(b.character_id)
-    .bind(now)
-    .bind(asked)
-    .bind(now + Duration::days(RULES.ataque.primeiro_apos_dias))
-    .execute(&mut *tx)
-    .await?;
-    sqlx::query("update city_weeks set owner_id = $3 where region = $1 and week = $2")
-        .bind(&region)
-        .bind(&c.week)
-        .bind(b.character_id)
-        .execute(&mut *tx)
-        .await?;
+    set_owner(&mut tx, &c, b.character_id, asked, now).await?;
     journal::log(&mut tx, &ctx, &format!("city:{region}"), None, 0, 0, 0, &json!({"bought_city": asked})).await?;
-    clog(&mut tx, &region, "owner", Some(b.character_id), None, 0, asked, json!({"from": c.owner_id, "forced": c.forced_sale})).await?;
+    clog(&mut tx, &region, "owner", Some(b.character_id), None, 0, asked, json!({"from": null, "auction": false})).await?;
     let v = view(&mut tx, &region, Some(b.character_id)).await?;
     tx.commit().await?;
     Ok(Json(v))
 }
 
+/// Troca de dono (compra sem dono ou fim de leilão): ataques recomeçam a contar, a semana passa a ser dele.
+async fn set_owner(tx: &mut sqlx::PgConnection, c: &CityRow, owner: Uuid, paid: i64, now: OffsetDateTime) -> ApiResult<()> {
+    sqlx::query(
+        "update cities set owner_id = $2, owner_since = $3, paid = $4, next_attack_at = $5,
+                auction_start = null, auction_ends_at = null, auction_forced = false, auction_bid = null, auction_bidder = null
+          where region = $1",
+    )
+    .bind(&c.region)
+    .bind(owner)
+    .bind(now)
+    .bind(paid)
+    .bind(now + Duration::days(RULES.ataque.primeiro_apos_dias))
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query("update city_weeks set owner_id = $3 where region = $1 and week = $2")
+        .bind(&c.region)
+        .bind(&c.week)
+        .bind(owner)
+        .execute(&mut *tx)
+        .await?;
+    Ok(())
+}
+
 #[derive(Deserialize)]
 pub struct Sale {
     pub character_id: Uuid,
-    /// Preço pedido; nulo tira da venda.
+    /// Lance inicial do leilão; nulo cancela (só sem lance e fora da venda obrigatória).
     pub price: Option<i64>,
 }
 
+/// O governador põe a cidade em leilão de 24 h com o lance inicial que quiser (depois da carência).
 pub async fn sale(State(state): State<AppState>, _server: GameServer, Path(region): Path<String>, Json(s): Json<Sale>) -> ApiResult<Json<CityView>> {
     let mut tx = state.db.begin().await?;
     let now = OffsetDateTime::now_utc();
     advance_city(&mut tx, &region, now).await?;
     let c = lock_city(&mut tx, &region).await?;
     require_owner(&c, s.character_id)?;
-    if c.forced_sale {
-        return Err(ApiError::conflict("forced_sale", "A cidade está em venda obrigatória."));
+    if c.auction_forced {
+        return Err(ApiError::conflict("forced_sale", "A cidade está em leilão obrigatório."));
     }
-    if let Some(p) = s.price {
-        if p <= 0 {
-            return Err(ApiError::bad_request("invalid_price", "Preço inválido."));
+    match s.price {
+        Some(p) => {
+            if p <= 0 {
+                return Err(ApiError::bad_request("invalid_price", "Preço inválido."));
+            }
+            if c.auction_start.is_some() {
+                return Err(ApiError::conflict("auction_running", "Já há um leilão."));
+            }
+            if c.owner_since.is_some_and(|t| now - t < Duration::days(RULES.carencia_dias)) {
+                return Err(ApiError::conflict("city_grace", "Ainda na carência depois da compra."));
+            }
+            start_auction(&mut tx, &region, p, false, now).await?;
         }
-        if c.owner_since.is_some_and(|t| now - t < Duration::days(RULES.carencia_dias)) {
-            return Err(ApiError::conflict("city_grace", "Ainda na carência depois da compra."));
+        None => {
+            if c.auction_bid.is_some() {
+                return Err(ApiError::conflict("auction_has_bids", "O leilão já tem lance."));
+            }
+            sqlx::query("update cities set auction_start = null, auction_ends_at = null where region = $1").bind(&region).execute(&mut *tx).await?;
         }
     }
-    sqlx::query("update cities set for_sale = $2 where region = $1").bind(&region).bind(s.price).execute(&mut *tx).await?;
     clog(&mut tx, &region, "sale", Some(s.character_id), None, 0, s.price.unwrap_or(0), json!({})).await?;
     let v = view(&mut tx, &region, Some(s.character_id)).await?;
     tx.commit().await?;
     Ok(Json(v))
+}
+
+async fn start_auction(tx: &mut sqlx::PgConnection, region: &str, start: i64, forced: bool, now: OffsetDateTime) -> ApiResult<()> {
+    sqlx::query(
+        "update cities set auction_start = $2, auction_ends_at = $3, auction_forced = $4, auction_bid = null, auction_bidder = null
+          where region = $1",
+    )
+    .bind(region)
+    .bind(start)
+    .bind(now + Duration::hours(RULES.leilao.horas))
+    .bind(forced)
+    .execute(&mut *tx)
+    .await?;
+    clog(tx, region, "auction", None, None, 0, start, json!({"forced": forced})).await?;
+    Ok(())
+}
+
+#[derive(Deserialize)]
+pub struct Bid {
+    pub character_id: Uuid,
+    pub amount: i64,
+    /// Bolsa e moedas já sem o lance (fica guardado até alguém cobrir ou o leilão acabar).
+    #[serde(flatten)]
+    pub snapshot: Snapshot,
+}
+
+pub async fn bid(State(state): State<AppState>, _server: GameServer, Path(region): Path<String>, Json(b): Json<Bid>) -> ApiResult<Json<CityView>> {
+    b.snapshot.validate()?;
+    let mut tx = state.db.begin().await?;
+    let now = OffsetDateTime::now_utc();
+    advance_city(&mut tx, &region, now).await?;
+    let c = lock_city(&mut tx, &region).await?;
+    if c.auction_start.is_none() {
+        return Err(ApiError::conflict("no_auction", "A cidade não está em leilão."));
+    }
+    if c.owner_id == Some(b.character_id) {
+        return Err(ApiError::conflict("own_city", "O governador não dá lance na própria cidade."));
+    }
+    if b.amount < min_bid(&c) {
+        return Err(ApiError::conflict("bid_too_low", "Lance abaixo do mínimo."));
+    }
+    let ctx = b.snapshot.apply(&mut tx, b.character_id).await?;
+    // O lance coberto volta em crédito para quem deu.
+    if let (Some(prev), Some(who)) = (c.auction_bid, c.auction_bidder) {
+        credit(&mut tx, who, prev, "city_bid_refund", None).await?;
+    }
+    sqlx::query("update cities set auction_bid = $2, auction_bidder = $3 where region = $1")
+        .bind(&region)
+        .bind(b.amount)
+        .bind(b.character_id)
+        .execute(&mut *tx)
+        .await?;
+    journal::log(&mut tx, &ctx, &format!("city:{region}"), None, 0, 0, 0, &json!({"bid": b.amount})).await?;
+    clog(&mut tx, &region, "bid", Some(b.character_id), None, 0, b.amount, json!({})).await?;
+    let v = view(&mut tx, &region, Some(b.character_id)).await?;
+    tx.commit().await?;
+    Ok(Json(v))
+}
+
+/// Fim do leilão: o maior lance leva (o governador que sai recebe o lance, menos a taxa se a venda foi dele). Sem
+/// lance: venda do dono acaba sem mudança; venda obrigatória deixa a cidade sem governador.
+async fn settle(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDateTime) -> ApiResult<()> {
+    let c: CityRow = sqlx::query_as("select * from cities where region = $1 for update").bind(region).fetch_one(&mut *tx).await?;
+    let Some(ends) = c.auction_ends_at else {
+        return Ok(());
+    };
+    if ends > now {
+        return Ok(());
+    }
+    match (c.auction_bid, c.auction_bidder) {
+        (Some(amount), Some(winner)) => {
+            if let Some(seller) = c.owner_id {
+                let net = if c.auction_forced { amount } else { amount - (amount as f64 * RULES.taxa_revenda).round() as i64 };
+                credit(tx, seller, net, "city_sold", None).await?;
+            }
+            set_owner(tx, &c, winner, amount, ends).await?;
+            clog(tx, region, "owner", Some(winner), None, 0, amount, json!({"from": c.owner_id, "auction": true, "forced": c.auction_forced})).await?;
+        }
+        _ if c.auction_forced => {
+            sqlx::query(
+                "update cities set owner_id = null, owner_since = null, next_attack_at = null,
+                        auction_start = null, auction_ends_at = null, auction_forced = false where region = $1",
+            )
+            .bind(region)
+            .execute(&mut *tx)
+            .await?;
+            clog(tx, region, "owner", None, None, 0, 0, json!({"from": c.owner_id, "auction": true, "forced": true, "no_bids": true})).await?;
+        }
+        _ => {
+            sqlx::query("update cities set auction_start = null, auction_ends_at = null where region = $1").bind(region).execute(&mut *tx).await?;
+            clog(tx, region, "auction_end", c.owner_id, None, 0, 0, json!({"no_bids": true})).await?;
+        }
+    }
+    Ok(())
 }
 
 #[derive(Deserialize)]
@@ -837,6 +992,7 @@ pub async fn advance_all(db: &sqlx::PgPool, now: OffsetDateTime) -> ApiResult<()
     rollover(&mut tx, now).await?;
     for r in &RULES.regioes {
         attacks(&mut tx, &r.id, now).await?;
+        settle(&mut tx, &r.id, now).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -851,7 +1007,8 @@ async fn advance_city(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDate
         }
         rollover(tx, now).await?;
     }
-    attacks(tx, region, now).await
+    attacks(tx, region, now).await?;
+    settle(tx, region, now).await
 }
 
 fn rand01() -> f64 {
@@ -985,11 +1142,11 @@ async fn rollover(tx: &mut sqlx::PgConnection, now: OffsetDateTime) -> ApiResult
                 credit(tx, *owner, paid, "city_prize", None).await?;
                 clog(tx, region, "prize", Some(*owner), None, 0, paid, json!({"week": oldest, "tier": tier, "score": score, "ratio": ratio})).await?;
                 if *teneb {
-                    sqlx::query("update cities set forced_sale = true, for_sale = $2 where region = $1")
-                        .bind(region)
-                        .bind(RULES.preco_cidade)
-                        .execute(&mut *tx)
-                        .await?;
+                    // Leilão obrigatório de 24 h a partir do preço inicial (substitui um leilão do próprio dono sem lance).
+                    let running: Option<i64> = sqlx::query_scalar("select auction_bid from cities where region = $1").bind(region).fetch_one(&mut *tx).await?;
+                    if running.is_none() {
+                        start_auction(tx, region, RULES.preco_cidade, true, now).await?;
+                    }
                     clog(tx, region, "forced_sale", Some(*owner), None, 0, RULES.preco_cidade, json!({"week": oldest})).await?;
                 }
             }

@@ -1,4 +1,6 @@
 #include "NWCrafting.h"
+
+#include "NWCity.h"
 #include "NWRules.h"
 
 #include "Dom/JsonObject.h"
@@ -228,7 +230,7 @@ float FNWCrafting::BonusChance(const FNWRecipe& R, int32 RollBonus, const TArray
 	return FMath::Max(0.f, F + RollBonus * 0.0001f);   // crafting.roll_bonus_escala
 }
 
-FString FNWCrafting::Refine(ANWCharacter* Who, const FString& StationType, FName RecipeId, int32 Count) const
+FString FNWCrafting::Refine(ANWCharacter* Who, const FString& StationType, FName RecipeId, int32 Count, FNWCityTaxNote* Tax) const
 {
 	if (!Who || !Who->Inventory || !Who->Progression)
 	{
@@ -263,7 +265,26 @@ FString FNWCrafting::Refine(ANWCharacter* Who, const FString& StationType, FName
 	{
 		Chosen.Add(ChosenFor(Who->Inventory, I));
 	}
-	const float Chance = BonusChance(*R, Who->Progression->TradeRollBonus(NWTradeskill::Index(R->Skill)), Chosen);
+	// Cidade da mesa (governança): imposto sobre os ingredientes e buffs da semana (item extra, XP).
+	const FString Region = NWCity::RegionOf(Station->City);
+	NWCity::RefreshIfOld(Who->GetWorld(), Region);
+	const FNWCityState* City = Region.IsEmpty() ? nullptr : NWCity::Cached(Region);
+	TMap<FName, int32> Spent;
+	for (int32 i = 0; i < R->Ingredients.Num(); ++i)
+	{
+		Spent.FindOrAdd(Chosen[i]) += R->Ingredients[i].Qty * Count;
+	}
+	const int64 CityTax = Region.IsEmpty() ? 0 : NWCity::TaxFor(Region, Spent);
+	if (Who->Inventory->Coins < int64(R->Fee) * Count + CityTax)
+	{
+		return TEXT("nw.city.no_coins");
+	}
+	const NWCity::FRules& CR = NWCity::Rules();
+	float Chance = BonusChance(*R, Who->Progression->TradeRollBonus(NWTradeskill::Index(R->Skill)), Chosen);
+	if (City && City->HasBuff(StationType, TEXT("extra")))
+	{
+		Chance += CR.BuffValue.FindRef(TEXT("extra")) / 100.f;
+	}
 	int32 Extra = 0;
 	for (int32 i = 0; i < Count; ++i)
 	{
@@ -289,8 +310,17 @@ FString FNWCrafting::Refine(ANWCharacter* Who, const FString& StationType, FName
 	FNWItem Out;
 	Out.ItemId = R->Out;
 	Out.Quantity = R->Qty * (Count + Extra);
-	Who->Inventory->Grant({Out}, -int64(R->Fee) * Count);
-	Who->Progression->AddTradeXp(R->Skill, R->XpFor(Count, !Who->Progression->HasCrafted(R->Id)));   // crafting.xp_oficio
+	Who->Inventory->Grant({Out}, -int64(R->Fee) * Count - CityTax);
+	int32 RefineXp = R->XpFor(Count, !Who->Progression->HasCrafted(R->Id));   // crafting.xp_oficio
+	if (City && City->HasBuff(StationType, TEXT("xp")))
+	{
+		RefineXp = FMath::RoundToInt(RefineXp * (1.f + CR.BuffValue.FindRef(TEXT("xp")) / 100.f));
+	}
+	Who->Progression->AddTradeXp(R->Skill, RefineXp);
+	if (Tax && !Region.IsEmpty())
+	{
+		*Tax = {Region, StationType, CityTax};
+	}
 	Who->Progression->MarkCrafted(R->Id);
 	FNWEvents::Get().OnRefine.Broadcast(Who, StationType, RecipeId, Count);
 	return FString();
@@ -341,7 +371,7 @@ TArray<FNWItem> FNWCrafting::Spend(ANWCharacter* Who, const FNWRecipe& R, int32 
 	return Spent;
 }
 
-FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName RecipeId, FNWItem* OutItem) const
+FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName RecipeId, FNWItem* OutItem, FNWCityTaxNote* Tax) const
 {
 	if (!Who || !Who->Inventory || !Who->Progression)
 	{
@@ -364,7 +394,27 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 	const FNWItemRules& Rules = FNWItemRules::Get();
 	const int32 Skill = NWTradeskill::Index(R->Skill);
 	const int32 Level = Who->Progression->TradeLevel(Skill);
-	const int32 Xp = R->XpFor(1, !Who->Progression->HasCrafted(R->Id));
+	// Cidade da mesa (governança): imposto sobre os ingredientes, nível da mesa (GS e qualidade mínima) e buff de XP.
+	const FString Region = NWCity::RegionOf(Station->City);
+	NWCity::RefreshIfOld(Who->GetWorld(), Region);
+	const FNWCityState* City = Region.IsEmpty() ? nullptr : NWCity::Cached(Region);
+	const NWCity::FRules& CR = NWCity::Rules();
+	const int32 StationLevel = City ? City->StationLevel(StationType) : 0;
+	TMap<FName, int32> Spent;
+	for (const FNWRecipe::FIngredient& I : R->Ingredients)
+	{
+		Spent.FindOrAdd(I.bCategory ? ChosenFor(Who->Inventory, I) : I.Id) += I.Qty;
+	}
+	const int64 CityTax = Region.IsEmpty() ? 0 : NWCity::TaxFor(Region, Spent);
+	if (Who->Inventory->Coins < int64(R->Fee) + CityTax)
+	{
+		return TEXT("nw.city.no_coins");
+	}
+	int32 Xp = R->XpFor(1, !Who->Progression->HasCrafted(R->Id));
+	if (City && City->HasBuff(StationType, TEXT("xp")))
+	{
+		Xp = FMath::RoundToInt(Xp * (1.f + CR.BuffValue.FindRef(TEXT("xp")) / 100.f));
+	}
 	const bool bTraining = Level < Rules.CraftLevel;
 	// Bolsa cheia: o item vai para o chão (UNWInventoryComponent::Grant), não cancela a fabricação.
 	Spend(Who, *R, 1);
@@ -377,7 +427,10 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 		{
 			Crafter = PC->Record->Name;
 		}
-		Out = Rules.Roll(R->Out, Range.X, Range.Y, Rules.QualityMin(Level, Who->Progression->TradeMaxLevel(Skill)), Crafter);
+		// Mesa evoluída: um pouco de GS e de qualidade mínima por nível (docs/plano-governanca.md).
+		const int32 GsUp = StationLevel * CR.GsPerLevel;
+		const float QualMin = FMath::Min(100.f, Rules.QualityMin(Level, Who->Progression->TradeMaxLevel(Skill)) + StationLevel * CR.QualityPerLevel);
+		Out = Rules.Roll(R->Out, FMath::Min(Range.X + GsUp, Rules.GsMax), FMath::Min(Range.Y + GsUp, Rules.GsMax), QualMin, Crafter);
 	}
 	// Treino (abaixo do nível de fabricar): só XP, sem item. Com OutItem quem chamou põe na bolsa (e pede o número de
 	// série do item assinado ao nw-core).
@@ -386,7 +439,11 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 	{
 		*OutItem = Out;
 	}
-	Who->Inventory->Grant(bTraining || bHold ? TArray<FNWItem>() : TArray<FNWItem>{Out}, -int64(R->Fee));
+	Who->Inventory->Grant(bTraining || bHold ? TArray<FNWItem>() : TArray<FNWItem>{Out}, -int64(R->Fee) - CityTax);
+	if (Tax && !Region.IsEmpty())
+	{
+		*Tax = {Region, StationType, CityTax};
+	}
 	Who->Progression->AddTradeXp(R->Skill, Xp);
 	Who->Progression->MarkCrafted(R->Id);
 	return FString();
@@ -570,7 +627,7 @@ void ANWStation::Setup(const FNWCrafting::FStation& Data)
 	Type = Data.Type;
 	Tier = Data.Tier;
 	const bool bStorage = Type == TEXT("storage");
-	if (bStorage || Type == TEXT("tradingpost"))
+	if (bStorage || Type == TEXT("tradingpost") || Type == TEXT("cityboard") || Type == TEXT("governance"))
 	{
 		Interact->ActionKey = TEXT("nw.storage.open");
 	}
@@ -594,6 +651,10 @@ void ANWStation::Setup(const FNWCrafting::FStation& Data)
 				else if (Self->Type == TEXT("tradingpost"))
 				{
 					HUD->OpenMarket(Who, Self.Get());
+				}
+				else if (Self->Type == TEXT("cityboard") || Self->Type == TEXT("governance"))
+				{
+					HUD->OpenCity(Who, Self.Get(), Self->Type == TEXT("governance"));
 				}
 				else
 				{

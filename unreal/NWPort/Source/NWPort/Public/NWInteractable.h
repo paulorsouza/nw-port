@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "NWItems.h"
 #include "NWOps.h"
+#include "NWCity.h"
 #include "NWMarket.h"
 #include "NWInteractable.generated.h"
 
@@ -125,6 +126,32 @@ public:
 	/** Cliente: pedidos terminados (Req, gravado) que a tela ainda não leu. */
 	TArray<TPair<int32, bool>> MarketDone;
 
+	// ---- cidade (governança; NWCity.h, NWCity.cpp): perto do Quadro do Projeto de Vila (jogadores) ou do Quadro de
+	// Planejamento do Território (governador). Mesmo esquema do mercado: Req da tela, estado e fim do pedido.
+	UFUNCTION(Server, Reliable) void ServerCityOpen();
+	UFUNCTION(Server, Reliable) void ServerCityClose();
+	UFUNCTION(Server, Reliable) void ServerCityRefresh();
+	/** Vende Quantity de matéria-prima da bolsa à cidade pelo preço visto (UnitPrice). */
+	UFUNCTION(Server, Reliable) void ServerCitySellRaw(int32 Req, FName Item, int32 Quantity, int64 UnitPrice);
+	/** Compra Quantity de um item da lista da cidade. */
+	UFUNCTION(Server, Reliable) void ServerCityBuyItem(int32 Req, FName Item, int32 Quantity, int64 UnitPrice);
+	/** Compra a cidade pelo preço visto (inicial ou o pedido pelo dono). */
+	UFUNCTION(Server, Reliable) void ServerCityBuy(int32 Req, int64 Price);
+	/** Governador: abre o leilão de 24 h com o lance inicial Price (> 0) ou cancela (0, só sem lance). */
+	UFUNCTION(Server, Reliable) void ServerCitySale(int32 Req, int64 Price);
+	/** Lance no leilão da cidade (sai das moedas; volta em crédito se alguém cobrir). */
+	UFUNCTION(Server, Reliable) void ServerCityBid(int32 Req, int64 Amount);
+	/** Governador: preços (só os itens da lista) e imposto (< 0 = mantém). */
+	UFUNCTION(Server, Reliable) void ServerCityManage(int32 Req, const TArray<FNWCityPrice>& Buy, const TArray<FNWCityPrice>& Sell, float Tax);
+	/** Governador: "station" (evoluir ou consertar), "buff" ou "weapon". */
+	UFUNCTION(Server, Reliable) void ServerCityProject(int32 Req, const FString& Kind, const FString& Station, const FString& Buff);
+	UFUNCTION(Client, Reliable) void ClientCityState(const FNWCityState& State);
+	UFUNCTION(Client, Reliable) void ClientCityDone(int32 Req, bool bOk);
+	/** Cliente: cidade recebida, número da última atualização e pedidos terminados. */
+	FNWCityState CityState;
+	int32 CitySeq = 0;
+	TArray<TPair<int32, bool>> CityDone;
+
 private:
 	void LoadClaims();
 	bool bClaimsLoaded = false;
@@ -141,6 +168,14 @@ private:
 	NWOps::FCommit StorageCommit();
 	/** Roda uma mudança do armazém como operação gravada (NWOps::Run). */
 	void RunStorageOp(TFunction<bool(UNWInteractorComponent&)> Apply);
+	// Cidade no servidor.
+	bool bCityOpen = false;
+	FString CityRegion;
+	bool NearCityBoard() const;
+	/** Lê a cidade (ou usa Json, a resposta de uma ação), guarda a cópia e manda ao dono; depois Then. */
+	void CitySend(TSharedPtr<FJsonObject> Json = nullptr, TFunction<void()> Then = nullptr);
+	void CityFinish(int32 Req, bool bOk, TSharedPtr<FJsonObject> Json);
+	void CityGovernor(int32 Req, const FString& Verb, const FString& Sub, TSharedRef<FJsonObject> Body);
 	// Mercado no servidor.
 	bool bMarketOpen = false;
 	bool NearTradingPost() const;

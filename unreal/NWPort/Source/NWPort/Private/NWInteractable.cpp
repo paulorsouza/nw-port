@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "NWBackend.h"
+#include "NWCity.h"
 #include "NWCrafting.h"
 #include "NWCharacter.h"
 #include "NWInventoryComponent.h"
@@ -182,6 +183,7 @@ void UNWInteractorComponent::ServerNpcInteract_Implementation(const FString& Var
 	}
 	FString Kind, NpcKey, Period;
 	TArray<FNWItem> Items;
+	int64 Coins = 0;
 	if (R.HasStarter(Npc->Type) && !RewardClaims.Contains(FNWNpcRewards::Key(TEXT("starter"), FNWNpcRewards::StarterNpc(Npc->Type), TEXT("once"))))
 	{
 		Kind = TEXT("starter");
@@ -194,7 +196,7 @@ void UNWInteractorComponent::ServerNpcInteract_Implementation(const FString& Var
 		Kind = TEXT("weekly");
 		NpcKey = FNWNpcRewards::WeeklyNpc(Npc->City, Npc->Type);
 		Period = R.Period();
-		R.Weekly(Npc->Type, Items);
+		R.Weekly(Npc->Type, Items, &Coins);
 	}
 	const FString ClaimKey = FNWNpcRewards::Key(Kind, NpcKey, Period);
 	UE_LOG(LogTemp, Log, TEXT("Brinde %s de %s: %d itens"), *ClaimKey, *Variant, Items.Num());
@@ -202,9 +204,9 @@ void UNWInteractorComponent::ServerNpcInteract_Implementation(const FString& Var
 	// entra. Sem nw-core, entra na hora.
 	bClaimBusy = true;
 	NWOps::Run(Me, TEXT("npc_reward:") + ClaimKey,
-		[WeakSelf, Me, Items]()
+		[WeakSelf, Me, Items, Coins]()
 		{
-			Me->Inventory->Grant(Items, 0);
+			Me->Inventory->Grant(Items, Coins);
 			return WeakSelf.IsValid();
 		},
 		[WeakSelf, NpcKey, Kind, Period, ClaimKey](const FNWCharacterRecord& After, const FNWOpState&, TFunction<void(NWOps::EResult)> Fin)
@@ -298,10 +300,11 @@ void UNWInteractorComponent::ServerRefine_Implementation(const FString& StationT
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	const FString Reason = FString::Printf(TEXT("refine:%s:%d"), *Recipe.ToString(), Count);
 	TWeakObjectPtr<UNWInteractorComponent> Self(this);
+	TSharedRef<FNWCityTaxNote> Tax = MakeShared<FNWCityTaxNote>();   // imposto da cidade da mesa, vai junto na gravação
 	NWOps::Run(Me, Reason,
-		[Self, Me, StationType, Recipe, Count]()
+		[Self, Me, StationType, Recipe, Count, Tax]()
 		{
-			const FString Error = FNWCrafting::Get().Refine(Me, StationType, Recipe, Count);
+			const FString Error = FNWCrafting::Get().Refine(Me, StationType, Recipe, Count, &Tax.Get());
 			if (!Error.IsEmpty())
 			{
 				if (ANWPlayerController* PC = Self.IsValid() ? ControllerOf(Self.Get()) : nullptr)
@@ -312,7 +315,7 @@ void UNWInteractorComponent::ServerRefine_Implementation(const FString& StationT
 			}
 			return true;
 		},
-		NWOps::CommitState(Me, Reason));
+		NWOps::CommitState(Me, Reason, [Tax]() { return Tax->Json(); }));
 }
 
 // ---------------------------------------------------------------- fabricar (docs/oficio.md)
@@ -334,11 +337,12 @@ void UNWInteractorComponent::ServerCraft_Implementation(const FString& StationTy
 			return;
 		}
 		const FString Reason = TEXT("craft:") + Recipe.ToString();
+		TSharedRef<FNWCityTaxNote> Tax = MakeShared<FNWCityTaxNote>();
 		NWOps::Run(Who, Reason,
-			[Self, Who, StationType, Recipe, Serial]()
+			[Self, Who, StationType, Recipe, Serial, Tax]()
 			{
 				FNWItem Signed;   // o item sorteado (vazio no treino); assinado só com Signer
-				const FString Error = FNWCrafting::Get().Craft(Who, StationType, Recipe, &Signed);
+				const FString Error = FNWCrafting::Get().Craft(Who, StationType, Recipe, &Signed, &Tax.Get());
 				if (!Error.IsEmpty())
 				{
 					if (ANWPlayerController* P = Self.IsValid() ? ControllerOf(Self.Get()) : nullptr)
@@ -363,7 +367,7 @@ void UNWInteractorComponent::ServerCraft_Implementation(const FString& StationTy
 				}
 				return true;
 			},
-			NWOps::CommitState(Who, Reason));
+			NWOps::CommitState(Who, Reason, [Tax]() { return Tax->Json(); }));
 	};
 	const FNWRecipe* R = FNWCrafting::Get().Find(Recipe);
 	if (!B || !PC || !PC->Record)

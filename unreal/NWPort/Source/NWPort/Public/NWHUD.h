@@ -54,6 +54,8 @@ public:
 	FNWRefiningMenu Refining;
 	FNWShopMenu Shop;
 	void OpenMarket(class ANWCharacter* Who, class ANWStation* Station);
+	/** Quadros da cidade (governança): projeto de vila (jogadores) ou planejamento do território (governador). */
+	void OpenCity(class ANWCharacter* Who, class ANWStation* Station, bool bGovernance);
 	void OpenRefining(class ANWCharacter* Who, class ANWStation* Station);
 	void OpenStorage(class ANWCharacter* Who, class ANWStation* Station);
 	/** Bolsa no chão: inventário com a janela "Itens Derrubados" (catcontainer no modo bolsa de saque). */

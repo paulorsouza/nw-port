@@ -10,7 +10,9 @@
 #include "Engine/Engine.h"
 #include "Engine/Texture2D.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "NWCity.h"
 #include "NWMarket.h"
+#include "SNWCity.h"
 #include "SNWMarket.h"
 #include "Slate/WidgetRenderer.h"
 #include "Engine/World.h"
@@ -103,7 +105,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		return 1;
 	}
 	const FString Screen = S->GetStringField(TEXT("screen"));
-	if (Screen != TEXT("refining") && Screen != TEXT("shop") && Screen != TEXT("inventory") && Screen != TEXT("market"))
+	if (Screen != TEXT("refining") && Screen != TEXT("shop") && Screen != TEXT("inventory") && Screen != TEXT("market") && Screen != TEXT("city"))
 	{
 		UE_LOG(LogNWUIShot, Error, TEXT("tela sem captura: %s"), *Screen);
 		return 1;
@@ -243,6 +245,16 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			Me->Interactor->MarketRows.Add(Row);
 		}
 	}
+	// Cidade: {"city": <resposta do GET /internal/regions/1/city>, "city_mine": true}.
+	const TSharedPtr<FJsonObject>* CityJson = nullptr;
+	if (Me->Interactor && S->TryGetObjectField(TEXT("city"), CityJson))
+	{
+		bool bMineCity = false;
+		S->TryGetBoolField(TEXT("city_mine"), bMineCity);
+		FString Owner;
+		(*CityJson)->TryGetStringField(TEXT("owner_id"), Owner);
+		NWCity::Parse(*CityJson, bMineCity ? Owner : FString(), Me->Interactor->CityState);
+	}
 	Me->Progression->bFromBackend = true;   // exige o nível do ofício, como no jogo com backend
 	// Loja: compras da semana já feitas (limite semanal), {"FluxT5": 100}.
 	const TSharedPtr<FJsonObject>* Bought = nullptr;
@@ -299,6 +311,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		const bool bShop = Screen == TEXT("shop");
 		const bool bMarket = Screen == TEXT("market");
 		TSharedPtr<SNWMarket> Market;
+		TSharedPtr<SNWCity> CityMenu;
 		const bool bInventory = Screen == TEXT("inventory");
 		Menu.FixedNow = Shop.FixedNow = 1000.0;
 		const int32 Count = Shot->HasField(TEXT("count")) ? int32(Shot->GetNumberField(TEXT("count"))) : 1;
@@ -395,6 +408,19 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 				}
 			}
 		}
+		else if (Screen == TEXT("city"))
+		{
+			// {"governance": bool, "tab": n, "select": Item}.
+			bool bGov = false;
+			Shot->TryGetBoolField(TEXT("governance"), bGov);
+			CityMenu = SNew(SNWCity).Character(Me).Title(S->GetStringField(TEXT("title"))).bGovernance(bGov).bShot(true);
+			CityMenu->ShotTab(Shot->HasField(TEXT("tab")) ? int32(Shot->GetNumberField(TEXT("tab"))) : 0);
+			FString Sel;
+			if (Shot->TryGetStringField(TEXT("select"), Sel))
+			{
+				CityMenu->ShotSelect(FName(Sel));
+			}
+		}
 		else if (bMarket)
 		{
 			// Tela em Slate: {"tab": 0..2, "search": texto, "perk": Id, "select": índice da linha}.
@@ -441,15 +467,16 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 
 		auto Frame = [&]()
 		{
-			if (Market.IsValid())
+			TSharedPtr<SWidget> SlateScreen = Market.IsValid() ? StaticCastSharedPtr<SWidget>(Market) : StaticCastSharedPtr<SWidget>(CityMenu);
+			if (SlateScreen.IsValid())
 			{
 				// Duas passadas: a primeira mede o layout (textos, listas), a segunda desenha com ele.
 				// Um renderizador vivo até o fim do processo: a limpeza do buffer de desenho dele roda numa tarefa depois do
 				// DrawWidget, e destruir antes derruba o processo.
 				static FWidgetRenderer* Renderer = new FWidgetRenderer(false, false);   // o render target já é sRGB
-				Renderer->DrawWidget(RT, Market.ToSharedRef(), FVector2D(W, H), 0.f);
+				Renderer->DrawWidget(RT, SlateScreen.ToSharedRef(), FVector2D(W, H), 0.f);
 				FlushRenderingCommands();
-				Renderer->DrawWidget(RT, Market.ToSharedRef(), FVector2D(W, H), 0.f);
+				Renderer->DrawWidget(RT, SlateScreen.ToSharedRef(), FVector2D(W, H), 0.f);
 				FlushRenderingCommands();
 				return;
 			}

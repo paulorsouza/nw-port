@@ -72,13 +72,14 @@ public:
 	/** Item de categoria que o refino gasta primeiro (o de que se tem mais). */
 	FName ChosenFor(const UNWInventoryComponent* Inv, const FNWRecipe::FIngredient& I) const;
 	/** Servidor: confere e refina Count vezes; devolve a chave do texto do erro ou vazio. */
-	FString Refine(ANWCharacter* Who, const FString& StationType, FName RecipeId, int32 Count) const;
+	/** Tax: imposto da cidade da mesa (governança), para ir no salvamento da operação. */
+	FString Refine(ANWCharacter* Who, const FString& StationType, FName RecipeId, int32 Count, struct FNWCityTaxNote* Tax = nullptr) const;
 	/**
 	 * Servidor (docs/oficio.md): arma, escudo ou ferramenta, na hora. Abaixo do nível de fabricar é treino (gasta, dá XP,
 	 * sem item). Do nível em diante gasta material e taxa e sorteia o item. Com OutItem o item volta para quem chamou (que
 	 * pede o número de série e põe na bolsa); sem OutItem vai direto para a bolsa. Devolve a chave do erro ou vazio.
 	 */
-	FString Craft(ANWCharacter* Who, const FString& StationType, FName RecipeId, FNWItem* OutItem = nullptr) const;
+	FString Craft(ANWCharacter* Who, const FString& StationType, FName RecipeId, FNWItem* OutItem = nullptr, struct FNWCityTaxNote* Tax = nullptr) const;
 	/** Receita com tempo desta mesa que fabrica o item (nulo se a mesa não faz o item). */
 	const FNWRecipe* RecipeFor(FName ItemId, const FString& StationType) const;
 	/** Faixa de GS do item da receita para o personagem: faixa do catálogo + bônus do artesão pelo nível (teto gs_maximo). */

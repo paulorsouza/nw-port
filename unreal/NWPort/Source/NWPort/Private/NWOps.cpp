@@ -299,6 +299,22 @@ namespace NWOps
 		Pump(Who);
 	}
 
+	FCommit CommitState(ANWCharacter* Who, const FString& Reason, TFunction<TSharedPtr<FJsonObject>()> Extra)
+	{
+		TWeakObjectPtr<ANWCharacter> WeakWho(Who);
+		return [WeakWho, Reason, Extra](const FNWCharacterRecord& After, const FNWOpState&, TFunction<void(EResult)> Fin)
+		{
+			UNWBackend* B = BackendOf(WeakWho.Get());
+			if (!B)
+			{
+				Fin(EResult::Failed);
+				return;
+			}
+			B->SaveState(After, Reason, [Fin](int32 Status) { Fin(Status == 204 || Status == 208 ? EResult::Ok : EResult::Failed); },
+				Extra ? Extra() : nullptr);
+		};
+	}
+
 	FCommit CommitState(ANWCharacter* Who, const FString& Reason)
 	{
 		TWeakObjectPtr<ANWCharacter> WeakWho(Who);

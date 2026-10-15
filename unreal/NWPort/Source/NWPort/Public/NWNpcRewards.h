@@ -30,7 +30,8 @@ public:
 	EState StateFor(const ANWNpc* Npc, const TArray<FString>& Claims) const;
 	/** Itens do inicial (faixas sorteadas) ou do semanal (1 de cada lista: material + argueiro). */
 	void Starter(const FString& Type, TArray<FNWItem>& Out) const;
-	void Weekly(const FString& Type, TArray<FNWItem>& Out) const;
+	/** OutCoins: moedas do brinde semanal (centavos). */
+	void Weekly(const FString& Type, TArray<FNWItem>& Out, int64* OutCoins = nullptr) const;
 
 private:
 	FNWNpcRewards();
@@ -40,6 +41,7 @@ private:
 		TArray<FRange> Starter;
 		/** Semanal: 1 item sorteado de cada lista (material, argueiro). */
 		TArray<TArray<FRange>> WeeklyLists;
+		int64 WeeklyCoinsMin = 0, WeeklyCoinsMax = 0;
 	};
 	TMap<FString, FType> Types;
 };

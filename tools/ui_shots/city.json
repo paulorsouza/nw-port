@@ -1,0 +1,402 @@
+{
+ "screen": "city",
+ "title": "Quadro de Planejamento do Território",
+ "coins": 4567800,
+ "city": {
+  "region": "1",
+  "name": "Queda Eterna",
+  "owner_id": "00000000-0000-0000-0000-000000000001",
+  "owner_name": "Exilado",
+  "owner_since": "2026-10-08T12:00:00Z",
+  "price": 25000000,
+  "paid": 0,
+  "for_sale": null,
+  "forced_sale": false,
+  "treasury": 11234500,
+  "tax": 0.06,
+  "tax_min": 0.0,
+  "tax_max": 0.1,
+  "buy": [
+   {
+    "item_id": "FiberT1",
+    "price": 50,
+    "min": 15,
+    "max": 80,
+    "padrao": 50,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "FiberT4",
+    "price": 80,
+    "min": 25,
+    "max": 130,
+    "padrao": 80,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "FiberT5",
+    "price": 90,
+    "min": 30,
+    "max": 155,
+    "padrao": 90,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "OrePreciousT1",
+    "price": 50,
+    "min": 15,
+    "max": 80,
+    "padrao": 50,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "OrePreciousT2",
+    "price": 35,
+    "min": 10,
+    "max": 60,
+    "padrao": 35,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "OrePreciousT3",
+    "price": 50,
+    "min": 15,
+    "max": 90,
+    "padrao": 50,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "OreT1",
+    "price": 60,
+    "min": 20,
+    "max": 100,
+    "padrao": 60,
+    "used": 3200,
+    "limit": 10000
+   },
+   {
+    "item_id": "OreT4",
+    "price": 90,
+    "min": 30,
+    "max": 155,
+    "padrao": 90,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "OreT5",
+    "price": 110,
+    "min": 35,
+    "max": 185,
+    "padrao": 110,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "RawhideT1",
+    "price": 70,
+    "min": 20,
+    "max": 115,
+    "padrao": 70,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "RawhideT4",
+    "price": 60,
+    "min": 20,
+    "max": 95,
+    "padrao": 60,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "RawhideT5",
+    "price": 70,
+    "min": 20,
+    "max": 115,
+    "padrao": 70,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "StoneT1",
+    "price": 45,
+    "min": 15,
+    "max": 75,
+    "padrao": 45,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "StoneT4",
+    "price": 125,
+    "min": 40,
+    "max": 210,
+    "padrao": 125,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "WoodT1",
+    "price": 25,
+    "min": 10,
+    "max": 40,
+    "padrao": 25,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "WoodT2",
+    "price": 60,
+    "min": 20,
+    "max": 95,
+    "padrao": 60,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "WoodT4",
+    "price": 80,
+    "min": 25,
+    "max": 140,
+    "padrao": 80,
+    "used": 0,
+    "limit": 10000
+   },
+   {
+    "item_id": "WoodT5",
+    "price": 100,
+    "min": 30,
+    "max": 165,
+    "padrao": 100,
+    "used": 0,
+    "limit": 10000
+   }
+  ],
+  "sell": [
+   {
+    "item_id": "ClothWeaveT5",
+    "price": 40,
+    "min": 15,
+    "max": 65,
+    "padrao": 40,
+    "used": 0,
+    "limit": 1000
+   },
+   {
+    "item_id": "FluxT5",
+    "price": 330,
+    "min": 105,
+    "max": 560,
+    "padrao": 330,
+    "used": 0,
+    "limit": 1000
+   },
+   {
+    "item_id": "PotionHealthT5",
+    "price": 110,
+    "min": 20,
+    "max": 200,
+    "padrao": 110,
+    "used": 0,
+    "limit": 1000
+   },
+   {
+    "item_id": "SandpaperT5",
+    "price": 200,
+    "min": 65,
+    "max": 340,
+    "padrao": 200,
+    "used": 0,
+    "limit": 1000
+   },
+   {
+    "item_id": "SolventT5",
+    "price": 20,
+    "min": 5,
+    "max": 35,
+    "padrao": 20,
+    "used": 0,
+    "limit": 1000
+   },
+   {
+    "item_id": "TanninT5",
+    "price": 50,
+    "min": 15,
+    "max": 85,
+    "padrao": 50,
+    "used": 0,
+    "limit": 1000
+   }
+  ],
+  "stations": [
+   {
+    "station": "alchemy",
+    "level": 0,
+    "reached": 0,
+    "crafts": 0
+   },
+   {
+    "station": "blacksmith",
+    "level": 1,
+    "reached": 1,
+    "crafts": 0
+   },
+   {
+    "station": "carpentry",
+    "level": 1,
+    "reached": 1,
+    "crafts": 0
+   },
+   {
+    "station": "engineering",
+    "level": 0,
+    "reached": 0,
+    "crafts": 0
+   },
+   {
+    "station": "masonry",
+    "level": 0,
+    "reached": 0,
+    "crafts": 0
+   },
+   {
+    "station": "outfitting",
+    "level": 0,
+    "reached": 0,
+    "crafts": 0
+   },
+   {
+    "station": "smelting",
+    "level": 2,
+    "reached": 3,
+    "crafts": 0
+   },
+   {
+    "station": "tanning",
+    "level": 0,
+    "reached": 0,
+    "crafts": 0
+   },
+   {
+    "station": "weaving",
+    "level": 3,
+    "reached": 3,
+    "crafts": 0
+   }
+  ],
+  "stock": {
+   "OreT1": 1800,
+   "OreT4": 4200,
+   "WoodT1": 900,
+   "FiberT5": 12000
+  },
+  "buffs": [
+   [
+    "smelting",
+    "xp"
+   ],
+   [
+    "weaving",
+    "extra"
+   ]
+  ],
+  "weapons": 4,
+  "next_attack_at": "2026-10-16T09:00:00Z",
+  "last_attack": {
+   "at": 0,
+   "strength": 3.4,
+   "weapons": 4,
+   "won": false,
+   "lost": [
+    "smelting",
+    "carpentry"
+   ]
+  },
+  "week": "2026-10-13",
+  "this_week": {
+   "raw_units": 3800,
+   "list_units": 640,
+   "buffs": 2,
+   "raw_coins": 0
+  }
+ },
+ "city_mine": true,
+ "items": [
+  [
+   "OreT1",
+   2400
+  ],
+  [
+   "OreT4",
+   350
+  ],
+  [
+   "WoodT1",
+   900
+  ],
+  [
+   "FiberT1",
+   120
+  ],
+  [
+   "RawhideT1",
+   60
+  ],
+  [
+   "StoneT1",
+   500
+  ]
+ ],
+ "shots": [
+  {
+   "name": "resumo",
+   "governance": true,
+   "tab": 0
+  },
+  {
+   "name": "precos",
+   "governance": true,
+   "tab": 1
+  },
+  {
+   "name": "mesas",
+   "governance": true,
+   "tab": 2
+  },
+  {
+   "name": "defesa",
+   "governance": true,
+   "tab": 3
+  },
+  {
+   "name": "governo",
+   "governance": true,
+   "tab": 4
+  },
+  {
+   "name": "vender",
+   "governance": false,
+   "tab": 0,
+   "select": "OreT1"
+  },
+  {
+   "name": "comprar",
+   "governance": false,
+   "tab": 1,
+   "select": "PotionHealthT5"
+  },
+  {
+   "name": "cidade",
+   "governance": false,
+   "tab": 2
+  }
+ ]
+}

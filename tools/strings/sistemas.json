@@ -516,6 +516,282 @@
     "nw.market.col_lowest": {
       "pt-br": "Menor preço",
       "en-us": "Lowest price"
+    },
+    "nw.city.sell_tab": {
+      "pt-br": "Vender à Cidade",
+      "en-us": "Sell to Town"
+    },
+    "nw.city.buy_tab": {
+      "pt-br": "Comprar",
+      "en-us": "Buy"
+    },
+    "nw.city.info_tab": {
+      "pt-br": "Cidade",
+      "en-us": "Town"
+    },
+    "nw.city.summary": {
+      "pt-br": "Resumo",
+      "en-us": "Summary"
+    },
+    "nw.city.prices": {
+      "pt-br": "Preços",
+      "en-us": "Prices"
+    },
+    "nw.city.stations": {
+      "pt-br": "Mesas",
+      "en-us": "Stations"
+    },
+    "nw.city.defense": {
+      "pt-br": "Defesa",
+      "en-us": "Defense"
+    },
+    "nw.city.government": {
+      "pt-br": "Governo",
+      "en-us": "Government"
+    },
+    "nw.city.governor": {
+      "pt-br": "Governador",
+      "en-us": "Governor"
+    },
+    "nw.city.no_governor": {
+      "pt-br": "Sem governador",
+      "en-us": "No governor"
+    },
+    "nw.city.treasury": {
+      "pt-br": "Balancete",
+      "en-us": "Treasury"
+    },
+    "nw.city.tax": {
+      "pt-br": "Imposto de fabricação",
+      "en-us": "Crafting tax"
+    },
+    "nw.city.in_bag": {
+      "pt-br": "Na bolsa",
+      "en-us": "In bag"
+    },
+    "nw.city.max": {
+      "pt-br": "Máx.",
+      "en-us": "Max"
+    },
+    "nw.city.sell": {
+      "pt-br": "Vender",
+      "en-us": "Sell"
+    },
+    "nw.city.level": {
+      "pt-br": "Nível {0}",
+      "en-us": "Level {0}"
+    },
+    "nw.city.upgrade": {
+      "pt-br": "Evoluir",
+      "en-us": "Upgrade"
+    },
+    "nw.city.repair": {
+      "pt-br": "Consertar",
+      "en-us": "Repair"
+    },
+    "nw.city.buff_xp": {
+      "pt-br": "+{0}% XP de ofício",
+      "en-us": "+{0}% trade XP"
+    },
+    "nw.city.buff_extra": {
+      "pt-br": "+{0}% item extra",
+      "en-us": "+{0}% bonus item"
+    },
+    "nw.city.buff_economia": {
+      "pt-br": "{0}% menos material",
+      "en-us": "{0}% less material"
+    },
+    "nw.city.weapons": {
+      "pt-br": "Armas",
+      "en-us": "Weapons"
+    },
+    "nw.city.buy_weapon": {
+      "pt-br": "Comprar Arma",
+      "en-us": "Buy Weapon"
+    },
+    "nw.city.attacks": {
+      "pt-br": "Ataques",
+      "en-us": "Attacks"
+    },
+    "nw.city.next_attack": {
+      "pt-br": "Próximo em {0}",
+      "en-us": "Next in {0}"
+    },
+    "nw.city.last_attack": {
+      "pt-br": "Último ataque",
+      "en-us": "Last attack"
+    },
+    "nw.city.last_attack_won": {
+      "pt-br": "Defendido",
+      "en-us": "Repelled"
+    },
+    "nw.city.last_attack_lost": {
+      "pt-br": "Perdido: {0}",
+      "en-us": "Lost: {0}"
+    },
+    "nw.city.week_goals": {
+      "pt-br": "Semana",
+      "en-us": "Week"
+    },
+    "nw.city.raw_week": {
+      "pt-br": "Matéria-prima comprada",
+      "en-us": "Raw materials bought"
+    },
+    "nw.city.list_week": {
+      "pt-br": "Itens vendidos",
+      "en-us": "Items sold"
+    },
+    "nw.city.buffs_week": {
+      "pt-br": "Buffs comprados",
+      "en-us": "Buffs bought"
+    },
+    "nw.city.buy_prices": {
+      "pt-br": "Compra de matéria-prima",
+      "en-us": "Raw material purchase"
+    },
+    "nw.city.sell_prices": {
+      "pt-br": "Venda",
+      "en-us": "Sale"
+    },
+    "nw.city.save": {
+      "pt-br": "Salvar",
+      "en-us": "Save"
+    },
+    "nw.city.buy_city": {
+      "pt-br": "Comprar a Cidade",
+      "en-us": "Buy the Town"
+    },
+    "nw.city.grace": {
+      "pt-br": "Venda liberada em {0} dias",
+      "en-us": "Sale allowed in {0} days"
+    },
+    "nw.city.price_changed": {
+      "pt-br": "O preço mudou",
+      "en-us": "The price changed"
+    },
+    "nw.city.city_limit": {
+      "pt-br": "Limite da semana",
+      "en-us": "Weekly limit reached"
+    },
+    "nw.city.city_no_funds": {
+      "pt-br": "A cidade está sem moedas",
+      "en-us": "The town is out of coins"
+    },
+    "nw.city.city_no_stock": {
+      "pt-br": "Falta material no estoque",
+      "en-us": "Not enough material in stock"
+    },
+    "nw.city.not_governor": {
+      "pt-br": "Só o governador",
+      "en-us": "Governor only"
+    },
+    "nw.city.buff_active": {
+      "pt-br": "Buff já ativo",
+      "en-us": "Buff already active"
+    },
+    "nw.city.station_max": {
+      "pt-br": "Mesa no nível máximo",
+      "en-us": "Station at max level"
+    },
+    "nw.city.city_grace": {
+      "pt-br": "Ainda na carência",
+      "en-us": "Still in the grace period"
+    },
+    "nw.city.city_not_for_sale": {
+      "pt-br": "A cidade não está à venda",
+      "en-us": "The town is not for sale"
+    },
+    "nw.city.price_out_of_range": {
+      "pt-br": "Preço fora da faixa",
+      "en-us": "Price out of range"
+    },
+    "nw.city.tax_out_of_range": {
+      "pt-br": "Imposto fora da faixa",
+      "en-us": "Tax out of range"
+    },
+    "nw.city.failed": {
+      "pt-br": "A cidade não respondeu",
+      "en-us": "The town did not respond"
+    },
+    "nw.city.missing": {
+      "pt-br": "Você não tem essa quantidade",
+      "en-us": "You do not have that amount"
+    },
+    "nw.city.no_coins": {
+      "pt-br": "Moedas insuficientes para o imposto",
+      "en-us": "Not enough coins for the tax"
+    },
+    "nw.city.not_bought": {
+      "pt-br": "A cidade não compra este item",
+      "en-us": "The town does not buy this item"
+    },
+    "nw.city.not_sold": {
+      "pt-br": "A cidade não vende este item",
+      "en-us": "The town does not sell this item"
+    },
+    "nw.city.auction": {
+      "pt-br": "Leilão",
+      "en-us": "Auction"
+    },
+    "nw.city.auction_forced": {
+      "pt-br": "Leilão obrigatório",
+      "en-us": "Forced auction"
+    },
+    "nw.city.auction_ends": {
+      "pt-br": "Termina em {0}",
+      "en-us": "Ends in {0}"
+    },
+    "nw.city.top_bid": {
+      "pt-br": "Maior lance: {0}",
+      "en-us": "Top bid: {0}"
+    },
+    "nw.city.start_bid": {
+      "pt-br": "Lance inicial",
+      "en-us": "Starting bid"
+    },
+    "nw.city.place_bid": {
+      "pt-br": "Dar Lance",
+      "en-us": "Place Bid"
+    },
+    "nw.city.your_bid": {
+      "pt-br": "Seu lance é o maior",
+      "en-us": "Your bid is the highest"
+    },
+    "nw.city.start_auction": {
+      "pt-br": "Pôr em Leilão",
+      "en-us": "Start Auction"
+    },
+    "nw.city.cancel_auction": {
+      "pt-br": "Cancelar Leilão",
+      "en-us": "Cancel Auction"
+    },
+    "nw.city.bid_too_low": {
+      "pt-br": "Lance abaixo do mínimo",
+      "en-us": "Bid below the minimum"
+    },
+    "nw.city.no_auction": {
+      "pt-br": "A cidade não está em leilão",
+      "en-us": "The town is not in auction"
+    },
+    "nw.city.own_city": {
+      "pt-br": "O governador não dá lance na própria cidade",
+      "en-us": "The governor cannot bid on their own town"
+    },
+    "nw.city.auction_running": {
+      "pt-br": "Já há um leilão",
+      "en-us": "An auction is already running"
+    },
+    "nw.city.auction_has_bids": {
+      "pt-br": "O leilão já tem lance",
+      "en-us": "The auction already has bids"
+    },
+    "nw.city.forced_sale": {
+      "pt-br": "Leilão obrigatório",
+      "en-us": "Forced auction"
+    },
+    "nw.city.week_left": {
+      "pt-br": "Restante na semana",
+      "en-us": "Left this week"
     }
   },
   "chaves_do_jogo": [
@@ -679,6 +955,8 @@
     "ui_min_gear_score",
     "ui_perks",
     "ui_canafford",
-    "ui_quality"
+    "ui_quality",
+    "ui_territory_board_town_project",
+    "ui_territory_planning_board"
   ]
 }

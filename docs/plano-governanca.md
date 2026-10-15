@@ -12,8 +12,8 @@ até o dono aprovar o plano. Números marcados "proposta" saem do simulador.
   itens que vende. Sem governador, vale o meio da faixa.
 - A cidade só compra matéria-prima, nada fabricado. Vende uma lista fixa: poções e catalisadores de refino (fundente e
   os outros).
-- Limites por personagem, por semana, na região: a cidade compra até 10 mil de cada matéria-prima e vende até 1 mil
-  de cada item da lista.
+- Limites por personagem, por semana, na região: a cidade compra até 5 mil de cada matéria-prima e vende até 1 mil
+  de cada item da lista (dono 2026-10-15). Um item pode ter limite próprio (`limite` em `tools/precos_cidade.json`).
 - Tudo passa pelo balancete da cidade: ele recebe as vendas da lista e o imposto de fabricação, e paga a
   matéria-prima que compra, os buffs, a defesa e o equipamento. O governador não saca.
 - A matéria-prima comprada vai para o estoque da cidade e é gasta para evoluir e consertar mesas.
@@ -95,17 +95,25 @@ fabricação, nível de cada mesa, equipamento de defesa (armas), buffs ativos, 
 - Faixa pela razão entre a pontuação e a média das cidades (proposta): ruim < 0,8; bom ≥ 0,8; muito bom ≥ 1,2;
   excelente ≥ 1,6; melhor governador = maior pontuação, se excelente. Enquanto houver uma cidade só, a média é a das
   últimas 4 semanas dela.
-- Tenebroso (abaixo de ruim): na semana a cidade comprou menos de 5 mil de matéria-prima no total (metade do limite
-  de um personagem, somando todos os tipos), vendeu menos de 500 itens da lista no total, ou nenhum buff foi comprado.
+- Tenebroso (abaixo de ruim): na semana a cidade comprou menos de 5 mil de matéria-prima no total (somando todos os
+  tipos), vendeu menos de 500 itens da lista no total, ou nenhum buff foi comprado.
   Se ninguém mais negocia, o próprio governador tem de fazer isso.
-- Tenebroso: prêmio de 5 mil e venda obrigatória pelo preço inicial; o primeiro que pagar leva, o valor vai para o
-  governador que sai, e ele não tira a cidade da venda.
+- Tenebroso: prêmio de 5 mil e leilão obrigatório de 24 h a partir do preço inicial (ver "Compra e venda da
+  cidade").
 
 ### Compra e venda da cidade
 
-- Primeira compra: preço fixo, o valor some.
-- Revenda: o dono põe à venda por um preço; quem pagar leva. Taxa de 10% some. Carência de 2 semanas depois de
-  comprar (proposta). Balancete, estoque, mesas e defesa ficam com a cidade.
+- Sem dono: preço fixo, quem pagar primeiro leva; o valor some.
+- Com dono, toda venda é um leilão de 24 h (dono 2026-10-14):
+  - do governador: depois da carência de 14 dias, com o lance inicial que ele quiser; pode cancelar enquanto não
+    houver lance; no fim recebe o maior lance menos a taxa de 10%;
+  - obrigatório (tenebroso): começa no preço inicial da cidade, o dono não cancela, e no fim recebe o maior lance
+    inteiro.
+- Lance mínimo: o lance inicial ou o maior lance + 5%. O lance sai das moedas de quem deu e volta em crédito quando
+  alguém cobre. O governador não dá lance na própria cidade.
+- Sem lance até o fim: leilão do governador acaba sem mudança; leilão obrigatório deixa a cidade sem governador (volta
+  ao preço fixo).
+- Balancete, estoque, mesas e defesa ficam com a cidade.
 - Sem dono: preços no meio da faixa, imposto padrão, sem ataques e sem prêmio.
 
 ## Balanceamento
@@ -165,9 +173,12 @@ que não ficaram no tenebroso; governador ativo mantém 30% de folga na defesa.
    `state`. Migration 0013, `backend/src/routes/city.rs`, regras em `tools/governanca.json`, testes
    `cidade_compra_precos_limites_e_projetos` e `cidade_semana_tenebroso_e_venda_obrigatoria`. Evoluir mesa ainda é
    imediato (as 24 h do jogo ficam para quando houver tela).
-3. Servidor de jogo: NPC da cidade (operações gravadas, `NWOps`), imposto, nível e buffs nas mesas, região por mapa.
-4. Telas (estilo `NWSlate`): NPC da cidade, painel do governador (preços, imposto, balancete, estoque, projetos,
-   defesa, ataques, metas), compra e venda da cidade.
+3. ~~Servidor de jogo~~ (feito 2026-10-14): `NWCity.h/.cpp` (regras, cópia da cidade por região, RPCs), Quadro do
+   Projeto de Vila (`cityboard`) e Quadro de Planejamento do Território (`governance`) extraídos do slice da cidade
+   (`make_crafting.py`), vender/comprar e comprar a cidade como operações gravadas, imposto no salvamento da
+   fabricação (`city_tax`), nível da mesa (+GS, +qualidade mínima) e buffs (XP, item extra) na fabricação, moedas no
+   brinde semanal dos NPCs. Buff "economia" ainda sem efeito.
+4. ~~Telas~~ (feito 2026-10-14): `SNWCity` (estilo `NWSlate`), captura `tools/ui_shots/city.json`, testes 106–115.
 5. Ajuste dos números; testes do dono.
 
 Fora desta esteira: dungeon simples (`docs/plano-dungeon.md`), PvP.

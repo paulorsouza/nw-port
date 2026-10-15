@@ -29,7 +29,7 @@ impl Api {
     /// Gravações do servidor de jogo levam sessão e número (journal.rs): quando o teste não manda, usa a sessão atual do
     /// personagem e um número crescente, como o servidor faz.
     async fn with_seq(&self, method: &str, uri: &str, server: bool, body: Option<Value>) -> Option<Value> {
-        let write = ["/state", "/storage/", "/houses", "/npc-rewards", "/credits/claim", "/orders", "/fill", "/ground", "/take", "/city/buy", "/sell-raw", "/buy-item"];
+        let write = ["/state", "/storage/", "/houses", "/npc-rewards", "/credits/claim", "/orders", "/fill", "/ground", "/take", "/city/buy", "/sell-raw", "/buy-item", "/city/bid"];
         if !server || method == "GET" || !write.iter().any(|w| uri.contains(w)) || uri.contains("/cancel") {
             return body;
         }
@@ -873,7 +873,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     let (status, c) = api.call("GET", CITY, None, true, None).await;
     assert_eq!(status, StatusCode::OK, "{c}");
     assert!(c["owner_id"].is_null());
-    assert_eq!(c["treasury"], 15_000_000);
+    assert_eq!(c["treasury"], 20_000_000);
     let price = c["price"].as_i64().unwrap();
 
     // Compra pelo preço fixo; outro preço = 409.
@@ -891,11 +891,12 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     let sell = |who: &str, qty: i64, unit: i64, coins: i64| json!({ "character_id": who, "item_id": "OreT1", "quantity": qty, "unit_price": unit, "coins": coins, "inventory": [] });
     let (status, c) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 100, p, 100 * p))).await;
     assert_eq!(status, StatusCode::OK, "{c}");
-    assert_eq!(c["treasury"], 15_000_000 - 100 * p);
+    assert_eq!(c["treasury"], 20_000_000 - 100 * p);
     assert_eq!(c["stock"]["OreT1"], 100);
     assert_eq!(coins_of(&db, &player).await, 100 * p);
-    // Limite de 10 mil por semana por personagem.
-    let (status, e) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 9_901, p, 0))).await;
+    // Limite de 5 mil por semana por personagem e matéria-prima.
+    assert_eq!(ore["limit"], 5_000);
+    let (status, e) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 4_901, p, 0))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("city_limit")));
 
     // Só o governador mexe nos preços, e dentro da faixa.
@@ -988,17 +989,65 @@ async fn cidade_semana_tenebroso_e_venda_obrigatoria(db: PgPool) {
     let (_, credits) = api.call("GET", &format!("/internal/characters/{gov}/credits"), None, true, None).await;
     assert_eq!(credits["amount"], 500_000);
     let (_, c) = api.call("GET", CITY, None, true, None).await;
-    assert_eq!((c["forced_sale"].as_bool(), c["for_sale"].as_i64()), (Some(true), Some(price)));
+    assert_eq!((c["auction"]["forced"].as_bool(), c["auction"]["start"].as_i64(), c["auction"]["min_bid"].as_i64()), (Some(true), Some(price), Some(price)));
     assert!(!c["last_attack"].is_null(), "{c}");
 
-    // Em venda obrigatória o dono não tira da venda; outro compra pelo preço inicial e o antigo recebe o valor inteiro.
+    // Leilão obrigatório: o dono não cancela; ninguém compra direto; lances com mínimo e devolução de quem é coberto.
     let (status, e) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": null }))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("forced_sale")));
-    let (status, c) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": other, "price": price, "coins": 0, "inventory": [] }))).await;
+    let (status, e) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": other, "price": price, "coins": 0, "inventory": [] }))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("city_not_for_sale")));
+    let third = character(&api, &db, "Maria", "Coruja").await;
+    let bid = |who: &str, amount: i64| json!({ "character_id": who, "amount": amount, "coins": 0, "inventory": [] });
+    let (status, e) = api.call("POST", &format!("{CITY}/bid"), None, true, Some(bid(&other, price - 1))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("bid_too_low")));
+    let (status, c) = api.call("POST", &format!("{CITY}/bid"), None, true, Some(bid(&other, price))).await;
     assert_eq!(status, StatusCode::OK, "{c}");
-    assert_eq!(c["owner_name"], "Besouro");
-    assert_eq!(c["forced_sale"], false);
+    assert_eq!(c["auction"]["bidder_name"], "Besouro");
+    let next = c["auction"]["min_bid"].as_i64().unwrap();
+    assert!(next > price);
+    let (status, _) = api.call("POST", &format!("{CITY}/bid"), None, true, Some(bid(&third, next))).await;
+    assert_eq!(status, StatusCode::OK);
+    let (_, credits) = api.call("GET", &format!("/internal/characters/{other}/credits"), None, true, None).await;
+    assert_eq!(credits["amount"], price);
+
+    // 24 h depois: quem deu o maior lance leva; o governador que sai recebe o lance inteiro (venda obrigatória).
+    let end = (time::OffsetDateTime::now_utc() + time::Duration::days(8) + time::Duration::hours(25))
+        .format(&time::format_description::well_known::Rfc3339).unwrap();
+    let (status, _) = api.call("POST", "/internal/cities/advance", None, true, Some(json!({ "now": end }))).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (_, c) = api.call("GET", CITY, None, true, None).await;
+    assert_eq!(c["owner_name"], "Coruja");
+    assert!(c["auction"].is_null());
     let (_, credits) = api.call("GET", &format!("/internal/characters/{gov}/credits"), None, true, None).await;
-    assert_eq!(credits["amount"], 500_000 + price);
+    assert_eq!(credits["amount"], 500_000 + next);
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn cidade_leilao_do_dono_e_sem_lance(db: PgPool) {
+    let api = Api::new(db.clone());
+    let gov = character(&api, &db, "Paulo", "Aranha").await;
+    let (_, c) = api.call("GET", CITY, None, true, None).await;
+    let price = c["price"].as_i64().unwrap();
+    let (status, _) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": gov, "price": price, "coins": 0, "inventory": [] }))).await;
+    assert_eq!(status, StatusCode::OK);
+    // Passa a carência: o dono abre com o lance inicial que quiser e pode cancelar sem lance.
+    sqlx::query("update cities set owner_since = now() - interval '15 days'").execute(&db).await.unwrap();
+    let (status, c) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": 1_000 }))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    assert_eq!((c["auction"]["start"].as_i64(), c["auction"]["forced"].as_bool()), (Some(1_000), Some(false)));
+    let (status, c) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": null }))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(c["auction"].is_null());
+    // Sem lance até o fim: continua com o dono.
+    let (status, _) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": 2_000 }))).await;
+    assert_eq!(status, StatusCode::OK);
+    let end = (time::OffsetDateTime::now_utc() + time::Duration::hours(25)).format(&time::format_description::well_known::Rfc3339).unwrap();
+    let (status, _) = api.call("POST", "/internal/cities/advance", None, true, Some(json!({ "now": end }))).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (_, c) = api.call("GET", CITY, None, true, None).await;
+    assert_eq!(c["owner_name"], "Aranha");
+    assert!(c["auction"].is_null());
+
 }
 

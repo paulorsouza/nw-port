@@ -17,8 +17,8 @@
     "elasticidade": 1.5
   },
   "cidade": {
-    "balancete_inicial": 150000,
-    "preco_cidade": 250000,
+    "balancete_inicial": 200000,
+    "preco_cidade": 150000,
     "taxa_revenda": 0.1,
     "imposto_padrao": 0.05,
     "limite_compra_por_tipo": 10000,
