@@ -2,7 +2,11 @@ name: Native tools without game assets
 
 on:
   push:
-    branches: [windows-convert]
+    branches: [main]
+    paths:
+      - 'tools/**'
+      - 'patches/**'
+      - '.github/workflows/native-tools.yml'
   pull_request:
     paths:
       - 'tools/**'

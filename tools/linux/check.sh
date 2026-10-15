@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Check before merging a branch (docs/workflow.md, "Several people"). Light, no Unreal; with --cpp it also
-# compiles the C++ (game target, works with the editor open; goes through the heavy-job queue).
+# compiles the C++ (game target, works with the editor open; goes through the heavy-job queue). --ci skips what needs
+# nwbt or the game installed (GitHub Actions).
 #
-#     tools/linux/check.sh [--cpp]
+#     tools/linux/check.sh [--cpp | --ci]
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -41,11 +42,13 @@ sh_err=""; for f in tools/*.sh tools/linux/*.sh tools/steps/*.sh; do [ -e "$f" ]
 
 # nwbt built with this checkout's patch (patches/nwbt.patch) and converting via "@list" (game cube, ~20 s in the
 # heavy-job queue; without the game installed it becomes a warning). Rebuild: tools/linux/heavy.sh python3 tools/build_nwbt.py
-python3 tools/build_nwbt.py --check || FAIL=1
-tools/linux/heavy.sh python3 tools/build_nwbt.py --test-argfile || FAIL=1
+if [ "${1:-}" != "--ci" ]; then
+    python3 tools/build_nwbt.py --check || FAIL=1
+    tools/linux/heavy.sh python3 tools/build_nwbt.py --test-argfile || FAIL=1
 
-# Game version (warning only: someone without the game installed can still review).
-NW_IGNORE_VERSION=1 tools/linux/game_version.sh 2>&1 | sed 's/^/warn  /'
+    # Game version (warning only: someone without the game installed can still review).
+    NW_IGNORE_VERSION=1 tools/linux/game_version.sh 2>&1 | sed 's/^/warn  /'
+fi
 
 # What from the RE has not made it into the port yet (informational).
 [ -d re-local/valores ] && python3 tools/re_check.py 2>/dev/null | grep -E "^== (Valores|Perguntas)" | sed 's/^== /info  /'

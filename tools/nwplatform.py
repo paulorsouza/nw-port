@@ -131,7 +131,9 @@ def executable(name):
 def store_python():
     # The Microsoft Store Python runs packaged: children outside the package (nwbt, Blender) leave the Windows
     # Job and survive an abort. Use the python.org installer.
-    return WINDOWS and any(part.casefold() == "windowsapps" for part in Path(sys.executable).parts)
+    # PureWindowsPath: splits a Windows path on backslashes on any OS (the unit test runs on Linux too).
+    from pathlib import PureWindowsPath
+    return WINDOWS and any(part.casefold() == "windowsapps" for part in PureWindowsPath(sys.executable).parts)
 
 
 def nwbt_workers():

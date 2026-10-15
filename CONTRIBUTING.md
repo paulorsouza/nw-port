@@ -26,6 +26,9 @@
   `tools: ...`, `docs: ...`).
 - Run `tools/linux/check.sh` (Linux) or `python tools/windows/doctor.py` and
   `python -m unittest discover -s tools/tests` (Windows) before opening the pull request; `--cpp` also compiles.
+  GitHub Actions runs the same checks without the game (`check.sh --ci`, unit tests, pipeline dry runs) and the
+  nw-core tests against Postgres on every push and pull request. The C++ is not built in CI (no Unreal there): build
+  it locally.
 - New behavior comes with a test item in [docs/tests/](docs/tests/) and the area spec updated.
 - Visual changes: attach a screenshot from the editor. Do not add automated runs of the game.
 

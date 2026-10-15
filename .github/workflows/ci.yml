@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tools:
+    name: Tools (Python, shell, data)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Python packages
+        run: python -m pip install numpy Pillow
+      - name: Repository checks (no nwbt, no game)
+        run: bash tools/linux/check.sh --ci
+      - name: Unit tests
+        run: python -m unittest discover -s tools/tests -v
+      - name: Pipeline dry runs
+        run: |
+          python tools/build_all.py --dry-run > /dev/null
+          python tools/ue_import_all.py --dry-run > /dev/null
+          python tools/make_data.py --dry-run > /dev/null
+
+  backend:
+    name: nw-core (Rust)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nw
+          POSTGRES_PASSWORD: nw
+          POSTGRES_DB: nw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nw"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://nw:nw@localhost:5432/nw
+      CARGO_TERM_COLOR: always
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Build
+        run: cargo build --locked
+      - name: Tests
+        run: cargo test --locked
