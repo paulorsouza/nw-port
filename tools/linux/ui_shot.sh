@@ -2,13 +2,14 @@
 # Screenshot of the port without opening the game (area 4): windowless Unreal draws the screen to a PNG with the game
 # code (NWUIShotCommandlet), from a scenario (bag, levels, station, recipe, window size).
 #
-#     tools/linux/ui_shot.sh tools/ui_shots/refining.json [captura]   ->  extract/ui/shots/refining_<captura>.png
+#     tools/linux/ui_shot.sh tools/ui_shots/refining.json [shot]   ->  extract/ui/shots/refining_<shot>.png
 #
 # Needs the compiled module (tools/linux/ue_import_all.sh 01). Runs in the heavy-job queue.
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-[ -n "${NW_PESADO:-}" ] || exec "$ROOT/tools/linux/pesado.sh" "$ROOT/tools/linux/$(basename "$0")" "$@"
+# NW_PESADO: old name, still accepted.
+[ -n "${NW_HEAVY:-}${NW_PESADO:-}" ] || exec "$ROOT/tools/linux/heavy.sh" "$ROOT/tools/linux/$(basename "$0")" "$@"
 UE_DIR="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}"
 P="$ROOT/unreal/NWPort/NWPort.uproject"
 SC="$(realpath "$1")"

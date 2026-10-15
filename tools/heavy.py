@@ -1,4 +1,4 @@
-"""Native heavy-job queue: python tools/pesado.py <command> [arguments]."""
+"""Native heavy-job queue: python tools/heavy.py <command> [arguments]."""
 import os
 import subprocess
 import sys
@@ -17,7 +17,7 @@ def main():
         command[0] = sys.executable
     try:
         with nwprocess.heavy_lock():
-            # Same directory and exit code as the caller, like tools/linux/pesado.sh.
+            # Same directory and exit code as the caller, like tools/linux/heavy.sh.
             nwprocess.run(command, cwd=os.getcwd())
     except nwprocess.ResourceError as exc:
         print(exc, file=sys.stderr)

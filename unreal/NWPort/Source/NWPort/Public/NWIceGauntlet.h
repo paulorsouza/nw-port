@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameFramework/Actor.h"
-#include "NWArmaManopla.generated.h"
+#include "NWIceGauntlet.generated.h"
 
 class ANWCharacter;
 class UNWCombatComponent;
@@ -16,7 +16,7 @@ struct FNWWeaponSet;
  * the body pose. Combat uses UNWCombatComponent through the DT_IceGauntletActions table; mana, UNWManaComponent; the
  * abilities, UNWIceGauntletComponent (created on the server when the gauntlet is equipped).
  */
-namespace NWArmaManopla
+namespace NWIceGauntlet
 {
 	void AddWeaponSet(TArray<FNWWeaponSet>& Sets);
 	// Shows the skinned mesh of the active weapon (FNWWeaponSet::SkinMesh), or hides it if the weapon has none.

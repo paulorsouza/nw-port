@@ -145,21 +145,21 @@ class Importer:
             self.py(f"region_{name}", self.tool("import_region_scene"), path, name)
 
     def systems_city(self):
-        self.py("sistemas_city", self.tool("import_city"),
+        self.py("systems_city", self.tool("import_city"),
                 ROOT / "extract/cities/limpa/settlement_northwindsward_complete.glb", "QuedaEterna")
-        self.py("sistemas_fix_city", self.tool("fix_city"), "QuedaEterna")
-        self.py("sistemas_nanite", self.tool("nanite_on"), "/Game/NW/Cities/QuedaEterna")
+        self.py("systems_fix_city", self.tool("fix_city"), "QuedaEterna")
+        self.py("systems_nanite", self.tool("nanite_on"), "/Game/NW/Cities/QuedaEterna")
 
     def systems_terrain(self):
         # Windsward forest textures until the per-biome material exists (docs/backlog.md).
         textures = ROOT / "extract/terrain/textures/terrain/forest"
-        self.py("sistemas_terrain", self.tool("import_terrain"), ROOT / "extract/cities/northwindsward_terrain.glb",
+        self.py("systems_terrain", self.tool("import_terrain"), ROOT / "extract/cities/northwindsward_terrain.glb",
                 "QuedaEterna", textures / "jav_fst_feildgrass_a_diff.png", textures / "jav_fst_forestsoil_a_diff.png")
-        self.py("sistemas_materials", self.tool("fix_nanite_materials"), "/Game/NW/Cities/QuedaEterna")
+        self.py("systems_materials", self.tool("fix_nanite_materials"), "/Game/NW/Cities/QuedaEterna")
 
     def systems_npcs(self):
-        self.py("sistemas_npc_anims", self.tool("import_nw"), ROOT / "extract/ue/NpcQuedaEterna/manifest.json")
-        self.py("sistemas_npcs", self.tool("import_npcs"), ROOT / "extract/ue/npcs", "NpcQuedaEterna", "L_QuedaEterna")
+        self.py("systems_npc_anims", self.tool("import_nw"), ROOT / "extract/ue/NpcQuedaEterna/manifest.json")
+        self.py("systems_npcs", self.tool("import_npcs"), ROOT / "extract/ue/npcs", "NpcQuedaEterna", "L_QuedaEterna")
 
     def pipeline(self):
         materials = ["/Game/NW/Cities", "/Game/NW/Gatherables", "/Game/NW/Region", "/Game/NW/Materials", "/Game/NW/Terrain"]
@@ -202,7 +202,7 @@ def main():
     pipeline = importer.pipeline()
     if args.step and args.step not in {name for name, _, _ in pipeline}:
         parser.error("unknown step")
-    extra = {p.name for p in (ROOT / "tools/etapas").glob("*.ue.sh")} - {"sistemas.ue.sh"}
+    extra = {p.name for p in (ROOT / "tools/steps").glob("*.ue.sh")} - {"systems.ue.sh"}
     if extra:
         parser.error("areas not ported yet: " + ", ".join(sorted(extra)))
     if not args.dry_run:

@@ -2,10 +2,10 @@
   "name": "sword_shield",
   "_comment": "Layers from the base up, as the Mannequin plays them: full body (tags 1H_Melee+Sword) and on top the shield arm (Shield_OH).",
   "parts": [
-    "player/armas.json",
-    "player/armas_manopla-gelo.json",
-    "player/coleta.json",
-    "player/montaria.json"
+    "player/weapons.json",
+    "player/weapons_ice-gauntlet.json",
+    "player/gathering.json",
+    "player/mount.json"
   ],
   "character": "objects/characters/player/male/player_male.cdf",
   "armor": "objects/characters/player/male/heroicheavy/male_heroicheavy.cdf",

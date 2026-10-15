@@ -184,7 +184,7 @@ No migration.
 - The client sends only intents (action, bag slot, recipe). Damage, rolls, items and coins belong to the server. The
   client never has the nw-core secret.
 - F10 (test commands): the server accepts them only from an admin account in nw-core (`nw-core admin <conta>`,
-  `tools/linux/rede.sh admin`). Without nw-core, or in the editor's Play, they are allowed. A client without
+  `tools/linux/network.sh admin`). Without nw-core, or in the editor's Play, they are allowed. A client without
   permission does not open the menu. Each use goes to the server log (`F10: <account/character> used <action>`, refusals as
   Warning) and to `item_log` with the reason `dev:<comando>`.
 - Open (weapons area): weapon mastery (`ServerSetMastery`) and abilities on the bar (`ServerSetWeaponAbilities`)
@@ -202,7 +202,7 @@ Each phase closes in a testable state. Local test: dedicated server + several cl
 - `NWPortServer` target, cooked for Linux, Docker image; starts locally and accepts 3 clients.
 - Measure CPU/RAM/bandwidth with 10 clients (test bots that walk and attack).
 
-Tested with `NW_SERVER=pacote tools/linux/net_test.sh 3` (3 characters log in and save, intruder refused) and
+Tested with `NW_SERVER=package tools/linux/net_test.sh 3` (3 characters log in and save, intruder refused) and
 `NW_SERVER=docker tools/linux/net_test.sh 10` (`-nwbot` walks and attacks).
 
 ### F1: Rust backend (done)

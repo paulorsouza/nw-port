@@ -1,7 +1,7 @@
 """Checks what nwbt and Blender wrote (both can exit 0 without producing anything).
 
 Blender returns 0 when the -P script fails, unless it gets --python-exit-code; the old nwbt treated
-"@lista" as a pattern and exited 0 without converting. The caller checks that each expected output was (re)written.
+"@list" as a pattern and exited 0 without converting. The caller checks that each expected output was (re)written.
 """
 import os
 import sys

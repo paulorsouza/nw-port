@@ -79,7 +79,7 @@ After the import, open the editor: Unreal compiles the shaders of the changed as
 
 Export:
 
-- Editor closed. On Linux it enters the `tools/linux/pesado.sh` queue.
+- Editor closed. On Linux it enters the `tools/linux/heavy.sh` queue.
 - Current commit is on GitHub and nothing is uncommitted in `unreal/NWPort/Source`, `Config`, `.uproject` or `tools/`
   (`--allow-dirty` overrides).
 - The `manifest.json` in the folder is the publication this machine has (exported or imported last). If not, another
@@ -91,7 +91,7 @@ Export:
 
 Import:
 
-- Same Unreal version, same game build (`tools/jogo.versao`), commit of the publication already in the local `HEAD`
+- Same Unreal version, same game build (`tools/game.version`), commit of the publication already in the local `HEAD`
   (`--force` overrides).
 - Size and sha256 of each zip against the manifest (an incomplete download is not applied).
 - A zip only extracts inside its own folder.

@@ -31,7 +31,7 @@ TOOLTIP = ["tooltip/tooltip_bg_new.dds", "tooltip/tooltip_bgframenew.dds", "tool
            "slices/sectionheader/sectionheaderline.dds", "icons/misc/icon_gearscore.dds"]
 TOOLTIP += [f"tooltip/tooltip_header_bg_{i}.dds" for i in range(5)] + [f"tooltip/tooltip_itemframe_rarity{i}.dds" for i in range(1, 5)] + ["tooltip/tooltip_itemframe_rarity_none.dds"]
 TOOLTIP += ["tooltip/frame_gemsocket.dds"]   # gem slot (dynamictooltip_perk.lua)
-# Ability perk icons (the port's item rules, tools/make_itens.py).
+# Ability perk icons (the port's item rules, tools/make_port_items.py).
 RULES = os.path.join(ROOT, "unreal", "NWPort", "Data", "Items", "regras_itens.json")
 PERK_ICONS = sorted({p["icone"] for p in json.load(open(RULES))["perks"].values() if p.get("icone")}) if os.path.exists(RULES) else []
 open(os.path.join(UI, "tooltip_textures.txt"), "w").write("\n".join(["lyshineui/images/" + t for t in TOOLTIP] + PERK_ICONS))

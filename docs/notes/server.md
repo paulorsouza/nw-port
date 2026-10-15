@@ -19,7 +19,7 @@ Dated history for the server, network and backend. Rules in effect are in
   compiles). Server `NWPortServer` packaged by `tools/linux/package_server.sh` into `deploy/build/LinuxServer`
   (2.3 GB; cooked with the installed editor, same CompatibleChangelist). The game's own network version
   (`FNWPortModule`, `NetProtocol`) added, because without it the source-built server refused clients of the installed
-  engine. Tested with `NW_SERVER=pacote tools/linux/net_test.sh 3`: 3 characters log in and save, intruder refused.
+  engine. Tested with `NW_SERVER=package tools/linux/net_test.sh 3`: 3 characters log in and save, intruder refused.
   **F0 completed** on Docker (`deploy/build_images.sh` + `docker compose up -d`; secrets in `deploy/.env`).
 - F0 measurement with 10 bots (`NW_SERVER=docker tools/linux/net_test.sh 10`, `-nwbot` walks and attacks), all 10
   connected: CPU 26–31% of one core, RAM ~530 MB, outbound ~66 KB/s in total (~53 kbit/s per player). Conclusion: a

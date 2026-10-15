@@ -176,7 +176,7 @@ defense equipment (weapons), active buffs, weekly numbers and an append-only log
 
 ## Balancing
 
-Simulator: `tools/sim_economia.py` with `tools/economia.json` (parameters marked "proposal"). Inputs: players per week,
+Simulator: `tools/sim_economy.py` with `tools/economia.json` (parameters marked "proposal"). Inputs: players per week,
 gathering per hour, dungeons, raw material bought by the city, list, tax, projects, attacks and reward. Output: coins
 created and destroyed per week, regular player income (target ~40,000 per week in ~10 h), treasury and governor band.
 

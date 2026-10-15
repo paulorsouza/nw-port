@@ -15,7 +15,7 @@ sound, HUD and network. Map: `L_SouthWindsward`. Tests: [tests/mounts.md](../tes
 
 `datatables/` = `extract/data/sharedassets/springboardentitites/datatables/`; `.adb` files in
 `extract/models/animations/mannequin/adb/`. A file that is not extracted:
-`python3 tools/pesado.py nwbt cat -g "$NW_GAME" <path>`.
+`python3 tools/heavy.py nwbt cat -g "$NW_GAME" <path>`.
 
 | What | Where |
 |---|---|
@@ -58,8 +58,8 @@ Open question: mounted acceleration.
 1. Survey, recorded in this file: table data, fragments and windows, actionlist rules. Show the plan to the
    maintainer before changing code.
 2. New set `tools/sets/mount_<type>.json` (models: `tools/sets/wolf.json` and `boar.json`). Rider montages with
-   prefix `AM_Mt_` in `tools/sets/player/montaria.json` (part of the player set). Conversion through the heavy-work
-   queue (`python3 tools/pesado.py python3 tools/build_set.py ...`).
+   prefix `AM_Mt_` in `tools/sets/player/mount.json` (part of the player set). Conversion through the heavy-work
+   queue (`python3 tools/heavy.py python3 tools/build_set.py ...`).
 3. C++: `UNWMountComponent` already exists on the character (`Mount`, empty). The mount itself is `ANWMount`
    (new). Mounted locomotion through `SetLocomotionOverride`, keys through `NW_REGISTER_INPUT`, test buttons through
    `NW_REGISTER_DEV`. Do not change `ANWCharacter` or `ABP_NW`.

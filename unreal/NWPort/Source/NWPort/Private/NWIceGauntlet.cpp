@@ -1,5 +1,5 @@
 // Ice Gauntlet (sub-area 1a): docs/game/weapons/ice-gauntlet.md.
-#include "NWArmaManopla.h"
+#include "NWIceGauntlet.h"
 #include "NWCharacter.h"
 #include "NWDevRegistry.h"
 #include "NWPlayerController.h"
@@ -19,7 +19,7 @@
 
 static const FName WeaponSkinName(TEXT("WeaponSkin"));
 
-void NWArmaManopla::AddWeaponSet(TArray<FNWWeaponSet>& Sets)
+void NWIceGauntlet::AddWeaponSet(TArray<FNWWeaponSet>& Sets)
 {
 	// 1hElementalGauntlet_IceT2..T5 (javelindata_itemdefinitions_weapons): damage 67 (×100/64), crit 9% ×1.3,
 	// stagger 43, block 43 / stability 30. Skinned glove (SkinOverride1, .skin on forearm and fingers) and palm
@@ -40,7 +40,7 @@ void NWArmaManopla::AddWeaponSet(TArray<FNWWeaponSet>& Sets)
 	Sets.Add(Ice);
 }
 
-void NWArmaManopla::ApplySkin(ANWCharacter* Character, const FNWWeaponSet& Set)
+void NWIceGauntlet::ApplySkin(ANWCharacter* Character, const FNWWeaponSet& Set)
 {
 	USkeletalMeshComponent* Body = Character ? Character->GetMesh() : nullptr;
 	if (!Body)

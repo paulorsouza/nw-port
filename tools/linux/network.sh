@@ -1,23 +1,27 @@
 #!/usr/bin/env bash
 # Clan network test on this PC (docs/tech/network-test.md): Postgres + nw-core + game server in Docker (project
-# nw-rede) and nw-core published by the Cloudflare Tunnel at https://$NW_REDE_HOST (local.env).
+# nw-rede) and nw-core published by the Cloudflare Tunnel at https://$NW_NETWORK_HOST (local.env).
 #
-#     tools/linux/rede.sh build     # server (source engine) + cooks Windsward + images; editor closed
-#     tools/linux/rede.sh tunnel    # once, after `cloudflared tunnel login`: creates the tunnel, $NW_REDE_HOST and the
+#     tools/linux/network.sh build     # server (source engine) + cooks Windsward + images; editor closed
+#     tools/linux/network.sh tunnel    # once, after `cloudflared tunnel login`: creates the tunnel, $NW_NETWORK_HOST and the
 #                             # private route to this PC (friends reach the game through WARP; the ISP uses CGNAT)
-#     tools/linux/rede.sh up        # starts everything and the tunnel
-#     tools/linux/rede.sh down      # stops everything (the database stays in the nw-rede_db volume)
-#     tools/linux/rede.sh invite    # creates an account invite (7 days)
-#     tools/linux/rede.sh admin <account> [--revoke]   # grants (or removes) the F10 test commands for the account
-#     tools/linux/rede.sh logs      # last lines of the game, nw-core and tunnel logs
-#     tools/linux/rede.sh status
+#     tools/linux/network.sh up        # starts everything and the tunnel
+#     tools/linux/network.sh down      # stops everything (the database stays in the nw-rede_db volume)
+#     tools/linux/network.sh invite    # creates an account invite (7 days)
+#     tools/linux/network.sh admin <account> [--revoke]   # grants (or removes) the F10 test commands for the account
+#     tools/linux/network.sh logs      # last lines of the game, nw-core and tunnel logs
+#     tools/linux/network.sh status
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SRC_ENGINE="${NW_UE_SOURCE:-}"
+# The tunnel, the Docker project (and its nw-rede_db volume) and Saved/Rede keep their first names: renaming them
+# would lose the existing tunnel and database.
 OUT="$ROOT/unreal/NWPort/Saved/Rede"
 TUNNEL=nw-rede
-HOST="${NW_REDE_HOST:?set NW_REDE_HOST (e.g. core.yourdomain.com) in local.env}"
+# NW_REDE_HOST: old name, still accepted.
+HOST="${NW_NETWORK_HOST:-${NW_REDE_HOST:-}}"
+[ -n "$HOST" ] || { echo "set NW_NETWORK_HOST (e.g. core.yourdomain.com) in local.env" >&2; exit 1; }
 LAN_IP="$(ip -4 route get 1.1.1.1 | grep -o 'src [0-9.]*' | cut -d' ' -f2)"
 mkdir -p "$OUT"
 tunnel_config() {
@@ -40,11 +44,11 @@ compose() { docker compose -p nw-rede --env-file "$ROOT/deploy/.env" -f "$ROOT/d
 case "${1:-status}" in
     build)
         [ -n "$SRC_ENGINE" ] || { echo "set NW_UE_SOURCE (engine 5.8.3 built from source) in local.env" >&2; exit 2; }
-        "$ROOT/tools/linux/pesado.sh" bash -c "cd '$SRC_ENGINE' && nice Engine/Build/BatchFiles/Linux/Build.sh NWPortServer Linux Development \
+        "$ROOT/tools/linux/heavy.sh" bash -c "cd '$SRC_ENGINE' && nice Engine/Build/BatchFiles/Linux/Build.sh NWPortServer Linux Development \
             -Project='$ROOT/unreal/NWPort/NWPort.uproject' -WaitMutex -MaxParallelActions=8" | tee "$OUT/server_build.log"
         grep -q "Result: Succeeded" "$OUT/server_build.log" || { echo "server did not compile (see $OUT/server_build.log)"; exit 1; }
-        "$ROOT/tools/linux/pesado.sh" "$ROOT/tools/linux/package_server.sh"
-        "$ROOT/tools/linux/pesado.sh" "$ROOT/deploy/build_images.sh"
+        "$ROOT/tools/linux/heavy.sh" "$ROOT/tools/linux/package_server.sh"
+        "$ROOT/tools/linux/heavy.sh" "$ROOT/deploy/build_images.sh"
         ;;
     tunnel)
         cloudflared tunnel list -o json | grep -q "\"name\":\"$TUNNEL\"" || cloudflared tunnel create "$TUNNEL"

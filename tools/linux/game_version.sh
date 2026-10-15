@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
-# Checks that the New World install is the team's build (tools/jogo.versao).
+# Checks that the New World install is the team's build (tools/game.version).
 #
-#     tools/linux/jogo_versao.sh [--exe]     # --exe also checks the sha256 of NewWorld.exe (reverse engineering)
+#     tools/linux/game_version.sh [--exe]     # --exe also checks the sha256 of NewWorld.exe (reverse engineering)
 #
-# Exits with an error if the build differs. NW_IGNORA_VERSAO=1 only warns (e.g. checking before the whole team updates).
+# Exits with an error if the build differs. NW_IGNORE_VERSION=1 only warns (e.g. checking before the whole team updates).
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GAME="${NW_GAME:-/mnt/jogos/Steam/steamapps/common/New World}"
-want_build=$(awk '$1 == "buildid" {print $2}' "$ROOT/tools/jogo.versao")
-want_sha=$(awk '$1 == "exe_sha256" {print $2}' "$ROOT/tools/jogo.versao")
+want_build=$(awk '$1 == "buildid" {print $2}' "$ROOT/tools/game.version")
+want_sha=$(awk '$1 == "exe_sha256" {print $2}' "$ROOT/tools/game.version")
 fail() {
     echo "game version: $*" >&2
-    [ -n "${NW_IGNORA_VERSAO:-}" ] && return 0
-    echo "Use the team's build (tools/jogo.versao) or coordinate the update with everyone." >&2
+    # NW_IGNORA_VERSAO: old name, still accepted.
+    [ -n "${NW_IGNORE_VERSION:-}${NW_IGNORA_VERSAO:-}" ] && return 0
+    echo "Use the team's build (tools/game.version) or coordinate the update with everyone." >&2
     exit 4
 }
 acf="$GAME/../../appmanifest_1063730.acf"

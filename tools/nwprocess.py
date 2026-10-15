@@ -60,11 +60,12 @@ def require_resources(paths=(), memory=0, disk=0):
 
 @contextlib.contextmanager
 def heavy_lock(path=None, poll=0.2):
-    # Same name/path as pesado.sh on Linux. Children inherit NW_PESADO=1.
-    if os.environ.get("NW_PESADO"):
+    # Same name/path as heavy.sh on Linux. Children inherit NW_HEAVY=1.
+    # NW_PESADO: old name, still accepted.
+    if os.environ.get("NW_HEAVY") or os.environ.get("NW_PESADO"):
         yield
         return
-    path = Path(path or Path(os.environ.get("XDG_RUNTIME_DIR", tempfile.gettempdir())) / "nw-pesado.lock")
+    path = Path(path or Path(os.environ.get("XDG_RUNTIME_DIR", tempfile.gettempdir())) / "nw-heavy.lock")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a+b", buffering=0) as stream:
         if nwplatform.WINDOWS:
@@ -93,18 +94,18 @@ def heavy_lock(path=None, poll=0.2):
                 if exc.errno not in (11, 13, 35, 36):
                     raise
                 if not announced:
-                    print(f"[pesado] waiting for another heavy job ({path})...", flush=True)
+                    print(f"[heavy] waiting for another heavy job ({path})...", flush=True)
                     announced = True
                 time.sleep(poll)
-        previous = os.environ.get("NW_PESADO")
-        os.environ["NW_PESADO"] = "1"
+        previous = os.environ.get("NW_HEAVY")
+        os.environ["NW_HEAVY"] = "1"
         try:
             yield
         finally:
             if previous is None:
-                os.environ.pop("NW_PESADO", None)
+                os.environ.pop("NW_HEAVY", None)
             else:
-                os.environ["NW_PESADO"] = previous
+                os.environ["NW_HEAVY"] = previous
             release()
 
 

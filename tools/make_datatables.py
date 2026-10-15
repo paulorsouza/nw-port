@@ -11,7 +11,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from armas_manopla import (ICEGAUNTLET_ABILITY_IDS, ICEGAUNTLET_ACTIONS, ICEGAUNTLET_EFFECTS,  # noqa: E402
+from ice_gauntlet_actions import (ICEGAUNTLET_ABILITY_IDS, ICEGAUNTLET_ACTIONS, ICEGAUNTLET_EFFECTS,  # noqa: E402
                            ICEGAUNTLET_SHAPES, ICEGAUNTLET_TRANSITIONS, ICEGAUNTLET_DAMAGE_OVERRIDES)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

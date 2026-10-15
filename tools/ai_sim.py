@@ -5,7 +5,7 @@ opening Unreal.
 
     python3 tools/ai_sim.py wolf Target_Dist=5 Has_Target=1
     python3 tools/ai_sim.py boar Has_Target=0 --cooldown CloseAttack
-    python3 tools/ai_sim.py wolf Target_Dist=10 --vezes 20      # UtilitySelector random draws
+    python3 tools/ai_sim.py wolf Target_Dist=10 --times 20      # UtilitySelector random draws
 """
 import argparse
 import collections
@@ -21,7 +21,8 @@ def main():
     ap.add_argument("set")
     ap.add_argument("bb", nargs="*", help="Key=value (numbers)")
     ap.add_argument("--cooldown", action="append", default=[], help="active cooldown")
-    ap.add_argument("--vezes", type=int, default=1)
+    ap.add_argument("--times", type=int, default=1)
+    ap.add_argument("--vezes", dest="times", type=int, help=argparse.SUPPRESS)  # old name, still accepted
     ap.add_argument("--tag", action="append", default=[], help="active Mannequin tag (e.g. Alerted)")
     ap.add_argument("--trace", action="store_true", help="show the node path to each task")
     a = ap.parse_args()
@@ -153,7 +154,7 @@ def main():
         return [f"{t} {n['n']} {p.get('cooldownname', '') or p.get('factname', '')}"], u
 
     counts = collections.Counter()
-    for _ in range(a.vezes):
+    for _ in range(a.times):
         r = ev(d["tree"])
         counts[" | ".join(r[0]) if r else "(nothing evaluates)"] += 1
     for plan, c in counts.most_common():

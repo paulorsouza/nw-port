@@ -57,14 +57,15 @@ def main():
     parser.add_argument("--game", type=Path, default=Path(nwplatform.game_directory()))
     args = parser.parse_args()
     try:
-        errors = check_version(args.game.resolve(), nwplatform.ROOT / "tools/jogo.versao", args.exe)
+        errors = check_version(args.game.resolve(), nwplatform.ROOT / "tools/game.version", args.exe)
     except (OSError, ValueError) as exc:
         print(f"game version: {exc}", file=sys.stderr)
         return 4
     for error in errors:
         print(f"game version: {error}", file=sys.stderr)
-    if errors and not os.environ.get("NW_IGNORA_VERSAO"):
-        print("Use the team build (tools/jogo.versao) or agree on the update with everyone.", file=sys.stderr)
+    # NW_IGNORA_VERSAO: old name, still accepted.
+    if errors and not (os.environ.get("NW_IGNORE_VERSION") or os.environ.get("NW_IGNORA_VERSAO")):
+        print("Use the team build (tools/game.version) or agree on the update with everyone.", file=sys.stderr)
         return 4
     return 0
 

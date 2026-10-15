@@ -5,7 +5,7 @@ For each fragment (Idle, Sprint, Attack_Primary...) picks the most specific
 variant whose tags are all active, as Mannequin does, and resolves the layers'
 animation names to game files (.caf, .bspace, .comb).
 
-usage: adb_resolve.py <paths.txt> <adb>... --tags 1H_Melee,Shield_OH,Offhand [--json saida.json]
+usage: adb_resolve.py <paths.txt> <adb>... --tags 1H_Melee,Shield_OH,Offhand [--json out.json]
 """
 import argparse
 import json

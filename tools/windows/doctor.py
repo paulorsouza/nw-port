@@ -42,8 +42,8 @@ def main():
     if checks["nwbt"]:
         checks["nwbt of the current patch"], notes["nwbt of the current patch"] = build_nwbt.check_binary()
         if args.full and checks["New World assets"]:
-            # Converts a cube from the game via "@lista" (loads the paks, ~20 s).
-            checks["nwbt @lista"], notes["nwbt @lista"] = build_nwbt.test_argfile()
+            # Converts a cube from the game via "@list" (loads the paks, ~20 s).
+            checks["nwbt @list"], notes["nwbt @list"] = build_nwbt.test_argfile()
     print("NW_GAME:", nwplatform.game_directory())
     for name, ok in checks.items():
         print(("OK     " if ok else "MISSING"), name, ("- " + notes[name]) if name in notes and not ok else "")

@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 UPROJ = ROOT / "unreal" / "NWPort"
 SAVED = UPROJ / "Saved"
 EXTRACT = Path(os.environ.get("NW_EXTRACT") or ROOT / "extract")
-ETAPAS = EXTRACT / ".etapas"
+MARKERS = EXTRACT / ".etapas"
 STATE = SAVED / "assets_state.json"
 HASHCACHE = SAVED / "assets_hashcache.json"
 BACKUP = SAVED / "assets_backup"
@@ -73,7 +73,7 @@ def ue_version():
 
 
 def game_build():
-    for line in (ROOT / "tools" / "jogo.versao").read_text(encoding="utf-8").splitlines():
+    for line in (ROOT / "tools" / "game.version").read_text(encoding="utf-8").splitlines():
         p = line.split()
         if len(p) == 2 and p[0] == "buildid":
             return p[1]
@@ -91,18 +91,19 @@ _lock = None
 
 
 def preflight():
-    """Editor closed; on Linux joins the tools/linux/pesado.sh queue and holds it until the end."""
+    """Editor closed; on Linux joins the tools/linux/heavy.sh queue and holds it until the end."""
     global _lock
     if editor_open():
         die("The editor is open: close it first.", 3)
-    if WINDOWS or os.environ.get("NW_PESADO"):
+    # NW_PESADO: old name, still accepted.
+    if WINDOWS or os.environ.get("NW_HEAVY") or os.environ.get("NW_PESADO"):
         return
     import fcntl
-    _lock = open(Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "nw-pesado.lock", "w")
+    _lock = open(Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "nw-heavy.lock", "w")
     try:
         fcntl.flock(_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        die("A heavy job is running (tools/linux/pesado.sh): wait for it to finish.", 3)
+        die("A heavy job is running (tools/linux/heavy.sh): wait for it to finish.", 3)
 
 
 def read_json(path, default):
@@ -244,6 +245,7 @@ def fingerprint(rels, files, hasher):
 
 
 def zip_name(path, deep, fp):
+    # "__soltos" ("loose files") is kept: it is part of the names of the zips already published.
     return path.replace("/", "__") + ("" if deep else "__soltos") + f"-{fp[:12]}.zip"
 
 
@@ -266,8 +268,8 @@ def check_names(rels):
         die(f"{len(errors)} name(s) will not work on Windows/OneDrive: fix them first.")
 
 
-def etapas_markers():
-    return sorted(p.name for p in ETAPAS.glob("ue_*.ok")) if ETAPAS.exists() else None
+def ue_markers():
+    return sorted(p.name for p in MARKERS.glob("ue_*.ok")) if MARKERS.exists() else None
 
 
 def ask(question, yes):

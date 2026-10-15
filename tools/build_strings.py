@@ -2,8 +2,8 @@
 
     python3 tools/build_strings.py
 
-Merges the files in tools/strings/ (one per area, docs/workflow.md): "textos" (ours, pt-br and en-us) and
-"chaves_do_jogo" (game strings the C++ uses directly, read from extract/loc/localization/<language>). The same string
+Merges the files in tools/strings/ (one per area, docs/workflow.md): "texts" (ours, pt-br and en-us) and
+"game_keys" (game strings the C++ uses directly, read from extract/loc/localization/<language>). The same string
 key in two files is an error. Writes unreal/NWPort/Data/UI/nw_strings.json: {key: {"pt-br": ..., "en-us": ...}}.
 """
 import json
@@ -32,12 +32,13 @@ def load_strings():
         if not name.endswith(".json"):
             continue
         d = json.load(open(os.path.join(STRINGS, name)))
-        for k, v in d.get("textos", {}).items():
+        # "textos" and "chaves_do_jogo": old key names, still accepted.
+        for k, v in [*d.get("texts", {}).items(), *d.get("textos", {}).items()]:
             if k in owner:
                 raise SystemExit(f"string {k} in {owner[k]} and {name}")
             owner[k] = name
             out[k] = v
-        keys += [k for k in d.get("chaves_do_jogo", []) if k not in keys]
+        keys += [k for k in [*d.get("game_keys", []), *d.get("chaves_do_jogo", [])] if k not in keys]
     return out, keys
 
 

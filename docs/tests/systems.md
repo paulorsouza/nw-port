@@ -139,12 +139,12 @@ Testing with the backend: [tech/backend-testing.md](../tech/backend-testing.md).
 
 ## Recorded operations
 
-84. Play, store and withdraw from storage, craft an item, stop Play. `tools/item_log.py --personagem Exilado`: each action shows with the reason (storage, craft:<recipe>), the location (bag, storage:<tab>) and the +/− quantity.
+84. Play, store and withdraw from storage, craft an item, stop Play. `tools/item_log.py --character Exilado`: each action shows with the reason (storage, craft:<recipe>), the location (bag, storage:<tab>) and the +/− quantity.
 85. Stand still 10 s in Play: the log gets no new lines (the periodic save writes only the difference).
 86. Stop Play right after dropping an item on the ground (before 5 s): on return, the item is neither in the bag nor on the ground (the ground was not saved before stage 2; see test 89); the log shows the bag removal with the save reason.
-87. Editor Play: F10 opens and its buttons work; each use shows in `tools/item_log.py --personagem Exilado` with the reason `dev:<command>` (when it changes items or coins).
-88. Network test with an account without admin: F10 does not open; after `tools/linux/rede.sh admin <account>` and logging in again, it opens.
-89. Drop an item on the ground, stop Play and Play again: the sack is in the same place, with the items and the time left; picking up returns them to the bag. `tools/item_log.py --personagem Exilado`: `drop` (bag −, ground:<sack> +) and `ground_take` (ground −, bag +).
+87. Editor Play: F10 opens and its buttons work; each use shows in `tools/item_log.py --character Exilado` with the reason `dev:<command>` (when it changes items or coins).
+88. Network test with an account without admin: F10 does not open; after `tools/linux/network.sh admin <account>` and logging in again, it opens.
+89. Drop an item on the ground, stop Play and Play again: the sack is in the same place, with the items and the time left; picking up returns them to the bag. `tools/item_log.py --character Exilado`: `drop` (bag −, ground:<sack> +) and `ground_take` (ground −, bag +).
 90. Drop and wait the 3 minutes with Play running: the sack disappears; stop and come back: it does not return (log: `ground_expired`).
 91. With nw-core turned off in the middle of Play (`tools/linux/backend_dev.sh down`): crafting, storing and dropping show "Could not save; nothing changed" and nothing leaves the bag; turn it on again (`tools/linux/backend_dev.sh`) and repeat: it works.
 92. Craft with a full bag: the item goes to a sack on the ground, which comes back after stopping and pressing Play again.
@@ -163,7 +163,7 @@ Testing with the backend: [tech/backend-testing.md](../tech/backend-testing.md).
 102. Filters: tier, rarity, minimum GS, attribute, perk and Can Afford narrow the list; Clear All resets; clicking a column title sorts.
 103. Refusal: sell with nw-core off (`tools/linux/backend_dev.sh down`): the row shows, goes away and the item returns to the list with the row flashing red and the message.
 104. Create 50 orders: the sell button is dimmed at the 50th.
-105. `tools/item_log.py --personagem Exilado`: `market_post_sell`, `market_buy` and `market_credit` with the item and coins of each action.
+105. `tools/item_log.py --character Exilado`: `market_post_sell`, `market_buy` and `market_credit` with the item and coins of each action.
 
 ## City governance
 
@@ -177,7 +177,7 @@ Rules: [game/economy.md](../game/economy.md).
 111. Stations: with material in stock (sold to the city), Upgrade the Smelter: level 1. Buff +10% trade XP at the Smelter: shows under Town; refining at the Smelter gives more XP.
 112. Craft at a station with a level: GS and minimum quality slightly higher; coins drop by the cost + the city tax, and the treasury rises by the tax.
 113. Defense: Buy Weapon adds a weapon and subtracts it from the treasury.
-114. `tools/item_log.py --personagem Exilado`: `city_sell:*`, `city_buy:*`, `city_buy_city` with items and coins.
+114. `tools/item_log.py --character Exilado`: `city_sell:*`, `city_buy:*`, `city_buy_city` with items and coins.
 115. An NPC's weekly gift: besides the material, 200 to 400 coins.
 116. Government, as governor after the grace period (or with an old `owner_since` in the database): starting bid and Start Auction: "Auction" shows, ending in 24 h; with no bid, Cancel Auction.
 117. With another account (`tools/linux/net_test.sh`): Place Bid at the minimum: coins drop; another account outbids: the first gets the bid back (credit when opening the board). At the end (or `POST /internal/cities/advance` with `now` 25 h later), the highest bidder becomes governor and the old one receives the bid minus 10%.

@@ -1,6 +1,6 @@
 {
   "_comment": "General-purpose texts (dev menu, Esc menu, settings, shortcuts). Shared: keep changes minimal.",
-  "textos": {
+  "texts": {
     "nw.dev.title": {
       "pt-br": "Dev",
       "en-us": "Dev"
@@ -174,7 +174,7 @@
       "en-us": "Workstreams"
     }
   },
-  "chaves_do_jogo": [
+  "game_keys": [
     "ui_cancel",
     "ui_back",
     "ui_confirm",

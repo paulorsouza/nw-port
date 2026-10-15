@@ -1,5 +1,5 @@
 {
- "_comment": "Item and trade skill rules of the port (docs/game/items.md, docs/game/crafting.md). Numbers marked as provisional in docs/game/items.md 'Open questions' are balancing values and may change. tools/make_itens.py generates unreal/NWPort/Data/Items/regras_itens.json.",
+ "_comment": "Item and trade skill rules of the port (docs/game/items.md, docs/game/crafting.md). Numbers marked as provisional in docs/game/items.md 'Open questions' are balancing values and may change. tools/make_port_items.py generates unreal/NWPort/Data/Items/regras_itens.json.",
  "nivel_fabricar": 50,
  "assinatura_qualidade": 80,
  "qualidade_min_oficio_max": 20,

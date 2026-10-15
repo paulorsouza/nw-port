@@ -114,7 +114,7 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Stowed->SetupAttachment(Body, TEXT("Hips"));
 	Stowed->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	// Player weapons (NWCharacterArmas.cpp, weapons area).
+	// Player weapons (NWCharacterWeapons.cpp, weapons area).
 	AddPlayerWeaponSets();
 
 	Combat = CreateDefaultSubobject<UNWCombatComponent>(TEXT("Combat"));

@@ -16,7 +16,7 @@ Status: draft. The rules below wait for maintainer approval before they apply to
 | `tools/linux/` | Linux system scripts (extraction, Unreal import, local backend, server packaging, network test). |
 | `tools/windows/` | Windows-only scripts (diagnostics, `ooz.dll` and `nwbt.exe` builds). See [windows.md](windows.md). |
 | `tools/ue/` | Scripts that run inside Unreal. |
-| `tools/etapas/` | Extra pipeline steps per area ([tools/etapas/README.md](../../tools/etapas/README.md)). |
+| `tools/steps/` | Extra pipeline steps per area ([tools/steps/README.md](../../tools/steps/README.md)). |
 | `tools/sets/` | Animation and mesh sets per character; the player set is split per area (`tools/sets/player/`). |
 | `backend/` | nw-core: Rust (axum + sqlx) and Postgres ([backend/README.md](../../backend/README.md)). |
 | `deploy/` | Docker for the dedicated server and the backend (`compose.yaml`, `compose.rede.yaml`, `Dockerfile.gameserver`, `build_images.sh`). Packaged server output goes to `deploy/build/`. |
@@ -142,10 +142,10 @@ Rounds: 50, 100, 200, 500 simulated + 20 bots, in Everfall (`L_QuedaEterna`) and
 Headless server, no nw-core, through the heavy-work queue, with the editor and New World closed:
 
 ```bash
-tools/linux/pesado.sh timeout -s INT 90 /mnt/jogos/UnrealEngine/5.8/Engine/Binaries/Linux/UnrealEditor \
+tools/linux/heavy.sh timeout -s INT 90 /mnt/jogos/UnrealEngine/5.8/Engine/Binaries/Linux/UnrealEditor \
   "$PWD/unreal/NWPort/NWPort.uproject" /Game/NW/Maps/L_QuedaEterna -server -nullrhi -unattended -nosplash \
   -nwperf -nwsim=100 -nwsimraio=300 -nwcsv=300 -abslog="$PWD/unreal/NWPort/Saved/Perf/sim.log"
-python3 tools/perf_csv.py --filtro Exclusive/GameThread
+python3 tools/perf_csv.py --filter Exclusive/GameThread
 ```
 
 The engine path is an example; use your own. Packaged server (`tools/linux/package_server.sh`, Development):

@@ -7,7 +7,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 # UAT's MSBuild leaves nodes alive for reuse, and they inherit the heavy-job queue lock
-# (tools/linux/pesado.sh): the queue stayed stuck after packaging.
+# (tools/linux/heavy.sh): the queue stayed stuck after packaging.
 export MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 uproject="$root/unreal/NWPort/NWPort.uproject"

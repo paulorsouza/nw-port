@@ -1,9 +1,9 @@
 """Builds nwbt and dbgwater (Linux and Windows) from the fork + patches/nwbt.patch, and checks the binary.
 
-    python3 tools/pesado.py python3 tools/build_nwbt.py [--source DIR] [--go GO] [--test]
-    python3 tools/build_nwbt.py --conferir        # was bin/nwbt built with this checkout's patch?
-    python3 tools/build_nwbt.py --teste-lista     # converts a game cube via "@lista" (loads the paks)
-    python3 tools/build_nwbt.py --versao          # version the binary must have
+    python3 tools/heavy.py python3 tools/build_nwbt.py [--source DIR] [--go GO] [--test]
+    python3 tools/build_nwbt.py --check             # was bin/nwbt built with this checkout's patch?
+    python3 tools/build_nwbt.py --test-argfile      # converts a game cube via "@list" (loads the paks)
+    python3 tools/build_nwbt.py --expected-version  # version the binary must have
 
 On Windows use "python" instead of "python3". The fork checkout (vendor/nw-buddy or NW_BUDDY) is not changed:
 commit BASE goes to .nwbt/build/src with LF line endings, the patch is applied there and the binary gets the version
@@ -31,7 +31,7 @@ PATCH = ROOT / "patches/nwbt.patch"
 BASE = "5e2c7e195f05975b73e4dbc3399d60a815133ed8"
 FORK = "https://github.com/paulorsouza/nw-buddy.git"
 BUILD = ROOT / ".nwbt/build"
-# Minimal game mesh for the "@lista" test.
+# Minimal game mesh for the "@list" test.
 TEST_MESH = "engineassets/objects/default/primitive_cube.cgf"
 
 
@@ -73,22 +73,22 @@ def test_argfile(exe=None, game=None):
     exe = exe or nwplatform.executable("nwbt")
     game = game or nwplatform.game_directory()
     if not (Path(game) / "assets").is_dir():
-        return None, f"game not found at {game}: @lista test skipped"
+        return None, f"game not found at {game}: @list test skipped"
     work = ROOT / ".nwbt/check"
     shutil.rmtree(work, ignore_errors=True)
     out = work / "glb"
     out.mkdir(parents=True)
-    lista = work / "lista.txt"
-    lista.write_text(TEST_MESH + "\n", encoding="utf-8", newline="\n")
+    argfile = work / "list.txt"
+    argfile.write_text(TEST_MESH + "\n", encoding="utf-8", newline="\n")
     start = time.time()
-    r = subprocess.run([exe, "models", "files", "-g", game, "-o", str(out), "--binary", "-w", "1", "@" + str(lista)],
+    r = subprocess.run([exe, "models", "files", "-g", game, "-o", str(out), "--binary", "-w", "1", "@" + str(argfile)],
                        capture_output=True, text=True, cwd=ROOT, env=nwplatform.environment())
     glbs = [p for p in out.rglob("*.glb") if p.stat().st_size > 0 and p.stat().st_mtime >= start - 1]
     if r.returncode != 0:
-        return False, f"nwbt models files @lista exited with {r.returncode}: {(r.stderr or r.stdout).strip()[-300:]}"
+        return False, f"nwbt models files @list exited with {r.returncode}: {(r.stderr or r.stdout).strip()[-300:]}"
     if not glbs:
-        return False, "nwbt models files @lista exited 0 without writing anything (binary without @lista support?)"
-    return True, f"nwbt converts via @lista ({glbs[0].name})"
+        return False, "nwbt models files @list exited 0 without writing anything (binary without @list support?)"
+    return True, f"nwbt converts via @list ({glbs[0].name})"
 
 
 def go_executable(explicit):
@@ -126,7 +126,7 @@ def write_patch():
     """Writes patches/nwbt.patch from .nwbt/build/src (the current patch header is kept)."""
     src = BUILD / "src"
     if not (src / ".git").is_dir():
-        raise SystemExit("no .nwbt/build/src: run the build once (or --preparar)")
+        raise SystemExit("no .nwbt/build/src: run the build once (or --prepare)")
     PATCH.write_bytes(patch_header().encode("utf-8") + src_diff(src))
     print(f"{PATCH.relative_to(ROOT)}: {expected_version()}")
 
@@ -140,7 +140,7 @@ def prepare_source(source):
         git("-C", str(source), "fetch", "origin", "nw-port")
     src = BUILD / "src"
     if (src / ".git").is_dir() and src_diff(src) != patch_text()[len(patch_header().encode("utf-8")):]:
-        raise SystemExit(f"{src} has changes outside patches/nwbt.patch: write the patch (--gerar-patch) "
+        raise SystemExit(f"{src} has changes outside patches/nwbt.patch: write the patch (--make-patch) "
                          "or delete the folder")
     shutil.rmtree(src, ignore_errors=True)
     src.mkdir(parents=True)
@@ -203,28 +203,32 @@ def main():
     ap.add_argument("--source", help="fork checkout (default NW_BUDDY or vendor/nw-buddy)")
     ap.add_argument("--go", help="Go executable (default NW_GO, go in PATH or ~/.local/go)")
     ap.add_argument("--test", action="store_true", help="run the patch's Go tests after building")
-    ap.add_argument("--conferir", action="store_true", help="only check the bin/nwbt version")
-    ap.add_argument("--teste-lista", action="store_true", help="only test conversion via @lista (needs the game)")
-    ap.add_argument("--versao", action="store_true", help="only show the expected version")
-    ap.add_argument("--preparar", action="store_true", help="only set up .nwbt/build/src (base + patch) for editing")
-    ap.add_argument("--gerar-patch", action="store_true", help="write patches/nwbt.patch from .nwbt/build/src")
+    ap.add_argument("--check", action="store_true", help="only check the bin/nwbt version")
+    ap.add_argument("--test-argfile", action="store_true", help="only test conversion via @list (needs the game)")
+    ap.add_argument("--expected-version", action="store_true", help="only show the expected version")
+    ap.add_argument("--prepare", action="store_true", help="only set up .nwbt/build/src (base + patch) for editing")
+    ap.add_argument("--make-patch", action="store_true", help="write patches/nwbt.patch from .nwbt/build/src")
+    # Old spellings, still accepted (hidden from --help).
+    for old, dest in (("--conferir", "check"), ("--teste-lista", "test_argfile"), ("--versao", "expected_version"),
+                      ("--preparar", "prepare"), ("--gerar-patch", "make_patch")):
+        ap.add_argument(old, dest=dest, action="store_true", help=argparse.SUPPRESS)
     args = ap.parse_args()
-    if args.gerar_patch:
+    if args.make_patch:
         write_patch()
         return 0
-    if args.preparar:
+    if args.prepare:
         print(prepare_source(Path(args.source or os.environ.get("NW_BUDDY") or ROOT / "vendor/nw-buddy").resolve()))
         return 0
-    if args.versao:
+    if args.expected_version:
         print(expected_version())
         return 0
-    if args.conferir or args.teste_lista:
+    if args.check or args.test_argfile:
         code = 0
-        if args.conferir:
+        if args.check:
             ok, msg = check_binary()
             print(("ok    " if ok else "FAIL  ") + msg)
             code |= not ok
-        if args.teste_lista:
+        if args.test_argfile:
             ok, msg = test_argfile()
             print({True: "ok    ", False: "FAIL  ", None: "warn  "}[ok] + msg)
             code |= ok is False

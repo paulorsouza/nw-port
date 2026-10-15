@@ -9,10 +9,13 @@ the main scripts:
 Inside the file, one line per step: `step <area>-NN "description" command [args]`. In `ue_import_all.sh`,
 `py <log> <script> <args>` runs a script inside Unreal.
 
-Run a single step: `tools/linux/ue_import_all.sh montarias-01`.
+Run a single step: `tools/linux/ue_import_all.sh mounts-01`.
 
-Helper functions carry the area prefix (`montarias_cavalo() { ... }`) so they do not collide with other areas'
+Helper functions carry the area prefix (`mounts_horse() { ... }`) so they do not collide with other areas'
 functions.
+
+Exception: `systems.*.sh` keeps the step IDs `sistemas-NN`, because they name the markers already written to
+`extract/.etapas`.
 
 The Windows orchestrator (`tools/build_all.py`) includes these steps and stops with an explicit error on an area step
 it does not know ([docs/tech/windows.md](../../docs/tech/windows.md)).

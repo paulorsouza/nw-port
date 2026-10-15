@@ -14,11 +14,11 @@ attempt that must not be repeated: [notes/world.md](../notes/world.md).
   `nw-re` agent) before it becomes code.
 - Each choice (convert or Unreal feature) is measured at one point (the Everfall church) against a screenshot of the
   original game, with `stat gpu` and VRAM, before it goes to the whole city.
-- Lights and volumes enter the map by script in `tools/ue/`, in a step `iluminacao-NN` (`tools/etapas/iluminacao.*`).
+- Lights and volumes enter the map by script in `tools/ue/`, in a step `lighting-NN` (`tools/steps/lighting.*`).
   Never by hand in the editor.
 - The maps are shared with the systems area (Everfall) and with gathering and mounts (Windsward). Lighting actors
   go only in their own folder (`Iluminacao/`); do not touch the others.
-- The lighting area owns `tools/etapas/iluminacao.*`, `tools/ue/city_exposure.py` (it came from the systems area),
+- The lighting area owns `tools/steps/lighting.*`, `tools/ue/city_exposure.py` (it came from the systems area),
   the light scripts in `tools/ue/` and the `sliceLight` change in the nwbt patch ([workflow.md](../workflow.md)).
 - Show the plan to the maintainer before changing project configuration (`DefaultEngine.ini` is shared).
 - Start with the survey: send the questions below to reverse engineering, list the fixed points where the

@@ -42,9 +42,9 @@ Sub-areas run in parallel with the main weapons area, one weapon each:
   damagetable. Open questions to ask from the start: `HoldTimeRequired`, the `SingleActivation*` locks, where the
   named conditions live.
 
-A sub-area owns its weapon's files: `NWArma<Nome>.cpp`/`.h`, `tools/sets/player/armas_<arma>.json` (added to `parts`
+A sub-area owns its weapon's files: `NWArma<Nome>.cpp`/`.h`, `tools/sets/player/weapons_<weapon>.json` (added to `parts`
 of `tools/sets/sword_shield.json`, minimal change), the weapon spec and the weapon test file. Commit prefix:
-`armas(<arma>):`. Files shared by all weapons (`NWCombatComponent`, `NWCharacterArmas.cpp`, `NWProjectile`,
+`armas(<arma>):`. Files shared by all weapons (`NWCombatComponent`, `NWCharacterWeapons.cpp`, `NWProjectile`,
 `make_abilities.py`, Weapon Mastery) get a minimal change, described in the report, with notice to the main weapons
 area. A new shared mechanic (for example mana) is born in a new component or file. `build_set.py` builds the whole
 player set, so whoever runs it also picks up the other sub-areas' changes; agree on it before running. Area and

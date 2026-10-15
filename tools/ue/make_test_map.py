@@ -162,10 +162,10 @@ if walls:
     ex, ey = hi.x - lo.x, hi.y - lo.y
     yaw = 0.0 if ex >= ey else 90.0
     half_long, half_short = max(ex, ey) * 0.5 * 0.86, min(ex, ey) * 0.5 * 0.82
-    muros = place("legion_arena_walls_a", (0, 0, 0), yaw, label="Muros")
+    walls_actor = place("legion_arena_walls_a", (0, 0, 0), yaw, label="Muros")
     # The stands share the walls' frame (base 12.6 m below the ground): same height, not resting on the ground.
     # Resting on it, they rose 12.6 m and the awnings hung in the sky, casting shadow on the arena (2026-10-12).
-    place("legion_arena_seating_01", (0, 0, muros.get_actor_location().z if muros else 0), yaw, label="Arquibancada", ground=False)
+    place("legion_arena_seating_01", (0, 0, walls_actor.get_actor_location().z if walls_actor else 0), yaw, label="Arquibancada", ground=False)
 L, W = half_long, half_short
 unreal.log(f"arena: half length {L / 100:.1f} m, half width {W / 100:.1f} m")
 

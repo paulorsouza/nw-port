@@ -1,6 +1,6 @@
 """Removes from an nwbt glb the primitives the game does not draw.
 
-    python3 tools/glb_strip_nodraw.py <input.glb> <output.glb> [--sem-atributos]
+    python3 tools/glb_strip_nodraw.py <input.glb> <output.glb> [--no-attributes]
 
 nwbt keeps NoDraw materials (collision/blocking volumes, e.g. green "NoCollide", red "COL8") and
 effects (geometryfog, geometrybeam, meshparticle) with opacity 0.1; the UE importer ignores opacity
@@ -16,9 +16,9 @@ MTL_FLAG_NODRAW = 0x0400
 HIDDEN_SHADERS = {"nodraw", "geometryfog", "geometrybeam", "geometrybeamsimple", "meshparticle"}
 
 
-# --sem-atributos: also drops materials with no game attributes (empty EXT_nw_mtl). In gatherables these are the
+# --no-attributes: also drops materials with no game attributes (empty EXT_nw_mtl). In gatherables these are the
 # collision meshes ("coll", "collision", "NoCollide1"...), which the importer drew as grey blocks.
-NO_ATTRS = "--sem-atributos" in sys.argv
+NO_ATTRS = "--no-attributes" in sys.argv or "--sem-atributos" in sys.argv  # --sem-atributos: old name, still accepted
 
 
 def hidden(mat):

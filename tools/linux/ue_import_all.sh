@@ -12,7 +12,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Heavy-job queue (several sessions on the same machine; docs/workflow.md).
-[ -n "${NW_PESADO:-}" ] || exec "$ROOT/tools/linux/pesado.sh" "$ROOT/tools/linux/$(basename "$0")" "$@"
+# NW_PESADO: old name, still accepted.
+[ -n "${NW_HEAVY:-}${NW_PESADO:-}" ] || exec "$ROOT/tools/linux/heavy.sh" "$ROOT/tools/linux/$(basename "$0")" "$@"
 cd "$ROOT"
 UE_DIR="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}"
 UE="$UE_DIR/Engine/Binaries/Linux/UnrealEditor-Cmd"
@@ -108,8 +109,8 @@ step 11 "map optimization (distances, shadows, lights)" py optimize "$ROOT/tools
 step 09 "interface textures" py ui "$ROOT/tools/ue/import_ui.py"
 step 10 "background sounds" py audio "$ROOT/tools/ue/import_audio.py"
 step 12 "creatures (boar, wolf) and creature ABP" creatures
-# Area steps (docs/workflow.md): tools/etapas/<area>.ue.sh calls `step <area>-NN "description" command`.
-for f in "$ROOT"/tools/etapas/*.ue.sh; do
+# Area steps (docs/workflow.md): tools/steps/<area>.ue.sh calls `step <area>-NN "description" command`.
+for f in "$ROOT"/tools/steps/*.ue.sh; do
     # shellcheck disable=SC1090
     [ -e "$f" ] && source "$f"
 done

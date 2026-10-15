@@ -17,7 +17,7 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from assets_common import (BACKUP, DEFAULT_DIR, ETAPAS, UPROJ, Hasher, ask, bundle_of, die, fingerprint,  # noqa: E402
+from assets_common import (BACKUP, DEFAULT_DIR, MARKERS, UPROJ, Hasher, ask, bundle_of, die, fingerprint,  # noqa: E402
                            game_build, git, preflight, prune_backups, read_state, remove_empty_dirs, scan,
                            sha256_file, stamp, ue_version, write_state)
 
@@ -82,7 +82,7 @@ def main():
         if m["ue_version"] != ue:
             die(f"The zips are from Unreal {m['ue_version']}, this machine uses {ue}.")
         if m["game_build"] != game_build():
-            die(f"The zips are from game build {m['game_build']}; tools/jogo.versao here says {game_build()}.")
+            die(f"The zips are from game build {m['game_build']}; tools/game.version here says {game_build()}.")
         c = m["git_commit"]
         if git("cat-file", "-e", f"{c}^{{commit}}", check=False).returncode != 0:
             die(f"Commit {c[:9]} does not exist here: git pull first.")
@@ -108,12 +108,12 @@ def main():
         print(f"  {p}{'' if e['deep'] else ' (loose)'}: {len(local[p])} → {e['files']} files")
     if orphans:
         print(f"  {len(orphans)} file(s) here not in the publication (they go to the backup), e.g.: {orphans[0]}")
-    want = set(m["etapas"]) if m.get("etapas") is not None else None
-    have = {p.name for p in ETAPAS.glob("ue_*.ok")} if ETAPAS.exists() else set()
-    etapas_diff = want is not None and want != have
-    if etapas_diff:
+    want = set(m["etapas"]) if m.get("etapas") is not None else None  # manifest key kept: older publications use it
+    have = {p.name for p in MARKERS.glob("ue_*.ok")} if MARKERS.exists() else set()
+    markers_differ = want is not None and want != have
+    if markers_differ:
         print(f"  import markers: {len(want - have)} new, {len(have - want)} to remove")
-    if not changed and not orphans and not etapas_diff:
+    if not changed and not orphans and not markers_differ:
         print("Already matches the publication.")
         if not a.check:
             write_state(m)
@@ -150,12 +150,12 @@ def main():
     for rel in orphans:
         move_to_backup(rel, bdir)
     remove_empty_dirs(orphans + [r for p in changed for r in local[p]])
-    if etapas_diff:
-        ETAPAS.mkdir(parents=True, exist_ok=True)
+    if markers_differ:
+        MARKERS.mkdir(parents=True, exist_ok=True)
         for n in have - want:
-            (ETAPAS / n).unlink()
+            (MARKERS / n).unlink()
         for n in want - have:
-            (ETAPAS / n).touch()
+            (MARKERS / n).touch()
     write_state(m)
     if bdir.exists():
         print(f"What was replaced or removed here is in {bdir}.")

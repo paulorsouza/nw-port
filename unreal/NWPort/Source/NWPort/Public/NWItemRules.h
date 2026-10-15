@@ -5,7 +5,7 @@
 
 /**
  * Item and trade skill rules of the port (docs/game/items.md, docs/game/crafting.md), in Data/Items/regras_itens.json
- * (tools/make_itens.py from tools/itens.json and tools/perks_decisoes.json).
+ * (tools/make_port_items.py from tools/itens.json and tools/perks_decisoes.json).
  */
 class NWPORT_API FNWItemRules
 {

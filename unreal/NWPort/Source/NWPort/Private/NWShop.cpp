@@ -28,12 +28,12 @@ void FNWShops::Load()
 		UE_LOG(LogTemp, Warning, TEXT("Shops: could not read %s"), *File);
 		return;
 	}
-	const TSharedPtr<FJsonObject>* Lojas = nullptr;
-	if (!Root->TryGetObjectField(TEXT("lojas"), Lojas))
+	const TSharedPtr<FJsonObject>* ShopsJson = nullptr;
+	if (!Root->TryGetObjectField(TEXT("lojas"), ShopsJson))
 	{
 		return;
 	}
-	for (const auto& Pair : (*Lojas)->Values)
+	for (const auto& Pair : (*ShopsJson)->Values)
 	{
 		const TSharedPtr<FJsonObject> L = Pair.Value->AsObject();
 		if (!L.IsValid())
@@ -44,10 +44,10 @@ void FNWShops::Load()
 		S.Id = *Pair.Key;
 		L->TryGetStringField(TEXT("cidade"), S.City);
 		L->TryGetStringField(TEXT("npc"), S.Npc);
-		const TArray<TSharedPtr<FJsonValue>>* Itens = nullptr;
-		if (L->TryGetArrayField(TEXT("itens"), Itens))
+		const TArray<TSharedPtr<FJsonValue>>* ItemsJson = nullptr;
+		if (L->TryGetArrayField(TEXT("itens"), ItemsJson))
 		{
-			for (const TSharedPtr<FJsonValue>& V : *Itens)
+			for (const TSharedPtr<FJsonValue>& V : *ItemsJson)
 			{
 				const TSharedPtr<FJsonObject> I = V->AsObject();
 				FNWShopItem& It = S.Items.AddDefaulted_GetRef();

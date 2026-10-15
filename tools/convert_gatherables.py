@@ -53,7 +53,7 @@ def convert(list_path, output, game, dry_run=False):
         src = raw / (mesh + ".glb")
         dst = clean / (PurePosixPath(mesh).stem + ".glb")
         if dry_run:
-            nwprocess.run([sys.executable, "tools/glb_strip_nodraw.py", src, dst, "--sem-atributos"], dry_run=True)
+            nwprocess.run([sys.executable, "tools/glb_strip_nodraw.py", src, dst, "--no-attributes"], dry_run=True)
             continue
         if not complete_glb(src):
             missing.append(mesh)
@@ -61,7 +61,7 @@ def convert(list_path, output, game, dry_run=False):
         if complete_glb(dst) and dst.stat().st_mtime_ns >= src.stat().st_mtime_ns:
             continue
         temporary = dst.with_suffix(".part.glb")
-        nwprocess.run([sys.executable, "tools/glb_strip_nodraw.py", src, temporary, "--sem-atributos"],
+        nwprocess.run([sys.executable, "tools/glb_strip_nodraw.py", src, temporary, "--no-attributes"],
                       log=output / "strip.log")
         if not complete_glb(temporary):
             raise RuntimeError(f"strip did not produce {temporary}")

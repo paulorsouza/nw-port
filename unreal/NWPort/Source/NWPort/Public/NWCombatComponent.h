@@ -150,7 +150,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "NW|Dados") FName LightComboStart = TEXT("Light1");
 	FName GetCurrentAction() const { return CurrentAction; }
-	// Server: starts the action without checking the window (timed phases of abilities, NWArmaManopla.cpp).
+	// Server: starts the action without checking the window (timed phases of abilities, NWIceGauntlet.cpp).
 	bool ForceAction(FName Action);
 	// Server: cooldown that starts outside the start of the action (Ice Pylon on death, Entombed on exit).
 	void StartCooldown(FName Key, float Seconds);

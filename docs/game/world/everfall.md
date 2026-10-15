@@ -26,7 +26,7 @@ Game tables live in `extract/data/sharedassets/springboardentitites/datatables/`
 | Terrain | regions 4_1 and 4_2, a 768 m square (`make_terrain.py`) |
 | Conversion | `tools/linux/build_all.sh sistemas-01` (`convert_city.sh settlement_northwindsward_complete`) → `extract/cities/limpa/settlement_northwindsward_complete.glb`, `extract/cities/northwindsward_terrain.glb` |
 | Slices as JSON | `tools/linux/build_all.sh sistemas-02` → `extract/slicejson/slices/...` (city and the plots `housing/plots/northwindsward/`) |
-| Import | `tools/linux/ue_import_all.sh sistemas-01` (city, `L_QuedaEterna`) and `sistemas-02` (terrain, spawn, materials); `tools/etapas/sistemas.ue.sh` |
+| Import | `tools/linux/ue_import_all.sh sistemas-01` (city, `L_QuedaEterna`) and `sistemas-02` (terrain, spawn, materials); `tools/steps/systems.ue.sh` |
 | Exposure | volume `ExposicaoDoJogo` in the map (`tools/ue/city_exposure.py`, stage `sistemas-04`): histogram from 0.1 to 1, from the 1x–10x range of the game's day cycle (`libs/timeofday/zones/everfall_a.xml`); the project disables auto exposure |
 | Spawn point | with the editor open on the map (outside Play): `python3 tools/ue/remote.py tools/ue/spawn_trace.py`. Do not use `fix_spawn.py`: it put the character inside the square's floor and the character fell through the city and the terrain |
 

@@ -23,7 +23,7 @@ Details and known problems: [docs/status.md](docs/status.md).
 
 ## What you need
 
-- New World installed through Steam, at the build in [tools/jogo.versao](tools/jogo.versao).
+- New World installed through Steam, at the build in [tools/game.version](tools/game.version).
 - Unreal Engine 5.8.3.
 - Linux (tested on Ubuntu) or Windows (tools build and pass their tests; a full extraction on Windows is not
   accepted yet). 32 GB of RAM (64 GB recommended), a GPU with 8 GB of VRAM, about 150 GB free.

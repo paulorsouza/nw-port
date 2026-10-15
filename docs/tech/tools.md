@@ -31,20 +31,20 @@ large). `tools/linux/get_tools.sh` downloads or builds everything that goes into
 themselves (`tools/nwplatform.py`).
 
 nwbt records its patch version: `nwbt --version` shows `nwport-patch=<base>-<hash>`.
-`python3 tools/build_nwbt.py --conferir` compares it with the checkout's `patches/nwbt.patch`; `--teste-lista`
-converts a cube from the game through `@lista` and fails if nothing is written. `check.sh` (Linux) and `doctor.py`
+`python3 tools/build_nwbt.py --check` compares it with the checkout's `patches/nwbt.patch`; `--test-argfile`
+converts a cube from the game through `@list` and fails if nothing is written. `check.sh` (Linux) and `doctor.py`
 (Windows) run both checks, and `build_set.py` and `convert_npcs.py` refuse an nwbt from another patch.
 
 ## Folders by system
 
 - `tools/*.py`: the pipeline, one for Linux and Windows (`nwplatform.py` resolves paths and executables,
-  `nwprocess.py` the queue, memory and child processes, `saidas.py` checks what nwbt and Blender wrote).
+  `nwprocess.py` the queue, memory and child processes, `outputs.py` checks what nwbt and Blender wrote).
 - `tools/linux/`: Linux system scripts (`.sh`, texconv wrapper, nwbt and ooz builds). The old `tools/<x>.sh` files
   are temporary shortcuts to them.
 - `tools/windows/`: Windows-only scripts (`.ps1` builds, `doctor.py`, `check_migration.py`); see
   [windows.md](windows.md).
-- `tools/etapas/`: extraction and import steps of the areas, read by the orchestrators of both systems
-  ([../../tools/etapas/README.md](../../tools/etapas/README.md)).
+- `tools/steps/`: extraction and import steps of the areas, read by the orchestrators of both systems
+  ([../../tools/steps/README.md](../../tools/steps/README.md)).
 - `tools/ue/`: runs inside Unreal.
 - `tools/re/`: reverse-engineering tools ([reverse-engineering.md](reverse-engineering.md)).
 - `tools/tests/`: Python tests of the pipeline.
@@ -66,12 +66,12 @@ converts a cube from the game through `@lista` and fails if nothing is written. 
 | `tools/linux/package_server.sh [--skip-cook]` | packages the Linux dedicated server into `deploy/build/LinuxServer` | yes |
 | `deploy/build_images.sh` | Docker images of the backend and the server | medium |
 | `tools/linux/net_test.sh [n] [map]` | network test with automatic clients and a screenshot. Manual use by developers; do not automate with AI | yes |
-| `tools/linux/rede.sh` | clan network test on one PC: Postgres + nw-core + game server in Docker, nw-core published through Cloudflare Tunnel at `$NW_REDE_HOST` ([network-test.md](network-test.md)) | yes |
+| `tools/linux/network.sh` | clan network test on one PC: Postgres + nw-core + game server in Docker, nw-core published through Cloudflare Tunnel at `$NW_NETWORK_HOST` ([network-test.md](network-test.md)) | yes |
 | `tools/linux/backend_dev.sh [status\|down]` | local test nw-core for the editor's Play; ensures the editor's account and character ([backend-testing.md](backend-testing.md)) | no |
 | `tools/linux/ui_shot.sh <scenario.json> [capture]` | screenshot of a port screen without opening the game: windowless Unreal draws it to a PNG with the game code (`NWUIShotCommandlet`), from a scenario in `tools/ui_shots/` | yes |
-| `tools/linux/check.sh [--cpp]` | check before merging a branch: forgotten conflicts, JSON, keys repeated across areas, Python, shell, nwbt at the current patch and the `@lista` test (~20 s in the queue), game version; `--cpp` compiles (game target, works with the editor open, goes through the queue) | no |
-| `tools/linux/pesado.sh <command>` (`tools/pesado.py`) | heavy-job queue: one at a time on the machine, same lock on both ([../workflow.md](../workflow.md)) | — |
-| `tools/linux/jogo_versao.sh [--exe]` (`tools/jogo_versao.py`) | checks that the install is the team build (`tools/jogo.versao`) | no |
+| `tools/linux/check.sh [--cpp]` | check before merging a branch: forgotten conflicts, JSON, keys repeated across areas, Python, shell, nwbt at the current patch and the `@list` test (~20 s in the queue), game version; `--cpp` compiles (game target, works with the editor open, goes through the queue) | no |
+| `tools/linux/heavy.sh <command>` (`tools/heavy.py`) | heavy-job queue: one at a time on the machine, same lock on both ([../workflow.md](../workflow.md)) | — |
+| `tools/linux/game_version.sh [--exe]` (`tools/game_version.py`) | checks that the install is the team build (`tools/game.version`) | no |
 | `tools/linux/env.sh`, `tools/linux/local_env.sh` | shell environment: `bin/`, Go, Blender, `NWBT_OODLE`, and the variables from `local.env` | no |
 | `tools/linux/gallery.sh` (`tools/gallery.py`) | armor gallery (visual pick) | yes |
 | `tools/setup_status.py [--json] [--exe]` | what the machine has and which setup path applies ([../setup.md](../setup.md)) | no |
@@ -82,9 +82,9 @@ converts a cube from the game through `@lista` and fails if nothing is written. 
 | Script | What for |
 |---|---|
 | `extract_audio.py` | Wwise audio → `.ogg` (`extract/audio`, index in `extract/audio/INDEX.md`) |
-| `item_log.py` | nw-core item log (`--personagem`, `--item`, `--serie`, `--desde`): what came in and out, from where, why |
+| `item_log.py` | nw-core item log (`--character`, `--item`, `--serial`, `--since`): what came in and out, from where, why |
 | `make_items.py` | item catalog (weapons, tools, potions, loot resources) and the game's loot tables |
-| `make_itens.py` | port item rules → `unreal/NWPort/Data/Items/regras_itens.json` ([../game/items.md](../game/items.md), [../game/crafting.md](../game/crafting.md)) |
+| `make_port_items.py` | port item rules → `unreal/NWPort/Data/Items/regras_itens.json` ([../game/items.md](../game/items.md), [../game/crafting.md](../game/crafting.md)) |
 | `make_crafting.py` | Everfall refining stations and the game's refining recipes → `unreal/NWPort/Data/Crafting/refining.json` |
 | `make_npcs.py` | Everfall capital NPCs: position in `L_QuedaEterna`, appearance, idle animation and name |
 | `convert_npcs.py` | converts the appearances of the Everfall NPCs (`.cdf` from `Data/World/queda_eterna_npcs.json`) to FBX |
@@ -95,7 +95,7 @@ converts a cube from the game through `@lista` and fails if nothing is written. 
 | `make_water.py` | water mesh (rivers, lakes, waterfalls) of a region, in the town map's frame |
 | `catalog_meshes.py` | geometry hash of each mesh in the scenery glb files → `extract/ue/catalogo_malhas.json` (for `tools/ue/catalog.py`) |
 | `make_abilities.py` | abilities per weapon for the HUD and Weapon Mastery |
-| `armas_manopla.py` | Ice Gauntlet actions for `make_datatables.py` ([../game/weapons/ice-gauntlet.md](../game/weapons/ice-gauntlet.md)) |
+| `ice_gauntlet_actions.py` | Ice Gauntlet actions for `make_datatables.py` ([../game/weapons/ice-gauntlet.md](../game/weapons/ice-gauntlet.md)) |
 | `make_worldmap.py` | world map (M): town frame, region limits and the game's tiles (levels 2 and 3) around Windsward → `Data/World/worldmap.json` and `extract/ui/worldmap_textures.txt` |
 | `make_progression.py` | character level (total XP per level, attribute points) and the effect of each attribute value → `Data/Progression/progression.json` |
 | `make_datatables.py` | CSV for the damage, actions (per weapon) and camera shake DataTables |
@@ -104,15 +104,15 @@ converts a cube from the game through `@lista` and fails if nothing is written. 
 | `make_ai.py` | creature AI: tree from Server.pak + slice profile → `Data/AI/<set>.json` ([../game/creatures-ai.md](../game/creatures-ai.md)) |
 | `ai_sim.py <set> Key=value...` | simulates the tree's planning for a blackboard (check without Unreal) |
 | `bt_dump.py <file.behaviortree.json> [depth]` | prints a behavior tree compactly ([reverse-engineering.md](reverse-engineering.md)) |
-| `sim_economia.py` | week-by-week simulator of the towns' economy ([../game/economy.md](../game/economy.md)) |
+| `sim_economy.py` | week-by-week simulator of the towns' economy ([../game/economy.md](../game/economy.md)) |
 | `perf_csv.py` | summary of an Unreal CSV profile (csvprofile; `NWLoadTest -nwcsv=`): mean per cycle of each column, largest first |
-| `build_nwbt.py` | builds nwbt (Linux and Windows) and checks the binary (`--conferir`, `--teste-lista`); `--preparar` / `--gerar-patch` to change the patch |
+| `build_nwbt.py` | builds nwbt (Linux and Windows) and checks the binary (`--check`, `--test-argfile`); `--prepare` / `--make-patch` to change the patch |
 | `build_ooz.py` | ooz sources: powzix/ooz at the BASE commit + `patches/ooz.patch` |
-| `saidas.py` | checks nwbt and Blender outputs (Blender with `--python-exit-code 1`; expected files rewritten) |
+| `outputs.py` | checks nwbt and Blender outputs (Blender with `--python-exit-code 1`; expected files rewritten) |
 | `nwassets.py` | light structural check so truncated GLBs are not reused |
 | `nwplatform.py`, `nwprocess.py` | shared paths and tools (loads `local.env`); supervised execution, queue and resumable steps |
-| `pesado.py <command>` | heavy-job queue (see above) |
-| `jogo_versao.py` | game build check (see above) |
+| `heavy.py <command>` | heavy-job queue (see above) |
+| `game_version.py` | game build check (see above) |
 | `setspec.py` | merges the parts of a set (`tools/sets/player/<area>.json` for the player) for `build_set.py` and `make_datatables.py` |
 | `make_rules.py` | optional: local reverse-engineering cache (`re-local/valores/`) → `Data/regras.json`, which overrides the `FNWRules` defaults |
 | `re_check.py` | optional, with the local reverse-engineering cache (`re-local/`): what of it is already in the port: values applied and missing, `Data/regras.json` up to date, damagetable columns the game client reads and the port does not export |
@@ -141,7 +141,7 @@ Hand-written data: `tools/strings/<area>.json` (our pt/en text and the game keys
 and `tools/ui_screens/*.json` (screen capture scenarios); `tools/shops.json`, `tools/itens.json`,
 `tools/economia.json`, `tools/governanca.json`, `tools/npc_rewards.json`, `tools/perks_decisoes.json`,
 `tools/precos_cidade.json`, `tools/precos_referencia.json`, `tools/tutorials.json` (systems data, described in the
-matching specs under [../game/](../game/)); `tools/jogo.versao` (the team's game build); `tools/arena/meshes.txt`
+matching specs under [../game/](../game/)); `tools/game.version` (the team's game build); `tools/arena/meshes.txt`
 (arena pieces).
 
 ## Inside Unreal (`tools/ue/*.py`)
@@ -185,7 +185,7 @@ editor open.
 ## Reverse engineering (`tools/re/`)
 
 `xref.py`, `dis.py`, `dec.sh`, `fn.py`, `RangeDecompile.java`, `find_vcalls.py`, `cage_inventory.py`,
-`cage_classes.py`, `colunas.py`, `luac_batch.sh`, `lua_summary.py`: see
+`cage_classes.py`, `columns.py`, `luac_batch.sh`, `lua_summary.py`: see
 [reverse-engineering.md](reverse-engineering.md).
 
 ## Windows (`tools/windows/`)

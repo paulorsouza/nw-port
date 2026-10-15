@@ -17,7 +17,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Heavy-job queue (several sessions on the same machine; docs/workflow.md).
-[ -n "${NW_PESADO:-}" ] || exec "$ROOT/tools/linux/pesado.sh" "$ROOT/tools/linux/$(basename "$0")" "$@"
+# NW_PESADO: old name, still accepted.
+[ -n "${NW_HEAVY:-}${NW_PESADO:-}" ] || exec "$ROOT/tools/linux/heavy.sh" "$ROOT/tools/linux/$(basename "$0")" "$@"
 cd "$ROOT"
 # shellcheck disable=SC1091
 source tools/linux/env.sh
@@ -155,8 +156,8 @@ s12() {  # project Data/ (catalog, loot, texts, screens, map) and the textures t
     fi
 }
 
-# Game build must match the team's (tools/jogo.versao).
-tools/linux/jogo_versao.sh || exit $?
+# Game build must match the team's (tools/game.version).
+tools/linux/game_version.sh || exit $?
 step 00 "tools" s00
 step 01 "pak list" s01
 step 02 "tables and texts" s02
@@ -171,8 +172,8 @@ step 10 "region scenery" s10
 step 11 "characters and animations" s11
 step 12 "project data and screen textures" s12
 step 13 "test arena pieces" s13
-# Area steps (docs/workflow.md): tools/etapas/<area>.build.sh calls `step <area>-NN "description" command`.
-for f in "$ROOT"/tools/etapas/*.build.sh; do
+# Area steps (docs/workflow.md): tools/steps/<area>.build.sh calls `step <area>-NN "description" command`.
+for f in "$ROOT"/tools/steps/*.build.sh; do
     # shellcheck disable=SC1090
     [ -e "$f" ] && source "$f"
 done

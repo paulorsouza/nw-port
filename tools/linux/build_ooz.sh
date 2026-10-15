@@ -8,6 +8,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 mkdir -p "$ROOT/bin"
 cd "$(python3 "$ROOT/tools/build_ooz.py")"
-"$ROOT/tools/linux/pesado.sh" g++ -O2 -fPIC -shared -w -o "$ROOT/bin/libooz.so.novo" kraken.cpp bitknit.cpp lzna.cpp
-mv -f "$ROOT/bin/libooz.so.novo" "$ROOT/bin/libooz.so"
+"$ROOT/tools/linux/heavy.sh" g++ -O2 -fPIC -shared -w -o "$ROOT/bin/libooz.so.new" kraken.cpp bitknit.cpp lzna.cpp
+mv -f "$ROOT/bin/libooz.so.new" "$ROOT/bin/libooz.so"
 echo "bin/libooz.so ready"

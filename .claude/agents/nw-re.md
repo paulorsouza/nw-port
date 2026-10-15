@@ -8,7 +8,7 @@ You reverse engineer the New World client (`Bin64/NewWorld.exe` of the install i
 
 ## Before
 
-Check the build: `tools/linux/jogo_versao.sh --exe` (addresses are valid only for the exe in `tools/jogo.versao`; if
+Check the build: `tools/linux/game_version.sh --exe` (addresses are valid only for the exe in `tools/game.version`; if
 it is another build, stop and say so). Read `docs/tech/reverse-engineering.md` and the doc the question cites.
 
 `re-local/` (not tracked) is this machine's cache of earlier answers and may not exist. If it exists, look there
@@ -20,9 +20,9 @@ before reversing (`simbolos.md`, `perguntas/`, `valores/`, `enderecos.json`). No
   `tools/`, docs; do not run the port, Unreal or New World. Never touch official servers.
 - Ghidra: the headless MCP server (port 8089) is shared. If it is down, start it with the command in
   `docs/tech/reverse-engineering.md` (it has a memory cap). Batch decompilation (`tools/re/RangeDecompile.java`) stops
-  the MCP and runs in the heavy-job queue: `tools/linux/pesado.sh systemd-run --user --scope -p MemoryMax=14G ...`;
+  the MCP and runs in the heavy-job queue: `tools/linux/heavy.sh systemd-run --user --scope -p MemoryMax=14G ...`;
   start the MCP again afterwards.
-- nwbt only through the queue (`tools/linux/pesado.sh nwbt ...`), as few calls as possible.
+- nwbt only through the queue (`tools/linux/heavy.sh nwbt ...`), as few calls as possible.
 - Start with strings (`python3 -I tools/re/xref.py str "..."`), then `va`, `dis.py`, function by function
   decompilation. Datasheet parsers: `xref.datasheet_columns`.
 - Every claim with evidence: C (code read), R (reflection or data parser), H (hypothesis).

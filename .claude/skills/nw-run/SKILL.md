@@ -15,7 +15,7 @@ Before any of these: editor closed (same binary), New World closed (VRAM), no he
 | Open the game for the person (login screen) | `tools/linux/play_local.sh` |
 | nw-core for Play in the editor | `tools/linux/backend_dev.sh` (`docs/tech/backend-testing.md`) |
 | Network test with automated clients | `tools/linux/net_test.sh <clients>` |
-| Clan network test through Cloudflare | `tools/linux/rede.sh up` (`docs/tech/network-test.md`) |
+| Clan network test through Cloudflare | `tools/linux/network.sh up` (`docs/tech/network-test.md`) |
 | Package the dedicated server | `tools/linux/package_server.sh [--skip-cook]` |
 | Docker images | `deploy/build_images.sh` |
 

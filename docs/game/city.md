@@ -17,14 +17,14 @@ Game tables live in `extract/data/sharedassets/springboardentitites/datatables/`
   `NWInventoryMenu`, `NWTradeskillMenu`). Follow [ui/README.md](ui/README.md): offline capture with
   `tools/linux/ui_shot.sh`, compare with a screenshot of the original. New screens that the game does not have use the
   port's Slate style (`NWSlate`, first used by `SNWMarket`); screens copied from the game stay as they are.
-- Texts: `tools/strings/sistemas.json` (pt-BR and en-US).
+- Texts: `tools/strings/systems.json` (pt-BR and en-US).
 - Persistence: the dedicated server decides, nw-core (`backend/`, Rust + Postgres) stores. A database change is a new
   migration ([tech/server.md](../tech/server.md)). Show the plan to the maintainer before changing the backend.
 - Items and catalogs: `tools/make_items.py` and `python3 tools/make_data.py`.
 - Testing with the backend: [tech/backend-testing.md](../tech/backend-testing.md) (`tools/linux/backend_dev.sh`
   before opening the editor). Network: [tech/network-test.md](../tech/network-test.md).
 - Build and import with the editor closed, open the map and ask the maintainer for a screenshot. Do not run the game
-  yourself. Heavy jobs go through the queue (`python3 tools/pesado.py`; on Windows, `python`). Commit and push only
+  yourself. Heavy jobs go through the queue (`python3 tools/heavy.py`; on Windows, `python`). Commit and push only
   when the maintainer asks, and only the area's files. Area rules: [workflow.md](../workflow.md).
 
 ## Common base
@@ -55,7 +55,7 @@ Game tables live in `extract/data/sharedassets/springboardentitites/datatables/`
   everything in one transaction. Storage has a version (409 `storage_changed`). Routes and rules:
   [backend/README.md](../../backend/README.md). Tests: `backend/tests/api.rs` (`armazem_*`, `mercado_*`, `casa_*`).
 - Inventory changes (storage, refine, craft, improve, drop, pick up, gather, loot, F10, shop, gems, destroy, gifts) are
-  recorded operations (`NWOps`), each with a reason in the nw-core item log (`tools/item_log.py --personagem
+  recorded operations (`NWOps`), each with a reason in the nw-core item log (`tools/item_log.py --character
   <name>`). Details: [tech/server.md](../tech/server.md).
 - Interaction: the E key (`IA_Interact`). The reusable path, taken from gathering (`UNWGatherComponent`): focus →
   text → server RPC with a distance check (`InReach`), card `ANWHUD::DrawGather`, progress ring. Near a gatherable

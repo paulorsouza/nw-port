@@ -7,7 +7,7 @@
    Python in tools/ and tools/ue/). A numeric value goes in through FNWRules (Data/regras.json); a rule (null value)
    goes in by citing the id in a comment where it is applied. Unused = still to be applied.
 2. Data/regras.json out of date relative to the values (run tools/make_rules.py).
-3. Columns (re-local/colunas.json, taken from the executable by tools/re/colunas.py): damagetable columns the
+3. Columns (re-local/colunas.json, taken from the executable by tools/re/columns.py): damagetable columns the
    game client reads and the port does not export (make_datatables.DAMAGE_COLS), and those the port exports and the
    client does not read (server-side: the port, being both server and client, uses them anyway).
 4. Questions (re-local/perguntas/<area>-NNN.md) answered and not applied yet.
@@ -37,10 +37,10 @@ def port_files():
 
 def check_values():
     from make_rules import load_values
-    valores = load_values()
+    values = load_values()
     texts = {os.path.relpath(p, ROOT): open(p, encoding="utf-8", errors="replace").read() for p in port_files()}
     applied, pending = [], []
-    for vid, v in valores.items():
+    for vid, v in values.items():
         where = sorted({os.path.basename(p) for p, t in texts.items() if re.search(rf"(?<![\w.]){re.escape(vid)}(?![\w.])", t)})
         (applied if where else pending).append((vid, v, where))
     print(f"== Valores do RE: {len(applied)} aplicados, {len(pending)} sem uso no port")
@@ -49,7 +49,7 @@ def check_values():
         print(f"  ok    {vid} = {fmt(v)}  ({', '.join(where)}){warn}")
     for vid, v, _ in pending:
         print(f"  todo  {vid} = {fmt(v)}  — {v.get('o_que', '')}")
-    return valores
+    return values
 
 
 def fmt(v):
@@ -57,9 +57,9 @@ def fmt(v):
     return "rule" if val is None else f"{val}{(' ' + v['unidade']) if v.get('unidade') else ''}"
 
 
-def check_rules(valores):
+def check_rules(values):
     path = os.path.join(ROOT, "unreal", "NWPort", "Data", "regras.json")
-    want = {k: v["valor"] for k, v in valores.items() if isinstance(v.get("valor"), (int, float))}
+    want = {k: v["valor"] for k, v in values.items() if isinstance(v.get("valor"), (int, float))}
     have = json.load(open(path)) if os.path.exists(path) else None
     print("== Data/regras.json")
     if have == want:
@@ -78,7 +78,7 @@ def base(col):
 def check_columns():
     path = os.path.join(RE_DIR, "colunas.json")
     if not os.path.exists(path):
-        print("== Columns: no re-local/colunas.json (python3 -I tools/re/colunas.py)")
+        print("== Columns: no re-local/colunas.json (python3 -I tools/re/columns.py)")
         return
     import make_datatables as md
     for sheet, info in json.load(open(path)).items():
@@ -113,8 +113,8 @@ def check_questions():
 
 
 def main():
-    valores = check_values()
-    check_rules(valores)
+    values = check_values()
+    check_rules(values)
     check_columns()
     check_questions()
 

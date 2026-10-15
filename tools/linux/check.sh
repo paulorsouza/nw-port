@@ -36,16 +36,16 @@ PY
 
 # Python and shell.
 py_err=$(python3 -m py_compile tools/*.py tools/ue/*.py tools/re/*.py 2>&1) && ok "Python compiles" || bad "Python: $py_err"
-sh_err=""; for f in tools/*.sh tools/linux/*.sh tools/etapas/*.sh; do [ -e "$f" ] && { bash -n "$f" 2>&1 || sh_err="$sh_err $f"; }; done
+sh_err=""; for f in tools/*.sh tools/linux/*.sh tools/steps/*.sh; do [ -e "$f" ] && { bash -n "$f" 2>&1 || sh_err="$sh_err $f"; }; done
 [ -z "$sh_err" ] && ok "shell without syntax errors" || bad "shell:$sh_err"
 
-# nwbt built with this checkout's patch (patches/nwbt.patch) and converting via "@lista" (game cube, ~20 s in the
-# heavy-job queue; without the game installed it becomes a warning). Rebuild: tools/linux/pesado.sh python3 tools/build_nwbt.py
-python3 tools/build_nwbt.py --conferir || FAIL=1
-tools/linux/pesado.sh python3 tools/build_nwbt.py --teste-lista || FAIL=1
+# nwbt built with this checkout's patch (patches/nwbt.patch) and converting via "@list" (game cube, ~20 s in the
+# heavy-job queue; without the game installed it becomes a warning). Rebuild: tools/linux/heavy.sh python3 tools/build_nwbt.py
+python3 tools/build_nwbt.py --check || FAIL=1
+tools/linux/heavy.sh python3 tools/build_nwbt.py --test-argfile || FAIL=1
 
 # Game version (warning only: someone without the game installed can still review).
-NW_IGNORA_VERSAO=1 tools/linux/jogo_versao.sh 2>&1 | sed 's/^/warn  /'
+NW_IGNORE_VERSION=1 tools/linux/game_version.sh 2>&1 | sed 's/^/warn  /'
 
 # What from the RE has not made it into the port yet (informational).
 python3 tools/re_check.py 2>/dev/null | grep -E "^== (Valores|Perguntas)" | sed 's/^== /info  /'
@@ -54,7 +54,7 @@ if [ "${1:-}" = "--cpp" ]; then
     UE_DIR="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}"
     LOG="$ROOT/unreal/NWPort/Saved/check_build.log"
     mkdir -p "$(dirname "$LOG")"
-    if tools/linux/pesado.sh bash -c "cd '$UE_DIR' && nice Engine/Build/BatchFiles/Linux/Build.sh NWPort Linux Development \
+    if tools/linux/heavy.sh bash -c "cd '$UE_DIR' && nice Engine/Build/BatchFiles/Linux/Build.sh NWPort Linux Development \
             -Project='$ROOT/unreal/NWPort/NWPort.uproject' -WaitMutex -MaxParallelActions=6" > "$LOG" 2>&1; then
         ok "C++ compiles (game target)"
     else

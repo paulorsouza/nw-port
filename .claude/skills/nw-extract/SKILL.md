@@ -17,12 +17,12 @@ converted: `docs/tech/asset-pipeline.md`.
 | Gatherable meshes | `python3 tools/make_gatherables.py` then `tools/linux/convert_gatherables.sh` | `python tools/convert_gatherables.py` |
 | Ambient sound of a territory | `tools/linux/render_ambient.sh <territory>` | `python tools/render_ambient.py <territory>` |
 | `unreal/NWPort/Data/` | `tools/linux/make_data.sh` | `python tools/make_data.py` |
-| Check the game build | `tools/linux/jogo_versao.sh --exe` | `python tools/jogo_versao.py --exe` |
+| Check the game build | `tools/linux/game_version.sh --exe` | `python tools/game_version.py --exe` |
 
 ## Before a heavy job
 
 - New World and the Unreal editor closed; no other heavy job running. Extraction, conversions and nwbt go through the
-  heavy-job queue (`tools/pesado.py`, automatic in the scripts).
+  heavy-job queue (`tools/heavy.py`, automatic in the scripts).
 - Run long jobs in the background and report progress from their output.
 - A step stopped for memory (Linux `systemd-oomd`, or the script's own memory guard): run the same command again;
   finished steps are skipped (`extract/.etapas/<NN>.ok`).

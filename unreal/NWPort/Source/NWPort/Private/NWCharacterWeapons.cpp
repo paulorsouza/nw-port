@@ -27,7 +27,7 @@
 #include "NWBrainComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "NWCombatComponent.h"
-#include "NWArmaManopla.h"
+#include "NWIceGauntlet.h"
 #include "NWTraversalComponent.h"
 #include "NWGatherComponent.h"
 #include "NWProgressionComponent.h"
@@ -92,7 +92,7 @@ void ANWCharacter::AddPlayerWeaponSets()
 	Rapier.HeavyMinHold = 0.667f; Rapier.HeavyFullCharge = 0.667f;
 	WeaponSets.Add(Rapier);
 	// Ice Gauntlet (sub-area 1a).
-	NWArmaManopla::AddWeaponSet(WeaponSets);
+	NWIceGauntlet::AddWeaponSet(WeaponSets);
 }
 
 void ANWCharacter::UseBrain(uint8 Style, const TArray<FNWBrainAttack>& Attacks)
@@ -308,7 +308,7 @@ void ANWCharacter::ApplyWeapon()
 	Sword->AttachToComponent(Body, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Set.Socket);
 	Sword->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));
 	Combat->SetMainWeapon(Sword);
-	NWArmaManopla::ApplySkin(this, Set);
+	NWIceGauntlet::ApplySkin(this, Set);
 
 	// Shield: in hand with the sword; on the back with the Hatchet.
 	if (Set.bUsesShield)

@@ -7,4 +7,4 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 source tools/linux/env.sh
-exec tools/linux/pesado.sh python3 tools/build_nwbt.py "$@"
+exec tools/linux/heavy.sh python3 tools/build_nwbt.py "$@"

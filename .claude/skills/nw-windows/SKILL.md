@@ -13,12 +13,12 @@ python.org Python (the Microsoft Store one is refused) and `python` instead of `
 |---|---|
 | What this machine has | `python tools\setup_status.py` |
 | Diagnostics (`--full`: audio, Blender, Unreal, nwbt `@list` test) | `python tools\windows\doctor.py --full` |
-| Heavy-job queue | `python tools\pesado.py <command>` |
+| Heavy-job queue | `python tools\heavy.py <command>` |
 | Extraction, all or step NN | `python tools\build_all.py [NN]` (`--dry-run` lists) |
 | Import into Unreal, all or step NN (editor closed) | `python tools\ue_import_all.py [NN]` |
 | Data/ | `python tools\make_data.py` |
 | Town, gatherables, ambient sound | `python tools\convert_city.py`, `convert_gatherables.py`, `render_ambient.py` |
-| Game build | `python tools\jogo_versao.py --exe` |
+| Game build | `python tools\game_version.py --exe` |
 | Checkout copied from WSL | `python tools\windows\check_migration.py [--apply]` |
 | Script tests | `python -m unittest discover -s tools/tests` |
 

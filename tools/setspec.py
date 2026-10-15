@@ -1,8 +1,8 @@
 """Reads a set (tools/sets/<x>.json) merging the parts listed in "parts" (paths relative to tools/sets/).
 
 The player set is split by area (docs/workflow.md): tools/sets/sword_shield.json (character, jump,
-fall, death) + tools/sets/player/{armas,coleta,montaria}.json. Merge rules: dicts merge key by key, lists
-add without repeats, plain values must be equal. The same key in two parts with different values is an error
+fall, death) + tools/sets/player/{weapons,weapons_ice-gauntlet,gathering,mount}.json. Merge rules: dicts merge key
+by key, lists add without repeats, plain values must be equal. The same key in two parts with different values is an error
 (two areas defining the same montage).
 """
 import json

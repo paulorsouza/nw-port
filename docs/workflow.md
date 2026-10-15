@@ -30,7 +30,7 @@ System-dependent actions are named by what they do, for example "import step NN"
 
 | Action | Linux | Windows |
 |---|---|---|
-| Heavy-job queue | `python3 tools/pesado.py <command>` | `python tools/pesado.py <command>` |
+| Heavy-job queue | `python3 tools/heavy.py <command>` | `python tools/heavy.py <command>` |
 | Extraction step NN | `tools/linux/build_all.sh NN` | `python tools/build_all.py NN` |
 | Import step NN (01 = compile) | `tools/linux/ue_import_all.sh NN` | `python tools/ue_import_all.py NN` |
 | Regenerate `Data/` | `python3 tools/make_data.py` | `python tools/make_data.py` |
@@ -40,7 +40,7 @@ System-dependent actions are named by what they do, for example "import step NN"
 
 ### Machine
 
-- Heavy jobs go through the queue: `python3 tools/pesado.py <command>` (on Linux, `tools/linux/pesado.sh` uses the
+- Heavy jobs go through the queue: `python3 tools/heavy.py <command>` (on Linux, `tools/linux/heavy.sh` uses the
   same lock). Heavy = nwbt, Blender, `build_set.py`, `convert_*.sh`, `UnrealEditor-Cmd`, compiling, Ghidra in
   batch. `build_all.sh` and `ue_import_all.sh` enter the queue by themselves. Reason: `systemd-oomd` kills programs
   when two heavy jobs add up memory pressure ([status.md](status.md), pitfalls).
@@ -66,7 +66,7 @@ System-dependent actions are named by what they do, for example "import step NN"
 - Shared file: reread it before editing, change only the needed part, do not reformat.
 - The C++ must compile at the end of each of your changes. A compile error in another area's file: do not fix it;
   tell the maintainer and wait.
-- Player set: one file per area (`tools/sets/player/armas.json`, `coleta.json`, `montaria.json`), merged with
+- Player set: one file per area (`tools/sets/player/weapons.json`, `gathering.json`, `mount.json`), merged with
   `tools/sets/sword_shield.json` (character, jump, fall, death) by `tools/setspec.py`. The same montage in two parts
   is an error. Whoever runs `build_set.py` also takes what the other areas changed.
 
@@ -98,14 +98,14 @@ System-dependent actions are named by what they do, for example "import step NN"
 
 | Area | Files |
 |---|---|
-| Weapons (1, 1a, 1b) | `NWCharacterArmas.cpp`, `tools/sets/player/armas.json`, `tools/etapas/armas.*`, `tools/strings/armas.json`; `NWCombatComponent`, `NWProjectile`, `NWFxActor`, `NWBrainComponent`; `tools/make_datatables.py`, `make_abilities.py`, `weapon_report.py`, `tools/ue/make_test_map.py`, `make_fx.py`; `docs/game/weapons/`, `docs/game/combat.md`, `docs/tech/weapon-porting.md`. Sub-areas: new weapon code in its own `NWArma<Name>.cpp`, its set part in `tools/sets/player/armas_<weapon>.json` (listed in `parts`), the weapon's spec and tests; the rest of area 1 is shared by the three |
-| Gathering | `tools/sets/player/coleta.json`, `tools/etapas/coleta.*`, `tools/strings/coleta.json`; `NWGatherComponent`, `NWGatherField`; `tools/make_gatherables.py`, `convert_gatherables.sh`, `tools/ue/import_gatherables.py`; `docs/game/gathering.md` |
-| Mounts | `NWMountComponent` (created, empty), `tools/sets/player/montaria.json`, `tools/etapas/montarias.*`, `tools/strings/montarias.json`; `NWMount*`; `tools/sets/mount_*.json`; `docs/game/mounts.md` |
-| Systems (and UI) | `NWCharacterSave.cpp`, `tools/strings/sistemas.json`, `tools/etapas/sistemas.*`; `NWHUD`, `NWInventory*`, `NWProgression*`, `NWItems`, `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWTradeskillMenu`, `NWAttributesMenu`; `backend/`; `tools/make_items.py`, `make_progression.py`, `ui_build_*.py`, `convert_city.sh`, `tools/ue/import_city.py`, `fix_city.py`; `NWRefiningMenu`, `NWStorageMenu`, `NWLootBag`, `NWShop*`, `tools/shops.json`, `NWCrafting`, `NWInteractable`, `NWNpc*`, `NWEvents`, `NWUIShotCommandlet`; `tools/ui_screens/`, `ui_shots/`, `ui_shot.sh`, `ui_styles.py`, `ui_compare.py`, `make_crafting.py`, `make_npcs.py`; `docs/game/ui/`, `extract/ui/survey.md`, `docs/game/city.md`, `docs/game/world/everfall.md` |
-| Lighting | `tools/etapas/iluminacao.*`, `tools/ue/city_exposure.py` (comes from area 4), light scripts in `tools/ue/`, `docs/game/lighting.md`; actors in the maps' `Iluminacao/` folder. The `sliceLight` of the nwbt patch (`vendor/nw-buddy`, `patches/nwbt-nwport.patch`) |
+| Weapons (1, 1a, 1b) | `NWCharacterWeapons.cpp`, `tools/sets/player/weapons.json`, `tools/steps/weapons.*`, `tools/strings/weapons.json`; `NWCombatComponent`, `NWProjectile`, `NWFxActor`, `NWBrainComponent`; `tools/make_datatables.py`, `make_abilities.py`, `weapon_report.py`, `tools/ue/make_test_map.py`, `make_fx.py`; `docs/game/weapons/`, `docs/game/combat.md`, `docs/tech/weapon-porting.md`. Sub-areas: new weapon code in its own `NWArma<Name>.cpp`, its set part in `tools/sets/player/armas_<weapon>.json` (listed in `parts`), the weapon's spec and tests; the rest of area 1 is shared by the three |
+| Gathering | `tools/sets/player/gathering.json`, `tools/steps/gathering.*`, `tools/strings/gathering.json`; `NWGatherComponent`, `NWGatherField`; `tools/make_gatherables.py`, `convert_gatherables.sh`, `tools/ue/import_gatherables.py`; `docs/game/gathering.md` |
+| Mounts | `NWMountComponent` (created, empty), `tools/sets/player/mount.json`, `tools/steps/mounts.*`, `tools/strings/mounts.json`; `NWMount*`; `tools/sets/mount_*.json`; `docs/game/mounts.md` |
+| Systems (and UI) | `NWCharacterSave.cpp`, `tools/strings/systems.json`, `tools/steps/systems.*`; `NWHUD`, `NWInventory*`, `NWProgression*`, `NWItems`, `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWTradeskillMenu`, `NWAttributesMenu`; `backend/`; `tools/make_items.py`, `make_progression.py`, `ui_build_*.py`, `convert_city.sh`, `tools/ue/import_city.py`, `fix_city.py`; `NWRefiningMenu`, `NWStorageMenu`, `NWLootBag`, `NWShop*`, `tools/shops.json`, `NWCrafting`, `NWInteractable`, `NWNpc*`, `NWEvents`, `NWUIShotCommandlet`; `tools/ui_screens/`, `ui_shots/`, `ui_shot.sh`, `ui_styles.py`, `ui_compare.py`, `make_crafting.py`, `make_npcs.py`; `docs/game/ui/`, `extract/ui/survey.md`, `docs/game/city.md`, `docs/game/world/everfall.md` |
+| Lighting | `tools/steps/lighting.*`, `tools/ue/city_exposure.py` (comes from area 4), light scripts in `tools/ue/`, `docs/game/lighting.md`; actors in the maps' `Iluminacao/` folder. The `sliceLight` of the nwbt patch (`vendor/nw-buddy`, `patches/nwbt-nwport.patch`) |
 | Server and network (for now with area 4) | `NWLoadTest`, `NWPlayerGrid`, `tools/perf_csv.py`, `tools/item_log.py`, `docs/tech/architecture.md` (performance rules for every area; draft until the maintainer approves) |
 | Reverse engineering (`nw-re` agent) | `tools/re/`, `docs/tech/reverse-engineering.md` |
-| Shared | `NWCharacter.h`, `NWCharacter.cpp`, `NWPlayerController`, `SNWDevMenu`, `NWCombatTypes.h`, `NWMasteryMenu`, `NWRules`, `NWInputRegistry`, `NWDevRegistry`, `NWUILayout`, `tools/ui_canvas.py`, `NWAnimInstance`, `ABP_NW` (single owner, below); `tools/sets/sword_shield.json`, `tools/strings/geral.json`, `build_all.sh`, `ue_import_all.sh`, `make_data.sh`; `docs/status.md`, `docs/backlog.md` |
+| Shared | `NWCharacter.h`, `NWCharacter.cpp`, `NWPlayerController`, `SNWDevMenu`, `NWCombatTypes.h`, `NWMasteryMenu`, `NWRules`, `NWInputRegistry`, `NWDevRegistry`, `NWUILayout`, `tools/ui_canvas.py`, `NWAnimInstance`, `ABP_NW` (single owner, below); `tools/sets/sword_shield.json`, `tools/strings/general.json`, `build_all.sh`, `ue_import_all.sh`, `make_data.sh`; `docs/status.md`, `docs/backlog.md` |
 
 ## Extension points
 
@@ -117,8 +117,8 @@ Use these instead of editing shared files.
 | A new F10 button | `NW_REGISTER_DEV` in your `.cpp` (`NWDevRegistry.h`); runs on the server |
 | Change the character's locomotion (mounted, gathering) | `ANWCharacter::SetLocomotionOverride` / `ClearLocomotionOverride` |
 | A new player montage | your part in `tools/sets/player/<area>.json` |
-| New text | `tools/strings/<area>.json` (`textos` or `chaves_do_jogo`) |
-| An extraction or import step | `tools/etapas/<area>.build.sh` / `.ue.sh` ([tools/etapas/README.md](../tools/etapas/README.md)) |
+| New text | `tools/strings/<area>.json` (`texts` or `game_keys`) |
+| An extraction or import step | `tools/steps/<area>.build.sh` / `.ue.sh` ([tools/steps/README.md](../tools/steps/README.md)) |
 | A reverse-engineering fact | in the code, with the value (ask the `nw-re` agent) |
 
 `ABP_NW` (the player's animation graph) is binary and does not merge: it has a single owner (the maintainer). The
@@ -136,12 +136,12 @@ the maintainer, who makes it in a commit with only the ABP.
 
 ## Several people
 
-- Each person needs their own New World install at the build in `tools/jogo.versao` (`tools/linux/jogo_versao.sh`
+- Each person needs their own New World install at the build in `tools/game.version` (`tools/linux/game_version.sh`
   checks it; `build_all.sh` stops on another build) and the full pipeline ([setup.md](setup.md)). Extraction,
   `Content` and `Data/` do not go into git: each person generates their own.
 - One branch per area from `main` (`armas`, `coleta`, `montarias`, `sistemas`). Merge into `main` at each closed
   item, at most every few days. Before that, bring `main` into the branch and run `tools/linux/check.sh --cpp`
-  (it includes nwbt at the current patch and the `@lista` test).
+  (it includes nwbt at the current patch and the `@list` test).
 - A change in a shared file: a small separate PR, merged soon, so the others can build on it.
 - Who merges into `main`: the maintainer (or whoever the maintainer names).
 - Reverse engineering runs only on the machine with Ghidra set up
@@ -187,5 +187,5 @@ When you close an item:
 2. Test item in `docs/tests/<area>.md`.
 3. The area's line in [status.md](status.md) (and [backlog.md](backlog.md)) updated.
 4. Editor open on the area's map and a screenshot requested from the maintainer.
-5. Before merging a branch: the check from the platform table (includes nwbt at the current patch and the `@lista`
+5. Before merging a branch: the check from the platform table (includes nwbt at the current patch and the `@list`
    test).

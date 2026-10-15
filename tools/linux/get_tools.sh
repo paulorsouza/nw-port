@@ -30,7 +30,7 @@ if need bin/libooz.so; then
     tools/linux/build_ooz.sh
 fi
 
-if need bin/nwbt || need bin/dbgwater || ! python3 tools/build_nwbt.py --conferir >/dev/null 2>&1; then
+if need bin/nwbt || need bin/dbgwater || ! python3 tools/build_nwbt.py --check >/dev/null 2>&1; then
     [ -d vendor/nw-buddy/.git ] || git clone https://github.com/paulorsouza/nw-buddy.git vendor/nw-buddy
     PATH="$HOME/.local/go/bin:$PATH" tools/linux/build_nwbt.sh --test
 fi

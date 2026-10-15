@@ -411,7 +411,7 @@ step, reactions, stops). Built as a normal layer, it replaces the pose instead o
 
 ### Montages (prefix `AM_Rp_`)
 
-Format of `tools/sets/sword_shield.json` (weapon part in `tools/sets/player/armas.json`). On the rapier both `.adb`
+Format of `tools/sets/sword_shield.json` (weapon part in `tools/sets/player/weapons.json`). On the rapier both `.adb`
 layers use the same clip, so each section has one clip (apart from the additive poses). Block and sheathe clips are
 the Hatchet's: reuse `AM_Hx_Block*` and `AM_Hx_Sheath`.
 

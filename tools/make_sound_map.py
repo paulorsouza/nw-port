@@ -41,12 +41,12 @@ REACTIONS = {
 }
 
 
-# Creatures (set -> montage -> sounds). Time "golpe" = start of the montage's CAGE-Damage window (the whoosh and the
+# Creatures (set -> montage -> sounds). Time "strike" = start of the montage's CAGE-Damage window (the whoosh and the
 # bite play 0.15 s earlier). The animals' footsteps (walk_boar, run_wolf...) are in another bank, not extracted yet.
 # Pain gets the sword-on-flesh impact: for now only the player hits creatures.
 CREATURES = {
     "boar": {
-        "AM_Attack1": [("golpe", "creatures/boar/sfx_boar_whoosh", "whoosh"), ("golpe", "creatures/boar/sfx_boar_furwhoosh", "pelo")],
+        "AM_Attack1": [("strike", "creatures/boar/sfx_boar_whoosh", "whoosh"), ("strike", "creatures/boar/sfx_boar_furwhoosh", "pelo")],
         "AM_Heavy": [(0.0, "creatures/boar/sfx_boar_charge", "investida")],
         "AM_ChargeStart": [(0.0, "creatures/boar/vox_boar_charge_setup_snort", "bufo"), (0.1, "creatures/boar/sfx_boar_charge_setup", "patas")],
         "AM_Aggro": [(0.0, "creatures/boar/boar_roar1", "rugido")],
@@ -55,10 +55,10 @@ CREATURES = {
         "AM_Death": [(0.0, "creatures/boar/boar_death", "morte")],
     },
     "wolf": {
-        "AM_Attack1": [("golpe", "creatures/wolf/vox_wolf_bite", "mordida")],
-        "AM_Attack2": [("golpe", "creatures/wolf/vox_wolf_bite", "mordida")],
-        "AM_Heavy": [(0.0, "creatures/wolf/vox_wolf_growl", "rosnado"), ("golpe", "creatures/wolf/vox_wolf_bite", "mordida")],
-        "AM_Leap": [(0.0, "creatures/wolf/sfx_wolf_jump", "pulo"), ("golpe", "creatures/wolf/vox_wolf_bite", "mordida")],
+        "AM_Attack1": [("strike", "creatures/wolf/vox_wolf_bite", "mordida")],
+        "AM_Attack2": [("strike", "creatures/wolf/vox_wolf_bite", "mordida")],
+        "AM_Heavy": [(0.0, "creatures/wolf/vox_wolf_growl", "rosnado"), ("strike", "creatures/wolf/vox_wolf_bite", "mordida")],
+        "AM_Leap": [(0.0, "creatures/wolf/sfx_wolf_jump", "pulo"), ("strike", "creatures/wolf/vox_wolf_bite", "mordida")],
         "AM_Aggro": [(0.0, "creatures/wolf/vox_wolf_alert", "alerta")],
         "AM_Hit_": [(0.0, "combat/impacts/imp_swordmetal_flesh", "impacto"), (0.03, "creatures/wolf/vox_wolf_hurt", "dor")],
         "AM_Death": [(0.0, "creatures/wolf/vox_wolf_death", "morte")],
@@ -158,7 +158,7 @@ def main():
                 files = folder_files(rel)
                 if not files:
                     missing.add(rel)
-                add(asset, max(0.0, hit - 0.15) if t == "golpe" else t, files, "", label)
+                add(asset, max(0.0, hit - 0.15) if t == "strike" else t, files, "", label)
 
     # Reactions.
     for montage, keys in m["montages"].items() if not creature else ():

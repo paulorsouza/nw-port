@@ -13,7 +13,7 @@ scratch: [../setup.md](../setup.md) and the `nw-setup` skill (`.claude/skills/nw
 |---|---|---|
 | 1. Native tools | Build `ooz.dll`, `nwbt.exe` and `dbgwater.exe`; fix DLL loading and JSON RTTI resolution; provide Windows `vgmstream-cli` and `oggenc` with recorded versions. | Built; not validated on real paks |
 | 2. Shared configuration | Standardize `NW_GAME`, `NW_UE`, tool paths and subprocesses; remove Linux dependencies from the Python scripts; check paths with spaces and Unicode. | Done |
-| 3. Orchestration | Port `build_all`, `convert_city`, `convert_gatherables`, `render_ambient`, `make_data` and `jogo_versao` to Python, keeping resumable steps, logs, queues, memory/disk limits and child-process cleanup. Include the extra steps in `tools/etapas/`. | Done; not run on real data |
+| 3. Orchestration | Port `build_all`, `convert_city`, `convert_gatherables`, `render_ambient`, `make_data` and `game_version` to Python, keeping resumable steps, logs, queues, memory/disk limits and child-process cleanup. Include the extra steps in `tools/steps/`. | Done; not run on real data |
 | 4. Unreal | Port `ue_import_all` and `check` to `Build.bat`/Win64 and `UnrealEditor-Cmd.exe`, keeping validation through the commandlet log; check maps, materials, animations and audio. | `tools/ue_import_all.py` exists; not validated |
 | 5. Local run | Port `play_local` and `net_test`, keeping Docker for the database; support native Rust backend, `UnrealEditor -server` and the client. A dedicated Win64 package comes later if needed; it is not required to keep the Linux deploy. | Pending |
 | 6. Acceptance | Build from scratch, interrupt and resume steps, check the game version, import all assets, play with an account and persistence, and run a network test. Update [../setup.md](../setup.md) and [tools.md](tools.md). | Pending |
@@ -40,14 +40,14 @@ Shared configuration:
 
 Orchestration:
 
-- `tools/jogo_versao.py`: Steam manifest and SHA256 hash without `awk`/`sha256sum`. Accepts `NW_GAME`, `--game`,
-  `--exe` and `NW_IGNORA_VERSAO`. Without a manifest it requires the executable hash. Uses `hashlib.file_digest`
+- `tools/game_version.py`: Steam manifest and SHA256 hash without `awk`/`sha256sum`. Accepts `NW_GAME`, `--game`,
+  `--exe` and `NW_IGNORE_VERSION`. Without a manifest it requires the executable hash. Uses `hashlib.file_digest`
   (Python 3.11 or newer).
 - `tools/make_data.py`: the `Data/` generation sequence, including optional steps and screens (`make_ui_sounds`,
-  `make_itens`). Uses the same Python that started it, the repository directory, and arguments without a shell.
+  `make_port_items`). Uses the same Python that started it, the repository directory, and arguments without a shell.
   `--dry-run` lists the steps without starting subprocesses or writing `Data/`. `make_data.sh` only calls the `.py`.
 - `nwprocess.py`: available physical memory and disk space without external Linux tools.
-- `pesado.py`: heavy-work lock shared between processes and inherited by children. Runs the command in the caller's
+- `heavy.py`: heavy-work lock shared between processes and inherited by children. Runs the command in the caller's
   directory and returns its exit code. `python`/`python3` in the command become the queue's Python.
 - Windows Job Objects: the whole process tree ends on failure or cancel. A wrapper waits until the process is assigned
   to the Job before starting the command, so no child escapes supervision.
@@ -63,9 +63,9 @@ Orchestration:
 - Failures that used to be tolerated now leave the step pending: ambiguous capital, missing heightmap, layer
   conversion with a process error, missing capitals GLB, meshes with the same output name.
 - `build_set.py` and `convert_npcs.py` refuse an outdated nwbt, call Blender with `--python-exit-code 1`, and check
-  that the expected glb/fbx files were rewritten (`tools/saidas.py`).
+  that the expected glb/fbx files were rewritten (`tools/outputs.py`).
 - `tools/windows/doctor.py` and `tools/linux/check.sh` flag an nwbt built with another patch. `doctor.py --full` and
-  `check.sh` convert a cube from the game through `@lista` and fail if nothing is written.
+  `check.sh` convert a cube from the game through `@list` and fail if nothing is written.
 - `tools/windows/check_migration.py` checks caches and references of a checkout copied from WSL. `--apply` fixes paths
   and audio banks with a backup and invalidates only the affected markers. The check is structural; it does not
   replace acceptance with real data and Unreal.
@@ -75,7 +75,7 @@ Orchestration:
 - Real extraction of JSON, textures, audio, meshes and animations on Windows.
 - Unreal import on Windows: `tools/ue_import_all.py` exists but has not been run on real assets. The original also
   lists the import orchestrator and the Windows launcher as pending (unclear in the original which parts are missing).
-- `tools/ue_import_all.py` on Linux: steps `sistemas-04/05` (`tools/etapas/sistemas.ue.sh`), the heavy-work queue,
+- `tools/ue_import_all.py` on Linux: steps `sistemas-04/05` (`tools/steps/systems.ue.sh`), the heavy-work queue,
   and the open-editor check on Linux.
 - No Windows equivalent yet: `backend_dev`, `ui_shot`, `check` (use `doctor.py` and
   `python -m unittest discover -s tools/tests`), `package_server`, `rede`, `net_test`, `play_local`.
@@ -120,13 +120,13 @@ Use Python from python.org (the Microsoft Store Python is refused) and `python` 
 
 | Action | Command |
 |---|---|
-| Diagnostics (tools, nwbt of the current patch; `--full`: audio, Blender, Unreal and the `@lista` test) | `python tools/windows/doctor.py --full` |
-| Heavy-work queue | `python tools/pesado.py <comando>` |
+| Diagnostics (tools, nwbt of the current patch; `--full`: audio, Blender, Unreal and the `@list` test) | `python tools/windows/doctor.py --full` |
+| Heavy-work queue | `python tools/heavy.py <comando>` |
 | Whole extraction or step NN | `python tools/build_all.py [NN]` (`--dry-run` lists) |
 | Build and import into Unreal, step NN (editor closed) | `python tools/ue_import_all.py [NN]` |
 | `Data/` | `python tools/make_data.py` |
 | City, gatherables, ambient sound | `python tools/convert_city.py`, `convert_gatherables.py`, `render_ambient.py` |
-| Game version | `python tools/jogo_versao.py --exe` |
+| Game version | `python tools/game_version.py --exe` |
 | Checkout copied from WSL | `python tools/windows/check_migration.py [--apply]` |
 | Python tests | `python -m unittest discover -s tools/tests -v` |
 
@@ -137,14 +137,14 @@ python tools/build_all.py --dry-run
 python tools/build_all.py 07 --dry-run
 python tools/convert_city.py settlement_southwindsward_complete --dry-run
 python tools/convert_gatherables.py tools/arena/meshes.txt extract/ue/arena --dry-run
-python tools/pesado.py python -c "print('fila nativa')"
+python tools/heavy.py python -c "print('fila nativa')"
 python tools/make_data.py --dry-run
 ```
 
 After configuring the dependencies and `NW_GAME`:
 
 ```powershell
-python tools/jogo_versao.py --exe
+python tools/game_version.py --exe
 python tools/build_all.py
 python tools/build_all.py 07           # redo one step, even if it already has a marker
 python tools/build_all.py sistemas-02
@@ -336,7 +336,7 @@ makes compiling and the first open much faster.
 With Steam closed, copy `E:\nwport\New World` to `<Steam library>\steamapps\common\` and `appmanifest_1063730.acf` to
 `<Steam library>\steamapps\`. Open Steam: it verifies the files instead of downloading.
 
-The build must stay the one in `tools/jogo.versao`. If Steam updates the game, the extracted data and the
+The build must stay the one in `tools/game.version`. If Steam updates the game, the extracted data and the
 reverse-engineering addresses stop being valid until the project updates them together.
 
 #### 7. `extract/` in WSL (only to convert something new)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Converts the Everfall NPC appearances (.cdf from Data/World/queda_eterna_npcs.json) to FBX.
 
-    tools/linux/pesado.sh python3 tools/convert_npcs.py        (needs `source tools/linux/env.sh`: nwbt and blender)
+    tools/linux/heavy.sh python3 tools/convert_npcs.py        (needs `source tools/linux/env.sh`: nwbt and blender)
 
 One nwbt call for all .cdf (the pak index loads once) and one Blender run to export.
 Output in extract/ue/npcs/<SK_name>/: <SK_name>.fbx, textures/, materials.json. Import: tools/ue/import_npcs.py.
@@ -11,7 +11,7 @@ import json
 import os
 import nwplatform
 import nwprocess
-import saidas
+import outputs
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 nwplatform.configure()
@@ -34,22 +34,22 @@ def main():
         arglist = os.path.join(OUT, "nwbt_files.txt")
         with open(arglist, "w", encoding="utf-8", newline="\n") as f:
             f.write("\n".join(todo) + "\n")
-        saidas.require_nwbt()  # "@list" only in the nwbt from patches/nwbt.patch
+        outputs.require_nwbt()  # "@list" only in the nwbt from patches/nwbt.patch
         nwprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed",
                        "--ior", "1.5", *nwplatform.nwbt_workers(), "@" + arglist], cwd=ROOT, min_memory=10 * nwprocess.GIB)
-    lista = [{"glb": os.path.join(glb_dir, c + ".glb"), "mesh": m, "cdf": os.path.join(CDFS, c)}
+    jobs = [{"glb": os.path.join(glb_dir, c + ".glb"), "mesh": m, "cdf": os.path.join(CDFS, c)}
              for m, c in sorted(by_mesh.items())
              if not os.path.exists(os.path.join(OUT, m, m + ".fbx"))]
-    missing = [x["glb"] for x in lista if not os.path.exists(x["glb"])]
+    missing = [x["glb"] for x in jobs if not os.path.exists(x["glb"])]
     if missing:
         raise SystemExit(f"nwbt did not produce: {missing}")
-    if lista:
-        path = os.path.join(OUT, "lista.json")
-        json.dump(lista, open(path, "w"), indent=1)
-        since = saidas.now()
-        nwprocess.run(saidas.blender(os.path.join(ROOT, "tools", "export_npcs.py"), path),
+    if jobs:
+        path = os.path.join(OUT, "lista.json")  # name kept: existing extractions have it (windows/check_migration.py)
+        json.dump(jobs, open(path, "w"), indent=1)
+        since = outputs.now()
+        nwprocess.run(outputs.blender(os.path.join(ROOT, "tools", "export_npcs.py"), path),
                       cwd=ROOT, min_memory=10 * nwprocess.GIB)
-        saidas.require([os.path.join(OUT, x["mesh"], x["mesh"] + ".fbx") for x in lista], since, "Blender (export_npcs.py)")
+        outputs.require([os.path.join(OUT, x["mesh"], x["mesh"] + ".fbx") for x in jobs], since, "Blender (export_npcs.py)")
     print(f"ok: {len(by_mesh)} appearances in {OUT}")
 
 

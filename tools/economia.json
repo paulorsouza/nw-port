@@ -1,5 +1,5 @@
 {
-  "_comment": "Economy simulator parameters (tools/sim_economia.py, docs/game/economy.md). Coins in coins (not cents). 'proposta' values are guesses still to be calibrated; the fixed ones come from the maintainer or from the data.",
+  "_comment": "Economy simulator parameters (tools/sim_economy.py, docs/game/economy.md). Coins in coins (not cents). 'proposta' values are guesses still to be calibrated; the fixed ones come from the maintainer or from the data.",
   "semanas": 12,
   "cidades": 4,
   "jogadores_por_regiao": 50,

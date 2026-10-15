@@ -1,6 +1,6 @@
 {
   "_comment": "Sub-area 1a (Ice Gauntlet).",
-  "textos": {
+  "texts": {
     "nw.weapon.icegauntlet": {
       "pt-br": "Manopla de Gelo",
       "en-us": "Ice Gauntlet"
@@ -18,5 +18,5 @@
       "en-us": "Ice gauntlet + sword"
     }
   },
-  "chaves_do_jogo": []
+  "game_keys": []
 }

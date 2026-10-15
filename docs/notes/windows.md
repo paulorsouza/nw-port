@@ -34,8 +34,8 @@ extraction was run.
 
 ## Second delivery: work without the assets (date not recorded)
 
-- [x] `tools/jogo_versao.py`: Steam manifest and SHA256 hash without `awk`/`sha256sum`; accepts `NW_GAME`, `--game`,
-  `--exe` and `NW_IGNORA_VERSAO`. Without a manifest it requires the executable hash.
+- [x] `tools/game_version.py`: Steam manifest and SHA256 hash without `awk`/`sha256sum`; accepts `NW_GAME`, `--game`,
+  `--exe` and `NW_IGNORE_VERSION`. Without a manifest it requires the executable hash.
 - [x] `tools/make_data.py`: `Data/` generation sequence, including optional steps and screens; uses the Python that
   started the command, the repository directory and arguments without a shell.
 - [x] `--dry-run` lists the steps without starting subprocesses or writing `Data/`.
@@ -48,7 +48,7 @@ full generator was not run without the input files.
 ## Third delivery: queue, supervision and extraction (date not recorded)
 
 - [x] `nwprocess.py`: available physical memory and disk space without external Linux tools.
-- [x] `pesado.py`: heavy-work lock shared between processes and inherited by children.
+- [x] `heavy.py`: heavy-work lock shared between processes and inherited by children.
 - [x] Windows Job Objects for the whole process tree.
 - [x] Steps: completed steps skipped; a failed forced step loses its marker; `--dry-run` writes nothing.
 - [x] `build_all.py`: 14 main steps and three Everfall steps.
@@ -74,7 +74,7 @@ A Linux → Windows migration copy was made to an external 240 GB disk (NTFS par
 
 ## 2026-10-15: single nwbt patch and per-system folders
 
-Reason: `build_set.py` started calling `nwbt models files ... @lista` on both platforms, but `@lista` only existed in
+Reason: `build_set.py` started calling `nwbt models files ... @list` on both platforms, but `@list` only existed in
 the Windows patch. The Linux `bin/nwbt` treated `@...` as a pattern, found nothing and exited 0; Blender also exited 0
 with the script failing. Conversion reported "ok" with old glb files.
 
@@ -83,17 +83,17 @@ with the script failing. Conversion reported "ok" with old glb files.
   file is found, and the patch version in the binary. Linux and Windows build through the same `tools/build_nwbt.py`.
   `build_nwbt.ps1` now calls it.
 - `tools/windows/doctor.py` and `tools/linux/check.sh` flag an nwbt with another patch; `doctor.py --full` and
-  `check.sh` convert a cube from the game through `@lista` and fail if nothing is written. `build_set.py` and
+  `check.sh` convert a cube from the game through `@list` and fail if nothing is written. `build_set.py` and
   `convert_npcs.py` refuse an outdated nwbt, call Blender with `--python-exit-code 1` and check that the expected
-  glb/fbx files were rewritten (`tools/saidas.py`).
+  glb/fbx files were rewritten (`tools/outputs.py`).
 - Linux system scripts moved to `tools/linux/` (the old `tools/<x>.sh` are temporary shortcuts); `tools/windows/`
   stays for Windows; the pipeline Python stays single in `tools/`.
-- `pesado.py` runs the command in the caller's directory and returns its exit code; `python`/`python3` in the command
-  become the queue's Python. `make_data.py` gained `make_ui_sounds` and `make_itens` (they were missing compared to
+- `heavy.py` runs the command in the caller's directory and returns its exit code; `python`/`python3` in the command
+  become the queue's Python. `make_data.py` gained `make_ui_sounds` and `make_port_items` (they were missing compared to
   the `.sh`, which now only calls the `.py`). `nwplatform` finds Blender in `~/.local/opt` on Linux.
 - Skills: `nw-windows` (with the WSL2 alternative, replacing `nw-wsl`) and `nw-linux`; area skills use commands for
   both systems and point to the platform skill for the rest.
-- Pending in `ue_import_all.py` to also work on Linux: steps `sistemas-04/05` (`tools/etapas/sistemas.ue.sh`), the
+- Pending in `ue_import_all.py` to also work on Linux: steps `sistemas-04/05` (`tools/steps/systems.ue.sh`), the
   heavy-work queue and the open-editor check on Linux.
 
 ## 2026-10-15: asset sync size

@@ -17,8 +17,8 @@ The Ghidra project (`.gpr`) lives in `extract/ghidra` (not in git). Answers stay
 - **A full auto-analysis of the executable (180 MB) used up the RAM (38 GB) and froze the machine.** Always run
   Ghidra with a cap: `systemd-run --user --scope -p MemoryMax=14G -p MemorySwapMax=0`, import with `-noanalysis`,
   and analyze function by function.
-- Addresses are valid only for the exe of the build in `tools/jogo.versao`. Check it first:
-  `tools/linux/jogo_versao.sh --exe`.
+- Addresses are valid only for the exe of the build in `tools/game.version`. Check it first:
+  `tools/linux/game_version.sh --exe`.
 
 ## Headless MCP server
 
@@ -70,7 +70,7 @@ With only that pak in the folder, nwbt does not load the index of the others.
 The list comes from `.pdata` (see `xref.func_of`). With the MCP server stopped, through the heavy-job queue:
 
 ```bash
-tools/linux/pesado.sh systemd-run --user --scope -p MemoryMax=14G -p MemorySwapMax=0 nice -n 10 env MAXMEM=10G \
+tools/linux/heavy.sh systemd-run --user --scope -p MemoryMax=14G -p MemorySwapMax=0 nice -n 10 env MAXMEM=10G \
   ~/.local/opt/ghidra_12.1.4_PUBLIC/support/analyzeHeadless extract/ghidra NewWorld -process NewWorld.exe \
   -noanalysis -readOnly -scriptPath tools/re -postScript RangeDecompile.java <list.txt> <output.c>
 ```
@@ -86,7 +86,7 @@ again afterwards.
   the function's `.pdata` pieces.
 - `xref.datasheet_columns(start)`: in a datasheet row parser, column → destination in the struct (and bit, for a
   flag).
-- `tools/re/colunas.py`: columns the `NewWorld.exe` datasheet parsers read → `re-local/colunas.json` (used by
+- `tools/re/columns.py`: columns the `NewWorld.exe` datasheet parsers read → `re-local/colunas.json` (used by
   `tools/re_check.py`).
 - `python3 -I tools/re/dis.py 0xSTART 0xEND`: disassembly with strings and floats resolved.
 - CryEngine cvar pattern: `IConsole::Register(name, &var, default, …)`; the float default is the 4th argument
@@ -124,7 +124,7 @@ game; it does not change the port.
 
 Before:
 
-- Check the build: `tools/linux/jogo_versao.sh --exe`. If it is another exe, stop and report.
+- Check the build: `tools/linux/game_version.sh --exe`. If it is another exe, stop and report.
 - Read this page and the doc the question cites.
 - `re-local/` is a cache of previous answers on this machine and may not exist. If it exists, look there before
   reversing (`simbolos.md`, `perguntas/`, `valores/`). Nothing in the repository depends on it.
@@ -135,7 +135,7 @@ Rules:
   other `tools/`, docs; do not run the port, Unreal or New World. No official servers.
 - If the MCP server is not up, start it with the command above (it already has a memory cap). A batch decompile
   stops the MCP server and runs through the queue; start the server again afterwards.
-- nwbt only through the queue (`tools/linux/pesado.sh nwbt ...`), with as few calls as possible.
+- nwbt only through the queue (`tools/linux/heavy.sh nwbt ...`), with as few calls as possible.
 - Start from strings (`python3 -I tools/re/xref.py str "..."`), then `va`, `dis.py`, function-by-function
   decompilation. Datasheet parsers: `xref.datasheet_columns`.
 - Every claim has an evidence grade: C (code read), R (reflection or data parser), H (hypothesis).

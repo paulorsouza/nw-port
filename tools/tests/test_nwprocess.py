@@ -24,7 +24,7 @@ def wait_file(path, timeout=5):
 
 class ProcessTests(unittest.TestCase):
     def setUp(self):
-        directory = tempfile.TemporaryDirectory(prefix="nw process testes ")
+        directory = tempfile.TemporaryDirectory(prefix="nw process tests ")
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
 
@@ -124,13 +124,13 @@ class ProcessTests(unittest.TestCase):
             f"Path({str(ready)!r}).touch()\n"
             f"with nwprocess.heavy_lock(Path({str(lock)!r})):\n Path({str(entered)!r}).touch()\n")
         env = dict(os.environ)
-        env.pop("NW_PESADO", None)
-        with patch.dict(os.environ, {"NW_PESADO": ""}):
+        env.pop("NW_HEAVY", None)
+        with patch.dict(os.environ, {"NW_HEAVY": ""}):
             process = None
             try:
                 with nwprocess.heavy_lock(lock):
                     with nwprocess.heavy_lock(lock):
-                        self.assertEqual(os.environ["NW_PESADO"], "1")
+                        self.assertEqual(os.environ["NW_HEAVY"], "1")
                     process = subprocess.Popen([sys.executable, "-c", code], env=env,
                                                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
                     wait_file(ready)
@@ -139,7 +139,7 @@ class ProcessTests(unittest.TestCase):
                 _, errors = process.communicate(timeout=5)
                 self.assertEqual(process.returncode, 0, errors)
                 self.assertTrue(entered.exists())
-                self.assertEqual(os.environ.get("NW_PESADO"), "")
+                self.assertEqual(os.environ.get("NW_HEAVY"), "")
             finally:
                 if process and process.poll() is None:
                     process.kill()

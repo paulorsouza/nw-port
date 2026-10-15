@@ -264,13 +264,13 @@ def main():
     pipeline = extraction.pipeline()
     if args.step and args.step not in {name for name, _, _ in pipeline}:
         parser.error("unknown step")
-    extra = {p.name for p in (nwplatform.ROOT / "tools/etapas").glob("*.build.sh")} - {"sistemas.build.sh"}
+    extra = {p.name for p in (nwplatform.ROOT / "tools/steps").glob("*.build.sh")} - {"systems.build.sh"}
     if extra:
         parser.error("areas not ported yet: " + ", ".join(sorted(extra)))
     runner = nwprocess.Steps(nwplatform.ROOT / "extract/.etapas", only=args.step,
                              dry_run=args.dry_run, before=check_closed)
     def execute():
-        extraction.py("jogo_versao", heavy=False)
+        extraction.py("game_version", heavy=False)
         for name, description, action in pipeline:
             extraction.log = extraction.logs / f"{name}.log"
             runner.run(name, description, action)

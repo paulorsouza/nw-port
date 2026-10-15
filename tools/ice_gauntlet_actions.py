@@ -1,6 +1,6 @@
 """Ice Gauntlet actions for make_datatables.py (sub-area 1a, docs/game/weapons/ice-gauntlet.md).
 
-AM_Ig_* montages (tools/sets/player/armas_manopla-gelo.json). The third field of an action is the CostID: it gives the
+AM_Ig_* montages (tools/sets/player/weapons_ice-gauntlet.json). The third field of an action is the CostID: it gives the
 stamina (javelindata_staminacosts_player) and the mana (javelindata_manacosts_player).
 """
 
@@ -19,7 +19,7 @@ ICEGAUNTLET_ACTIONS = {
     "Death": ("AM_Death", "", "", ""), "StunLoop": ("AM_StunLoop", "", "", ""),
     "Draw": ("AM_Ig_Draw", "", "", ""), "Sheath": ("AM_Ig_Sheath", "", "", ""),
     # Abilities (playeractions_ability_icemagic): animation here, mechanics in UNWIceGauntletComponent
-    # (NWArmaManopla.cpp). Mana from the CostID; cooldown from ICEGAUNTLET_ABILITY_IDS (Pylon and Entombed start at the end).
+    # (NWIceGauntlet.cpp). Mana from the CostID; cooldown from ICEGAUNTLET_ABILITY_IDS (Pylon and Entombed start at the end).
     "Spikes": ("AM_Ig_Spikes", "", "IceMagic_Spikes", ""),
     "SpikesOut": ("AM_Ig_SpikesOut", "", "", ""),
     "SpikesEnd": ("AM_Ig_SpikesOut", "", "", ""),

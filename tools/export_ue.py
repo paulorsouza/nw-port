@@ -205,7 +205,7 @@ for key, glb in manifest["glb"]["weapons"].items():
 idle = next(c["asset"] for k, c in manifest["composites"].items() if k == manifest["loops"].get("Idle"))
 nwchar.set_action(arm, bpy.data.actions[idle])
 scene.frame_start, scene.frame_end = 0, int(bpy.data.actions[idle].frame_range[1])
-guide = bpy.data.texts.new("LEIA")
+guide = bpy.data.texts.new("README")
 guide.write("Actions (Action Editor, Armature object):\n")
 for name, comp_key in manifest["loops"].items():
     guide.write(f"  loop {name}: {manifest['composites'][comp_key]['asset']}\n")

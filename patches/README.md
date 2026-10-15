@@ -15,25 +15,25 @@ Linux and Windows use the same script. It exports the base commit to `.nwbt/buil
 changed.
 
 ```bash
-tools/linux/pesado.sh python3 tools/build_nwbt.py --test
+tools/linux/heavy.sh python3 tools/build_nwbt.py --test
 ```
 
 ```powershell
 ./tools/windows/build_nwbt.ps1 -Test
 ```
 
-`tools/linux/pesado.sh` and `tools/linux/check.sh` are shortcuts to `tools/linux/pesado.sh` and `tools/linux/check.sh`.
+`tools/linux/heavy.sh` and `tools/linux/check.sh` are shortcuts to `tools/linux/heavy.sh` and `tools/linux/check.sh`.
 
 `nwbt --version` shows `nwport-patch=<base>-<hash do patch>`. `tools/linux/check.sh` and `tools/windows/doctor.py` flag a
-binary built with another patch (or without a version) and test conversion through `@lista`.
+binary built with another patch (or without a version) and test conversion through `@list`.
 
 ## Change nwbt
 
-1. `python3 tools/build_nwbt.py --preparar` sets up `.nwbt/build/src` (base + patch, its own git repository).
+1. `python3 tools/build_nwbt.py --prepare` sets up `.nwbt/build/src` (base + patch, its own git repository).
    Edit in `.nwbt/build/src/tools/nwbt`.
-2. `python3 tools/build_nwbt.py --gerar-patch` writes `patches/nwbt.patch` (the header is kept). The build refuses
+2. `python3 tools/build_nwbt.py --make-patch` writes `patches/nwbt.patch` (the header is kept). The build refuses
    to delete `.nwbt/build/src` while it has edits that have not gone into the patch.
-3. Rebuild (`tools/linux/pesado.sh python3 tools/build_nwbt.py --test`) and commit `patches/nwbt.patch` together with
+3. Rebuild (`tools/linux/heavy.sh python3 tools/build_nwbt.py --test`) and commit `patches/nwbt.patch` together with
    `bin/nwbt`. On Windows, each person rebuilds `nwbt.exe`.
 
 `vendor/nw-buddy` is not used to build (only as the source of the base commit). A change made there (CRLF sources)
@@ -47,6 +47,6 @@ on top of it.
 | Part | Owner |
 |---|---|
 | `sliceLight` (slice lights) | lighting area |
-| Everything else (Windows, `@lista`, error when no file is found, version) | tools |
+| Everything else (Windows, `@list`, error when no file is found, version) | tools |
 
 Areas: [docs/workflow.md](../docs/workflow.md). Windows build details: [docs/tech/windows.md](../docs/tech/windows.md).

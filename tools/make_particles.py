@@ -178,7 +178,7 @@ def nwbt(*args, sub=1):
     import sys
     import nwplatform
     nwplatform.configure()
-    subprocess.run([sys.executable, os.path.join(ROOT, "tools", "pesado.py"), nwplatform.executable("nwbt"), *args[:sub],
+    subprocess.run([sys.executable, os.path.join(ROOT, "tools", "heavy.py"), nwplatform.executable("nwbt"), *args[:sub],
                     "-g", nwplatform.game_directory(), *args[sub:]], check=True, capture_output=True)
 
 

@@ -1,6 +1,6 @@
 {
   "_comment": "Area 2 (gathering).",
-  "textos": {
+  "texts": {
     "nw.gather.busy": {
       "pt-br": "Outra pessoa já está coletando aqui.",
       "en-us": "Someone else is already gathering here."
@@ -10,7 +10,7 @@
       "en-us": "Skin"
     }
   },
-  "chaves_do_jogo": [
+  "game_keys": [
     "ui_mine",
     "ui_harvest",
     "ui_log",

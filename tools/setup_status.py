@@ -9,7 +9,7 @@ Paths:
     ready            the Unreal project is already imported: open the editor
     import-zips      asset zips found (tools/assets_import.py): import them
     build-from-game  New World installed at the team build: extract and import
-    wrong-build      New World installed, but not the build in tools/jogo.versao
+    wrong-build      New World installed, but not the build in tools/game.version
     no-source        neither zips nor the game: nothing to build the project from
 """
 import argparse
@@ -74,8 +74,8 @@ def game_status(check_exe):
     info = {"path": str(game), "found": (game / "assets").is_dir() and (game / "Bin64").is_dir(),
             "source": "NW_GAME" if os.environ.get("NW_GAME") else "steam" if nwplatform.find_game() else "default"}
     if info["found"]:
-        import jogo_versao
-        errors = jogo_versao.check_version(game.resolve(), ROOT / "tools/jogo.versao", check_exe)
+        import game_version
+        errors = game_version.check_version(game.resolve(), ROOT / "tools/game.version", check_exe)
         info["team_build"] = not errors
         info["build_errors"] = errors
     return info
@@ -223,7 +223,7 @@ def print_report(r):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--json", action="store_true")
-    ap.add_argument("--exe", action="store_true", help="hash NewWorld.exe against tools/jogo.versao")
+    ap.add_argument("--exe", action="store_true", help="hash NewWorld.exe against tools/game.version")
     a = ap.parse_args()
     r = report(a.exe)
     if a.json:

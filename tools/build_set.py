@@ -8,7 +8,7 @@ Output in extract/ue/<name>/:
   fbx/            SK_*.fbx, SM_*.fbx, anim/A_*.fbx
   manifest.json   blend spaces, montages, loops and sockets for the Unreal script
 nwbt (from patches/nwbt.patch) and Blender found by tools/nwplatform.py; game in NW_GAME. Run through the queue:
-    python3 tools/pesado.py python3 tools/build_set.py tools/sets/sword_shield.json
+    python3 tools/heavy.py python3 tools/build_set.py tools/sets/sword_shield.json
 """
 import argparse
 import json
@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import adb_windows  # noqa: E402
 import setspec  # noqa: E402
 import nwplatform  # noqa: E402
-import saidas  # noqa: E402
+import outputs  # noqa: E402
 
 nwplatform.configure()
 
@@ -175,9 +175,9 @@ def main():
     arglist = os.path.join(out, "nwbt_files.txt")
     with open(arglist, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join([spec["character"], *([spec["armor"]] if spec.get("armor") else []), *files, *weapon_files]) + "\n")
-    # "@lista" needs the nwbt from patches/nwbt.patch (tools/build_nwbt.py); an nwbt without the patch exited 0 converting nothing.
-    saidas.require_nwbt()
-    since = saidas.now()
+    # "@list" needs the nwbt from patches/nwbt.patch (tools/build_nwbt.py); an nwbt without the patch exited 0 converting nothing.
+    outputs.require_nwbt()
+    since = outputs.now()
     r = subprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed", "--ior", "1.5", *nwplatform.nwbt_workers(),
                         "@" + arglist], capture_output=True, text=True)
     if r.returncode != 0:
@@ -188,17 +188,17 @@ def main():
         "armor": os.path.join(glb_dir, spec["armor"] + ".glb") if spec.get("armor") else None,
         "weapons": {k: os.path.join(glb_dir, w["file"] + ".glb") for k, w in spec["weapons"].items()},
     }
-    saidas.require([manifest["glb"]["character"], manifest["glb"]["armor"], *manifest["glb"]["weapons"].values(),
+    outputs.require([manifest["glb"]["character"], manifest["glb"]["armor"], *manifest["glb"]["weapons"].values(),
                     *manifest["glb"].get("skinned_weapons", {}).values()], since, "nwbt")
     mpath = os.path.join(out, "manifest.json")
     json.dump(manifest, open(mpath, "w"), indent=1)
 
-    since = saidas.now()
-    subprocess.run(saidas.blender(os.path.join(ROOT, "tools", "export_ue.py"), mpath), check=True)
+    since = outputs.now()
+    subprocess.run(outputs.blender(os.path.join(ROOT, "tools", "export_ue.py"), mpath), check=True)
     fbx = json.load(open(mpath)).get("fbx")
     if not fbx:
         sys.exit("Blender (export_ue.py) did not write the manifest's fbx section")
-    saidas.require([fbx["skeletal_mesh"], *fbx["anims"].values(), *fbx["weapons"].values(),
+    outputs.require([fbx["skeletal_mesh"], *fbx["anims"].values(), *fbx["weapons"].values(),
                     *fbx.get("skinned_weapons", {}).values()], since, "Blender (export_ue.py)")
     print(f"ok: {out}")
 

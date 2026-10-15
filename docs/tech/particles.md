@@ -64,7 +64,7 @@ the older placeholder effect: no sprites, no decals, no atlas.
    ```
 
    XML → `extract/fx/<Lib>.<Effect>.json` (emitters, curves, texture/mesh/material list) and, through
-   `tools/linux/pesado.sh`, materials (`.mtl`), textures (png) and meshes (glb) into `extract/fx/src` and `extract/fx/glb`.
+   `tools/linux/heavy.sh`, materials (`.mtl`), textures (png) and meshes (glb) into `extract/fx/src` and `extract/fx/glb`.
 
 2. Build, with the editor closed:
 

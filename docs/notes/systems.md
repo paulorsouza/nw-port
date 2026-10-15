@@ -97,20 +97,20 @@ back:
 - Gems and runeglass; editor Play with local nw-core and a fixed account
   ([tech/backend-testing.md](../tech/backend-testing.md)); result screen buttons and sounds; armor and jewelry
   (mechanics); 500-slot bag, overflow to the ground, ground loot bag (`ANWLootBag`, 2 min, 1000 kg); network test stack
-  with Cloudflare Tunnel ([tech/network-test.md](../tech/network-test.md), `tools/linux/rede.sh`). Commits `1d7fc8f`
+  with Cloudflare Tunnel ([tech/network-test.md](../tech/network-test.md), `tools/linux/network.sh`). Commits `1d7fc8f`
   and `7667ce9`; the rest was left uncommitted.
 
 ### Session pending list (in order) and outcome
 
 1. Commit and push what was left out (ask the maintainer): 500-slot bag and `ANWLootBag` (`NWLootBag.*`,
    `NWInventory*`, `NWInteractable.*`, `NWCrafting.cpp`, `NWHUD.cpp`), `MAX_BAG_SLOTS = 500` in `backend/`,
-   `NWUIShotCommandlet.cpp` (`WITH_EDITOR`), `tools/linux/rede.sh`, `deploy/compose.rede.yaml`, the network test doc,
+   `NWUIShotCommandlet.cpp` (`WITH_EDITOR`), `tools/linux/network.sh`, `deploy/compose.rede.yaml`, the network test doc,
    docs and tests 70–73. Not `bin/nwbt` nor files of other areas.
 2. Maintainer tests still open: 55–69 (gems, buttons and sounds, armor and jewelry) and 71–73 (full bag to the ground,
    drop and pick up the sack, 2 minutes and 1000 kg). Scroll (70) and jewelry already tested.
-3. Network test with 2 PCs: `tools/linux/rede.sh up`, check `https://<NW_REDE_HOST>/health`, package the Windows client
+3. Network test with 2 PCs: `tools/linux/network.sh up`, check `https://<NW_NETWORK_HOST>/health`, package the Windows client
    ([tech/network-test.md](../tech/network-test.md)) with `Jogar.bat` on `-nwconnect=<PC IP>:7777`, account through
-   `tools/linux/rede.sh invite`. Then, with friends: Zero Trust and WARP (the ISP uses CGNAT), reserve the PC's IP in
+   `tools/linux/network.sh invite`. Then, with friends: Zero Trust and WARP (the ISP uses CGNAT), reserve the PC's IP in
    DHCP, update `cloudflared` (2026.8.3 → 2026.10.0).
 4. Ground bag screen like the game's: done 2026-10-14 ("Dropped Items" window, take item by item, lifetime warning;
    tests 76–78).
@@ -181,7 +181,7 @@ See [tech/server.md](../tech/server.md).
 
 ### Economy simulator: first results
 
-`tools/sim_economia.py` with `tools/economia.json` ("proposal" parameters): 4 cities with active, average, greedy (buys
+`tools/sim_economy.py` with `tools/economia.json` ("proposal" parameters): 4 cities with active, average, greedy (buys
 cheap, sells expensive, 10% tax) and absent governors; 10, 50 and 200 players per region; 12 weeks.
 
 1. Inflation. Coins created ~21,000 per player per week (dungeon 18,800, gift 2,000, rewards); destroyed under 3,000

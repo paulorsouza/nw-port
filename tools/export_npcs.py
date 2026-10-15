@@ -17,9 +17,9 @@ import bpy
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import nwchar  # noqa: E402
 
-lista_path = sys.argv[sys.argv.index("--") + 1]
-root = os.path.dirname(lista_path)
-for item in json.load(open(lista_path)):
+list_path = sys.argv[sys.argv.index("--") + 1]
+root = os.path.dirname(list_path)
+for item in json.load(open(list_path)):
     out = os.path.join(root, item["mesh"])
     os.makedirs(out, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)

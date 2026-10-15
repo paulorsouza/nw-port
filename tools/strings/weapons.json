@@ -1,6 +1,6 @@
 {
   "_comment": "Area 1 (weapons).",
-  "textos": {
+  "texts": {
     "nw.weapon.sword": {
       "pt-br": "Espada e Escudo",
       "en-us": "Sword and Shield"
@@ -46,7 +46,7 @@
       "en-us": "Dodged"
     }
   },
-  "chaves_do_jogo": [
+  "game_keys": [
     "ui_tooltip_basedamage",
     "ui_weapon_mastery",
     "ui_skills"

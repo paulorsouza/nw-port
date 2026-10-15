@@ -1,6 +1,6 @@
 """Columns that the NewWorld.exe datasheet parsers read → re-local/colunas.json (used by tools/re_check.py).
 
-    python3 -I tools/re/colunas.py
+    python3 -I tools/re/columns.py
 
 Lists the strings each parser loads (rip-relative lea) and keeps the ones that look like column names. _AI and X/Y/Z
 variants do not appear as strings: the parser builds the name with a suffix (e.g. "ImpactDistance" reads ImpactDistanceX/Y/Z).
@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import xref  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# datasheet → start of the row parser (re-local/enderecos.json, build from tools/jogo.versao).
+# datasheet → start of the row parser (re-local/enderecos.json, build from tools/game.version).
 PARSERS = {k: int(v, 16) for k, v in xref.local_addresses().get("colunas", {}).items()}
 NOT_COLUMNS = {"Default", "none"}
 

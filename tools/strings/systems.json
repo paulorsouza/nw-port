@@ -1,6 +1,6 @@
 {
   "_comment": "Area 4 (systems: login, death, chat, group, inventory, level, attributes, trade skills).",
-  "textos": {
+  "texts": {
     "nw.login.account": {
       "pt-br": "Conta",
       "en-us": "Account"
@@ -798,7 +798,7 @@
       "en-us": "Your coins"
     }
   },
-  "chaves_do_jogo": [
+  "game_keys": [
     "everfall",
     "ui_shop_default_name",
     "ui_consumable",

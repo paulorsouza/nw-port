@@ -1,6 +1,6 @@
 # Clan network test on this PC (docs/tech/network-test.md). Layered over compose.yaml:
 #   docker compose -p nw-rede -f compose.yaml -f compose.rede.yaml up -d
-# nw-core only on 127.0.0.1:8091 (the Cloudflare Tunnel publishes it at https://$NW_REDE_HOST); 8090 is left for
+# nw-core only on 127.0.0.1:8091 (the Cloudflare Tunnel publishes it at https://$NW_NETWORK_HOST); 8090 is left for
 # the development nw-core (tools/linux/backend_dev.sh). Game on UDP 7777, opened on the router.
 services:
   core:

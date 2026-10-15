@@ -179,7 +179,7 @@ Appearance:
 
 - Items: the game's 4 cuts (`<Gem>CutT1..T4`, item tier 2–5, 2–5%) of Onyx, Opal, Diamond, Sapphire, Jasper, Emerald
   and Malachite, and runeglass `Runeglass_Gem_<Gem>_Melee|Arcane` (Pristine gem + physical or magic amplification).
-  Effects per item in `Data/Items/regras_itens.json` `gema_itens` (`tools/make_itens.py` from `tools/itens.json`
+  Effects per item in `Data/Items/regras_itens.json` `gema_itens` (`tools/make_port_items.py` from `tools/itens.json`
   `gemas`, `gema_pct_por_tier`, `vidro_capsulas`, `vidro_amplificacao`).
 - Recipes (cutting, capsule, runeglass): [crafting.md](crafting.md#gems-and-runeglass).
 - Server: `UNWInventoryComponent::ServerSocket` (gem from the bag into an item in the bag or equipped; only into an
@@ -215,7 +215,7 @@ Appearance:
 ## Item data
 
 - `FNWItem` holds attribute, quality, perks, gem, bind and signature (`props` in nw-core, migration 0008).
-- Rules in `Data/Items/regras_itens.json` (`tools/make_itens.py`, `tools/itens.json`, `tools/perks_decisoes.json`).
+- Rules in `Data/Items/regras_itens.json` (`tools/make_port_items.py`, `tools/itens.json`, `tools/perks_decisoes.json`).
 - Tooltip with perks (icon and value) and the gem slot (socket frame).
 - Rolling: `FNWItemRules::Roll`, range `FNWCrafting::GsRange` ([crafting.md](crafting.md#crafting-gear)).
 

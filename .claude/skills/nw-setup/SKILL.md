@@ -55,7 +55,7 @@ Never enter passwords, log in to accounts or accept license prompts for them.
 Tell the person, in their language, close to this:
 
 > To build the project this machine needs one of two things:
-> 1. New World installed through Steam (build `<buildid from tools/jogo.versao>`). The setup extracts everything it
+> 1. New World installed through Steam (build `<buildid from tools/game.version>`). The setup extracts everything it
 >    needs from your own install; nothing from the game is downloaded from anywhere else.
 > 2. Asset zips you made on another machine of yours (`python3 tools/assets_export.py` there), copied to
 >    `<NW_ASSETS folder>`.
@@ -67,10 +67,10 @@ Stop there until they have one of the two.
 
 ## Wrong build (`wrong-build`)
 
-Extracted data and reverse-engineering answers are valid for one build only (`tools/jogo.versao`). Tell the person
+Extracted data and reverse-engineering answers are valid for one build only (`tools/game.version`). Tell the person
 which build they have (`build_errors` in the status) and which one the project uses. Do not extract from another
-build unless they say the whole team is moving to it; in that case `NW_IGNORA_VERSAO=1` lets the scripts run, and
-`tools/jogo.versao` is updated in a commit of its own.
+build unless they say the whole team is moving to it; in that case `NW_IGNORE_VERSION=1` lets the scripts run, and
+`tools/game.version` is updated in a commit of its own.
 
 ## 3. After the setup
 

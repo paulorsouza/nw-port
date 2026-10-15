@@ -2,7 +2,7 @@
 # Local network test: nw-core + dedicated server (UnrealEditor -server) + N clients that log in through the
 # clan login, take a screenshot and leave.
 #   tools/linux/net_test.sh [clients=2] [map=L_SouthWindsward]
-#   NW_SERVER=pacote tools/linux/net_test.sh ...   uses the packaged server (deploy/build/LinuxServer)
+#   NW_SERVER=package tools/linux/net_test.sh ...  uses the packaged server (deploy/build/LinuxServer)
 #   NW_SERVER=docker tools/linux/net_test.sh 10    uses the deploy/ compose already up (accounts in the container DB);
 #                                            writes docker stats to Saved/NetTest/stats.txt
 #   NW_TEST_SECONDS=90                       how long the clients stay on the server (bots: -nwbot)
@@ -63,7 +63,8 @@ done
 server_log() { if [ "${NW_SERVER:-}" = docker ]; then docker exec deploy-game-1 cat /srv/nw/NWPort/Saved/Logs/NWPort.log; else cat "$out/server.log"; fi; }
 if [ "${NW_SERVER:-}" = docker ]; then
   :
-elif [ "${NW_SERVER:-}" = pacote ]; then
+# "pacote": old value, still accepted.
+elif [ "${NW_SERVER:-}" = package ] || [ "${NW_SERVER:-}" = pacote ]; then
   "$root/deploy/build/LinuxServer/NWPortServer.sh" "/Game/NW/Maps/$map" -log -port=7777 -nwbackend="$NW_BACKEND" \
     -abslog="$out/server.log" >/dev/null 2>&1 &
 else
@@ -116,13 +117,13 @@ for p in "${client_pids[@]}"; do wait "$p" || true; done
 
 # No ticket: the server must refuse.
 "$ue" "$uproject" 127.0.0.1:7777 -game -nullrhi -unattended -nosplash \
-  -abslog="$out/client-intruso.log" >/dev/null 2>&1 &
+  -abslog="$out/client-intruder.log" >/dev/null 2>&1 &
 intruder=$!
 pids+=($intruder)
-for _ in $(seq 60); do grep -q "nw.err.no_ticket" "$out/client-intruso.log" 2>/dev/null && break; sleep 1; done
+for _ in $(seq 60); do grep -q "nw.err.no_ticket" "$out/client-intruder.log" 2>/dev/null && break; sleep 1; done
 kill "$intruder" 2>/dev/null || true
 echo "--- intruder"
-grep -o "nw.err.no_ticket" "$out/client-intruso.log" | head -1 || echo "was NOT refused"
+grep -o "nw.err.no_ticket" "$out/client-intruder.log" | head -1 || echo "was NOT refused"
 sleep 2
 echo "--- server"
 server_log | grep -E "join|leave|refused" | tail -24

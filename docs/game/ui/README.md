@@ -19,7 +19,7 @@ How to port a LyShine screen (canvas + the game's Lua) and test it without openi
 - `FNWUILayout` is shared. The mode faithful to LyShine (`bExactText`) is turned on per screen, without changing the
   other screens.
 - Screens copied from the game: game layouts built by `tools/ui_build_*.py` into `Data/UI/*.json`, drawn in C++
-  (pattern of `NWInventoryMenu`, `NWTradeskillMenu`). Texts in `tools/strings/sistemas.json` (pt-BR and en-US).
+  (pattern of `NWInventoryMenu`, `NWTradeskillMenu`). Texts in `tools/strings/systems.json` (pt-BR and en-US).
 - New screens (no counterpart in the game) use the port's Slate style (`NWSlate`; first used by `SNWMarket`, then
   `SNWCity`) with the game's colors and fonts. Screens copied from the game keep the game's layout.
 
@@ -80,6 +80,6 @@ it, as in the game). Do it one screen at a time, with a capture.
 - Position set by the Lua (`UiTransformBus.SetLocalPositionY`, `ScriptedEntityTweener.Set {x, y, w, h}`): look for it
   in the screen's Lua and apply it in C++ as `Translate` or `Offsets` (e.g. `UpdateRequirements` moves requirements
   and quantity up 28 px per requirement row; `SLIDER_STYLE_2` puts the value in a 250×40 box above the bar).
-- Texts: new game keys go in `tools/strings/sistemas.json` (`chaves_do_jogo`). Station names: `@<type>_station` +
+- Texts: new game keys go in `tools/strings/systems.json` (`game_keys`). Station names: `@<type>_station` +
   `ui_tier` (the `<TradeSkill>T<n>_MasterName` keys are misaligned in the game: T2 = "Tier 3").
 - Hold-to-repeat buttons: `button.lua` `repeatParamsDefault`. Space = action `tryskip` (`uishared.xml`).

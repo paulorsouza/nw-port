@@ -34,7 +34,7 @@ REGIONS = os.path.join(ROOT, "extract", "terrain", "sharedassets", "coatlicue", 
 SLICEJSON = os.path.join(ROOT, "extract", "slicejson")
 LOC = os.path.join(ROOT, "extract", "loc", "localization")
 TIMELINES = os.path.join(ROOT, "extract", "timelines")   # step sistemas-03 of build_all
-CDFS = os.path.join(ROOT, "extract", "npcs")             # NPC .cdf (tools/linux/pesado.sh nwbt unpack; docs/game/city.md)
+CDFS = os.path.join(ROOT, "extract", "npcs")             # NPC .cdf (tools/linux/heavy.sh nwbt unpack; docs/game/city.md)
 OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "queda_eterna_npcs.json")
 SET = os.path.join(ROOT, "tools", "sets", "npc_queda_eterna.json")
 REWARDS = os.path.join(ROOT, "tools", "npc_rewards.json")              # gifts per trade skill (docs/game/city.md)
@@ -183,9 +183,9 @@ def main():
     rewards = json.load(open(REWARDS))
     for n in npcs:
         n["tipo"] = rewards["npcs"].get(n["variant"], "")
-    sem = [n["variant"] for n in npcs if n["name"]["pt-br"] and not n["tipo"]]
-    if sem:
-        raise SystemExit(f"named NPC without a trade skill in {REWARDS}: {sem}")
+    untyped = [n["variant"] for n in npcs if n["name"]["pt-br"] and not n["tipo"]]
+    if untyped:
+        raise SystemExit(f"named NPC without a trade skill in {REWARDS}: {untyped}")
     json.dump({k: v for k, v in rewards.items() if k != "_comment"}, open(REWARDS_OUT, "w"), ensure_ascii=False, indent=1)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     # Training ground of the weapon tutorials (tools/tutorials.json, "bonecos").

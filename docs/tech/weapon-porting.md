@@ -20,7 +20,7 @@ Models of a finished survey: [../game/weapons/bow.md](../game/weapons/bow.md),
   [../setup.md](../setup.md).
 - Unreal Editor closed during the import and compile steps.
 - One heavy job at a time ([../status.md](../status.md), pitfalls). Heavy jobs go through the queue:
-  `python3 tools/pesado.py <command>` (Linux also `tools/linux/pesado.sh`).
+  `python3 tools/heavy.py <command>` (Linux also `tools/linux/heavy.sh`).
 - The original New World closed during heavy work.
 - Reverse engineering: check what is already resolved in [../game/combat.md](../game/combat.md). What is missing
   becomes a question for reverse engineering (ask the `nw-re` agent).
@@ -60,12 +60,12 @@ and at the end the proposal (actions, montages, DamageID, stamina, cooldown, hit
 What is not in `extract/`:
 
 - State logic: the CAGE actionlists (`extract/serverpak/client/.../cage/`).
-- Any pak file: `python3 tools/pesado.py nwbt cat -g "$NW_GAME" <path>` (heavy queue, ~6 GB each).
+- Any pak file: `python3 tools/heavy.py nwbt cat -g "$NW_GAME" <path>` (heavy queue, ~6 GB each).
 
 ## 3. Animations: recipe in the player set
 
 All player weapons live in the same set (`tools/sets/sword_shield.json`, same skeleton). The weapons part is
-`tools/sets/player/armas.json`; a sub-area weapon has its own part `tools/sets/player/armas_<arma>.json`, added to
+`tools/sets/player/weapons.json`; a sub-area weapon has its own part `tools/sets/player/weapons_<weapon>.json`, added to
 `parts` of `sword_shield.json`. Each weapon has a montage prefix: `AM_` Sword, `AM_Hx_` Hatchet, `AM_Bw_` Bow,
 `AM_Rp_` Rapier, `AM_Ig_` Ice Gauntlet.
 
@@ -96,9 +96,9 @@ What the pipeline does by itself with the `.adb`:
 Convert (Blender + nwbt, heavy, original New World closed):
 
 ```bash
-source tools/linux/env.sh && tools/linux/pesado.sh python3 tools/build_set.py tools/sets/sword_shield.json
+source tools/linux/env.sh && tools/linux/heavy.sh python3 tools/build_set.py tools/sets/sword_shield.json
 # or, on any platform
-python3 tools/pesado.py python3 tools/build_set.py tools/sets/sword_shield.json
+python3 tools/heavy.py python3 tools/build_set.py tools/sets/sword_shield.json
 ```
 
 `build_set.py` builds the whole set: whoever runs it also picks up other sub-areas' changes. Agree before running.
@@ -154,7 +154,7 @@ python3 tools/make_sound_map.py extract/ue/sword_shield/manifest.json
 
 ## 6. C++: register the weapon
 
-In `ANWCharacter::AddPlayerWeaponSets` (`NWCharacterArmas.cpp`), one `FNWWeaponSet` per weapon: `Id`, mesh, action
+In `ANWCharacter::AddPlayerWeaponSets` (`NWCharacterWeapons.cpp`), one `FNWWeaponSet` per weapon: `Id`, mesh, action
 table, locomotion blend space, icon, default abilities, hand (`Socket`), weapon numbers from
 `javelindata_itemdefinitions_weapons` (`BaseDamage` on the port scale = game damage × 100/64, `CritChance`,
 `CritDamageMultiplier`, `StaggerDamage`, `BlockStaminaDamage`, `BlockStability`), heavy charge (`HeavyMinHold`,
@@ -202,7 +202,7 @@ tools/linux/ue_import_all.sh 02   # player set (animations, montages, sounds, ta
 Step `09` imports the icons. When only tables changed:
 
 ```bash
-python3 tools/pesado.py UnrealEditor-Cmd ... -run=pythonscript -script="tools/ue/import_tables.py <manifest>"
+python3 tools/heavy.py UnrealEditor-Cmd ... -run=pythonscript -script="tools/ue/import_tables.py <manifest>"
 ```
 
 A weapon with upper-body montages needs the `UpperBody` slot in `ABP_NW`. This is a manual step, done once per

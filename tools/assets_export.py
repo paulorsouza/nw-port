@@ -18,7 +18,7 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from assets_common import (DEFAULT_DIR, UPROJ, Hasher, check_names, die, etapas_markers, fingerprint, game_build,  # noqa: E402
+from assets_common import (DEFAULT_DIR, UPROJ, Hasher, check_names, die, ue_markers, fingerprint, game_build,  # noqa: E402
                            git, group, machine, now, plan_bundles, preflight, read_json, read_state, scan,
                            sha256_file, ue_version, write_json, write_state, zip_name)
 
@@ -88,10 +88,10 @@ def main():
                          "bytes": sum(files[r][0] for r in rels)}
         todo.append((path, name, rels))
     hasher.save(files)
-    etapas = etapas_markers()
-    if etapas is None and old:
-        etapas = old.get("etapas")
-    if old and not todo and set(entries) == set(prev) and etapas == old.get("etapas"):
+    markers = ue_markers()
+    if markers is None and old:
+        markers = old.get("etapas")
+    if old and not todo and set(entries) == set(prev) and markers == old.get("etapas"):
         print(f"Nothing changed since generation {gen}.")
         return
 
@@ -105,9 +105,10 @@ def main():
             entries[futs[f]].update(sha256=sha, zip_bytes=nbytes)
             print(f"  [{i}/{len(todo)}] {name} ({nbytes / 2**20:.0f} MiB)")
 
+    # The "etapas" key (import markers) is kept: older publications and imports use it.
     manifest = {"generation": gen + 1, "id": uuid.uuid4().hex, "parent": old.get("id") if old else None,
                 "machine": machine(), "created_at": now(), "git_commit": head, "ue_version": ue,
-                "game_build": game_build(), "etapas": etapas, "bundles": entries}
+                "game_build": game_build(), "etapas": markers, "bundles": entries}
     write_json(out_dir / "manifest.json", manifest)
     keep = {e["zip"] for e in entries.values()}
     for z in bdir.iterdir():

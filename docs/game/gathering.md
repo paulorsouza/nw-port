@@ -57,7 +57,7 @@ Creature AI: [creatures-ai.md](creatures-ai.md).
 ## Game data sources
 
 `datatables/` = `extract/data/sharedassets/springboardentitites/datatables/`. A file that is not extracted:
-`python3 tools/pesado.py nwbt cat -g "$NW_GAME" <path>`.
+`python3 tools/heavy.py nwbt cat -g "$NW_GAME" <path>`.
 
 | What | Where |
 |---|---|
@@ -77,15 +77,15 @@ Creature AI: [creatures-ai.md](creatures-ai.md).
 | `tools/make_gatherables.py` | capitals + variations + tables → `Data/World/guardaventos_gatherables.json`; also writes `extract/ue/gatherables/meshes.txt` |
 | `tools/linux/convert_gatherables.sh` | converts the gatherable meshes (skill `nw-extract`) |
 | `tools/ue/import_gatherables.py` | imports the meshes into Unreal |
-| `tools/sets/player/coleta.json` | the gathering part of the player set |
+| `tools/sets/player/gathering.json` | the gathering part of the player set |
 
 ## Porting a trade skill
 
 1. Survey: what the game defines (sources above) against what the port does. Record it in this file, per trade
    skill, with the list of what is missing, before changing code.
 2. Animations: new montages with prefix `AM_Gather*`, tools, fragments and `.adb` windows in
-   `tools/sets/player/coleta.json`. Conversion:
-   `python3 tools/pesado.py python3 tools/build_set.py tools/sets/sword_shield.json`.
+   `tools/sets/player/gathering.json`. Conversion:
+   `python3 tools/heavy.py python3 tools/build_set.py tools/sets/sword_shield.json`.
 3. Rules and loot in `NWGatherComponent` and `make_gatherables.py`, with the source of each number.
 4. Sound and effects: Wwise sounds already extracted (`extract/audio`, `tools/extract_audio.py`), sound map
    (`tools/make_sound_map.py`), VFX from the variations.

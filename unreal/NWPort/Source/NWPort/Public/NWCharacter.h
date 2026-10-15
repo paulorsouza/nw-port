@@ -36,7 +36,7 @@ struct FNWWeaponSet
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere) FName Id;                     // "Sword", "Hatchet" (key of the loadout and of abilities.json)
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<UStaticMesh> Mesh;
-	// Skinned mesh on the player skeleton (Ice Gauntlet glove; NWArmaManopla.cpp).
+	// Skinned mesh on the player skeleton (Ice Gauntlet glove; NWIceGauntlet.cpp).
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<USkeletalMesh> SkinMesh;
 	UPROPERTY(EditAnywhere) bool bUsesShield = false;
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<UDataTable> Actions;
@@ -62,7 +62,7 @@ struct FNWWeaponSet
 
 /**
  * Player character (and base of the Lost and creatures). The implementation is split by area (docs/workflow.md):
- * NWCharacter.cpp (movement, camera, input, menus), NWCharacterArmas.cpp (weapons, combat, abilities, dummy),
+ * NWCharacter.cpp (movement, camera, input, menus), NWCharacterWeapons.cpp (weapons, combat, abilities, dummy),
  * NWCharacterSave.cpp (save/restore). Gathering and mount live in components (Gather, Mount); new keys through
  * NW_REGISTER_INPUT (NWInputRegistry.h), F10 commands through NW_REGISTER_DEV (NWDevRegistry.h).
  *
@@ -252,7 +252,7 @@ protected:
 	UPROPERTY() TObjectPtr<UDataTable> ShakeTable;
 	bool bFlyUp = false;
 	void ApplyWeapon();
-	/** Fills WeaponSets with the player's weapons (NWCharacterArmas.cpp). */
+	/** Fills WeaponSets with the player's weapons (NWCharacterWeapons.cpp). */
 	void AddPlayerWeaponSets();
 	/** Puts into the ABP the locomotion that applies now (highest-priority override or the weapon's). */
 	void RefreshLocomotion();

@@ -12,7 +12,7 @@ Tests: [tests/world.md](../tests/world.md), section "Creature AI from the game's
 | Piece | Where |
 |---|---|
 | Export tree + profile | `tools/make_ai.py` → `unreal/NWPort/Data/AI/<set>.json` (runs in `tools/linux/make_data.sh`) |
-| Check without Unreal | `python3 tools/ai_sim.py <set> Target_Dist=5 --tag Alerted --vezes 50 --trace` |
+| Check without Unreal | `python3 tools/ai_sim.py <set> Target_Dist=5 --tag Alerted --times 50 --trace` |
 | Interpreter | `UNWBehaviorTreeComponent` (C++), attached by `ANWCreature` when `Data/AI/<set>.json` exists |
 | No tree | `UNWBrainComponent` (the port's own styles), as before |
 

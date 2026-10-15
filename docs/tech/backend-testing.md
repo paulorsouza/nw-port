@@ -17,7 +17,7 @@ bag, equipment, position, levels, storage and NPC rewards are saved between one 
 2. Open the editor and press Play (single player, "Standalone"/"Play in Viewport"). The log shows
    `Playing with backend: Exilado (editor)`.
 3. Stopping Play saves everything (it also saves every 5 s). Item history of the character:
-   `tools/item_log.py --personagem Exilado` (filters `--item`, `--serie`, `--desde`).
+   `tools/item_log.py --character Exilado` (filters `--item`, `--serial`, `--since`).
 
 Other commands: `tools/linux/backend_dev.sh status | log | down`. `down` stops only the API; the database keeps its
 data.

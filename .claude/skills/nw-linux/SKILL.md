@@ -11,10 +11,10 @@ root. First-time setup: skill `nw-setup`.
 | Task | Command |
 |---|---|
 | What this machine has | `python3 tools/setup_status.py` |
-| Machine paths (`NW_GAME`, `NW_UE`, `NW_BLENDER`, `NW_ASSETS`, `NW_REDE_HOST`) | `local.env` (model in `local.env.example`) |
+| Machine paths (`NW_GAME`, `NW_UE`, `NW_BLENDER`, `NW_ASSETS`, `NW_NETWORK_HOST`) | `local.env` (model in `local.env.example`) |
 | Export them to a shell | `source tools/linux/local_env.sh` |
 | `bin/`, Go and Blender on the PATH for manual calls | `source tools/linux/env.sh` |
-| Heavy-job queue (one at a time) | `python3 tools/pesado.py <command>` or `tools/linux/pesado.sh <command>` |
+| Heavy-job queue (one at a time) | `python3 tools/heavy.py <command>` or `tools/linux/heavy.sh <command>` |
 | Fetch or rebuild everything in `bin/` | `tools/linux/get_tools.sh [--force]` |
 | Rebuild nwbt and dbgwater only | `tools/linux/build_nwbt.sh --test` |
 | Rebuild libooz.so only | `tools/linux/build_ooz.sh` |

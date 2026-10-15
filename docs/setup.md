@@ -22,11 +22,11 @@ and import steps done) and which path applies:
 | `ready` | the Unreal project is already imported: open the editor |
 | `import-zips` | asset zips found in `NW_ASSETS` (`tools/assets_import.py`): import them |
 | `build-from-game` | New World installed at the team build: extract and import |
-| `wrong-build` | New World installed, but not the build in `tools/jogo.versao` |
+| `wrong-build` | New World installed, but not the build in `tools/game.version` |
 | `no-source` | neither zips nor the game: nothing to build the project from |
 
 The game's files are not in the repository. They come from your own New World install (build in
-`tools/jogo.versao`), or from asset zips you made on another machine of yours (`tools/assets_export.py`,
+`tools/game.version`), or from asset zips you made on another machine of yours (`tools/assets_export.py`,
 [tech/asset-sync.md](tech/asset-sync.md)).
 
 ## local.env
@@ -40,7 +40,7 @@ variables win over the file. Every script reads it.
 | `NW_UE` | Unreal Engine 5.8.3 (the folder with `Engine/`) | common install folders |
 | `NW_BLENDER` | Blender 5.2 executable | PATH or `~/.local/opt/blender-*/blender` |
 | `NW_ASSETS` | folder with the asset zips | `~/nw-port-assets` |
-| `NW_REDE_HOST` | public host of nw-core for the network test through Cloudflare Tunnel (`tools/linux/rede.sh`) | — |
+| `NW_NETWORK_HOST` | public host of nw-core for the network test through Cloudflare Tunnel (`tools/linux/network.sh`) | — |
 | `NW_VGMSTREAM_CLI`, `NW_OGGENC` | audio tools on Windows | — |
 
 ## Extraction steps
@@ -87,7 +87,7 @@ Finished steps are skipped. Total 2 to 4 h.
 | 12 | creatures (boar, wolf) and their animation blueprint | — |
 | sistemas-01..03 | Everfall: town, terrain and materials, NPCs | — |
 
-Areas add their own steps in `tools/etapas/<area>.build.sh` / `.ue.sh` ([tools/etapas/README.md](../tools/etapas/README.md)).
+Areas add their own steps in `tools/steps/<area>.build.sh` / `.ue.sh` ([tools/steps/README.md](../tools/steps/README.md)).
 
 `ABP_NW` and `ABP_Lost` (animation blueprints) come from the repository: they were built by hand in the editor.
 

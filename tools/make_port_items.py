@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The port's item rules -> unreal/NWPort/Data/Items/regras_itens.json (docs/game/items.md, docs/game/crafting.md).
 
-    python3 tools/make_itens.py
+    python3 tools/make_port_items.py
 
 Sources:
 - tools/itens.json: the port's rules and new perks (provisional balance numbers);

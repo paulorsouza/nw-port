@@ -146,23 +146,23 @@ Planned changes to shared files, with owners at the time:
 | `NWCharacter.h/.cpp` | shared | create the `UNWManaComponent`; `FNWWeaponSet` accepts a skinned mesh (`USkeletalMesh`, following the body pose) besides a static one |
 | `NWCombatTypes.h` | shared | column `ManaCost` (CostID) in `FNWActionRow`; status category (`Root`) |
 | `NWCombatComponent.cpp` | weapons area | `CheckAction` refuses when mana does not cover the cost (`IfManaCost`); charge on the procclip; root blocks walking |
-| `NWCharacterArmas.cpp` | weapons area | one line calling the gauntlet registration in `AddPlayerWeaponSets` |
+| `NWCharacterWeapons.cpp` | weapons area | one line calling the gauntlet registration in `AddPlayerWeaponSets` |
 | `make_datatables.py`, `make_abilities.py` | weapons area | `ICEGAUNTLET_*` and `WEAPONS["IceGauntlet"]` (new blocks, other weapons untouched) |
-| `tools/sets/sword_shield.json` | shared | `parts` += `player/armas_manopla-gelo.json` |
+| `tools/sets/sword_shield.json` | shared | `parts` += `player/weapons_ice-gauntlet.json` |
 | `NWHUD.cpp` | systems area | the `ManaMeter` bar already exists in the layout; bind it to `UNWManaComponent` (ask the systems area or a 1-line change) |
 
 `ABP_NW`: nothing new (the `UpperBody` slot already existed for the Bow).
 
 State through the day:
 
-- Part 1: weapon registered (`NWArmaManopla.cpp`, `Id` `IceGauntlet`), skinned glove (`SK_icegauntlet`, follows the
+- Part 1: weapon registered (`NWIceGauntlet.cpp`, `Id` `IceGauntlet`), skinned glove (`SK_icegauntlet`, follows the
   body pose) and palm crystal (`SM_icegauntlet_core`), `UNWManaComponent` (HUD bar, F10 > Refill mana / Infinite
   mana), `ManaCost` column on the actions (`IfManaCost`), light and heavy with the `IceMagic` profile projectile,
   block, dodge and draw/sheathe with the gauntlet animations (`AM_Ig_*`), mastery tree in the data
   (`abilities.*.json`, abilities still without actions). Test pair: F10 > Ice Gauntlet + sword. Tests:
   [../tests/ice-gauntlet.md](../tests/ice-gauntlet.md) Part 1. No mana regeneration until manopla-gelo-001.
 - Abilities: the six actives with game animation (`AM_Ig_*`) and mechanics in `UNWIceGauntletComponent`
-  (`NWArmaManopla.cpp`, numbers with source in `namespace NWIce`): Ice Spikes (7 spikes every 65 ms, Mighty Spike at
+  (`NWIceGauntlet.cpp`, numbers with source in `namespace NWIce`): Ice Spikes (7 spikes every 65 ms, Mighty Spike at
   the end or earlier with a basic attack), Wind Chill (11 ticks in 2 s, capsules from the `.adb`), Ice Storm (5 m
   area for 5 s, tick 0.33 s, −25%), Ice Shower (5 boxes for 4 s, −50%, root 1 s and immune 6 s, −50% for 3 s after
   leaving), Ice Pylon (15 s, one shot per second within 20 m, cooldown when it disappears), Entombed (10 s,
@@ -170,7 +170,7 @@ State through the day:
   Ice Spikes. Passives: not yet.
 - Fixes after the first test: clicking while running asked for `SprintAttack`, which the gauntlet does not have, so
   the light did not fire (now the sprint attack only starts if the weapon table has the row,
-  `NWCharacterArmas.cpp`). Actions that chain into themselves (`WindChillAim`, `EntombedLoop`) now play the montage
+  `NWCharacterWeapons.cpp`). Actions that chain into themselves (`WindChillAim`, `EntombedLoop`) now play the montage
   in a loop (`MulticastPlayLoop`) instead of restarting each round: restarting the same montage interrupted the
   previous one and ended the tomb right after it started.
 - Game effects: 28 effects from `wfx_icegaunt_base`, `wfxo_icegaunt_tempest` and `wfxo_iceguant_builder` converted to

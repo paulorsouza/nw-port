@@ -26,7 +26,7 @@ tools/linux/get_tools.sh     # downloads texconv.exe and vgmstream-cli; builds n
 - `bin/vgmstream-cli` from the vgmstream release `r2117` (`vgmstream-linux.zip`).
 - `bin/libooz.so` through `tools/linux/build_ooz.sh`.
 - `bin/nwbt` and `bin/dbgwater`: clones the fork into `vendor/nw-buddy` if missing, then
-  `tools/linux/build_nwbt.sh --test`. It also rebuilds when `python3 tools/build_nwbt.py --conferir` fails (binary
+  `tools/linux/build_nwbt.sh --test`. It also rebuilds when `python3 tools/build_nwbt.py --check` fails (binary
   from another patch).
 - `oggenc` comes from apt (`vorbis-tools`); the script warns if it is missing.
 

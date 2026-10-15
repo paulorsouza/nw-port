@@ -52,4 +52,4 @@ What the port implements and the rules it follows. One file per topic; current s
 - [notes/](notes/): dated history per area (decisions, measurements, discarded attempts). Specs never depend on notes.
 
 Other READMEs: [backend/README.md](../backend/README.md) (nw-core), [patches/README.md](../patches/README.md) (nwbt and
-ooz patches), [tools/etapas/README.md](../tools/etapas/README.md) (extra pipeline steps per area).
+ooz patches), [tools/steps/README.md](../tools/steps/README.md) (extra pipeline steps per area).

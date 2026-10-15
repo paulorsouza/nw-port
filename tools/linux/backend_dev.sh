@@ -47,7 +47,7 @@ case "${1:-up}" in
             (cd "$ROOT/backend" && docker compose up -d >/dev/null)
             # Compiling is a heavy job (queue); only when the source changed.
             if [ ! -x "$BIN" ] || [ -n "$(find "$ROOT/backend/src" "$ROOT/backend/migrations" "$ROOT/backend/Cargo.toml" "$ROOT/tools/governanca.json" "$ROOT/tools/precos_cidade.json" -newer "$BIN" -print -quit)" ]; then
-                "$ROOT/tools/linux/pesado.sh" bash -c "cd '$ROOT/backend' && cargo build -q"
+                "$ROOT/tools/linux/heavy.sh" bash -c "cd '$ROOT/backend' && cargo build -q"
             fi
             NW_BIND=127.0.0.1:8090 setsid nohup "$BIN" serve >"$LOG" 2>&1 < /dev/null &
             echo $! > "$PID"
