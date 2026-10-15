@@ -1,16 +1,3 @@
 #!/usr/bin/env bash
-# tools/gallery.sh <saida.png> <nome>...  — galeria de armaduras masculinas (nomes sem o prefixo male_)
-set -e
-here="$(cd "$(dirname "$0")/.." && pwd)"; cd "$here"; source tools/env.sh
-GAME="${GAME:-/mnt/jogos/Steam/steamapps/common/New World}"
-PATHS="${PATHS:-/tmp/claude-1000/paths.txt}"
-out="$1"; shift
-files=(); 
-for n in "$@"; do
-  p=$(grep -E "^objects/characters/player/male/[^/]+/male_$n\.cdf$" "$PATHS" | head -1)
-  if [ -n "$p" ]; then files+=("$p"); else echo "não achei: $n" >&2; fi
-done
-nwbt models files -g "$GAME" -o extract/gallery --binary --embed --ior 1.5 "${files[@]}" >/dev/null 2>&1
-glbs=(); for p in "${files[@]}"; do glbs+=("extract/gallery/$p.glb"); done
-char=extract/ue/sword_shield/glb/objects/characters/player/male/player_male.cdf.glb
-blender -b -P tools/gallery.py -- "$char" cmbt_idle_1h "$out" "${glbs[@]}" 2>&1 | grep -E "^gallery|Error|Trace"
+# Movido para tools/linux/gallery.sh (2026-10-15); atalho temporário para as sessões que já estavam abertas.
+exec "$(dirname "${BASH_SOURCE[0]}")/linux/gallery.sh" "$@"

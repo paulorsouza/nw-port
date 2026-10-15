@@ -3,8 +3,10 @@
 Sem IA: cada passo é um comando. Os assets saem da instalação do New World de quem monta; nada do jogo entra no
 repositório. Tempo total na primeira vez: ~4 a 6 horas, quase tudo máquina trabalhando sozinha.
 
-Testado em Ubuntu 26.04 (Linux). No Windows, a parte de extração (passos 3 e 4) roda no WSL2 com Ubuntu, e a
-Unreal (passos 5 a 7) no Windows; isso ainda não foi validado de ponta a ponta.
+Testado em Ubuntu 26.04 (Linux). Os comandos de sistema do Linux ficam em `tools/linux/`; o Python do pipeline
+(`tools/*.py`) é o mesmo nos dois sistemas. No Windows há o porte nativo, sem WSL (`docs/windows-convert.md`,
+skill `nw-windows`, scripts em `tools/windows/`), ainda sem aceite com os dados reais; o WSL2 continua como
+alternativa.
 
 ## Requisitos
 
@@ -17,8 +19,8 @@ Unreal (passos 5 a 7) no Windows; isso ainda não foi validado de ponta a ponta.
 ## Versão do jogo
 
 Todo mundo usa a mesma build do New World: a de `tools/jogo.versao` (buildid da Steam e sha256 do `NewWorld.exe`).
-Dados extraídos e endereços da engenharia reversa valem só para ela. `tools/jogo_versao.sh` confere; o
-`tools/build_all.sh` para se a build for outra. Atualizar só junto com o time, refazendo a extração.
+Dados extraídos e endereços da engenharia reversa valem só para ela. `tools/linux/jogo_versao.sh` confere; o
+`tools/linux/build_all.sh` para se a build for outra. Atualizar só junto com o time, refazendo a extração.
 
 ## 1. Pacotes do sistema
 
@@ -37,22 +39,23 @@ git clone https://github.com/paulorsouza/nw-port.git ~/workspace/nw-port
 cd ~/workspace/nw-port
 ```
 
-Os binários das ferramentas (Linux x86-64) já vêm em `bin/`. Só recompile se não rodarem na sua máquina:
+Os binários das ferramentas (Linux x86-64) já vêm em `bin/`. O `bin/nwbt` precisa ser do patch deste checkout
+(`patches/nwbt.patch`): o `tools/linux/check.sh` confere. Para recompilar:
 
 ```bash
-mkdir -p vendor
+# nwbt e dbgwater: commit base do fork privado paulorsouza/nw-buddy (clonado em vendor/nw-buddy se faltar)
+# + patches/nwbt.patch, com a versão gravada no binário (patches/README.md).
+tools/linux/build_nwbt.sh --test
 
-# nw-buddy (nwbt) com as mudanças do port: branch nw-port do repositório privado.
-git clone -b nw-port https://github.com/paulorsouza/nw-buddy.git vendor/nw-buddy
-(cd vendor/nw-buddy/tools/nwbt && ~/.local/go/bin/go build -o ../../../../bin/nwbt .)
+# ooz (Oodle no Linux; o jogo não traz a DLL): fontes em tools/ooz-linux.
+tools/linux/build_ooz.sh
 
-# ooz (Oodle no Linux): o jogo não traz a DLL da Oodle.
-git clone https://github.com/powzix/ooz tools/ooz-linux
-(cd tools/ooz-linux && g++ -O2 -fPIC -shared -w -o ../../bin/libooz.so kraken.cpp bitknit.cpp lzna.cpp)
-
-# texconv (DDS → PNG), roda pelo wine.
+# texconv (DDS → PNG), roda pelo wine (bin/texconv → tools/linux/texconv).
 curl -L -o bin/texconv.exe https://github.com/microsoft/DirectXTex/releases/latest/download/texconv.exe
 ```
+
+No Windows: `tools/windows/build_ooz.ps1` e `tools/windows/build_nwbt.ps1 -Test` (mesmo patch e mesmo
+`tools/build_nwbt.py`), e `python tools/windows/doctor.py --full`.
 
 O wwiser (Python, usado pela extração de áudio) não tem binário: clone sempre.
 
@@ -61,7 +64,7 @@ git clone https://github.com/bnnm/wwiser vendor/wwiser && git -C vendor/wwiser c
 ```
 
 vgmstream-cli e oggenc do zero: `docs/ASSETS.md`, seção Áudio. Lista completa de ferramentas e versões:
-`docs/FERRAMENTAS.md`. Com o Claude Code no Windows: skill `nw-wsl`.
+`docs/FERRAMENTAS.md`. Com o Claude Code: skills `nw-linux` e `nw-windows`.
 
 O caminho do jogo vem de `NW_GAME` (padrão `/mnt/jogos/Steam/steamapps/common/New World`):
 
@@ -72,10 +75,10 @@ export NW_GAME="$HOME/.steam/steam/steamapps/common/New World"
 ## 3. Extrair e converter os assets
 
 ```bash
-tools/build_all.sh
+tools/linux/build_all.sh
 ```
 
-Etapas (cada uma pula se já foi feita; `tools/build_all.sh 07` refaz só a 07):
+Etapas (cada uma pula se já foi feita; `tools/linux/build_all.sh 07` refaz só a 07):
 
 | Etapa | O que faz | Tempo |
 |---|---|---|
@@ -108,7 +111,7 @@ du -sh extract          # ~30 GB
 Com o editor fechado:
 
 ```bash
-tools/ue_import_all.sh
+tools/linux/ue_import_all.sh
 ```
 
 | Etapa | O que faz | Tempo |
@@ -137,7 +140,7 @@ Play no editor. F10 abre o menu de dev ("Dar ferramentas", "Ir ao minério", inv
 ## 7. Jogar em rede (servidor + conta)
 
 ```bash
-tools/play_local.sh      # nw-core + servidor dedicado + cliente na tela de entrada
+tools/linux/play_local.sh      # nw-core + servidor dedicado + cliente na tela de entrada
 ```
 
 Convites de conta, servidor na nuvem e Docker: `docs/plano-servidor.md` e `backend/README.md`.
@@ -145,5 +148,5 @@ Convites de conta, servidor na nuvem e Docker: `docs/plano-servidor.md` e `backe
 ## Quando algo dá errado
 
 - Etapa parou: o log está na saída do terminal; a etapa é refeita inteira ao rodar de novo.
-- Material cinza no jogo: `tools/ue_import_all.sh 08`.
+- Material cinza no jogo: `tools/linux/ue_import_all.sh 08`.
 - O resto das armadilhas conhecidas está em `docs/ESTADO.md`.

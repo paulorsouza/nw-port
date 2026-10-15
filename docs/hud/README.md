@@ -10,15 +10,15 @@ comparar e se inspirar: `inspiracao/` (índice em `inspiracao/README.md`). Exemp
 1. **Spec da tela** em `tools/ui_screens/<tela>.json`: canvas, subárvores que ficam, o que o Lua liga e desliga,
    estilos de texto e de botão (formato no cabeçalho de `tools/ui_build_screen.py`).
 2. `python3 tools/ui_build_screen.py tools/ui_screens/<tela>.json` grava `Data/UI/<tela>_layout.<idioma>.json` e a
-   lista de texturas. Textura nova: `tools/build_all.sh 12` (extrai do jogo) e `tools/ue_import_all.sh 09` (importa).
+   lista de texturas. Textura nova: `tools/linux/build_all.sh 12` (extrai do jogo) e `tools/linux/ue_import_all.sh 09` (importa).
 3. **C++** preenche os dados (`TextOverride`, `Visible`, `Tint`, `TextureOverride`, `Translate`, `DrawSubtree` para
    linhas de lista), seguindo o Lua da tela. Ligar `bExactText = true` no `FNWUILayout` da tela.
-4. **Captura sem o jogo**: `tools/ui_shot.sh tools/ui_shots/<tela>.json [captura]` → `extract/ui/shots/<tela>_<captura>.png`
+4. **Captura sem o jogo**: `tools/linux/ui_shot.sh tools/ui_shots/<tela>.json [captura]` → `extract/ui/shots/<tela>_<captura>.png`
    em ~40 s. Unreal sem janela, mundo vazio, personagem com bolsa e níveis do cenário, o mesmo C++ da tela
    (`UNWUIShotCommandlet`). Precisa do módulo compilado e do editor fechado. Idioma: `NW_LANG=en-us`.
 5. **Comparar**: `python3 tools/ui_compare.py <print do jogo> <captura> saida.png [--crop x0,y0,x1,y1]` (original em
    cima). O print do jogo é redimensionado para o tamanho da captura.
-6. **Medir**: `NW_SHOT_ARGS=-dump=<trecho do caminho> tools/ui_shot.sh ...` lista no log
+6. **Medir**: `NW_SHOT_ARGS=-dump=<trecho do caminho> tools/linux/ui_shot.sh ...` lista no log
    (`Saved/ImportLogs/ui_shot.log`, linhas `NWUIDump`) retângulo, visibilidade, opacidade, texto e textura de cada
    elemento.
 7. Só no fim: compilar, abrir o editor no mapa e pedir o print ao dono.

@@ -10,9 +10,9 @@ Tabelas do jogo em `extract/data/sharedassets/springboardentitites/datatables/` 
 | Slice | `slices/structures/settlements/v2_settlements/settlement_northwindsward_complete.dynamicslice` (não existe `settlement_everfall`) |
 | Capital | `ef_persistence`, região `r_+04_+02`, posição (8931, 4224, 135) |
 | Terreno | regiões 4_1 e 4_2, quadrado de 768 m (`make_terrain.py`) |
-| Conversão | `tools/build_all.sh sistemas-01` (`convert_city.sh settlement_northwindsward_complete`) → `extract/cities/limpa/settlement_northwindsward_complete.glb`, `extract/cities/northwindsward_terrain.glb` |
-| Slices em JSON | `tools/build_all.sh sistemas-02` → `extract/slicejson/slices/...` (cidade e lotes `housing/plots/northwindsward/`) |
-| Import | `tools/ue_import_all.sh sistemas-01` (cidade, `L_QuedaEterna`) e `sistemas-02` (terreno, partida, materiais); `tools/etapas/sistemas.ue.sh` |
+| Conversão | `tools/linux/build_all.sh sistemas-01` (`convert_city.sh settlement_northwindsward_complete`) → `extract/cities/limpa/settlement_northwindsward_complete.glb`, `extract/cities/northwindsward_terrain.glb` |
+| Slices em JSON | `tools/linux/build_all.sh sistemas-02` → `extract/slicejson/slices/...` (cidade e lotes `housing/plots/northwindsward/`) |
+| Import | `tools/linux/ue_import_all.sh sistemas-01` (cidade, `L_QuedaEterna`) e `sistemas-02` (terreno, partida, materiais); `tools/etapas/sistemas.ue.sh` |
 | Exposição | volume `ExposicaoDoJogo` no mapa (`tools/ue/city_exposure.py`, etapa `sistemas-04`): histograma de 0,1 a 1, da faixa 1x–10x do ciclo de dia do jogo (`libs/timeofday/zones/everfall_a.xml`); o projeto desliga a exposição automática |
 | Ponto de partida | com o editor aberto no mapa (fora do Play): `python3 tools/ue/remote.py tools/ue/spawn_trace.py`. O `fix_spawn.py` deixava o personagem dentro do piso da praça e ele atravessava a cidade e o terreno |
 

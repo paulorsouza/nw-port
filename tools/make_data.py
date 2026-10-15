@@ -22,8 +22,12 @@ def steps(root):
         yield ["tools/make_crafting.py"]
     else:
         print("== sem o slice de Queda Eterna: Data/Crafting fica como esta", flush=True)
+    if (root / "extract/audio/sfx_index.csv").is_file():
+        yield ["tools/make_ui_sounds.py"]
+    else:
+        print("== sem extract/audio: Data/Audio fica como esta", flush=True)
     for name in (
-        "make_items", "make_abilities", "make_progression", "make_worldmap", "build_strings",
+        "make_items", "make_itens", "make_abilities", "make_progression", "make_worldmap", "build_strings",
         "ui_build_hud", "ui_build_mastery", "ui_build_tradeskills", "ui_build_attributes",
         "ui_build_login", "ui_build_respawn", "ui_build_group", "ui_build_inventory",
     ):

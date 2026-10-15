@@ -12,7 +12,7 @@ Grava:
   extract/ui/worldmap_textures.txt        texturas para tools/ue/import_ui.py (tiles e peças da tela magicmap)
 POIs: slices/pois/territories/r_+04_+01_pois.dynamicslice (extract/pois, nwbt --x-objects json) dá a posição de cada
 território (TerritoryDataProviderComponent + transform); pointofinterestdefinitions dá nome e ícone do mapa.
-Depois: nwbt unpack dos tiles em PNG (docs/ASSETS.md) e tools/ue_import_all.sh 09.
+Depois: nwbt unpack dos tiles em PNG (docs/ASSETS.md) e tools/linux/ue_import_all.sh 09.
 """
 import glob
 import json
@@ -36,7 +36,7 @@ SCREEN = ["map/icon/player.dds", "map/map_gradient.dds", "map/map_gradientside.d
 def pois():
     src = os.path.join(ROOT, "extract", "pois", "slices", "pois", "territories", f"r_+{REGION[0]:02d}_+{REGION[1]:02d}_pois.dynamicslice.json")
     if not os.path.exists(src):
-        print("sem POIs (extract/pois): rode tools/build_all.sh 12")
+        print("sem POIs (extract/pois): rode tools/linux/build_all.sh 12")
         return []
     defs = {}
     for f in glob.glob(os.path.join(ROOT, "extract", "data", "**", "pointofinterestdefinitions", "*.json"), recursive=True):

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Chama o texconv.exe (DirectXTex) pelo wine, convertendo caminhos absolutos para Z:\.
 here="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-exe="${TEXCONV_EXE:-$here/../bin/texconv.exe}"
+exe="${TEXCONV_EXE:-$here/../../bin/texconv.exe}"
 args=()
 for a in "$@"; do
   if [[ $a == /* ]]; then args+=("Z:${a//\//\\}"); else args+=("$a"); fi

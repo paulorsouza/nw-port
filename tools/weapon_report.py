@@ -7,7 +7,7 @@ uma arma nova (docs/combate-armas.md).
         --damage Spear_ --cost Spear --ability spear      # arma nova: diga a tag, o .adb e os prefixos
 
 Saída: extract/research/<arma>_report.md (markdown) e <arma>_report.json. Só lê arquivos já extraídos
-(tools/build_all.sh 02 e 04): tabelas em extract/data, receitas do Mannequin em extract/models/.../adb, textos em
+(tools/linux/build_all.sh 02 e 04): tabelas em extract/data, receitas do Mannequin em extract/models/.../adb, textos em
 extract/loc. Não abre a Unreal nem o jogo.
 
 Seções:

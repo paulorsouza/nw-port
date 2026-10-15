@@ -1,0 +1,581 @@
+Patch unico do nwbt do nw-port, aplicado sobre o fork paulorsouza/nw-buddy (branch nw-port) no commit
+267f86568977c5801b716f02684f7bc69e0982d0, com fim de linha LF, nas duas compilacoes (Linux e Windows):
+tools/build_nwbt.py. Como refazer: patches/README.md. O git apply ignora este cabecalho.
+
+Conteudo: Windows (ooz.dll, RTTI sem exec.LookPath, PATH, caminho do jogo com '/'), "@lista" em
+"models files", "models files" sem nenhum arquivo encontrado sai com erro, luzes do slice com os
+parametros do jogo (sliceLight, esteira 5) e a versao do patch em "nwbt --version".
+
+diff --git a/tools/nwbt/commands/commands.go b/tools/nwbt/commands/commands.go
+index b6f621b..3e0bce3 100644
+--- a/tools/nwbt/commands/commands.go
++++ b/tools/nwbt/commands/commands.go
+@@ -23,7 +23,7 @@ var description = fmt.Sprintf("%s%s", constants.NW_BUDDY_BANNER, ``)
+ 
+ var (
+ 	rootCmd = &cobra.Command{
+-		Version:           "0.1.0",
++		Version:           "0.1.0 nwport-patch=" + constants.NWPortPatch,
+ 		Use:               "nwb",
+ 		Short:             "data mining tools for new world",
+ 		Long:              description,
+diff --git a/tools/nwbt/commands/models/cmd.go b/tools/nwbt/commands/models/cmd.go
+index 3036564..ce59c41 100644
+--- a/tools/nwbt/commands/models/cmd.go
++++ b/tools/nwbt/commands/models/cmd.go
+@@ -15,7 +15,6 @@ import (
+ 	"nw-buddy/tools/utils/math"
+ 	"nw-buddy/tools/utils/progress"
+ 	"os"
+-	"os/exec"
+ 	"path"
+ 	"strings"
+ 
+@@ -280,7 +279,7 @@ func (c *Collector) ProcessTimelines() {
+ 	if len(files) == 0 {
+ 		return
+ 	}
+-	crcFile, err := exec.LookPath(flg.CrcFile)
++	crcFile, err := utils.ResolveDataFile(flg.CrcFile)
+ 	if err != nil {
+ 		slog.Warn("failed to load crc table", "file", flg.CrcFile, "err", err)
+ 		return
+@@ -291,7 +290,7 @@ func (c *Collector) ProcessTimelines() {
+ 		return
+ 	}
+ 
+-	uuidFile, err := exec.LookPath(flg.UuidFile)
++	uuidFile, err := utils.ResolveDataFile(flg.UuidFile)
+ 	if err != nil {
+ 		slog.Warn("failed to load uuid table", "file", flg.UuidFile, "err", err)
+ 		return
+diff --git a/tools/nwbt/commands/models/collect_capitals.go b/tools/nwbt/commands/models/collect_capitals.go
+index e1cd7f5..9f78529 100644
+--- a/tools/nwbt/commands/models/collect_capitals.go
++++ b/tools/nwbt/commands/models/collect_capitals.go
+@@ -104,46 +104,8 @@ func (c *Collector) collectSliceInto(group *importer.AssetGroup, file nwfs.File,
+ 		for _, component := range node.Components {
+ 			switch v := component.(type) {
+ 			case nwt.LightComponent:
+-				config := v.LightConfiguration
+-				if !config.Visible {
+-					break
+-				}
+-				switch config.LightType {
+-				case 0:
+-					group.Lights = append(group.Lights, importer.LightAsset{
+-						Type:      0,
+-						Color:     [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
+-						Intensity: float32(config.DiffuseMultiplier),
+-						Range:     float32(config.PointMaxDistance),
+-						Entity: importer.Entity{
+-							Name:      string(node.Entity.Name),
+-							Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
+-						},
+-					})
+-				case 1: // area
+-					group.Lights = append(group.Lights, importer.LightAsset{
+-						Type:      0,
+-						Color:     [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
+-						Intensity: float32(config.DiffuseMultiplier),
+-						Range:     float32(config.PointMaxDistance),
+-						Entity: importer.Entity{
+-							Name:      string(node.Entity.Name),
+-							Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
+-						},
+-					})
+-				case 2: // projector
+-					group.Lights = append(group.Lights, importer.LightAsset{
+-						Type:           0,
+-						Color:          [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
+-						Intensity:      float32(config.DiffuseMultiplier),
+-						Range:          float32(config.PointMaxDistance),
+-						OuterConeAngle: float32(config.ProjectorFOV/2.0) * DEG_TO_RAD,
+-						Entity: importer.Entity{
+-							Name:      string(node.Entity.Name),
+-							Transform: math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform)),
+-						},
+-					})
+-				case 3: // probe
++				if light, ok := sliceLight(v.LightConfiguration, string(node.Entity.Name), math.CryToGltfMat4(mat4.Multiply(rootTransform, node.Transform))); ok {
++					group.Lights = append(group.Lights, light)
+ 				}
+ 			case nwt.InstancedMeshComponent:
+ 				meshNode := v.Instanced_Mesh_Render_Node.BaseClass1
+@@ -321,4 +283,53 @@ func (c *Collector) collectSliceInto(group *importer.AssetGroup, file nwfs.File,
+ 		}
+ 
+ 	})
+-}
+\ No newline at end of file
++}
++// sliceLight converte a luz do jogo para o glTF (KHR_lights_punctual) sem perder o tipo: pontual vira "point" com o
++// alcance do jogo; área e projetor viram "spot" (área: abertura AreaFOV e alcance AreaMaxDistance; projetor: ProjectorFOV
++// e ProjectorDistance), para o importador orientar o ator. Os parâmetros do jogo vão nos extras do nó (nw-port:
++// tools/ue/city_lights.py troca a área por luz retangular, aplica sombra, distância de desenho e intensidade).
++func sliceLight(config nwt.LightConfiguration, name string, transform mat4.Data) (importer.LightAsset, bool) {
++	if !config.Visible || config.VolumetricFogOnly || config.LightType > 2 {
++		return importer.LightAsset{}, false
++	}
++	light := importer.LightAsset{
++		Type:      0,
++		Color:     [3]float32{float32(config.Color[0]), float32(config.Color[1]), float32(config.Color[2])},
++		Intensity: float32(config.DiffuseMultiplier),
++		Range:     float32(config.PointMaxDistance),
++		Entity:    importer.Entity{Name: name, Transform: transform},
++	}
++	bulb := float32(config.PointAttenuationBulbSize)
++	switch config.LightType {
++	case 1: // área
++		light.Type = 2
++		light.Range = float32(config.AreaMaxDistance)
++		light.OuterConeAngle = float32(config.AreaFOV/2.0) * DEG_TO_RAD
++	case 2: // projetor
++		light.Type = 2
++		light.Range = float32(config.ProjectorDistance)
++		light.OuterConeAngle = float32(config.ProjectorFOV/2.0) * DEG_TO_RAD
++		bulb = float32(config.ProjectorAttenuationBulbSize)
++	}
++	light.Extras = map[string]any{
++		"entity":            name,
++		"type":              int(config.LightType),
++		"diffuse":           float32(config.DiffuseMultiplier),
++		"specular":          float32(config.SpecMultiplier),
++		"bulb":              bulb,
++		"area_width":        float32(config.AreaWidth),
++		"area_height":       float32(config.AreaHeight),
++		"cast_shadows_spec": uint32(config.CastShadowsSpec),
++		"view_dist_mult":    float32(config.ViewDistanceMultiplier),
++		"view_dist_cap":     float32(config.ViewDistanceCap),
++		"view_dist_capped":  bool(config.ViewDistanceCapEnabled),
++		"anim_index":        uint32(config.AnimIndex),
++		"anim_speed":        float32(config.AnimSpeed),
++		"anim_phase":        float32(config.AnimPhase),
++		"ambient":           bool(config.Ambient),
++		"on":                bool(config.OnInitially),
++		"tod_influence":     float32(config.TodInfluence),
++		"indoor_only":       bool(config.IndoorOnly),
++	}
++	return light, true
++}
+diff --git a/tools/nwbt/commands/models/collect_files.go b/tools/nwbt/commands/models/collect_files.go
+index bb246d6..ce6ab93 100644
+--- a/tools/nwbt/commands/models/collect_files.go
++++ b/tools/nwbt/commands/models/collect_files.go
+@@ -1,10 +1,12 @@
+ package models
+ 
+ import (
++	"fmt"
+ 	"log/slog"
+ 	"nw-buddy/tools/formats/gltf/importer"
+ 	"nw-buddy/tools/utils"
+ 	"nw-buddy/tools/utils/logging"
++	"os"
+ 	"path"
+ 	"strings"
+ 
+@@ -26,6 +28,21 @@ func init() {
+ }
+ 
+ func runCollectFiles(ccmd *cobra.Command, args []string) {
++	// "@lista" le um padrao por linha; evita o limite de linha de comando do Windows.
++	expanded := make([]string, 0, len(args))
++	for _, arg := range args {
++		if !strings.HasPrefix(arg, "@") {
++			expanded = append(expanded, arg)
++			continue
++		}
++		data := utils.Must(os.ReadFile(arg[1:]))
++		for _, line := range strings.Split(string(data), "\n") {
++			if line = strings.TrimSpace(line); line != "" {
++				expanded = append(expanded, line)
++			}
++		}
++	}
++	args = expanded
+ 	if len(args) == 0 {
+ 		panic("no files provided")
+ 	}
+@@ -44,11 +61,14 @@ func (c *Collector) CollectFiles(patterns []string, mtl string) {
+ 	files, err := c.Archive.Glob(patterns...)
+ 	if err != nil {
+ 		slog.Error("failed to glob files", "err", err)
+-		return
++		fmt.Fprintln(os.Stderr, "nwbt: padrao invalido:", err)
++		os.Exit(1)
+ 	}
+ 	if len(files) == 0 {
+-		slog.Warn("no files found")
+-		return
++		// nw-port: nada encontrado e erro, nao sucesso (um "@lista" nao expandido saia 0 e deixava glb velhos).
++		slog.Error("no files found")
++		fmt.Fprintln(os.Stderr, "nwbt: nenhum arquivo encontrado para", patterns)
++		os.Exit(1)
+ 	}
+ 
+ 	// .caf passados junto com um .cdf entram como animações do mesmo glb.
+diff --git a/tools/nwbt/commands/serve/cmd.go b/tools/nwbt/commands/serve/cmd.go
+index e0f38d8..a6f6746 100644
+--- a/tools/nwbt/commands/serve/cmd.go
++++ b/tools/nwbt/commands/serve/cmd.go
+@@ -10,10 +10,10 @@ import (
+ 	"net/url"
+ 	"nw-buddy/tools/game"
+ 	"nw-buddy/tools/rtti"
++	"nw-buddy/tools/utils"
+ 	"nw-buddy/tools/utils/env"
+ 	"nw-buddy/tools/utils/json"
+ 	"os"
+-	"os/exec"
+ 	"path"
+ 	"strconv"
+ 	"time"
+@@ -85,7 +85,7 @@ func run(cmd *cobra.Command, args []string) {
+ 		return
+ 	}
+ 
+-	crcFile, err := exec.LookPath(flg.CrcFile)
++	crcFile, err := utils.ResolveDataFile(flg.CrcFile)
+ 	if err != nil {
+ 		slog.Warn("crc file not found", "file", flg.CrcFile, "err", err)
+ 		return
+@@ -96,7 +96,7 @@ func run(cmd *cobra.Command, args []string) {
+ 		return
+ 	}
+ 
+-	uuidFile, err := exec.LookPath(flg.UuidFile)
++	uuidFile, err := utils.ResolveDataFile(flg.UuidFile)
+ 	if err != nil {
+ 		slog.Warn("uuid file not found", "file", flg.UuidFile, "err", err)
+ 		return
+@@ -127,7 +127,7 @@ func run(cmd *cobra.Command, args []string) {
+ 	}
+ 	r.HandleFunc("/info", func(w http.ResponseWriter, r *http.Request) {
+ 		serveJson(map[string]any{
+-			"name": "NWBT API",
++			"name":      "NWBT API",
+ 			"endpoints": endpoints,
+ 		}, w)
+ 	})
+diff --git a/tools/nwbt/commands/unpack/cmd.go b/tools/nwbt/commands/unpack/cmd.go
+index 6315bb4..7f72ac4 100644
+--- a/tools/nwbt/commands/unpack/cmd.go
++++ b/tools/nwbt/commands/unpack/cmd.go
+@@ -11,7 +11,6 @@ import (
+ 	"nw-buddy/tools/utils/env"
+ 	"nw-buddy/tools/utils/progress"
+ 	"os"
+-	"os/exec"
+ 	"path"
+ 	"strings"
+ 
+@@ -86,8 +85,8 @@ func run(ccmd *cobra.Command, args []string) {
+ 	}
+ 
+ 	if flgFmtObjects != "" {
+-		crcTable = utils.Must(rtti.LoadCrcTable(utils.Must(exec.LookPath(flgCrcFile))))
+-		uuidTable = utils.Must(rtti.LoadUuIdTable(utils.Must(exec.LookPath(flgUuidFile))))
++		crcTable = utils.Must(rtti.LoadCrcTable(utils.Must(utils.ResolveDataFile(flgCrcFile))))
++		uuidTable = utils.Must(rtti.LoadUuIdTable(utils.Must(utils.ResolveDataFile(flgUuidFile))))
+ 	}
+ 
+ 	unpackDir := flgUnpackDir
+diff --git a/tools/nwbt/constants/nwport.go b/tools/nwbt/constants/nwport.go
+new file mode 100644
+index 0000000..6600fa1
+--- /dev/null
++++ b/tools/nwbt/constants/nwport.go
+@@ -0,0 +1,6 @@
++package constants
++
++// NWPortPatch identifica o patch do nw-port com que o binario foi compilado (base do fork + hash de
++// patches/nwbt.patch). Gravado por tools/build_nwbt.py com -ldflags -X; "manual" = compilado a mao.
++// tools/check.sh e tools/windows/doctor.py comparam com o patch do checkout ("nwbt --version").
++var NWPortPatch = "manual"
+diff --git a/tools/nwbt/formats/gltf/import_asset_lights.go b/tools/nwbt/formats/gltf/import_asset_lights.go
+index 9f9e4ab..4e228ba 100644
+--- a/tools/nwbt/formats/gltf/import_asset_lights.go
++++ b/tools/nwbt/formats/gltf/import_asset_lights.go
+@@ -1,6 +1,7 @@
+ package gltf
+ 
+ import (
++	"fmt"
+ 	"nw-buddy/tools/formats/gltf/importer"
+ 	"nw-buddy/tools/utils/math/mat4"
+ )
+@@ -28,6 +29,11 @@ func (doc *Document) ImportAssetLights(lights []importer.LightAsset, intensitySc
+ 
+ 		node, _ := doc.NewNode()
+ 		node.Name = light.Entity.Name
++		if light.Extras != nil {
++			// Nome único para o importador achar os parâmetros do jogo (extras) pelo ator.
++			node.Name = fmt.Sprintf("nwlight_%d", i)
++			node.Extras = light.Extras
++		}
+ 		node.Extensions = map[string]any{
+ 			"KHR_lights_punctual": map[string]any{
+ 				"light": i,
+diff --git a/tools/nwbt/formats/gltf/importer/types.go b/tools/nwbt/formats/gltf/importer/types.go
+index a669f6c..81c2d0c 100644
+--- a/tools/nwbt/formats/gltf/importer/types.go
++++ b/tools/nwbt/formats/gltf/importer/types.go
+@@ -39,6 +39,8 @@ type LightAsset struct {
+ 	InnerConeAngle float32
+ 	OuterConeAngle float32
+ 	Range          float32
++	// Parâmetros do jogo (LightConfiguration) gravados nos extras do nó, para o importador do nw-port.
++	Extras map[string]any
+ }
+ 
+ type CameraAsset struct {
+diff --git a/tools/nwbt/nwfs/pak_archive.go b/tools/nwbt/nwfs/pak_archive.go
+index c6bb6cf..b56bea5 100644
+--- a/tools/nwbt/nwfs/pak_archive.go
++++ b/tools/nwbt/nwfs/pak_archive.go
+@@ -70,7 +70,8 @@ func (it *pakFile) String() string {
+ 
+ // NewPackedArchive creates a new file system using pak files from the given game directory.
+ func NewPackedArchive(gameDir string) (Archive, error) {
+-	gameDir = path.Clean(gameDir)
++	// fileglob trata '\' como escape; use '/' no caminho do jogo no Windows.
++	gameDir = path.Clean(filepath.ToSlash(gameDir))
+ 	if !strings.HasSuffix(gameDir, "assets") {
+ 		gameDir = path.Join(gameDir, "assets")
+ 	}
+diff --git a/tools/nwbt/utils/datafile.go b/tools/nwbt/utils/datafile.go
+new file mode 100644
+index 0000000..cd62ed5
+--- /dev/null
++++ b/tools/nwbt/utils/datafile.go
+@@ -0,0 +1,29 @@
++package utils
++
++import (
++	"fmt"
++	"os"
++	"path/filepath"
++)
++
++// ResolveDataFile resolves data, without executable permissions or PATHEXT.
++// Keep PATH lookup for existing installations that store RTTI JSON there.
++func ResolveDataFile(name string) (string, error) {
++	candidates := []string{name}
++	if filepath.Base(name) == name {
++		if exe, err := os.Executable(); err == nil {
++			candidates = append(candidates, filepath.Join(filepath.Dir(exe), name))
++		}
++		for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
++			if dir != "" {
++				candidates = append(candidates, filepath.Join(dir, name))
++			}
++		}
++	}
++	for _, p := range candidates {
++		if info, err := os.Stat(p); err == nil && info.Mode().IsRegular() {
++			return filepath.Abs(p)
++		}
++	}
++	return "", fmt.Errorf("data file not found: %s", name)
++}
+diff --git a/tools/nwbt/utils/datafile_test.go b/tools/nwbt/utils/datafile_test.go
+new file mode 100644
+index 0000000..971b139
+--- /dev/null
++++ b/tools/nwbt/utils/datafile_test.go
+@@ -0,0 +1,30 @@
++package utils
++
++import (
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++func TestResolveDataFile(t *testing.T) {
++	dir := t.TempDir()
++	p := filepath.Join(dir, "types with spaces.json")
++	if err := os.WriteFile(p, []byte("{}"), 0600); err != nil {
++		t.Fatal(err)
++	}
++	got, err := ResolveDataFile(p)
++	if err != nil || got != p {
++		t.Fatalf("got %q, %v", got, err)
++	}
++	t.Setenv("PATH", dir)
++	got, err = ResolveDataFile(filepath.Base(p))
++	if err != nil || got != p {
++		t.Fatalf("PATH lookup: %q, %v", got, err)
++	}
++	if _, err := ResolveDataFile(dir); err == nil {
++		t.Fatal("accepted a directory")
++	}
++	if _, err := ResolveDataFile(filepath.Join(dir, "missing.json")); err == nil {
++		t.Fatal("accepted missing file")
++	}
++}
+diff --git a/tools/nwbt/utils/env/env.go b/tools/nwbt/utils/env/env.go
+index fdd11da..2e6976e 100644
+--- a/tools/nwbt/utils/env/env.go
++++ b/tools/nwbt/utils/env/env.go
+@@ -41,8 +41,11 @@ func init() {
+ }
+ 
+ func AppendToPATH(p string) {
+-	p = os.Getenv("PATH") + p + ";"
+-	os.Setenv("PATH", p)
++	current := os.Getenv("PATH")
++	if current != "" {
++		current += string(os.PathListSeparator)
++	}
++	os.Setenv("PATH", current+p)
+ }
+ 
+ func PrintStatus() {
+diff --git a/tools/nwbt/utils/env/path_test.go b/tools/nwbt/utils/env/path_test.go
+new file mode 100644
+index 0000000..8a22fe8
+--- /dev/null
++++ b/tools/nwbt/utils/env/path_test.go
+@@ -0,0 +1,22 @@
++package env
++
++import (
++	"os"
++	"path/filepath"
++	"reflect"
++	"testing"
++)
++
++func TestAppendToPATH(t *testing.T) {
++	t.Setenv("PATH", "existing tool directory")
++	AppendToPATH("new tool directory")
++	want := []string{"existing tool directory", "new tool directory"}
++	if got := os.Getenv("PATH"); !reflect.DeepEqual(filepath.SplitList(got), want) {
++		t.Fatalf("PATH entries: %#v", filepath.SplitList(got))
++	}
++	t.Setenv("PATH", "")
++	AppendToPATH("only directory")
++	if got := os.Getenv("PATH"); got != "only directory" {
++		t.Fatalf("empty PATH: %q", got)
++	}
++}
+diff --git a/tools/nwbt/utils/oodle_windows.go b/tools/nwbt/utils/oodle_windows.go
+index 96be705..c661be6 100644
+--- a/tools/nwbt/utils/oodle_windows.go
++++ b/tools/nwbt/utils/oodle_windows.go
+@@ -2,7 +2,8 @@ package utils
+ 
+ import (
+ 	"errors"
+-	"os/exec"
++	"os"
++	"path/filepath"
+ 	"unsafe"
+ 
+ 	"github.com/ebitengine/purego"
+@@ -27,17 +28,41 @@ var OodleLib = oodle{
+ }
+ 
+ func (it oodle) Check() (string, bool) {
+-	for _, name := range it.names {
+-		p, err := exec.LookPath(name)
+-		if err == nil {
+-			return p, true
++	// An explicit override is authoritative, including a missing-file error.
++	if p := os.Getenv("NWBT_OODLE"); p != "" {
++		p, err := filepath.Abs(p)
++		if err != nil {
++			return "", false
++		}
++		info, err := os.Stat(p)
++		return p, err == nil && !info.IsDir()
++	}
++	names := append([]string{"ooz.dll"}, it.names...)
++	var dirs []string
++	if exe, err := os.Executable(); err == nil {
++		dirs = append(dirs, filepath.Dir(exe))
++	}
++	dirs = append(dirs, filepath.SplitList(os.Getenv("PATH"))...)
++	for _, dir := range dirs {
++		if dir == "" {
++			continue
++		}
++		for _, name := range names {
++			p, err := filepath.Abs(filepath.Join(dir, name))
++			if err != nil {
++				continue
++			}
++			if info, err := os.Stat(p); err == nil && !info.IsDir() {
++				return p, true
++			}
+ 		}
+ 	}
+ 	return "", false
+ }
+ 
+ func (it oodle) Info() string {
+-	return "Oodle data compression library (Kraken/Leviathan), required for unpacking game archives\n" +
++	return "ooz.dll (Kraken) or Oodle data compression library, required for unpacking game archives\n" +
++		"set NWBT_OODLE or place ooz.dll next to nwbt.exe\n" +
+ 		"info: https://www.radgametools.com/oodle.htm\n" +
+ 		"note: not available for standalone download, obtain from an existing game installation"
+ }
+diff --git a/tools/nwbt/utils/oodle_windows_test.go b/tools/nwbt/utils/oodle_windows_test.go
+new file mode 100644
+index 0000000..fd7f0e6
+--- /dev/null
++++ b/tools/nwbt/utils/oodle_windows_test.go
+@@ -0,0 +1,51 @@
++package utils
++
++import (
++	"bytes"
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++func TestOodleWindowsOverride(t *testing.T) {
++	dir := t.TempDir()
++	p := filepath.Join(dir, "decoder with spaces.dll")
++	if err := os.WriteFile(p, []byte("placeholder"), 0600); err != nil {
++		t.Fatal(err)
++	}
++	t.Setenv("NWBT_OODLE", p)
++	lib := oodle{}
++	if got, ok := lib.Check(); !ok || got != p {
++		t.Fatalf("Check: %q, %v", got, ok)
++	}
++	t.Setenv("NWBT_OODLE", filepath.Join(dir, "missing.dll"))
++	if _, ok := lib.Check(); ok {
++		t.Fatal("missing override silently fell back")
++	}
++	t.Setenv("NWBT_OODLE", dir)
++	if _, ok := lib.Check(); ok {
++		t.Fatal("accepted directory")
++	}
++}
++
++func TestOozWindowsStoredBlock(t *testing.T) {
++	dll := os.Getenv("NWBT_TEST_OOZ")
++	if dll == "" {
++		t.Skip("set NWBT_TEST_OOZ to the built ooz.dll")
++	}
++	t.Setenv("NWBT_OODLE", dll)
++	payload := []byte("native Windows Kraken ABI test")
++	// Kraken header: restart + stored (uncompressed) block, decoder 6.
++	input := append([]byte{0xcc, 6}, payload...)
++	output := make([]byte, len(payload))
++	lib := oodle{}
++	n, err := lib.Decompress(input, len(input), output, len(output))
++	if err != nil || n != len(payload) || !bytes.Equal(output, payload) {
++		t.Fatalf("Decompress: n=%d err=%v output=%q", n, err, output)
++	}
++	input[0] = 0 // invalid header must return failure through the native ABI.
++	n, err = lib.Decompress(input, len(input), output, len(output))
++	if err != nil || n != 0 {
++		t.Fatalf("invalid header: n=%d err=%v", n, err)
++	}
++}

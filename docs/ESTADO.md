@@ -46,18 +46,18 @@ Lista completa em `docs/pendencias.md`. Os principais agora:
 - Copas das árvores da cidade com placas coloridas (folhagem masked).
 - Criaturas dos POIs (javali, lobo, esqueletos...), NPCs da cidade, baús: etapas G3–G5 de `docs/guardaventos.md`.
 - Texturas novas das telas (tooltip, mapa, barra de XP, banner, aviso de saque) ainda não importadas na Unreal:
-  com o editor fechado, `tools/ue_import_all.sh 09`. Sem isso essas telas aparecem sem as imagens.
+  com o editor fechado, `tools/linux/ue_import_all.sh 09`. Sem isso essas telas aparecem sem as imagens.
 - Telas feitas em 2026-10-11/12 sem editor aberto: compilam, mas ninguém viu na tela ainda.
 
 ## Como trabalhar
 
-- Montar do zero: `docs/SETUP.md` (`tools/build_all.sh` + `tools/ue_import_all.sh`).
-- Mudou uma tabela ou script de dados: `tools/make_data.sh`. Mudou C++: compilar (passo 01 do `ue_import_all.sh`).
-- Tela do jogo: captura sem abrir o jogo (`tools/ui_shot.sh`) e comparação com o print do original; roteiro em
+- Montar do zero: `docs/SETUP.md` (`tools/linux/build_all.sh` + `tools/linux/ue_import_all.sh`).
+- Mudou uma tabela ou script de dados: `tools/linux/make_data.sh`. Mudou C++: compilar (passo 01 do `ue_import_all.sh`).
+- Tela do jogo: captura sem abrir o jogo (`tools/linux/ui_shot.sh`) e comparação com o print do original; roteiro em
   `docs/hud/README.md`.
 - Verificar algo visual: abrir o editor e olhar (ou pedir o print a quem está com o editor). Não automatizar
   "rodar o jogo e tirar print": consumiu horas sem mostrar o que importa.
-- Várias sessões ao mesmo tempo: regras, donos dos arquivos e fila de trabalho pesado (`tools/pesado.sh`) em
+- Várias sessões ao mesmo tempo: regras, donos dos arquivos e fila de trabalho pesado (`tools/linux/pesado.sh`) em
   `docs/esteiras.md`. Engenharia reversa sob demanda: skill `nw-re`; o que já foi lido do cliente (combate, ações,
   montarias, telas): `re-local/resumo-plano-a.md`.
 - Commits e push só quando o dono pedir.
@@ -104,11 +104,11 @@ Dados do jogo:
 |---|---|
 | `unreal/NWPort/Source` | C++ do jogo (cliente e servidor) |
 | `unreal/NWPort/Config` | configuração (Nanite, Lumen, VRAM, cook) |
-| `tools/` | extração e conversão (Python/bash); `tools/ue/` roda dentro da Unreal |
+| `tools/` | extração e conversão: Python único para Linux e Windows em `tools/*.py`; scripts de sistema em `tools/linux/` (`.sh`, build do nwbt e ooz) e `tools/windows/` (`.ps1`, `doctor.py`); `tools/ue/` roda dentro da Unreal. nwbt de um patch só (`patches/nwbt.patch`, versão no binário, conferida pelo `check.sh`/`doctor.py`) (2026-10-15) |
 | `backend/` | nw-core (Rust, Postgres): contas, personagens, inventário |
 | `deploy/` | Docker do servidor e do backend |
 | `docs/` | este arquivo, setup, planos e pendências |
 | `inspiracao/` (imagens fora do git) | prints do jogo original para as telas; índice em `inspiracao/README.md` |
-| `patches/` | diff do nw-buddy (o código fica em paulorsouza/nw-buddy, branch nw-port) |
+| `patches/` | `nwbt.patch`, aplicado sobre o fork paulorsouza/nw-buddy (branch nw-port) nas duas compilações; `README.md` explica como mudar |
 | `extract/` (fora do git) | tudo que sai do jogo |
 | `unreal/NWPort/Content`, `Data` (fora do git) | gerados pelos scripts |

@@ -15,7 +15,7 @@ placa de 8 GB, escolhendo por item entre converter o dado do jogo e usar o recur
   (`SceneView.cpp`). Em `L_QuedaEterna` há um volume `ExposicaoDoJogo` (`tools/ue/city_exposure.py`, etapa
   `sistemas-04`) que deixa só o escuro clarear até 10x (faixa 0,01–0,1, viés −2,32). A rua ficou como antes. Revisar
   aqui.
-- Nenhuma luz do jogo: a conversão (`tools/convert_city.sh`) só traz malhas.
+- Nenhuma luz do jogo: a conversão (`tools/linux/convert_city.sh`) só traz malhas.
 - Aviso na tela em Queda Eterna (print do dono 2026-10-13): "o atlas de cache de superfícies do Lumen recebeu um excesso
   de 3–10% de inscrições; considere aumentar `r.LumenScene.SurfaceCache.AtlasSize`". A cidade tem ~5.000 componentes de
   malha e o cache padrão não cabe: partes da cena ficam sem iluminação indireta atualizada (manchas, GI piscando). Opções

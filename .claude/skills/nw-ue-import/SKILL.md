@@ -1,17 +1,17 @@
 ---
 name: nw-ue-import
-description: Monta o projeto Unreal a partir de extract/ (tools/ue_import_all.sh, 10 etapas retomáveis com commandlets). Usar depois do nw-build-all, ou para refazer um import (malhas, cenário, materiais, interface, sons).
+description: Monta o projeto Unreal a partir de extract/ (tools/linux/ue_import_all.sh, 10 etapas retomáveis com commandlets). Usar depois do nw-build-all, ou para refazer um import (malhas, cenário, materiais, interface, sons).
 ---
 
-# Importar na Unreal (tools/ue_import_all.sh)
+# Importar na Unreal (tools/linux/ue_import_all.sh)
 
 Antes:
 1. Peça ao usuário para fechar o editor da Unreal (os commandlets gravam nos mesmos assets) e confirme.
 2. Nada pesado rodando junto; New World original fechado.
 
 ```bash
-tools/ue_import_all.sh          # todas as que faltam
-tools/ue_import_all.sh 08       # só uma (ex.: 08 = materiais Nanite/instâncias)
+tools/linux/ue_import_all.sh          # todas as que faltam
+tools/linux/ue_import_all.sh 08       # só uma (ex.: 08 = materiais Nanite/instâncias)
 ```
 
 Cada etapa confere "Python script executed successfully" no log (`unreal/NWPort/Saved/ImportLogs/`); os commandlets
@@ -25,3 +25,5 @@ por conta própria.
 ```
 
 Material cinza no jogo → etapa 08. Armadilhas da Unreal: `docs/ESTADO.md`.
+
+No Windows nativo: `python tools/ue_import_all.py [NN]` (skill `nw-windows`). Os scripts `.sh` daqui ficam em `tools/linux/` (skill `nw-linux`).

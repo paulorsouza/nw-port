@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Original em cima, port embaixo, no mesmo tamanho (esteira 4: ajuste de telas com tools/ui_shot.sh).
+"""Original em cima, port embaixo, no mesmo tamanho (esteira 4: ajuste de telas com tools/linux/ui_shot.sh).
 
     python3 tools/ui_compare.py <print do jogo> <captura do port> <saída.png> [--crop x0,y0,x1,y1] [--width 1600]
 

@@ -131,7 +131,7 @@ se algo estiver errado.
     Com a bolsa cheia, avisa e nada muda.
 60. Vidro rúnico de Ônix de Punição num escudo: tooltip com +5% de resistência física e +3% de dano físico. Sair e
     entrar de novo, guardar e retirar do armazém: a gema continua no item. Item equipado também aceita gema.
-61. Com `tools/backend_dev.sh` no ar, Play: o log diz "Play com backend: Exilado (editor)". Pegar itens, andar, parar o
+61. Com `tools/linux/backend_dev.sh` no ar, Play: o log diz "Play com backend: Exilado (editor)". Pegar itens, andar, parar o
     Play e dar Play de novo: mesma bolsa, mesmos níveis e mesma posição. Com o nw-core parado, aparece "Jogando sem
     backend" e o Play segue com o kit inicial.
 62. Abrir "Melhorar itens" na forja, sair e abrir uma mesa de refino: abre na lista de receitas. Voltar à forja: também
@@ -182,13 +182,13 @@ se algo estiver errado.
     (o chão ainda não é salvo: etapa 2); no log aparece a saída da bolsa com o motivo do salvamento.
 87. Play do editor: F10 abre e os botões funcionam; cada uso aparece em `tools/item_log.py --personagem Exilado` com o
     motivo `dev:<comando>` (quando mexe em item ou moedas).
-88. Teste em rede com uma conta sem admin: F10 não abre; com `tools/rede.sh admin <conta>` e entrando de novo, abre.
+88. Teste em rede com uma conta sem admin: F10 não abre; com `tools/linux/rede.sh admin <conta>` e entrando de novo, abre.
 89. Soltar um item no chão, parar o Play e dar Play de novo: o saco está no mesmo lugar, com os itens e o tempo que
     sobrava; pegar devolve à bolsa. `tools/item_log.py --personagem Exilado`: `drop` (bag −, ground:<saco> +) e
     `ground_take` (ground −, bag +).
 90. Soltar, esperar os 3 minutos com o Play aberto: o saco some; parar e voltar: não volta (no log: `ground_expired`).
-91. Com o nw-core desligado no meio do Play (`tools/backend_dev.sh down`): fabricar, guardar e soltar mostram "Não foi
-    possível gravar; nada mudou" e nada sai da bolsa; ligar de novo (`tools/backend_dev.sh`) e repetir: funciona.
+91. Com o nw-core desligado no meio do Play (`tools/linux/backend_dev.sh down`): fabricar, guardar e soltar mostram "Não foi
+    possível gravar; nada mudou" e nada sai da bolsa; ligar de novo (`tools/linux/backend_dev.sh`) e repetir: funciona.
 92. Fabricar com a bolsa cheia: o item vai para um saco no chão, que volta depois de parar e dar Play de novo.
 93. Fabricar, refinar e melhorar várias vezes seguidas e rápido: tudo entra na ordem, sem item a mais nem a menos
     (comparar com o log).
@@ -206,11 +206,11 @@ se algo estiver errado.
     preço anunciado, se houver. Preço, duração, Enter ou Fazer Pedido de Venda: o item sai da lista na hora e o pedido
     aparece em Meus Pedidos com spinner, que some quando o servidor grava.
 100. Meus Pedidos > Cancelar: a linha apaga com spinner e some; o item volta no armazém compartilhado.
-101. Comprar (com 2 jogadores, `tools/net_test.sh` ou duas contas): a venda de A aparece para B com o nome de A em
+101. Comprar (com 2 jogadores, `tools/linux/net_test.sh` ou duas contas): a venda de A aparece para B com o nome de A em
      Vendedor; comprar: as moedas de B caem na hora, o item vai para o armazém de B; A reabre o posto e recebe.
 102. Filtros: escala, raridade, GS mínimo, atributo, vantagem e Pode Pagar reduzem a lista; Limpar Tudo volta; clicar
      no título de uma coluna ordena.
-103. Recusa: vender com o nw-core desligado (`tools/backend_dev.sh down`): a linha aparece, some e o item volta à lista
+103. Recusa: vender com o nw-core desligado (`tools/linux/backend_dev.sh down`): a linha aparece, some e o item volta à lista
      com a linha piscando em vermelho e o aviso.
 104. Criar 50 pedidos: o botão de vender apaga no 50º.
 105. `tools/item_log.py --personagem Exilado`: `market_post_sell`, `market_buy` e `market_credit` com o item e as
@@ -236,7 +236,7 @@ Governança das cidades (docs/plano-governanca.md):
 115. Brinde semanal de um NPC: além do material, 200 a 400 moedas.
 116. Governo, como governador depois da carência (ou com `owner_since` antigo no banco): lance inicial e Pôr em
      Leilão: aparece "Leilão", termina em 24 h; sem lance, Cancelar Leilão.
-117. Com outra conta (`tools/net_test.sh`): Dar Lance no mínimo: as moedas caem; outra conta cobre: o primeiro recebe
+117. Com outra conta (`tools/linux/net_test.sh`): Dar Lance no mínimo: as moedas caem; outra conta cobre: o primeiro recebe
      o lance de volta (crédito ao abrir o quadro). No fim (ou `POST /internal/cities/advance` com `now` 25 h depois),
      o maior lance vira governador e o antigo recebe o lance menos 10%.
 118. Quadro de Planejamento: o topo mostra o balancete da cidade (moeda grande, âmbar); Resumo sem a meta da semana;

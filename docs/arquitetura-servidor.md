@@ -75,7 +75,7 @@ Duas partes, para medir sem precisar de 500 PCs:
    de IA (sem conexão), espalhados como jogadores reais (parte na cidade, parte coletando, parte lutando com
    criaturas). Mede CPU de movimento, combate, IA, coleta e persistência (o salvamento dos simulados vai para um
    nw-core de teste).
-2. **Bots de verdade** (`tools/net_test.sh <n>`, `-nwbot`, sem render): algumas dezenas, para medir replicação e
+2. **Bots de verdade** (`tools/linux/net_test.sh <n>`, `-nwbot`, sem render): algumas dezenas, para medir replicação e
    banda de fato.
 
 3. **Carga no nw-core** (script): N personagens gravando no ritmo medido nas partes 1 e 2 (operações e periódico),
@@ -90,7 +90,7 @@ criaturas ativas, atores replicados, bytes enviados por jogador, gravações por
 Como rodar (servidor sem janela, sem nw-core, pela fila; editor e New World fechados):
 
 ```bash
-tools/pesado.sh timeout -s INT 90 /mnt/jogos/UnrealEngine/5.8/Engine/Binaries/Linux/UnrealEditor \
+tools/linux/pesado.sh timeout -s INT 90 /mnt/jogos/UnrealEngine/5.8/Engine/Binaries/Linux/UnrealEditor \
   "$PWD/unreal/NWPort/NWPort.uproject" /Game/NW/Maps/L_QuedaEterna -server -nullrhi -unattended -nosplash \
   -nwperf -nwsim=100 -nwsimraio=300 -nwcsv=300 -abslog="$PWD/unreal/NWPort/Saved/Perf/sim.log"
 python3 tools/perf_csv.py --filtro Exclusive/GameThread
@@ -121,7 +121,7 @@ Depois dos itens 1 e 2 (2026-10-14: servidor só anima com montagem; câmera só
 servidor quando não é alvo de golpe), 200 simulados no binário do editor: 24,1 → 18,1 ms (movimento 12,2, animação
 2,3, tick 2,0, física 0,5).
 
-Servidor empacotado (`tools/package_server.sh`, Development, `deploy/build/LinuxServer/NWPortServer.sh <mapa> -nwperf
+Servidor empacotado (`tools/linux/package_server.sh`, Development, `deploy/build/LinuxServer/NWPortServer.sh <mapa> -nwperf
 -nwsim=<n> -nwcsv=300`), Queda Eterna, simulados andando o tempo todo:
 
 | Simulados | Trabalho/ciclo | Movimento | Animação | Tick | Física | Memória |
@@ -182,7 +182,7 @@ Medidos e anotados; voltar quando um canal encher:
    (`DefaultGame.ini`, `GameNetworkManager`): falta o teste em rede com o dono (andar, pular, esquivar sem "puxar").
 3. Animação só com montagem no servidor e malha sem colisão no servidor (`ANWCharacter`): falta o teste de combate do
    dono (golpe, combo, esquiva, homing, arco) no editor e em rede.
-4. Rede de verdade: bots conectados (`tools/net_test.sh`) para medir replicação e banda; depois Iris, distância de
+4. Rede de verdade: bots conectados (`tools/linux/net_test.sh`) para medir replicação e banda; depois Iris, distância de
    replicação por tipo, dormência.
 5. Banco: teste de carga do nw-core (`tools/`). Salvamento só do que mudou: feito (2026-10-14, `inventory_patch`).
 6. Os outros pontos da tabela "O que hoje vai contra as regras" (homing do golpe, bonecos, `ServerGather`, sacos no

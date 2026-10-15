@@ -8,7 +8,7 @@ equipamento, a posição, os níveis, o armazém e os brindes ficam salvos entre
 1. Subir o nw-core (uma vez por boot; rodar de novo não faz nada se já estiver no ar):
 
    ```bash
-   tools/backend_dev.sh
+   tools/linux/backend_dev.sh
    ```
 
    Sobe o Postgres (`nw-core-db`, `backend/compose.yaml`), compila o nw-core se o fonte mudou (fila de trabalho
@@ -17,7 +17,7 @@ equipamento, a posição, os níveis, o armazém e os brindes ficam salvos entre
 3. Parar o Play salva tudo (também salva a cada 5 s). Histórico de itens do personagem: `tools/item_log.py
    --personagem Exilado` (filtros `--item`, `--serie`, `--desde`).
 
-Outros comandos: `tools/backend_dev.sh status | log | down`. `down` para só a API; o banco continua com os dados.
+Outros comandos: `tools/linux/backend_dev.sh status | log | down`. `down` para só a API; o banco continua com os dados.
 
 ## Como funciona
 
@@ -29,7 +29,7 @@ Outros comandos: `tools/backend_dev.sh status | log | down`. `down` para só a A
   progresso). Salva pelo `PUT /internal/characters/{id}/state` no timer e ao fechar o mundo.
 - A sessão da conta fica só na memória do Play (não grava `[NW.Session]` no GameUserSettings).
 - Com o nw-core fora do ar, o Play segue sem backend (kit inicial, nada salvo) e avisa na tela "Jogando sem backend".
-  Para jogar sem backend de propósito: `tools/backend_dev.sh down`.
+  Para jogar sem backend de propósito: `tools/linux/backend_dev.sh down`.
 - Com backend, os níveis de ofício contam (sem backend eram livres). Para testar algo que pede nível ou material, use
   os botões do F10.
 
@@ -42,12 +42,12 @@ docker exec nw-core-db psql -U nw -d nw -c "delete from characters where lower(n
 ```
 
 ```bash
-tools/backend_dev.sh
+tools/linux/backend_dev.sh
 ```
 
 ## Outros testes
 
-- `tools/play_local.sh`: servidor dedicado + cliente com a tela de entrada (usa o mesmo nw-core; precisa do editor
+- `tools/linux/play_local.sh`: servidor dedicado + cliente com a tela de entrada (usa o mesmo nw-core; precisa do editor
   fechado).
-- `tools/net_test.sh`: vários clientes sem tela (contas `NW_TEST_ACCOUNTS`).
+- `tools/linux/net_test.sh`: vários clientes sem tela (contas `NW_TEST_ACCOUNTS`).
 - Testes do nw-core: `backend/README.md` (cada teste cria um banco temporário).

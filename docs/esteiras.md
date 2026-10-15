@@ -21,7 +21,10 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 
 ### Máquina
 
-- Trabalho pesado entra na fila: `tools/pesado.sh <comando>`. Pesado = nwbt, Blender, `build_set.py`,
+- Comandos de sistema (extração, compilar e importar, backend local, captura, conferência, build do nwbt) ficam nas
+  skills `nw-linux` (`tools/linux/`) e `nw-windows` (`tools/windows/`); o Python do pipeline (`tools/*.py`) é um só.
+- Trabalho pesado entra na fila: `python3 tools/pesado.py <comando>` (no Windows `python`; no Linux,
+  `tools/linux/pesado.sh` usa o mesmo lock). Pesado = nwbt, Blender, `build_set.py`,
   `convert_*.sh`, `UnrealEditor-Cmd`, compilação, Ghidra em lote. `build_all.sh` e `ue_import_all.sh` já entram
   sozinhos. Motivo: o `systemd-oomd` fecha programas quando dois trabalhos pesados somam pressão de memória.
 - New World original fechado durante trabalho pesado.
@@ -34,7 +37,7 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
   Exceção (dono, 2026-10-14): teste de desempenho (`docs/arquitetura-servidor.md`, teste de carga) pode ser rodado
   pela sessão, sem janela (servidor `-server -nullrhi`, bots `-nullrhi`), pela fila de trabalho pesado, com o editor
   fechado e o New World original fechado.
-- Todo teste usa o nw-core local (`docs/teste-backend.md`): `tools/backend_dev.sh` antes de abrir o editor; o Play
+- Todo teste usa o nw-core local (`docs/teste-backend.md`): `tools/linux/backend_dev.sh` antes de abrir o editor; o Play
   entra com a conta `editor` / personagem `Exilado` e salva tudo entre sessões.
 - Cada esteira tem a sua lista de testes em `docs/testes/<esteira>.md`, numerada só nela. Item novo: o que fazer e o
   que deve acontecer, numa ou duas frases.
@@ -63,7 +66,7 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 ### Telas
 
 - Tela do jogo nova ou refeita: roteiro de `docs/hud/README.md` (spec da tela, captura sem o jogo com
-  `tools/ui_shot.sh`, comparação com o print do original). O print ao dono fica para o fim.
+  `tools/linux/ui_shot.sh`, comparação com o print do original). O print ao dono fica para o fim.
 - `FNWUILayout` é compartilhado: o modo fiel ao LyShine (`bExactText`) é ligado por tela, sem mudar as outras.
 
 ### Entrega
@@ -104,11 +107,11 @@ faz num commit só com o ABP.
 
 ## Várias pessoas
 
-- Cada pessoa: própria instalação do New World na build de `tools/jogo.versao` (`tools/jogo_versao.sh` confere; o
+- Cada pessoa: própria instalação do New World na build de `tools/jogo.versao` (`tools/linux/jogo_versao.sh` confere; o
   `build_all.sh` para se for outra), pipeline completo (`docs/SETUP.md`). Extração, `Content` e `Data/` não vão para
   o git: cada um gera os seus.
 - Um branch por esteira a partir da `main` (`armas`, `coleta`, `montarias`, `sistemas`). Mesclar na `main` a cada
-  item fechado, no máximo a cada poucos dias; antes, trazer a `main` para o branch e rodar `tools/check.sh --cpp`.
+  item fechado, no máximo a cada poucos dias; antes, trazer a `main` para o branch e rodar `tools/linux/check.sh --cpp`.
 - Mudança em arquivo compartilhado: PR pequeno e separado, mesclado logo, para os outros trabalharem em cima.
 - Quem mescla na `main`: o dono do repositório (ou quem ele indicar).
 - Engenharia reversa só na máquina com o Ghidra montado (`docs/ghidra.md`); os outros abrem a pergunta no arquivo
@@ -301,20 +304,20 @@ Próximos passos da esteira 4, nesta ordem (o dono pediu terminar as mecânicas 
 Estado (2026-10-13, segunda sessão): gemas e vidro rúnico; Play do editor com o nw-core local e conta fixa
 (`docs/teste-backend.md`); botões e sons da tela de resultado; armaduras e joias fabricadas (mecânica); bolsa de 500
 espaços, item que não cabe vai para o chão e soltar no chão cria uma bolsa de saque (`ANWLootBag`, 2 min, 1000 kg);
-pilha de teste em rede no PC do dono com Cloudflare Tunnel (`docs/rede-teste.md`, `tools/rede.sh`). Commits
+pilha de teste em rede no PC do dono com Cloudflare Tunnel (`docs/rede-teste.md`, `tools/linux/rede.sh`). Commits
 `1d7fc8f` e `7667ce9`; o resto ficou sem commit (pendência 1).
 
 ### Pendências da sessão de 2026-10-13 (fazer nesta ordem)
 
 1. Commit e push do que ficou fora (pedir ao dono): bolsa de 500 e `ANWLootBag` (`NWLootBag.*`, `NWInventory*`,
    `NWInteractable.*`, `NWCrafting.cpp`, `NWHUD.cpp`), `MAX_BAG_SLOTS = 500` no `backend/`, `NWUIShotCommandlet.cpp`
-   (`WITH_EDITOR`), `tools/rede.sh`, `deploy/compose.rede.yaml`, `docs/rede-teste.md`, docs e testes 70–73. Não entram
+   (`WITH_EDITOR`), `tools/linux/rede.sh`, `deploy/compose.rede.yaml`, `docs/rede-teste.md`, docs e testes 70–73. Não entram
    `bin/nwbt` nem arquivos de outras esteiras.
 2. Testes do dono ainda abertos: 55–69 (gemas, botões e sons, armaduras e joias) e 71–73 (bolsa cheia indo para o
    chão, soltar e pegar o saco, 2 minutos e 1000 kg). Scroll (70) e joias já testados.
-3. Teste em rede na casa do dono (2 PCs): `tools/rede.sh up`, conferir `https://<NW_REDE_HOST>/health`, empacotar o
+3. Teste em rede na casa do dono (2 PCs): `tools/linux/rede.sh up`, conferir `https://<NW_REDE_HOST>/health`, empacotar o
    cliente no Windows (`docs/rede-teste.md`, Cliente Windows) com `Jogar.bat` em `-nwconnect=<IP do PC>:7777`,
-   conta por `tools/rede.sh invite`. Depois, com os amigos: Zero Trust e WARP (o provedor usa CGNAT), reservar o IP
+   conta por `tools/linux/rede.sh invite`. Depois, com os amigos: Zero Trust e WARP (o provedor usa CGNAT), reservar o IP
    do PC no DHCP, atualizar o `cloudflared` (2026.8.3 → 2026.10.0).
 4. ~~Tela da bolsa no chão como a do jogo~~ (feito 2026-10-14: janela "Itens Derrubados", pegar item por item, aviso
    de tempo de vida; testes 76–78).
@@ -396,7 +399,7 @@ Sem chute: número, janela ou comportamento sem fonte não entra no código; fic
 segue com outro item. Mudança comum que afete a manopla de gelo (1a) ou a espada grande (1b): descreva no relatório.
 
 Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho. Trabalho pesado pela fila
-(tools/pesado.sh; no Windows, python tools/pesado.py). Commit e push só quando eu pedir, e só dos arquivos da esteira.
+(python3 tools/pesado.py; no Windows, python). Commit e push só quando eu pedir, e só dos arquivos da esteira.
 ```
 
 ### Esteira 1a: Manopla de gelo
@@ -429,7 +432,7 @@ mana, que ela traz para as armas mágicas.
 Sem chute: o que não tem fonte fica "aguardando manopla-gelo-NNN" no doc e você segue com outro item.
 
 Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho. Trabalho pesado pela fila
-(tools/pesado.sh; no Windows, python tools/pesado.py). Commit e push só quando eu pedir, e só dos arquivos da
+(python3 tools/pesado.py; no Windows, python). Commit e push só quando eu pedir, e só dos arquivos da
 sub-esteira.
 ```
 
@@ -462,7 +465,7 @@ efeitos, HUD, rede).
 Sem chute: o que não tem fonte fica "aguardando espada-grande-NNN" no doc e você segue com outro item.
 
 Teste: abra o editor em L_Arena e me peça o print; nunca rode o jogo sozinho. Trabalho pesado pela fila
-(tools/pesado.sh; no Windows, python tools/pesado.py). Commit e push só quando eu pedir, e só dos arquivos da
+(python3 tools/pesado.py; no Windows, python). Commit e push só quando eu pedir, e só dos arquivos da
 sub-esteira.
 ```
 
@@ -480,7 +483,7 @@ de coleta nos .adb do jogador, tabelas de ofício e de saque, sons, VFX das vari
 me mostre a lista do que falta, por ofício, antes de mudar código.
 
 Sem fonte nos dados: skill nw-re. Teste: abra o editor em L_SouthWindsward e me peça o print; nunca rode o jogo
-sozinho. Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da
+sozinho. Trabalho pesado pela fila (python3 tools/pesado.py; no Windows, python). Commit e push só quando eu pedir, e só dos arquivos da
 esteira.
 ```
 
@@ -498,7 +501,7 @@ _mount_movement), malhas e .adb das montarias (adb/mounts/), player_mount.adb do
 CAGE de montar. Me mostre o plano antes de mudar código.
 
 Sem fonte nos dados: skill nw-re. Teste: abra o editor em L_SouthWindsward e me peça o print; nunca rode o jogo
-sozinho. Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da
+sozinho. Trabalho pesado pela fila (python3 tools/pesado.py; no Windows, python). Commit e push só quando eu pedir, e só dos arquivos da
 esteira.
 ```
 
@@ -515,12 +518,12 @@ NPCs, estações de refino e ofício, armazém, lojas, mercado, casas, nível e 
 refino, armazém, inventário e fabricar já estão feitos (docs/sistemas.md). Comece pelas "Pendências da sessão de
 2026-10-13" e depois os "Próximos passos da esteira 4", na seção Esteira 4 de docs/esteiras.md; regras de item e ofício
 em docs/itens.md e docs/oficio.md, armaduras em docs/armaduras.md. Testes com backend: docs/teste-backend.md
-(tools/backend_dev.sh antes de abrir o editor); rede: docs/rede-teste.md. Telas: siga
-docs/hud/README.md (captura sem o jogo com tools/ui_shot.sh, comparação com o print do original). Me mostre o plano
+(tools/linux/backend_dev.sh antes de abrir o editor); rede: docs/rede-teste.md. Telas: siga
+docs/hud/README.md (captura sem o jogo com tools/linux/ui_shot.sh, comparação com o print do original). Me mostre o plano
 antes de mexer no backend.
 
 Sem fonte nos dados: skill nw-re. Teste: abra o editor no mapa e me peça o print; nunca rode o jogo sozinho.
-Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da esteira.
+Trabalho pesado pela fila (python3 tools/pesado.py; no Windows, python). Commit e push só quando eu pedir, e só dos arquivos da esteira.
 ```
 
 ### Esteira 5: Iluminação
@@ -538,5 +541,5 @@ tirar print no jogo original (praça, igreja e taverna de Queda Eterna, rua à n
 de cada item, o custo esperado e como vai medir, antes de mudar código ou o mapa.
 
 Sem fonte nos dados: skill nw-re. Teste: abra o editor no mapa e me peça o print; nunca rode o jogo sozinho.
-Trabalho pesado pela fila (tools/pesado.sh). Commit e push só quando eu pedir, e só dos arquivos da esteira.
+Trabalho pesado pela fila (python3 tools/pesado.py; no Windows, python). Commit e push só quando eu pedir, e só dos arquivos da esteira.
 ```

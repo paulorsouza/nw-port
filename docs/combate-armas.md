@@ -9,7 +9,7 @@ jogo (dano, crítico, reação, empurrão, tremida, stamina, bloqueio): `docs/co
 
 ## 0. Antes
 
-- `tools/build_all.sh` rodado até a etapa 04 (tabelas, textos e receitas de animação extraídos).
+- `tools/linux/build_all.sh` rodado até a etapa 04 (tabelas, textos e receitas de animação extraídos).
 - Ler `docs/combate-regras-jogo.md` (regras gerais do jogo: dano, empurrão, tremida, crítico, stamina).
 - Editor da Unreal fechado nas etapas de import e compilação.
 - Um trabalho pesado por vez (`docs/ESTADO.md`, Armadilhas).
@@ -68,7 +68,7 @@ O que o pipeline faz sozinho com o `.adb`:
 - janelas do `ProcLayer` com o tempo certo depois de clipe vazio;
 - janelas de montagens que dividem o mesmo clipe são somadas (antes a última sobrescrevia).
 
-Converter: `source tools/env.sh && tools/pesado.sh python3 tools/build_set.py tools/sets/sword_shield.json` (Blender +
+Converter: `source tools/linux/env.sh && tools/linux/pesado.sh python3 tools/build_set.py tools/sets/sword_shield.json` (Blender +
 nwbt, pesado).
 
 ## 3. Ações: tabela de ações da arma
@@ -154,8 +154,8 @@ jogo e a fonte num comentário curto, e acrescente uma linha nesta tabela.
 ## 6. Importar e testar
 
 ```bash
-tools/ue_import_all.sh 01   # compila
-tools/ue_import_all.sh 02   # conjunto do jogador (animações, montagens, sons, tabelas)
+tools/linux/ue_import_all.sh 01   # compila
+tools/linux/ue_import_all.sh 02   # conjunto do jogador (animações, montagens, sons, tabelas)
 ```
 
 Arma com montagens de corpo superior: o `ABP_NW` precisa do slot `UpperBody` (feito uma vez, à mão; passo a passo em

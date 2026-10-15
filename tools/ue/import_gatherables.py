@@ -1,4 +1,4 @@
-"""Importa as malhas dos coletáveis (glb limpos de tools/convert_gatherables.sh), uma malha por .cgf.
+"""Importa as malhas dos coletáveis (glb limpos de tools/linux/convert_gatherables.sh), uma malha por .cgf.
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_gatherables.py <pasta limpa> [filtro|/Game/destino]"
 

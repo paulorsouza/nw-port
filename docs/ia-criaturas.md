@@ -8,7 +8,7 @@ vem da engenharia reversa em `re-local/ia-mobs.md`; o que o jogo roda só no ser
 
 | Peça | Onde |
 |---|---|
-| Exportar árvore + perfil | `tools/make_ai.py` → `unreal/NWPort/Data/AI/<conjunto>.json` (roda em `tools/make_data.sh`) |
+| Exportar árvore + perfil | `tools/make_ai.py` → `unreal/NWPort/Data/AI/<conjunto>.json` (roda em `tools/linux/make_data.sh`) |
 | Conferir sem a Unreal | `python3 tools/ai_sim.py <conjunto> Target_Dist=5 --tag Alerted --vezes 50 --trace` |
 | Interpretador | `UNWBehaviorTreeComponent` (C++), ligado pelo `ANWCreature` quando existe `Data/AI/<conjunto>.json` |
 | Sem árvore | `UNWBrainComponent` (estilos do port), como antes |

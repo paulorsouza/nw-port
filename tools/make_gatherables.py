@@ -10,7 +10,7 @@ respawn). Converte para o referencial do mapa L_SouthWindsward: o mesmo de tools
 cidade, UE = (-x, y, z) × 100). --size limita ao quadrado do terreno importado (0 = território inteiro).
 
 Gera unreal/NWPort/Data/World/guardaventos_gatherables.json e extract/ue/gatherables/meshes.txt (malhas a
-converter com tools/convert_gatherables.sh).
+converter com tools/linux/convert_gatherables.sh).
 """
 import argparse
 import glob

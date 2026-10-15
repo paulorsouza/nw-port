@@ -77,7 +77,7 @@ Anotado em 2026-10-11, depois da primeira sessão no Unreal.
 - Tecidos retorcidos no céu e linhas azuis no chão: bandeiras/varais/cordas que no jogo são tecido simulado
   viraram malha estática deformada. Filtrar ou corrigir na conversão.
 - PlayerStart da South Windsward ficava dentro da estátua da praça: `tools/ue/fix_spawn.py` moveu 4 m. O
-  servidor empacotado ainda tem o mapa antigo: recozinhar no próximo pacote (`tools/package_server.sh`).
+  servidor empacotado ainda tem o mapa antigo: recozinhar no próximo pacote (`tools/linux/package_server.sh`).
 - Bots de teste sem render (-nullrhi) ignoram t.MaxFPS (~460 fps) e enchem o buffer de movimentos do
   CharacterMovement ("Hit limit of 96 saved moves") com atraso simulado. Só afeta os bots; a medição de 10 bots
   da F0 ficou pessimista (mais tráfego que jogadores reais).
@@ -100,7 +100,7 @@ Anotado em 2026-10-11, depois da primeira sessão no Unreal.
 
 Feitas com o PC sozinho (sem abrir o editor nem rodar o jogo): compilam, falta conferir na tela.
 
-- Importar as texturas novas: editor fechado, `tools/ue_import_all.sh 09` (listas `tooltip`, `lootticker2024`,
+- Importar as texturas novas: editor fechado, `tools/linux/ue_import_all.sh 09` (listas `tooltip`, `lootticker2024`,
   `worldmap`, `levelup` e a tela `xp` do `hud_textures`). Os 52 tiles do mapa entram comprimidos (DXT1).
 - Conferir: tooltip (Tab, mouse num item), aviso de saque (coletar), mapa (M: arrastar, roda, botões, POIs),
   bússola com POIs, barra de XP e banner (F10 > Ganhar 1 nível), atributos e "+" no painel de status,

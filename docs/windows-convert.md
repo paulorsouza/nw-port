@@ -85,7 +85,7 @@ e colisao, jogar com persistencia/rede e medir memoria/tempo no volume real de d
   correspondentes. convert_npcs.py usa ferramentas nativas e supervisao.
 - [x] Manifesto CSV do nwbt preserva nomes com espacos. GLBs truncados nao sao reutilizados;
   saídas limpas/terreno/audio sao promovidas depois de sucesso.
-- [x] Patch incremental nwbt-platform-path.patch corrige AppendToPATH: separador do sistema e
+- [x] Patch incremental nwbt-platform-path.patch (hoje dentro de patches/nwbt.patch) corrige AppendToPATH: separador do sistema e
   preservacao das entradas existentes. O build aplica ambos os patches e aceita o patch anterior
   ja instalado, permitindo atualizar um checkout usado pela primeira entrega.
 
@@ -141,16 +141,39 @@ $env:NW_BLENDER = 'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe'
 python tools/windows/doctor.py --full
 ```
 
-build_nwbt.ps1 clona o fork privado em vendor/nw-buddy se necessario e fixa o commit
-`267f86568977c5801b716f02684f7bc69e0982d0`. O patch incremental esta em
-`patches/nwbt-windows.patch`, aplicado sobre esse commit da branch nw-port (que ja inclui o patch Linux).
-Um checkout existente em outro commit provoca erro; o script nao reseta alteracoes locais.
-Use -Source e -GoExe para escolher um checkout e um executavel Go existentes.
+build_nwbt.ps1 chama tools/build_nwbt.py, o mesmo script do Linux (2026-10-15). Ele clona o fork
+privado em vendor/nw-buddy se necessario, exporta o commit `267f86568977c5801b716f02684f7bc69e0982d0`
+para `.nwbt/build/src` com fim de linha LF, aplica `patches/nwbt.patch` e grava a versao no binario
+(`nwbt --version` mostra `nwport-patch=<base>-<hash do patch>`). O checkout do fork nao e alterado.
+-Source e -GoExe continuam valendo; NW_PYTHON escolhe o Python. Mudar o nwbt: `patches/README.md`.
 
 Os binarios Windows gerados ficam fora do Git e podem ser recompilados pelos scripts.
 texconv.exe ja esta em bin/ e e chamado diretamente no Windows, sem wine.
 NW_GAME prevalece sobre GAME, que continua aceito para compatibilidade. NWBT_OODLE permite indicar
 uma DLL explicitamente; no Windows, uma configuracao inexistente falha sem fallback silencioso.
+
+## Mudancas de 2026-10-15 (patch unico e pastas por sistema)
+
+Motivo: build_set.py passou a chamar `nwbt models files ... @lista` nas duas plataformas, mas o `@lista` so
+existia no patch do Windows. O bin/nwbt do Linux tratava `@...` como padrao, nao achava nada e saia 0; o
+Blender tambem saia 0 com o script falhando. A conversao dizia "ok" com glb velhos.
+
+- Um patch so: `patches/nwbt.patch` junta os antigos nwbt-windows, nwbt-platform-path, nwbt-pak-root-slash e
+  nwbt-files-argfile (removidos), o sliceLight da esteira 5, `models files` sem arquivo encontrado saindo com
+  erro, e a versao do patch no binario. Linux e Windows compilam pelo mesmo tools/build_nwbt.py.
+- tools/windows/doctor.py e tools/linux/check.sh acusam nwbt de outro patch; `doctor.py --full` e o check.sh
+  convertem um cubo do jogo por `@lista` e falham se nada for gravado. build_set.py e convert_npcs.py recusam
+  nwbt desatualizado, chamam o Blender com `--python-exit-code 1` e conferem que os glb/fbx esperados foram
+  regravados (tools/saidas.py).
+- Scripts de sistema do Linux foram para tools/linux/ (os tools/<x>.sh antigos sao atalhos temporarios);
+  tools/windows/ segue para o Windows; o Python do pipeline continua unico em tools/.
+- pesado.py roda o comando no diretorio de quem chamou e devolve o codigo de saida dele; `python`/`python3` no
+  comando viram o Python da fila. make_data.py ganhou make_ui_sounds e make_itens (faltavam em relacao ao .sh,
+  que agora so chama o .py). nwplatform acha o Blender em ~/.local/opt no Linux.
+- Skills: nw-windows (com a alternativa WSL2, no lugar da nw-wsl) e nw-linux; as skills de esteira usam
+  comandos dos dois sistemas e apontam para a skill da plataforma no resto.
+- Pendente no ue_import_all.py para valer tambem no Linux: etapas sistemas-04/05 (tools/etapas/sistemas.ue.sh),
+  fila de trabalho pesado e conferencia do editor aberto no Linux.
 
 ## Validacao
 

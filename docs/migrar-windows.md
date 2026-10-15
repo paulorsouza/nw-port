@@ -101,7 +101,7 @@ Os dois `unzip -tq` têm que dizer "No errors detected". Depois, ejete o HD pelo
   C++" (traz o Windows SDK). Use a versão que a Epic indica para a 5.8.
 - 7-Zip.
 - Docker Desktop: só para subir o servidor e o nw-core.
-- WSL2 com Ubuntu (`wsl --install -d Ubuntu`): só para converter coisa nova (o pipeline é Linux; skill `nw-wsl`).
+- WSL2 com Ubuntu (`wsl --install -d Ubuntu`): só para converter coisa nova (skill `nw-windows`, seção WSL2; o pipeline também roda nativo no Windows).
 
 ### 2. Clonar
 
@@ -171,8 +171,8 @@ Confira `ls -la extract/serverpak/game/assets/Server.pak` (9,6 MB). Se faltar:
 Para baixar de novo a versão antiga inteira (75 GB; só o `Server.pak` interessa): console da Steam
 (`steam://open/console` no navegador) → `download_depot 1063730 1063731 3129454692625577733`.
 
-Ferramentas do pipeline: `docs/SETUP.md` (seção 2) e skill `nw-wsl`. O import do WSL para a Unreal do Windows ainda
-não tem script (`ue_import_all.ps1` pendente, na skill `nw-wsl`).
+Ferramentas do pipeline: `docs/SETUP.md` (seção 2) e skill `nw-windows`. O import do WSL para a Unreal do Windows ainda
+não tem script (no Windows nativo: `python tools/ue_import_all.py`, skill `nw-windows`).
 
 ### 8. Banco de teste (opcional)
 

@@ -37,7 +37,7 @@ blender -b -P tools/assemble_character.py -- <personagem.glb> <arma.glb> <escudo
 
 As ações de locomoção são compostas como no `player_1h_melee.adb`: base `unarmed_*` + camada `rswrd_*`.
 
-Antes de usar: `source tools/env.sh`.
+Antes de usar: `source tools/linux/env.sh`.
 
 ## Áudio
 
@@ -85,7 +85,7 @@ cd ../..
 ## Conjunto para o Unreal
 
 ```bash
-source tools/env.sh
+source tools/linux/env.sh
 python3 tools/build_set.py tools/sets/sword_shield.json      # ~1 min
 blender -b -P tools/preview_fbx.py -- extract/ue/sword_shield/manifest.json previews/ue A_rswrd_1h_lt_atk_01
 ```
@@ -124,7 +124,7 @@ O script desliga o Interchange para FBX (o importador clássico respeita esquele
 ## Galeria de armaduras
 
 ```bash
-tools/gallery.sh previews/gallery/armaduras.png heroicheavy guardianheavy gryphon1 ...
+tools/linux/gallery.sh previews/gallery/armaduras.png heroicheavy guardianheavy gryphon1 ...
 ```
 
 ## Projeto Unreal (`unreal/NWPort`)

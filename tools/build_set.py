@@ -7,7 +7,8 @@ Saída em extract/ue/<nome>/:
   glb/            saída bruta do nwbt
   fbx/            SK_*.fbx, SM_*.fbx, anim/A_*.fbx
   manifest.json   blend spaces, montagens, loops e sockets para o script do Unreal
-Precisa de `source tools/env.sh` (nwbt e blender no PATH) e de GAME apontando para o jogo.
+nwbt (do patches/nwbt.patch) e Blender achados por tools/nwplatform.py; jogo em NW_GAME. Rode pela fila:
+    python3 tools/pesado.py python3 tools/build_set.py tools/sets/sword_shield.json
 """
 import argparse
 import json
@@ -20,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import adb_windows  # noqa: E402
 import setspec  # noqa: E402
 import nwplatform  # noqa: E402
+import saidas  # noqa: E402
 
 nwplatform.configure()
 
@@ -91,10 +93,6 @@ def main():
         spaces = []
         for bspace in layers:
             p = idx.get((bspace.lower(), ".bspace"))
-            if not p and spaces and idx.get((bspace.lower(), ".caf")):
-                # Clipe como camada fixa em todas as amostras (Strafe da manopla: blend space + ice_gnt_idle_rhand).
-                spaces.append({"dimensions": [], "samples": [{"params": [], "clip": bspace.lower()}], "source": bspace})
-                continue
             if not p:
                 sys.exit(f"blend space não encontrado: {bspace}")
             spaces.append(read_bspace(p))
@@ -171,32 +169,37 @@ def main():
     print(f"janelas: {sum(len(w['windows']) for v in manifest['windows'].values() for w in v)} em {len(manifest['windows'])} montagens")
 
     glb_dir = os.path.join(out, "glb")
-    # skinned_weapons: arma com pele presa ao esqueleto do jogador (luva da manopla), exportada como malha esqueletal
-    # própria (SK_<chave>) no mesmo esqueleto.
-    weapon_files = [w["file"] for w in spec["weapons"].values()] + [w["file"] for w in spec.get("skinned_weapons", {}).values()]
+    weapon_files = [w["file"] for w in spec["weapons"].values()]
     # Os .caf vao na mesma chamada do .cdf; a lista em arquivo evita o limite de 32 KiB do Windows.
     os.makedirs(out, exist_ok=True)
     arglist = os.path.join(out, "nwbt_files.txt")
     with open(arglist, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join([spec["character"], *([spec["armor"]] if spec.get("armor") else []), *files, *weapon_files]) + "\n")
-    # "@lista" só existe no nwbt com o patch do Windows; o bin/nwbt do Linux trata "@..." como padrão, não acha nada
-    # e sai com 0. No Linux os arquivos vão direto na linha de comando.
-    file_args = ["@" + arglist] if nwplatform.WINDOWS else [
-        spec["character"], *([spec["armor"]] if spec.get("armor") else []), *files, *weapon_files]
-    subprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed", "--ior", "1.5", *nwplatform.nwbt_workers(),
-                    *file_args],
-                   check=True, capture_output=True)
+    # "@lista" exige o nwbt do patches/nwbt.patch (tools/build_nwbt.py); um nwbt sem o patch saía 0 sem converter nada.
+    saidas.require_nwbt()
+    since = saidas.now()
+    r = subprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed", "--ior", "1.5", *nwplatform.nwbt_workers(),
+                        "@" + arglist], capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit(f"nwbt saiu com {r.returncode}:\n{(r.stderr or r.stdout)[-2000:]}")
 
     manifest["glb"] = {
         "character": os.path.join(glb_dir, spec["character"] + ".glb"),
         "armor": os.path.join(glb_dir, spec["armor"] + ".glb") if spec.get("armor") else None,
         "weapons": {k: os.path.join(glb_dir, w["file"] + ".glb") for k, w in spec["weapons"].items()},
-        "skinned_weapons": {k: os.path.join(glb_dir, w["file"] + ".glb") for k, w in spec.get("skinned_weapons", {}).items()},
     }
+    saidas.require([manifest["glb"]["character"], manifest["glb"]["armor"], *manifest["glb"]["weapons"].values(),
+                    *manifest["glb"].get("skinned_weapons", {}).values()], since, "nwbt")
     mpath = os.path.join(out, "manifest.json")
     json.dump(manifest, open(mpath, "w"), indent=1)
 
-    subprocess.run([nwplatform.executable("blender"), "-b", "-P", os.path.join(ROOT, "tools", "export_ue.py"), "--", mpath], check=True)
+    since = saidas.now()
+    subprocess.run(saidas.blender(os.path.join(ROOT, "tools", "export_ue.py"), mpath), check=True)
+    fbx = json.load(open(mpath)).get("fbx")
+    if not fbx:
+        sys.exit("Blender (export_ue.py) não gravou a seção fbx do manifesto")
+    saidas.require([fbx["skeletal_mesh"], *fbx["anims"].values(), *fbx["weapons"].values(),
+                    *fbx.get("skinned_weapons", {}).values()], since, "Blender (export_ue.py)")
     print(f"ok: {out}")
 
 

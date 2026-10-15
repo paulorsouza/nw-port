@@ -3,7 +3,7 @@ Legião, círculo de duelo, alvos de arco, bonecos, braseiros, estandartes, roch
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/make_test_map.py"
 
-Precisa das peças em /Game/NW/Arena (tools/arena/meshes.txt → tools/convert_gatherables.sh tools/arena/meshes.txt
+Precisa das peças em /Game/NW/Arena (tools/arena/meshes.txt → tools/linux/convert_gatherables.sh tools/arena/meshes.txt
 extract/ue/arena → tools/ue/import_gatherables.py extract/ue/arena/limpa /Game/NW/Arena), do C++ compilado
 (NWCharacter, NWLost) e do conjunto do jogador. Peça que falta é pulada com aviso.
 

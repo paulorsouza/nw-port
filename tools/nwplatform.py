@@ -27,7 +27,11 @@ def executable(name):
     bundled = BIN / filename
     if bundled.is_file():
         return str(bundled)
-    return shutil.which(filename) or filename
+    found = shutil.which(filename)
+    if not found and name == "blender" and not WINDOWS:
+        # Onde o docs/FERRAMENTAS.md instala no Linux (o tools/linux/env.sh poe no PATH): dispensa o "source".
+        found = next((str(p) for p in sorted(Path.home().glob(".local/opt/blender-*/blender"), reverse=True)), None)
+    return found or filename
 
 
 def store_python():
