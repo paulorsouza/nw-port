@@ -62,7 +62,7 @@ antes dos comandos manuais.
 | `pesado.sh <comando>` | fila de trabalho pesado (um por vez na máquina; `docs/esteiras.md`) |
 | `jogo_versao.sh [--exe]` | confere se a instalação é a build do time (`tools/jogo.versao`) |
 | `setspec.py` | junta as partes de um conjunto (`tools/sets/player/<esteira>.json` no do jogador) para `build_set.py` e `make_datatables.py` |
-| `make_rules.py` | fatos da engenharia reversa (`docs/analise-re/valores/<área>.json`) → `Data/regras.json`, lido pelo `FNWRules` no C++ |
+| `make_rules.py` | fatos da engenharia reversa (`re-local/valores/<área>.json`) → `Data/regras.json`, lido pelo `FNWRules` no C++ |
 | `re_check.py` | o que da engenharia reversa já entrou no port: valores aplicados e faltando, `Data/regras.json` em dia, colunas da damagetable que o cliente do jogo lê e o port não exporta |
 | `weapon_report.py <arma>` | relatório do que o jogo define sobre o combate de uma arma (fragmentos, janelas, dano, stamina, recargas, habilidades, status) → `extract/research/` |
 | `make_sound_map.py` | liga sons às animações (passos, golpes, vozes) |

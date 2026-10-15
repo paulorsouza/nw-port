@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Confere o que a engenharia reversa (docs/analise-re) já entrou no port.
+"""Confere o que a engenharia reversa (re-local) já entrou no port.
 
     python3 tools/re_check.py
 
-1. Valores (docs/analise-re/valores/<área>.json): cada id é procurado no código do port (C++ em unreal/NWPort/Source,
+1. Valores (re-local/valores/<área>.json): cada id é procurado no código do port (C++ em unreal/NWPort/Source,
    Python em tools/ e tools/ue/). Valor numérico entra pelo FNWRules (Data/regras.json); regra (valor null) entra
    citando o id em comentário onde é aplicada. Sem uso = falta aplicar.
 2. Data/regras.json desatualizado em relação aos valores (rodar tools/make_rules.py).
-4. Perguntas (docs/analise-re/perguntas/<esteira>-NNN.md) respondidas e ainda não aplicadas.
-3. Colunas (docs/analise-re/colunas.json, tirado do executável por tools/re/colunas.py): colunas da damagetable que o
+4. Perguntas (re-local/perguntas/<esteira>-NNN.md) respondidas e ainda não aplicadas.
+3. Colunas (re-local/colunas.json, tirado do executável por tools/re/colunas.py): colunas da damagetable que o
    cliente do jogo lê e o port não exporta (make_datatables.DAMAGE_COLS), e as que o port exporta e o cliente não lê
    (de servidor: o port, que é servidor e cliente, usa mesmo assim).
 """
@@ -19,7 +19,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
-RE_DIR = os.path.join(ROOT, "docs", "analise-re")
+RE_DIR = os.path.join(ROOT, "re-local")
 DT = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites", "datatables")
 
 
@@ -78,7 +78,7 @@ def base(col):
 def check_columns():
     path = os.path.join(RE_DIR, "colunas.json")
     if not os.path.exists(path):
-        print("== Colunas: sem docs/analise-re/colunas.json (python3 -I tools/re/colunas.py)")
+        print("== Colunas: sem re-local/colunas.json (python3 -I tools/re/colunas.py)")
         return
     import make_datatables as md
     for sheet, info in json.load(open(path)).items():

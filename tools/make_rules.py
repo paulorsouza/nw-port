@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Fatos da engenharia reversa (docs/analise-re/valores/<área>.json) → unreal/NWPort/Data/regras.json, lido pelo
+"""Fatos da engenharia reversa (re-local/valores/<área>.json) → unreal/NWPort/Data/regras.json, lido pelo
 FNWRules. Só os que têm valor numérico; as regras (valor null) entram no código com o id citado em comentário.
+Sem re-local/, gera regras.json vazio e o C++ usa os padrões.
 Conferir o que falta aplicar: python3 tools/re_check.py.
 
 Cada arquivo: {"valores": {"<área>.<nome>": {"valor", "unidade", "prova" (C/R/H), "endereco", "doc", "o_que"}}}.
@@ -10,11 +11,13 @@ import json
 import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VALUES = os.path.join(ROOT, "docs", "analise-re", "valores")
+VALUES = os.path.join(ROOT, "re-local", "valores")
 
 
 def load_values():
     out, owner = {}, {}
+    if not os.path.isdir(VALUES):
+        return out
     for name in sorted(os.listdir(VALUES)):
         if not name.endswith(".json"):
             continue

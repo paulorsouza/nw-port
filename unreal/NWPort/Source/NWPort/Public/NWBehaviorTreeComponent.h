@@ -38,7 +38,7 @@ struct FNWBBValue
 };
 
 /**
- * IA da criatura igual à do jogo: interpreta a árvore de comportamento do Server.pak (docs/analise-re/ia-mobs.md).
+ * IA da criatura igual à do jogo: interpreta a árvore de comportamento do Server.pak (re-local/ia-mobs.md).
  * Só no servidor.
  *
  * Planejar (Evaluate): seletor pega o primeiro filho que avalia; sequência exige todos; UtilitySelector escolhe por

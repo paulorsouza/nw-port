@@ -59,7 +59,7 @@ Lista completa em `docs/pendencias.md`. Os principais agora:
   "rodar o jogo e tirar print": consumiu horas sem mostrar o que importa.
 - Várias sessões ao mesmo tempo: regras, donos dos arquivos e fila de trabalho pesado (`tools/pesado.sh`) em
   `docs/esteiras.md`. Engenharia reversa sob demanda: skill `nw-re`; o que já foi lido do cliente (combate, ações,
-  montarias, telas): `docs/analise-re/resumo-plano-a.md`.
+  montarias, telas): `re-local/resumo-plano-a.md`.
 - Commits e push só quando o dono pedir.
 
 ## Armadilhas (já custaram horas)

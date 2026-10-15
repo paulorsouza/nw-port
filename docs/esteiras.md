@@ -54,10 +54,10 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 
 - Número, janela, animação e som saem dos dados do jogo, com a fonte (arquivo e ID) no doc da esteira ou em
   comentário curto. Sem fonte nos dados: pergunte pela `nw-re`. Sem resposta: seção "Sem fonte" do doc.
-- Antes de implementar regra de combate, ação, montaria ou tela, leia `docs/analise-re/resumo-plano-a.md`: o que a RE
+- Antes de implementar regra de combate, ação, montaria ou tela, leia `re-local/resumo-plano-a.md`: o que a RE
   já leu do `NewWorld.exe` (encadeamento das actionlists, janelas, combos, reação, stamina, giro, homing, montarias,
   inventário, atributos), com a lista de divergências do port. Fato lido ali vale mais que doc antigo do port.
-- Valor vindo da RE entra pelo `FNWRules::Num("id")` (`docs/analise-re/valores/<área>.json`), regra vinda da RE cita o id
+- Valor vindo da RE entra pelo `FNWRules::Num("id")` (`re-local/valores/<área>.json`), regra vinda da RE cita o id
   em comentário. `python3 tools/re_check.py` mostra o que falta aplicar.
 
 ### Telas
@@ -77,13 +77,13 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 
 | Esteira | Arquivos |
 |---|---|
-| Armas (1, 1a, 1b) | `NWCharacterArmas.cpp`, `tools/sets/player/armas.json`, `tools/etapas/armas.*`, `tools/strings/armas.json`, `docs/analise-re/perguntas/armas-*`; `NWCombatComponent`, `NWProjectile`, `NWFxActor`, `NWBrainComponent`; `tools/make_datatables.py`, `make_abilities.py`, `weapon_report.py`, `tools/ue/make_test_map.py`, `make_fx.py`; `docs/armas/`, `docs/combate-*.md`. Sub-esteiras: código novo da arma em `NWArma<Nome>.cpp` próprio, parte do conjunto em `tools/sets/player/armas_<arma>.json` (listada em `parts`), doc e testes da arma; o resto da esteira 1 é compartilhado entre as três |
-| Coleta | `tools/sets/player/coleta.json`, `tools/etapas/coleta.*`, `docs/analise-re/perguntas/coleta-*`, `tools/strings/coleta.json`; `NWGatherComponent`, `NWGatherField`; `tools/make_gatherables.py`, `convert_gatherables.sh`, `tools/ue/import_gatherables.py`; `docs/coleta.md` |
+| Armas (1, 1a, 1b) | `NWCharacterArmas.cpp`, `tools/sets/player/armas.json`, `tools/etapas/armas.*`, `tools/strings/armas.json`, `re-local/perguntas/armas-*`; `NWCombatComponent`, `NWProjectile`, `NWFxActor`, `NWBrainComponent`; `tools/make_datatables.py`, `make_abilities.py`, `weapon_report.py`, `tools/ue/make_test_map.py`, `make_fx.py`; `docs/armas/`, `docs/combate-*.md`. Sub-esteiras: código novo da arma em `NWArma<Nome>.cpp` próprio, parte do conjunto em `tools/sets/player/armas_<arma>.json` (listada em `parts`), doc e testes da arma; o resto da esteira 1 é compartilhado entre as três |
+| Coleta | `tools/sets/player/coleta.json`, `tools/etapas/coleta.*`, `re-local/perguntas/coleta-*`, `tools/strings/coleta.json`; `NWGatherComponent`, `NWGatherField`; `tools/make_gatherables.py`, `convert_gatherables.sh`, `tools/ue/import_gatherables.py`; `docs/coleta.md` |
 | Montarias | `NWMountComponent` (já criado, vazio), `tools/sets/player/montaria.json`, `tools/etapas/montarias.*`, `tools/strings/montarias.json`; `NWMount*`; `tools/sets/mount_*.json`; `docs/montarias.md` |
 | Sistemas | `NWCharacterSave.cpp`, `tools/strings/sistemas.json`, `tools/etapas/sistemas.*`; `NWHUD`, `NWInventory*`, `NWProgression*`, `NWItems`, `NWGameMenu`, `NWOptions`, `NWWorldMap`, `NWTradeskillMenu`, `NWAttributesMenu`; `backend/`; `tools/make_items.py`, `make_progression.py`, `ui_build_*.py`, `convert_city.sh`, `tools/ue/import_city.py`, `fix_city.py`; `NWRefiningMenu`, `NWStorageMenu`, `NWLootBag`, `NWShop*`, `tools/shops.json`, `NWCrafting`, `NWInteractable`, `NWNpc*`, `NWEvents`, `NWUIShotCommandlet`; `tools/ui_screens/`, `ui_shots/`, `ui_shot.sh`, `ui_styles.py`, `ui_compare.py`, `make_crafting.py`, `make_npcs.py`; `docs/hud/`, `docs/hud-*.md`, `docs/sistemas.md` |
-| Iluminação | `tools/etapas/iluminacao.*`, `tools/ue/city_exposure.py` (vem da esteira 4), scripts de luz em `tools/ue/`, `docs/analise-re/perguntas/iluminacao-*`, `docs/iluminacao.md`, `docs/testes/iluminacao.md`; atores na pasta `Iluminacao/` dos mapas. O `sliceLight` do patch do nwbt (`vendor/nw-buddy`, `patches/nwbt-nwport.patch`) |
+| Iluminação | `tools/etapas/iluminacao.*`, `tools/ue/city_exposure.py` (vem da esteira 4), scripts de luz em `tools/ue/`, `re-local/perguntas/iluminacao-*`, `docs/iluminacao.md`, `docs/testes/iluminacao.md`; atores na pasta `Iluminacao/` dos mapas. O `sliceLight` do patch do nwbt (`vendor/nw-buddy`, `patches/nwbt-nwport.patch`) |
 | Servidor e rede (por enquanto com a esteira 4) | `NWLoadTest`, `NWPlayerGrid`, `tools/perf_csv.py`, `tools/item_log.py`, `docs/arquitetura-servidor.md` (regras de desempenho para todas as esteiras, rascunho até o dono aprovar) |
-| RE (agente `nw-re`) | `docs/analise-re/`, `tools/re/` |
+| RE (agente `nw-re`) | `re-local/`, `tools/re/` |
 | Compartilhados | `NWCharacter.h`, `NWCharacter.cpp`, `NWPlayerController`, `SNWDevMenu`, `NWCombatTypes.h`, `NWMasteryMenu`, `NWRules`, `NWInputRegistry`, `NWDevRegistry`, `NWUILayout`, `tools/ui_canvas.py`, `NWAnimInstance`, `ABP_NW` (dono único, abaixo); `tools/sets/sword_shield.json`, `tools/strings/geral.json`, `build_all.sh`, `ue_import_all.sh`, `make_data.sh`; `docs/ESTADO.md` |
 
 ## Pontos de extensão (para não mexer no que é compartilhado)
@@ -96,7 +96,7 @@ Todas usam também a skill `nw-esteira` (regras abaixo) e, quando faltar fonte, 
 | Montagem nova do jogador | sua parte em `tools/sets/player/<esteira>.json` |
 | Texto novo | `tools/strings/<esteira>.json` (`textos` ou `chaves_do_jogo`) |
 | Etapa de conversão ou import | `tools/etapas/<esteira>.build.sh` / `.ue.sh` (`tools/etapas/README.md`) |
-| Fato da RE | `docs/analise-re/valores/<área>.json`; pergunta em `docs/analise-re/perguntas/<esteira>-NNN.md` |
+| Fato da RE | `re-local/valores/<área>.json`; pergunta em `re-local/perguntas/<esteira>-NNN.md` |
 
 `ABP_NW` (grafo de animação do jogador) é binário e não se mescla: tem um dono só (o dono do repositório). O resto
 usa montagens nos slots `DefaultSlot`/`UpperBody` e o override de locomoção. Mudança no grafo: pedir ao dono, que
@@ -116,14 +116,14 @@ faz num commit só com o ABP.
 
 ## RE sob demanda (skill `nw-re`)
 
-1. A sessão cria a pergunta em `docs/analise-re/perguntas/<esteira>-NNN.md` (para quê, o que o port precisa).
+1. A sessão cria a pergunta em `re-local/perguntas/<esteira>-NNN.md` (para quê, o que o port precisa).
 2. Roda o agente `nw-re` em segundo plano com o id. Segue trabalhando em outra coisa.
 3. O agente responde no arquivo da pergunta, grava os fatos em `valores/<área>.json` e os endereços em
    `simbolos.md`.
 4. A sessão aplica: `python3 tools/make_rules.py`, `FNWRules::Num` ou id citado, `python3 tools/re_check.py`, item
    de teste, e marca a pergunta como aplicada.
 
-Dano, crítico, grit e mitigação são de servidor e não estão no cliente (`docs/analise-re/combate-cliente.md`); não
+Dano, crítico, grit e mitigação são de servidor e não estão no cliente (`re-local/combate-cliente.md`); não
 adianta perguntar por eles.
 
 ## Esteira 1: Armas
@@ -154,7 +154,7 @@ o `re_check` não mostra nada da arma.
 
 ### O que a RE já resolveu para o combate
 
-Fonte: `docs/analise-re/resumo-plano-a.md` (regras), `combate-cage.md`, `cage-runtime.md`, `combate-cliente.md`.
+Fonte: `re-local/resumo-plano-a.md` (regras), `combate-cage.md`, `cage-runtime.md`, `combate-cliente.md`.
 Vale para toda arma, inclusive as das sub-esteiras:
 
 - **Encadeamento**: o combo do jogador vem dos procclips `CAGE-TransitionInstant` / `CAGE-TransitionBuffered` do `.adb`
@@ -184,7 +184,7 @@ herdada, `SmoothTime`/`StartTime`/`HoldTimeRequired` e travas dos procclips de c
 (`CanAttack_*`). Pode perguntar de novo, com pista nova (endereço, offset, função candidata de `simbolos.md`).
 Dano, crítico, grit e mitigação são de servidor: não perguntar.
 
-Dúvida de combate vira pergunta (`docs/analise-re/perguntas/armas-NNN.md`, ou `<arma>-NNN` nas sub-esteiras), não
+Dúvida de combate vira pergunta (`re-local/perguntas/armas-NNN.md`, ou `<arma>-NNN` nas sub-esteiras), não
 chute: regra com prova H, item em aberto ou comportamento que os dados não explicam. Enquanto a resposta não vem, o
 item fica "aguardando <id>" no doc da arma e a sessão segue com outro. Antes de abrir, procure em `perguntas/` e
 `valores/`; no máximo dois agentes `nw-re` por sessão ao mesmo tempo (o Ghidra é compartilhado).
@@ -200,7 +200,7 @@ divergências acima). Cada sub-esteira faz o ciclo inteiro da arma dela (tabela 
 
 - Arquivos próprios: `NWArma<Nome>.cpp`/`.h`, `tools/sets/player/armas_<arma>.json` (acrescentar em `parts` do
   `tools/sets/sword_shield.json`, mudança mínima), `docs/armas/<arma>.md`, `docs/testes/<arma>.md`, perguntas
-  `docs/analise-re/perguntas/<arma>-NNN.md`. Prefixo de commit: `armas(<arma>):`.
+  `re-local/perguntas/<arma>-NNN.md`. Prefixo de commit: `armas(<arma>):`.
 - O que é de todas as armas (`NWCombatComponent`, `NWCharacterArmas.cpp`, `NWProjectile`, `make_abilities.py`,
   maestria): mudança mínima, descrita no relatório, avisando a esteira 1. Mecânica comum nova (ex.: mana) nasce
   num componente ou arquivo novo, para não brigar com a esteira 1.
@@ -249,7 +249,7 @@ e tinturas em `javelindata_itemdefinitions_mount*`. Ordem: cavalo, lobo, felino 
 | HUD | ícone, recarga, recurso do galope |
 | Rede | outro jogador vê montaria e cavaleiro iguais |
 
-Já lido pela RE (`docs/analise-re/montarias.md`, resumo em `resumo-plano-a.md`): velocidade só pelo nível de
+Já lido pela RE (`re-local/montarias.md`, resumo em `resumo-plano-a.md`): velocidade só pelo nível de
 montaria em 5 faixas (0, 50, 100, 150, 200+, `javelindata_tradeskillriding`) e por superfície, galope ×1,12 (as
 linhas por espécie não são usadas); galope exige stamina da montaria ≥ 15, gasta 20/s e recupera 10/s; giro montado
 com taxa interpolada pela velocidade (cavalo 0,11 → 0,09 entre 0 e 15 m/s), fórmula exponencial do giro do
@@ -374,7 +374,7 @@ Você é a sessão da esteira 1 (Armas). Leia docs/ESTADO.md e docs/esteiras.md 
 e use as skills nw-esteira, nw-combate-arma e nw-re. As sub-esteiras 1a e 1b e outras sessões trabalham no mesmo
 checkout ao mesmo tempo.
 
-Base: a RE do combate feita no Ghidra. Leia inteiros docs/analise-re/resumo-plano-a.md, combate-cage.md,
+Base: a RE do combate feita no Ghidra. Leia inteiros re-local/resumo-plano-a.md, combate-cage.md,
 combate-cliente.md e cage-runtime.md, e rode python3 tools/re_check.py. Fato com prova C ou R vale mais que doc
 antigo do port (combate-regras-jogo.md, plano-mecanicas.md) e que o código atual.
 
@@ -384,7 +384,7 @@ antigo do port (combate-regras-jogo.md, plano-mecanicas.md) e que o código atua
    stamina, esquiva, bloqueio e exaustão, giro, homing, recargas e status), com o que o port faz hoje (arquivo e
    função), a divergência, a prova e o que falta. Entram também os itens "falta" do re_check do combate.
 2. Perguntas: toda linha com prova H, item em aberto da RE ou dúvida sua vira pergunta para o agente nw-re
-   (docs/analise-re/perguntas/armas-NNN.md, uma por dúvida, com o que o port precisa e as pistas da RE). Comece
+   (re-local/perguntas/armas-NNN.md, uma por dúvida, com o que o port precisa e as pistas da RE). Comece
    rodando as abertas armas-001 a 003.
 3. Me mostre a matriz e a lista de perguntas antes de mudar código. Depois corrija o que vale para todas as armas
    (divergências da Esteira 1, encadeamento pelos procclips, janelas, giro, homing, empurrão), aplicando cada
@@ -407,7 +407,7 @@ Você é a sessão da sub-esteira 1a (Manopla de gelo). Leia docs/ESTADO.md e do
 Esteira 1 e "Sub-esteiras de arma") e use as skills nw-esteira, nw-combate-arma e nw-re. A esteira 1, a 1b e
 outras sessões trabalham no mesmo checkout ao mesmo tempo.
 
-Base: a RE do combate feita no Ghidra. Leia inteiros docs/analise-re/resumo-plano-a.md, combate-cage.md,
+Base: a RE do combate feita no Ghidra. Leia inteiros re-local/resumo-plano-a.md, combate-cage.md,
 combate-cliente.md e cage-runtime.md, e a matriz RE × port de docs/combate-armas.md (da esteira 1; se ainda não
 existir, siga pela RE).
 
@@ -422,7 +422,7 @@ mana, que ela traz para as armas mágicas.
 2. Mana: leia o que estiver no slice do jogador e nas tabelas. O que só o exe diz (regeneração, atraso, custo por
    quadro na canalização, cargas) vira pergunta.
 3. Perguntas: toda dúvida, prova H ou peça sem regra lida vira pergunta para o agente nw-re
-   (docs/analise-re/perguntas/manopla-gelo-NNN.md, uma por dúvida, com as pistas da RE).
+   (re-local/perguntas/manopla-gelo-NNN.md, uma por dúvida, com as pistas da RE).
 4. Me mostre o levantamento, as perguntas abertas e o plano, com o que precisa mudar em arquivo comum, antes de
    mudar código.
 
@@ -441,7 +441,7 @@ Você é a sessão da sub-esteira 1b (Espada grande). Leia docs/ESTADO.md e docs
 Esteira 1 e "Sub-esteiras de arma") e use as skills nw-esteira, nw-combate-arma e nw-re. A esteira 1, a 1a e
 outras sessões trabalham no mesmo checkout ao mesmo tempo.
 
-Base: a RE do combate feita no Ghidra. Leia inteiros docs/analise-re/resumo-plano-a.md, combate-cage.md,
+Base: a RE do combate feita no Ghidra. Leia inteiros re-local/resumo-plano-a.md, combate-cage.md,
 combate-cliente.md e cage-runtime.md, e a matriz RE × port de docs/combate-armas.md (da esteira 1; se ainda não
 existir, siga pela RE).
 
@@ -454,7 +454,7 @@ efeitos, HUD, rede).
    de cada ação e entradas no .grid, Homing por golpe, AnimationDrivenMotion, stamina (Greatsword_Offense_Attack 10),
    bloqueio na janela BlockActive, empurrão e reação de cada golpe na damagetable; tabelas de habilidades, VFX e sons.
 2. Perguntas: toda dúvida, prova H ou peça sem regra lida (HoldTimeRequired, travas SingleActivation*, onde ficam as
-   condições nomeadas) vira pergunta para o agente nw-re (docs/analise-re/perguntas/espada-grande-NNN.md, uma por
+   condições nomeadas) vira pergunta para o agente nw-re (re-local/perguntas/espada-grande-NNN.md, uma por
    dúvida, com as pistas da RE).
 3. Me mostre o levantamento, as perguntas abertas e o plano, com o que precisa mudar em arquivo comum, antes de
    mudar código.

@@ -2,7 +2,7 @@
 
 Regras do port para fabricar, refinar e evoluir as mesas. Decididas com o dono em 2026-10-13. Itens fabricados (GS,
 qualidade, perks): `docs/itens.md`. Estado das estações de Queda Eterna e dados do jogo: `docs/sistemas.md` §2.
-Levantamento da tela e do GS do jogo: `docs/analise-re/oficio.md`.
+Levantamento da tela e do GS do jogo: `re-local/oficio.md`.
 
 ## Mesas
 

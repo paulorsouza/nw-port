@@ -49,7 +49,7 @@ o plano.
 - Regras já decididas (`docs/itens.md`): um atributo, qualidade, perks por equipamento (armadura, amuleto, anel,
   brinco), 1 slot de gema na armadura (gemas de armadura prontas), joias sem slot, anel com 2 perks.
 - Tela de resultado: falta o painel `Stats/Armor` (físico e mágico) e o `Stats/Trinket` (só divisor)
-  (`docs/analise-re/craftroll-equipamento.md` §6).
+  (`re-local/craftroll-equipamento.md` §6).
 
 ## Plano
 

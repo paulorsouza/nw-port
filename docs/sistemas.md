@@ -133,7 +133,7 @@ Port (fabricar, esteira 4, 2026-10-13; regras em `docs/oficio.md` e `docs/itens.
   pagas no material escolhido na tela (`FNWCrafting::ImproveMaterials`, `materiais_melhoria`). Custo provisório em
   `FNWCrafting::ImproveCost` (`tools/itens.json` `_custos`, `custo_melhoria`). Captura: `tools/ui_shots/melhorar.json`.
 - Resultado: `ClientCraftResult` (item antes e depois) → `UNWInteractorComponent::CraftResult`; a tela espera o `Seq`
-  e mostra o roll de equipamento do jogo (`FNWRefiningMenu::DrawGearRoll`, `docs/analise-re/craftroll-equipamento.md`).
+  e mostra o roll de equipamento do jogo (`FNWRefiningMenu::DrawGearRoll`, `re-local/craftroll-equipamento.md`).
 - Item: `FNWItem` com atributo, qualidade, perks, gema, vínculo e assinatura (`props` no nw-core, migração 0008);
   regras em `Data/Items/regras_itens.json` (`tools/make_itens.py`, `tools/itens.json`, `tools/perks_decisoes.json`).
   Tooltip com perks com ícone e o slot de gema (moldura do soquete).
@@ -201,7 +201,7 @@ Jogo: slice `settlement_storage_geo_master` (`@ui_global_storage`). Crescimento 
 `DT/javelindata_territory_standing` (301) → TB_GainStorage em `DT/javelindata_progressionpointdata`;
 `DT/javelindata_categoricalprogression` id 4 = Everfall (MaxLevel 300).
 
-Capacidades (`javelindata_encumbrancelimits`, décimos; `docs/analise-re/hud-inventario.md`): `StorageSmall` 150,
+Capacidades (`javelindata_encumbrancelimits`, décimos; `re-local/hud-inventario.md`): `StorageSmall` 150,
 `StorageMedium` 1000, `StorageLarge` 1500, `StorageXLarge` 2000 kg. Tela do jogo: `container/catcontainer.lua`.
 
 Port (esteira 4; armazém compartilhado decidido pelo dono em 2026-10-14):
@@ -255,7 +255,7 @@ Port (decisão do dono 2026-10-13: loja enxuta, só o essencial, sem itens gené
 Jogo: slice `Settlement_Trading_Post_Master`; `DT/javelindata_territorygovernance` (TradingPostLevel);
 TB_TaxTradingPost no standing; TradingCategory/Family/Group nas definições de item.
 
-Regras (`sistemas-003`, `docs/analise-re/posto-de-trocas.md`; valores em centavos, ids `market.*`):
+Regras (`sistemas-003`, `re-local/posto-de-trocas.md`; valores em centavos, ids `market.*`):
 - Durações de 1, 3, 7 e 14 dias (padrão 3), iguais para compra e venda.
 - Taxa de listagem: `trunc(preço × qtd × pct) + fixo` por duração (50/2%, 100/2,5%, 200/3%, 400/3,5%), vezes os
   descontos. A ordem de compra paga preço × qtd + taxa na criação.

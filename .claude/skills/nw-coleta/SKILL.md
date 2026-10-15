@@ -7,8 +7,8 @@ description: Esteira 2 — porta e pole os ofícios de coleta do New World (Mine
 
 Regras de trabalho: skill `nw-esteira` e `docs/esteiras.md`. Estado e levantamento: `docs/coleta.md` (crie no
 primeiro item). Testes: `docs/testes/coleta.md`, mapa `L_SouthWindsward`.
-Ações de coleta seguem as regras das actionlists lidas pela RE (`docs/analise-re/cage-runtime.md`, resumo em
-`docs/analise-re/resumo-plano-a.md`).
+Ações de coleta seguem as regras das actionlists lidas pela RE (`re-local/cage-runtime.md`, resumo em
+`re-local/resumo-plano-a.md`).
 
 ## Onde está hoje
 

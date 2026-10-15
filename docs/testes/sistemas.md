@@ -111,7 +111,7 @@ se algo estiver errado.
     "custo / tem" embaixo (vermelho se faltar). Clicar abre a tela de resultado com o item depois da mudança. Cada um muda
     só a sua parte; Sortear GS conta do GS antigo ao novo, dentro da faixa da receita (sobe ou desce).
 52. As receitas de arma e ferramenta pedem só lingote, tábua e couro do tier do item.
-53. Fabricar arma ou ferramenta do nível 50 em diante: tela de resultado do jogo (docs/analise-re/craftroll-equipamento.md):
+53. Fabricar arma ou ferramenta do nível 50 em diante: tela de resultado do jogo (re-local/craftroll-equipamento.md):
     GS contando até o do item, raridade, dano base, atributo, as perks uma a uma com ícone e o slot de gema vazio; nome
     na cor da raridade com a qualidade embaixo. Clique durante a animação termina; outro clique volta à mesa. Item com
     no máximo 1 perk de habilidade.

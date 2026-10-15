@@ -1,4 +1,4 @@
 # Build do New World que o time usa (docs/SETUP.md). Dados extraídos e endereços da engenharia reversa valem só para
-# ela. Atualizar só quando todo mundo atualizar junto; aí refazer a extração e conferir docs/analise-re/simbolos.md.
+# ela. Atualizar só quando todo mundo atualizar junto; aí refazer a extração e conferir re-local/simbolos.md.
 buildid 22469132
 exe_sha256 8654f01d324636d9f74f1c793b0cc4a417c3c5fa9847d9913c358ca29e0fdc8e

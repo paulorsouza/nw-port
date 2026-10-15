@@ -81,7 +81,7 @@ private:
 	FName RollItem;
 	void StartResultRoll(FName ItemId, uint8 Kind);
 	const FNWItem* RollResult() const;
-	// Roll de equipamento (docs/analise-re/craftroll-equipamento.md): t0 = chegada do item; contagem do GS de GsFrom ao GS
+	// Roll de equipamento (re-local/craftroll-equipamento.md): t0 = chegada do item; contagem do GS de GsFrom ao GS
 	// do item em 1 s; atributo, perks e gema entram um a um.
 	double ResultAt = 0.0;
 	int32 GsFrom = 0;

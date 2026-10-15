@@ -221,7 +221,7 @@ def main():
             # Bônus de primeira confecção só para receita com conquista (crafting.primeira_confeccao_xp_mult).
             "first_craft": bool(r.get("FirstCraftAchievementId")),
             "xp": int(ev.get("CategoricalProgressionReward") or 0), "char_xp": int(ev.get("UniversalExpAmount") or 0),
-            # Chance de item extra (docs/analise-re/crafting-refino.md, ids crafting.bonus_*).
+            # Chance de item extra (re-local/crafting-refino.md, ids crafting.bonus_*).
             "bonus": float(r.get("BonusItemChance") or 0),
             "inc": [float(x) for x in str(r.get("BonusItemChanceIncrease") or "").split(",") if x.strip()],
             "dec": [float(x) for x in str(r.get("BonusItemChanceDecrease") or "").split(",") if x.strip()],

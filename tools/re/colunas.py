@@ -1,4 +1,4 @@
-"""Colunas que os parsers de datasheet do NewWorld.exe leem → docs/analise-re/colunas.json (usado por tools/re_check.py).
+"""Colunas que os parsers de datasheet do NewWorld.exe leem → re-local/colunas.json (usado por tools/re_check.py).
 
     python3 -I tools/re/colunas.py
 
@@ -35,7 +35,8 @@ def strings(start):
 
 def main():
     res = {name: {"parser": hex(start), "colunas": strings(start)} for name, start in PARSERS.items()}
-    path = os.path.join(ROOT, "docs", "analise-re", "colunas.json")
+    path = os.path.join(ROOT, "re-local", "colunas.json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     json.dump(res, open(path, "w"), indent=1)
     for name, r in res.items():
         print(f"{name}: {len(r['colunas'])} colunas ({r['parser']})")

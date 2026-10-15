@@ -5,13 +5,13 @@ description: Pede uma engenharia reversa específica do NewWorld.exe (regra, fó
 
 # Pedir e aplicar engenharia reversa
 
-Antes de perguntar, procure se já foi respondido: `docs/analise-re/valores/`, `perguntas/`,
+Antes de perguntar, procure se já foi respondido: `re-local/valores/`, `perguntas/`,
 `combate-cliente.md`, `ia-mobs.md`, `simbolos.md`. Dano, crítico, grit e mitigação são de servidor: não estão no
 cliente.
 
 ## Perguntar
 
-1. Crie `docs/analise-re/perguntas/<esteira>-NNN.md` (próximo número livre da sua esteira; um arquivo por pergunta
+1. Crie `re-local/perguntas/<esteira>-NNN.md` (próximo número livre da sua esteira; um arquivo por pergunta
    para várias pessoas não colidirem):
 
    ```
@@ -24,12 +24,12 @@ cliente.
    ```
 
 2. Rode o agente em segundo plano e siga com outra coisa:
-   `Agent(subagent_type="nw-re", run_in_background=true, prompt="Responda docs/analise-re/perguntas/<esteira>-NNN.md")`.
+   `Agent(subagent_type="nw-re", run_in_background=true, prompt="Responda re-local/perguntas/<esteira>-NNN.md")`.
    Uma pergunta por agente. Não rode a RE você mesmo.
 
 ## Aplicar a resposta
 
-1. Leia a resposta no arquivo da pergunta e os ids novos em `docs/analise-re/valores/<área>.json`.
+1. Leia a resposta no arquivo da pergunta e os ids novos em `re-local/valores/<área>.json`.
 2. `python3 tools/make_rules.py` (gera `Data/regras.json`).
 3. Número: `FNWRules::Num(TEXT("id"), padrão)` no C++ (include `NWRules.h`). Regra ou fórmula: implemente e cite o
    id em comentário no ponto onde ela vale. Prova H (hipótese): use só se não houver alternativa e diga no teste.

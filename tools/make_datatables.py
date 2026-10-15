@@ -311,7 +311,7 @@ DAMAGE_COLS = ["WeaponCategory", "DamageType", "DmgCoef", "HitStun", "BlockHitSt
                "StaggerDmgModifier", "StaggerResistModifier", "BlockStaminaDmgMod", "CameraShakeID", "TargetCameraShakeID",
                "BlockCameraShakeID", "BlockTargetCameraShakeID", "CritCameraShakeID", "CritTargetCameraShakeID"]
 DAMAGE_SOURCE = {"ImpactDistance": "ImpactDistanceY", "ImpactDistance_AI": "ImpactDistanceY_AI", "CritImpactDistance": "CritImpactDistanceY"}
-# Fora de propósito, com o motivo (id de docs/analise-re/valores/ ou texto).
+# Fora de propósito, com o motivo (id de re-local/valores/ ou texto).
 DAMAGE_IGNORED = {"CanCrit": "dano.cancrit_vazio: o nwbt grava célula vazia como False, então a coluna não diz quem crita"}
 
 
