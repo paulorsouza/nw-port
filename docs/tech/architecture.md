@@ -155,7 +155,7 @@ deploy/build/LinuxServer/NWPortServer.sh <map> -nwperf -nwsim=<n> -nwcsv=300
 ```
 
 Other flags used in the measurements: `-nwcsvdelay=<s>` (start the profile later, for example after creatures
-spawn), `-nwexp=anim` (experiment: montage-only animation on the server). Long runs write `soak.log` to
+spawn), `-nwsimgather` (every simulated character gathers instead of walking), `-nwexp=anim` (experiment: montage-only animation on the server). Long runs write `soak.log` to
 `unreal/NWPort/Saved/Perf/`.
 
 Performance tests are the one kind of game run that contributors may start without being asked: no window (server
@@ -180,7 +180,10 @@ Measured and recorded (numbers in [../notes/server.md](../notes/server.md)). Com
 4. **Real network**: connected bots (`tools/linux/net_test.sh`) to measure replication and bandwidth; then Iris,
    replication distance per type, dormancy.
 5. **Database**: nw-core load test (script in `tools/`). Saving only what changed is done (`inventory_patch`).
-6. The other entries in [Open items](#open-items-code-that-breaks-the-rules) (attack homing, dummies, `ServerGather`,
+6. **Gathering montage and idle ticks on the server**: at 400 gatherers, animation is 9.5 ms (gathering montage
+   played on the server) and ~3,000 component ticks per frame include characters standing still. Numbers in
+   [../notes/server.md](../notes/server.md#2026-10-15-gatherers-compared-with-the-openworld-emulator).
+7. The other entries in [Open items](#open-items-code-that-breaks-the-rules) (attack homing, dummies, `ServerGather`,
    loot bags on the ground, NPCs and stations through a registry).
 
 ## Work order

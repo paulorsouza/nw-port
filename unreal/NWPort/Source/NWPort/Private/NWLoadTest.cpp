@@ -15,6 +15,9 @@
 #include "NWCharacter.h"
 #include "NWCombatComponent.h"
 #include "NWCreature.h"
+#include "NWGatherComponent.h"
+#include "NWGatherField.h"
+#include "NWInventoryComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -313,7 +316,8 @@ void ANWLoadTest::Resize(int32 Count)
 	{
 		FSim S;
 		const int32 Pick = Sims.Num() % 10;
-		S.Role = Pick < 3 ? ERole::City : Pick < 8 ? ERole::Roam : ERole::Fight;
+		S.Role = FParse::Param(FCommandLine::Get(), TEXT("nwsimgather")) ? ERole::Gather
+			: Pick < 3 ? ERole::City : Pick < 8 ? ERole::Roam : ERole::Fight;
 		FVector Where;
 		if (!FindGround(Anchor, S.Role == ERole::City ? 4000.f : Radius, Where))
 		{
@@ -333,6 +337,10 @@ void ANWLoadTest::Resize(int32 Count)
 		C->bSimPlayer = true;
 		C->Tags.Add(TEXT("NWSim"));
 		C->FinishSpawning(At);
+		if (S.Role == ERole::Gather && C->Inventory)
+		{
+			C->Inventory->GiveTools();
+		}
 		S.Pawn = C;
 		S.LastPos = Where;
 		S.NextCheck = World->GetTimeSeconds() + FMath::FRandRange(0.f, 3.f);
@@ -370,6 +378,23 @@ void ANWLoadTest::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	const double Now = GetWorld()->GetTimeSeconds();
+	if (Now >= NextGatherReport && Sims.Num() && Sims[0].Role == ERole::Gather)
+	{
+		int32 Gathering = 0, Dead = 0;
+		for (const FSim& S : Sims)
+		{
+			const ANWCharacter* P = S.Pawn.Get();
+			Dead += !P || P->Combat->State == ENWCombatState::Dead;
+			Gathering += P && P->Gather && P->Gather->IsGathering();
+		}
+		if (NextGatherReport > 0.0)
+		{
+			UE_LOG(LogNWLoad, Display, TEXT("nw.sim gather: %d gathering, %d dead, %d started, %d refused, %d without a free gatherable in 10 s"),
+				Gathering, Dead, GatherStarts, GatherRefused, GatherNoNode);
+		}
+		GatherStarts = GatherRefused = GatherNoNode = 0;
+		NextGatherReport = Now + 10.0;
+	}
 	for (FSim& S : Sims)
 	{
 		ANWCharacter* P = S.Pawn.Get();
@@ -378,6 +403,11 @@ void ANWLoadTest::Tick(float DeltaSeconds)
 			continue;
 		}
 		const FVector Pos = P->GetActorLocation();
+		if (S.Role == ERole::Gather)
+		{
+			TickGatherer(S, P, Pos, Now);
+			continue;
+		}
 		FVector To = S.Goal - Pos;
 		To.Z = 0.f;
 		// Like a player: holds the direction until arriving; stopped for 3 s (stuck) or arrived, another destination.
@@ -411,4 +441,146 @@ void ANWLoadTest::Tick(float DeltaSeconds)
 			S.NextAttack = Now + FMath::FRandRange(1.2f, 2.5f);
 		}
 	}
+}
+
+void ANWLoadTest::PickNode(FSim& S, const FVector& Pos)
+{
+	S.Node = INDEX_NONE;
+	const ANWGatherField* Field = ANWGatherField::Get(GetWorld());
+	if (!Field)
+	{
+		return;
+	}
+	TSet<int32> Taken;
+	for (const FSim& O : Sims)
+	{
+		if (&O != &S && O.Node != INDEX_NONE)
+		{
+			Taken.Add(O.Node);
+		}
+	}
+	const FTransform& T = Field->GetActorTransform();
+	constexpr float Cell = 5000.f;
+	if (!bNodesReady)
+	{
+		bNodesReady = true;
+		int32 N = 0;
+		for (int32 I = 0; I < Field->Num(); ++I)
+		{
+			const FVector L = T.TransformPosition(Field->Node(I).Transform.GetLocation());
+			if (FVector::DistSquared2D(L, Anchor) <= Radius * Radius)
+			{
+				NodeCells.FindOrAdd(FIntPoint(FMath::FloorToInt(L.X / Cell), FMath::FloorToInt(L.Y / Cell))).Add(I);
+				++N;
+			}
+		}
+		UE_LOG(LogNWLoad, Display, TEXT("nw.sim: %d gatherables within the radius"), N);
+	}
+	// Nearest free one, searching rings of 50 m cells outward (up to ~400 m); a little random so they spread.
+	const FIntPoint C(FMath::FloorToInt(Pos.X / Cell), FMath::FloorToInt(Pos.Y / Cell));
+	float Best = TNumericLimits<float>::Max();
+	for (int32 Ring = 0; Ring <= 8 && S.Node == INDEX_NONE; ++Ring)
+	{
+		for (int32 DX = -Ring; DX <= Ring; ++DX)
+		{
+			for (int32 DY = -Ring; DY <= Ring; ++DY)
+			{
+				if (FMath::Max(FMath::Abs(DX), FMath::Abs(DY)) != Ring)
+				{
+					continue;
+				}
+				const TArray<int32>* List = NodeCells.Find(C + FIntPoint(DX, DY));
+				if (!List)
+				{
+					continue;
+				}
+				for (const int32 I : *List)
+				{
+					if (Field->IsDepleted(I) || Taken.Contains(I))
+					{
+						continue;
+					}
+					const float D = FVector::DistSquared2D(T.TransformPosition(Field->Node(I).Transform.GetLocation()), Pos)
+						* FMath::FRandRange(1.f, 1.5f);
+					if (D < Best)
+					{
+						Best = D;
+						S.Node = I;
+					}
+				}
+			}
+		}
+	}
+	if (S.Node == INDEX_NONE)
+	{
+		++GatherNoNode;
+	}
+	if (S.Node != INDEX_NONE)
+	{
+		S.Goal = T.TransformPosition(Field->Node(S.Node).Transform.GetLocation());
+	}
+}
+
+void ANWLoadTest::TickGatherer(FSim& S, ANWCharacter* P, const FVector& Pos, double Now)
+{
+	UNWGatherComponent* G = P->Gather;
+	const ANWGatherField* Field = ANWGatherField::Get(GetWorld());
+	if (!G || !Field)
+	{
+		return;
+	}
+	if (G->IsGathering())
+	{
+		S.bWasGathering = true;
+		S.LastPos = Pos;
+		S.NextCheck = Now + 3.0;
+		return;
+	}
+	if (S.Node == INDEX_NONE && Now < S.NextCheck)
+	{
+		return;   // waiting after a refusal or with nothing free around
+	}
+	if (S.bWasGathering || S.Node == INDEX_NONE || Field->IsDepleted(S.Node))
+	{
+		// Finished (or never had one, or someone emptied it): next gatherable.
+		S.bWasGathering = false;
+		PickNode(S, Pos);
+		S.LastPos = Pos;
+		S.NextCheck = Now + 3.0;
+		if (S.Node == INDEX_NONE)
+		{
+			return;
+		}
+	}
+	if (Field->InReach(S.Node, Pos, 50.f))
+	{
+		// Stops first, like a player before pressing E (moving cancels the gathering).
+		P->GetCharacterMovement()->StopMovementImmediately();
+		G->ServerGather(S.Node);
+		if (G->IsGathering())
+		{
+			++GatherStarts;
+		}
+		else
+		{
+			// Refused (in combat, someone else there): another one in a moment.
+			++GatherRefused;
+			S.Node = INDEX_NONE;
+			S.bWasGathering = false;
+			S.NextCheck = Now + 1.0;
+		}
+		return;
+	}
+	if (Now >= S.NextCheck)
+	{
+		if (FVector::DistSquared2D(Pos, S.LastPos) < 100.f * 100.f)
+		{
+			PickNode(S, Pos);   // stuck on the way
+		}
+		S.LastPos = Pos;
+		S.NextCheck = Now + 3.0;
+	}
+	FVector To = S.Goal - Pos;
+	To.Z = 0.f;
+	P->AddMovementInput(To.GetSafeNormal());
 }

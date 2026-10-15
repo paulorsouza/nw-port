@@ -171,3 +171,43 @@ no connections and no nw-core; `soak.log` in `unreal/NWPort/Saved/Perf/`.
   600 s period.
 - Log: 78 thousand warnings `GetSocketInfoByName ... No SkeletalMesh` (97% from `NWCreature`): a creature spawned on
   the server without a mesh looks up a socket. Only log noise.
+
+## 2026-10-15: gatherers, compared with the OpenWorld emulator
+
+Reference: the OpenWorld emulator author reported 400 gathering players, with full creature and gatherable spawns
+around them, at a locked 30 Hz and 3–5 ms per tick (their own engine, hardware unknown, unclear whether network is
+included).
+
+Same scenario here: packaged server with the code of this commit, Windsward, `-nwsimgather` (every simulated
+character gathers: tools in the bag, nearest free gatherable, real `ServerGather`, stands still until the end), within
+900 m, no connections, no nw-core. Last ~3 min of 5; logs and profiles `gather200.*`, `gather400.*` in
+`unreal/NWPort/Saved/Perf/`.
+
+| | Soak (walking) | 200 gatherers | 400 gatherers | OpenWorld |
+|---|---|---|---|---|
+| Creatures | ~165 | ~161 | ~190 | full spawns |
+| Work/tick avg | 28 ms | 19.8 ms | 32.3 ms | 3–5 ms |
+| p95 / max | 30.6 / 46 | 21.8 / 30 | 34.9 / 48 | ? |
+| Ticks/s | 30 | 30 | ~29.7 | 30 |
+| Per player (rough) | 0.14 ms | 0.10 ms | 0.08 ms | ~0.01 ms |
+
+400 gatherers, profile (ms per tick): actor tick 10.0, movement 9.9, animation 9.5, physics and the rest ~3.
+About 150 gathering at any moment, ~950 gathers started and ~860 refused per 10 s (refused: a creature is attacking
+the gatherer); nobody without a free gatherable.
+
+- Same load as theirs fills our 33 ms budget; they have 6–10 times more headroom.
+- Animation went from 1.7 ms (soak, walking) to 9.5 ms: the gathering montage runs on the server. The server only
+  needs montages that change the game (hit, dodge).
+- ~3,000 component ticks per frame (7–8 per character: movement, brain, AI controller, combat, mana, mesh...),
+  also on characters standing still.
+
+Suggestions, by expected gain:
+
+1. Gathering (and other cosmetic) montages not played on the server: ~8 ms of the 32 at 400 gatherers.
+2. Stop or slow down component ticks on characters that are standing still (gathering, idle): movement, brain and
+   AI controller only when needed.
+3. Movement: simpler city collision and less frequent movement far from players (already in
+   [../tech/architecture.md](../tech/architecture.md#open-optimization-paths)).
+4. Test defect found and fixed: a gatherer that arrived running had the gathering cancelled ("moving cancels") and
+   searched all 46 thousand gatherables again every tick (50 ms of false cost). The gatherer now stops first and
+   searches a 50 m grid.
