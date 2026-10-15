@@ -116,6 +116,9 @@ public:
 	void SystemMessage(const FString& Text) { ClientChat(ENWChatChannel::System, FString(), Text); }
 	/** Notice on the game's warning bar (lyshineui/warningbar), not in chat: bag full, action refused... (#key|args). */
 	void Warning(const FString& Text) { ClientWarning(Text); }
+	/** Server: takes this player to Map (path /Game/NW/Maps/...): alone, the local world changes; with one server per
+	 *  map, only this player goes to the other server; a server without nw-core takes everyone along. */
+	void TravelToMap(const FString& Map);
 	UFUNCTION(Client, Reliable) void ClientWarning(const FString& Text);
 	// Local command (client debug cvars).
 	void LocalConsole(const FString& Command);

@@ -20,6 +20,8 @@
 #include "GameFramework/GameStateBase.h"
 #include "Misc/PackageName.h"
 #include "TimerManager.h"
+#include "NWCrafting.h"
+#include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNWGameMode, Log, All);
 
@@ -125,6 +127,11 @@ void ANWGameMode::ApplyRecord(ANWPlayerController* P, FNWCharacterRecord&& InRec
 		{
 			Ch->TeleportTo(R.Position, FRotator(0.f, R.Yaw, 0.f));
 			P->SetControlRotation(FRotator(0.f, R.Yaw, 0.f));
+		}
+		else if (FTransform At; TownArrival(At))
+		{
+			Ch->TeleportTo(At.GetLocation(), At.Rotator());
+			P->SetControlRotation(At.Rotator());
 		}
 		Ch->RestoreFrom(R);
 		Ch->CaptureTo(*P->Record);
@@ -273,8 +280,35 @@ void ANWGameMode::RestartPlayer(AController* NewPlayer)
 			}
 			UE_LOG(LogNWGameMode, Warning, TEXT("%s did not fit at the saved position; going to the start"), *R.Name);
 		}
+		else if (FTransform At; TownArrival(At))
+		{
+			RestartPlayerAtTransform(NewPlayer, At);
+			if (NewPlayer->GetPawn())
+			{
+				return;
+			}
+		}
 	}
 	Super::RestartPlayer(NewPlayer);
+}
+
+bool ANWGameMode::TownArrival(FTransform& Out) const
+{
+	for (TActorIterator<ANWStation> It(GetWorld()); It; ++It)
+	{
+		if (It->Type != TEXT("teleporter"))
+		{
+			continue;
+		}
+		// 3 m in front of the teleporter, on the ground, facing away from it.
+		const FVector Forward = It->GetActorForwardVector().GetSafeNormal2D();
+		const FVector Spot = It->GetActorLocation() + Forward * 300.f;
+		FHitResult Hit;
+		const bool bGround = GetWorld()->LineTraceSingleByChannel(Hit, Spot + FVector(0.f, 0.f, 500.f), Spot - FVector(0.f, 0.f, 2000.f), ECC_Visibility);
+		Out = FTransform(FRotator(0.f, Forward.Rotation().Yaw, 0.f), (bGround ? Hit.ImpactPoint : Spot) + FVector(0.f, 0.f, 100.f));
+		return true;
+	}
+	return false;
 }
 
 void ANWGameMode::PostLogin(APlayerController* NewPlayer)

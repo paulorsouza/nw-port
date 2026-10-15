@@ -127,6 +127,13 @@ def city_stations(path):
                         out.append({"type": kind, "skill": "", "tier": 0,
                                     "pos": [round(-tm[9] * 100, 1), round(tm[10] * 100, 1), round(tm[11] * 100, 1)],
                                     "yaw": round(180 - yaw, 1), "slice": os.path.basename(hint)})
+                # Settlement teleporter (Settlement_Ancient_Teleporter_A): travel to the other town (docs/game/city.md
+                # "Teleporter").
+                if tm and "teleporters/settlement_ancient_teleporter" in hint.lower():
+                    yaw = math.degrees(math.atan2(tm[1], tm[0]))
+                    out.append({"type": "teleporter", "skill": "", "tier": 0,
+                                "pos": [round(-tm[9] * 100, 1), round(tm[10] * 100, 1), round(tm[11] * 100, 1)],
+                                "yaw": round(180 - yaw, 1), "slice": os.path.basename(hint)})
                 if tm and "settlement_storage" in hint.lower():
                     yaw = math.degrees(math.atan2(tm[1], tm[0]))
                     out.append({"type": "storage", "skill": "", "tier": 0,
@@ -261,7 +268,7 @@ def main():
         # Trading Post: ui_tradingpost ("Entreposto Comercial" / "Trading Post").
         key = {"storage": "ui_global_storage", "tradingpost": "ui_tradingpost",
                "cityboard": "ui_territory_board_town_project",
-               "governance": "ui_territory_planning_board"}.get(s["type"]) or f"{s['type'].capitalize()}T{s['tier']}_MasterName".lower()
+               "governance": "ui_territory_planning_board", "teleporter": "ui_fast_travel"}.get(s["type"]) or f"{s['type'].capitalize()}T{s['tier']}_MasterName".lower()
         s["name"] = {lang: loc.get(key, s["type"]) for lang, loc in locs.items()}
     out = {"stations": st, "recipes": recipes,
            "categories": {c: sorted(categories.get(c, [])) for c in sorted(used_cats)}}

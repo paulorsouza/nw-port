@@ -128,6 +128,7 @@ namespace NWCity
 	{
 		TMap<FString, FString> CityToRegion;           // "queda_eterna" -> "1", "guardaventos" -> "2"
 		TMap<FString, FString> CityTerritory;          // city -> territory name key ("everfall", "windsward")
+		TArray<TPair<FString, FString>> CityMap;       // city -> its map ("guardaventos" -> "L_SouthWindsward"), file order
 		int32 TierInitial = 2;
 		TArray<FUp> TierUps;                           // To = new tier
 		TMap<int32, TPair<int32, float>> TierEffect;   // tier -> (GS, minimum quality)
@@ -152,6 +153,10 @@ namespace NWCity
 	NWPORT_API const FRules& Rules();
 	/** City region of a station (ANWStation::City); empty = city without governance. */
 	NWPORT_API FString RegionOf(const FString& City);
+	/** Map path (/Game/NW/Maps/...) of the first town other than City (town teleporter); empty if none. */
+	NWPORT_API FString OtherTownMap(const FString& City);
+	/** Territory name of the town other than City (teleporter card), in the current language. */
+	NWPORT_API FString OtherTownName(const FString& City);
 	/** Reads the nw-core response (city GET/POST) for ViewerId. */
 	NWPORT_API bool Parse(const TSharedPtr<FJsonObject>& Json, const FString& ViewerId, FNWCityState& Out);
 	/** Server copy per region (filled on every nw-core read). */

@@ -635,6 +635,12 @@ void ANWStation::Setup(const FNWCrafting::FStation& Data)
 	}
 	const FString* Name = Data.Name.Find(NWText::Lang());
 	Interact->DisplayName = FText::FromString(Name ? *Name : Data.Type);
+	if (Type == TEXT("teleporter"))
+	{
+		// Town teleporter: "Fast Travel to <other town>", [E] Fast Travel (the game's texts).
+		Interact->ActionKey = TEXT("ui_fast_travel");
+		Interact->DisplayName = FText::FromString(NWText::Get(TEXT("ui_fast_travel_to")) + TEXT(" ") + NWCity::OtherTownName(Data.City));
+	}
 	TWeakObjectPtr<ANWStation> Self(this);
 	Interact->OnInteract = [Self](ANWCharacter* Who)
 	{
@@ -646,7 +652,14 @@ void ANWStation::Setup(const FNWCrafting::FStation& Data)
 		{
 			if (ANWHUD* HUD = Cast<ANWHUD>(PC->GetHUD()))
 			{
-				if (Self->Type == TEXT("storage"))
+				if (Self->Type == TEXT("teleporter"))
+				{
+					if (Who->Interactor)
+					{
+						Who->Interactor->ServerFastTravel();
+					}
+				}
+				else if (Self->Type == TEXT("storage"))
 				{
 					HUD->OpenStorage(Who, Self.Get());
 				}

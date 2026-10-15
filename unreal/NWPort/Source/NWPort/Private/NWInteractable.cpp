@@ -10,6 +10,7 @@
 #include "NWCity.h"
 #include "NWCrafting.h"
 #include "NWCharacter.h"
+#include "NWCombatComponent.h"
 #include "NWInventoryComponent.h"
 #include "NWItems.h"
 #include "NWItemRules.h"
@@ -828,3 +829,37 @@ FNWItem UNWInteractorComponent::StorageApply(bool bDeposit, int32 Slot, int32 Qu
 	}
 	return Moved;
 }
+
+void UNWInteractorComponent::ServerFastTravel_Implementation()
+{
+	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
+	ANWPlayerController* PC = Me ? Cast<ANWPlayerController>(Me->GetController()) : nullptr;
+	if (!PC || Me->Combat->State == ENWCombatState::Dead)
+	{
+		return;
+	}
+	const ANWStation* From = nullptr;
+	for (TActorIterator<ANWStation> It(GetWorld()); It; ++It)
+	{
+		if (It->Type == TEXT("teleporter") && FVector::Dist2D(It->GetActorLocation(), Me->GetActorLocation()) < 600.f)
+		{
+			From = *It;
+		}
+	}
+	if (!From)
+	{
+		return;
+	}
+	// The game refuses fast travel when overloaded (ui_fast_travel_error_encumbered).
+	if (Me->Inventory && Me->Inventory->IsEncumbered())
+	{
+		PC->Warning(NWText::Key(TEXT("ui_fast_travel_error_encumbered")));
+		return;
+	}
+	const FString To = NWCity::OtherTownMap(From->City);
+	if (!To.IsEmpty())
+	{
+		PC->TravelToMap(To);
+	}
+}
+

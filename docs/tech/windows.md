@@ -162,11 +162,16 @@ not in `vendor/nw-buddy`), `NW_PYTHON` (Python used by the build scripts).
 Desktop. Per-map servers and travel between them: [server.md](server.md#one-server-per-map).
 
 Needs: Unreal 5.8.3 built from source (`NW_UE_SOURCE` in `local.env`), the installed 5.8.3 (`NW_UE`, cooks), Docker
-Desktop running, Python, the project imported, editor and game closed.
+Desktop running, Python, the project imported, editor and game closed. The imported project (`Content`, not in git) comes
+from the import on this machine or from the asset zips of a machine that already imported everything
+(`tools/assets_export.py` there, `tools/assets_import.py` here); the script checks it has the looks, the Windsward NPCs
+and the new icons, and stops saying which import step is missing.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\windows\build_demo.ps1 -HostAddress 192.168.0.10 -Admin paulo
+powershell -ExecutionPolicy Bypass -File tools\windows\build_demo.ps1 -HostAddress 192.168.0.10 -Admin paulo -OpenFirewall
 ```
+
+Run as administrator only for `-OpenFirewall`; once the rules exist, a normal PowerShell is enough.
 
 | Parameter | Use |
 |---|---|
@@ -175,12 +180,16 @@ powershell -ExecutionPolicy Bypass -File tools\windows\build_demo.ps1 -HostAddre
 | `-Admin a,b` | Accounts with F10. An account that does not exist yet gets an invite; run again after it is created. |
 | `-Invites N` | Prints N account invites (7 days). |
 | `-CookWith Source` | Cooks with the source engine instead of the installed editor. |
+| `-Import` | Runs the missing extraction and import steps first (`tools/build_all.py`, `tools/ue_import_all.py`). |
+| `-OpenFirewall` | Windows firewall rules: UDP 7777-7779 (servers) and TCP 8090 (nw-core). Needs administrator. |
 | `-SkipData`, `-SkipCompile`, `-SkipCook`, `-SkipPackage`, `-SkipDocker`, `-SkipZip` | Skip a step. |
 
 What it does, in order (running it again is safe; compiling and cooking are incremental):
 
-1. Checks the engines, Docker Desktop and that the editor, client and servers are closed.
-2. `python tools/make_data.py`.
+1. Checks the engines, Docker Desktop and that the editor, client and servers are closed; with `-OpenFirewall`, the
+   firewall rules.
+2. With `-Import`, the missing extraction and import steps; then `python tools/make_data.py` and the check of the
+   imported project.
 3. Compiles `NWPort` and `NWPortServer` Win64 Development with the source engine (heavy-job queue).
 4. Cooks Windows + WindowsServer with the installed editor and packages with the source engine's RunUAT into
    `deploy\build\Windows` and `deploy\build\WindowsServer`.

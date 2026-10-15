@@ -59,6 +59,8 @@ public:
 
 	/** NPC gift (variant): the server checks distance, the week's draw and what was already picked up. */
 	UFUNCTION(Server, Reliable) void ServerNpcInteract(const FString& Variant);
+	/** Town teleporter (docs/game/city.md "Teleporter"): to the other town's map, beside its teleporter. */
+	UFUNCTION(Server, Reliable) void ServerFastTravel();
 	/** Keys "<kind>:<npc>:<period>" of what the character already picked up (nw-core; only the owner receives them). */
 	UPROPERTY(Replicated) TArray<FString> RewardClaims;
 	/** Bag on the ground (NWLootBag.h): the server checks owner and distance and moves what fits into the bag. */

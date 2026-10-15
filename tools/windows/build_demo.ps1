@@ -9,8 +9,10 @@ Run from any folder, in PowerShell, with the editor and the game closed:
     .\tools\windows\build_demo.ps1 -HostAddress 192.168.0.10 -Admin paulo
 
 Steps (each one can be run again; compiling and cooking are incremental):
-  1. Checks: engine built from source (NW_UE_SOURCE), installed engine (NW_UE), Docker Desktop running, editor closed.
-  2. Data/: python tools/make_data.py.
+  1. Checks: engine built from source (NW_UE_SOURCE), installed engine (NW_UE), Docker Desktop running, editor closed,
+     and the imported project has what the demo needs (looks, Windsward NPCs, new icons).
+  2. Data/: python tools/make_data.py. With -Import, first the missing extraction and import steps
+     (tools/build_all.py, tools/ue_import_all.py).
   3. Compiles NWPort and NWPortServer (Win64 Development) with the source engine.
   4. Cooks Windows + WindowsServer (installed editor, as tools/linux/package_server.sh) and stages/archives with the
      source engine's RunUAT into deploy\build\Windows and deploy\build\WindowsServer.
@@ -33,6 +35,14 @@ Number of account invites to print (7 days).
 
 .PARAMETER CookWith
 Installed (default): cooks with the installed editor (NW_UE). Source: BuildCookRun cooks with the source engine.
+
+.PARAMETER Import
+Runs the missing extraction and Unreal import steps before building (hours on a project that was never imported;
+minutes when only the new steps are missing). Without it, a project brought by the asset zips is used as it is.
+
+.PARAMETER OpenFirewall
+Creates the Windows firewall rules for the servers (UDP 7777-7779) and nw-core (TCP 8090). Needs PowerShell as
+administrator.
 #>
 [CmdletBinding()]
 param(
@@ -47,7 +57,9 @@ param(
     [switch]$SkipCook,
     [switch]$SkipPackage,
     [switch]$SkipDocker,
-    [switch]$SkipZip
+    [switch]$SkipZip,
+    [switch]$Import,
+    [switch]$OpenFirewall
 )
 $ErrorActionPreference = 'Stop'
 # powershell -File passes "-Admin a,b" as one string.
@@ -130,18 +142,52 @@ if (-not $HostAddress) {
     if (-not $HostAddress) { Fail 'Could not find this PC''s IPv4. Pass -HostAddress <IP or name>.' }
 }
 if (-not $BackendUrl) { $BackendUrl = "http://${HostAddress}:8090" }
+if ($OpenFirewall) {
+    $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $admin) { Fail '-OpenFirewall needs PowerShell opened as administrator.' }
+    foreach ($rule in @(@{ Name = 'NW Exiles game servers'; Protocol = 'UDP'; Port = '7777-7779' }, @{ Name = 'NW Exiles nw-core'; Protocol = 'TCP'; Port = '8090' })) {
+        if (-not (Get-NetFirewallRule -DisplayName $rule.Name -ErrorAction SilentlyContinue)) {
+            New-NetFirewallRule -DisplayName $rule.Name -Direction Inbound -Action Allow -Protocol $rule.Protocol -LocalPort $rule.Port | Out-Null
+        }
+        Write-Host "   firewall: $($rule.Name) ($($rule.Protocol) $($rule.Port))"
+    }
+}
 $BackendUrl = $BackendUrl.TrimEnd('/')
 $mapServers = ($maps | ForEach-Object { "$($_.Map)=${HostAddress}:$($_.Port)" }) -join ','
 Write-Host "   players reach: game $HostAddress (UDP 7777-7779), nw-core $BackendUrl"
 New-Item -ItemType Directory -Force $logs, $out | Out-Null
 
-# ---------------------------------------------------------------- 2. Data/
+# ---------------------------------------------------------------- 2. extraction, import, Data/
+if ($Import) {
+    Step 'Missing extraction steps (tools/build_all.py)'
+    & $python (Join-Path $root 'tools\build_all.py')
+    if ($LASTEXITCODE -ne 0) { Fail "tools/build_all.py failed (exit code $LASTEXITCODE)" }
+    Step 'Missing Unreal import steps (tools/ue_import_all.py)'
+    & $python (Join-Path $root 'tools\ue_import_all.py')
+    if ($LASTEXITCODE -ne 0) { Fail "tools/ue_import_all.py failed (exit code $LASTEXITCODE)" }
+}
 if (-not $SkipData) {
     Step 'Data/ (tools/make_data.py)'
     & $python (Join-Path $root 'tools\make_data.py')
     if ($LASTEXITCODE -ne 0) { Fail "tools/make_data.py failed (exit code $LASTEXITCODE)" }
 }
 if (-not (Test-Path (Join-Path $root 'unreal\NWPort\Data\UI\nw_strings.json'))) { Fail 'unreal\NWPort\Data is not generated: run python tools/make_data.py.' }
+# What the demo needs from the imported project (Content is not in git: each machine imports or restores the zips).
+$content = Join-Path $root 'unreal\NWPort\Content\NW'
+$needed = [ordered]@{
+    'Maps\L_SouthWindsward.umap' = 'Windsward map (import step 04)'
+    'Maps\L_QuedaEterna.umap' = 'Everfall map (import step sistemas-01)'
+    'Maps\L_Arena.umap' = 'arena (import step 03)'
+    'NpcGuardaventos' = 'Windsward NPCs (import step sistemas-06)'
+    'Appearances\Armor' = 'equipment looks (import step appearances-01)'
+    'UI\lyshineui\images\equipment\T_iconquickslot.uasset' = 'quick slot and bag icons (import step 09)'
+}
+$missing = @($needed.Keys | Where-Object { -not (Test-Path (Join-Path $content $_)) })
+if ($missing) {
+    foreach ($m in $missing) { Write-Host "   missing Content\NW\$m : $($needed[$m])" -ForegroundColor Yellow }
+    Fail 'The imported project is missing what the demo needs. Run again with -Import (or restore up-to-date asset zips: tools/assets_import.py).'
+}
+Write-Host '   imported project: complete for the demo'
 
 # ---------------------------------------------------------------- 3. compile
 $sourceBuild = Join-Path $source 'Engine\Build\BatchFiles\Build.bat'
@@ -292,5 +338,7 @@ if (-not $SkipZip) {
 Step 'Done'
 Write-Host "   1. $out\Servidores.bat   (three server windows; allow them in the Windows firewall on first start)"
 Write-Host "   2. $out\Jogar.bat        (log in; F10 needs an admin account)"
-Write-Host "   Friends: unzip NWExiles-demo-client.zip and run Windows\Jogar.bat. Open UDP 7777-7779 and TCP 8090 to this PC."
+Write-Host "   Friends: unzip NWExiles-demo-client.zip and run Windows\Jogar.bat. Open UDP 7777-7779 and TCP 8090 to this PC"
+Write-Host "   (-OpenFirewall does the Windows firewall; the router port forwarding is manual)."
+Write-Host "   Teleporter: [E] at each town's teleporter takes the player to the other town's server."
 Write-Host "   Stop nw-core: docker compose -p nw-demo -f deploy\compose.windows.yaml down (the database is kept)."

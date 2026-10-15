@@ -40,6 +40,8 @@ public:
 	void SwitchCharacter(ANWPlayerController* PC);
 	/** Puts the character record on the player (name, position on this map, inventory, progression). */
 	void ApplyRecord(ANWPlayerController* PC, struct FNWCharacterRecord&& Record);
+	/** Arrival without a position on this map (fast travel, F10 travel, new character): beside the town's teleporter. */
+	bool TownArrival(FTransform& Out) const;
 
 	/** Periodic save (s): whatever is not an operation written on the spot (position, health, XP; gathering and loot until step 3). */
 	UPROPERTY(EditAnywhere, Category = "NW|Servidor") float SaveInterval = 5.f;

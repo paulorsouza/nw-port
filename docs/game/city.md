@@ -288,6 +288,17 @@ The game fees and the limit of 100 above are reference only. Port rules:
   refused, the screen goes back and the row flashes red with the reason.
 - Capture: `tools/ui_shots/market.json`.
 
+## Teleporter
+
+Each town has the game's settlement teleporter (`Settlement_Ancient_Teleporter_A` in the town slice), station type
+`teleporter` in `refining.json`. [E] "Fast Travel to <other town>" (`ui_fast_travel_to`) takes the player to the other
+town's map (`mapas` in `tools/governanca.json`): alone, the local world changes; in the demo build, the server of that
+map through nw-core (`ANWPlayerController::TravelToMap`). Refused when overloaded, like the game
+(`ui_fast_travel_error_encumbered`). Free: no azoth and no cooldown in the port.
+
+Whoever arrives on a town map without a saved position there (teleporter, F10 travel, new character) appears 3 m in
+front of that town's teleporter (`ANWGameMode::TownArrival`).
+
 ## Housing
 
 ### Game data

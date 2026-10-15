@@ -223,4 +223,6 @@ Rules: [game/city.md](../game/city.md) "Cities", [game/world/windsward.md](../ga
 144. Outfitting station: bags AT2–AT5 with leather, cloth, ingot and the rune of the tier; the bag comes out at once, the Equip button puts it in a bag slot and the max weight rises.
 145. F10 > Test items: Ice Gauntlets T2–T5, bags AT2–AT5 and BT2, holding runes and waters T1–T3 and Water Essence in the bag. F10 > Crafting materials also gives cloth, waters and runes.
 146. F10 > Switch character (editor Play): saves, creates a second test character on the account if there is only one and enters it in place (name in the F10 line, other inventory, levels and position); pressing again goes back to the first. With the login screen (packaged client): back to the character list.
+147. Teleporter in each town (Windsward, Everfall): card "Fast Travel to <other town>", [E] goes to the other map and the character appears in front of that town's teleporter, with the same inventory. Overloaded (F10 dev bag off, heavy bag): refused with the game's warning.
+148. Demo build (two servers): the teleporter moves only this player to the other server; the other players stay.
 

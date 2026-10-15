@@ -90,6 +90,11 @@ namespace NWCity
 					{
 						Out.CityTerritory.Add(O->GetStringField(TEXT("cidade")), Territory);
 					}
+					const TArray<TSharedPtr<FJsonValue>>* Maps = nullptr;
+					if (O->TryGetArrayField(TEXT("mapas"), Maps) && Maps->Num() > 0)
+					{
+						Out.CityMap.Add({O->GetStringField(TEXT("cidade")), (*Maps)[0]->AsString()});
+					}
 				}
 				auto Ups = [](const TArray<TSharedPtr<FJsonValue>>& In, const TCHAR* ToField, TArray<FUp>& Into)
 				{
@@ -783,3 +788,29 @@ void UNWInteractorComponent::ServerCityProject_Implementation(int32 Req, const F
 	}
 	CityGovernor(Req, TEXT("POST"), TEXT("projects"), Body);
 }
+
+FString NWCity::OtherTownMap(const FString& City)
+{
+	for (const TPair<FString, FString>& M : Rules().CityMap)
+	{
+		if (M.Key != City)
+		{
+			return TEXT("/Game/NW/Maps/") + M.Value;
+		}
+	}
+	return FString();
+}
+
+FString NWCity::OtherTownName(const FString& City)
+{
+	for (const TPair<FString, FString>& M : Rules().CityMap)
+	{
+		if (M.Key != City)
+		{
+			const FString* Territory = Rules().CityTerritory.Find(M.Key);
+			return Territory ? NWText::Get(*Territory) : M.Key;
+		}
+	}
+	return FString();
+}
+

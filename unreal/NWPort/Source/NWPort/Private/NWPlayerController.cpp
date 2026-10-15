@@ -847,19 +847,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 	{
 		const TCHAR* Map = Command == ENWDevCommand::TravelArena ? TEXT("/Game/NW/Maps/L_Arena")
 			: Command == ENWDevCommand::TravelEverfall ? TEXT("/Game/NW/Maps/L_QuedaEterna") : TEXT("/Game/NW/Maps/L_SouthWindsward");
-		ANWGameMode* GM = World->GetAuthGameMode<ANWGameMode>();
-		if (GetNetMode() == NM_Standalone)
-		{
-			UGameplayStatics::OpenLevel(this, Map);   // alone (editor Play, no server): the local world changes
-		}
-		else if (GM && Record && GM->IsBackendServer())
-		{
-			GM->TravelPlayer(this, Map);   // one server per map: only this player goes to the other server
-		}
-		else
-		{
-			World->ServerTravel(Map);   // server without nw-core: everyone goes along
-		}
+		TravelToMap(Map);
 		break;
 	}
 	case ENWDevCommand::KillSelf:
@@ -1308,3 +1296,26 @@ void ANWPlayerController::ClientChat_Implementation(ENWChatChannel Channel, cons
 		HUD->Chat.Add(Channel, Sender, Text);
 	}
 }
+
+void ANWPlayerController::TravelToMap(const FString& Map)
+{
+	UWorld* World = GetWorld();
+	ANWGameMode* GM = World ? World->GetAuthGameMode<ANWGameMode>() : nullptr;
+	if (!GM)
+	{
+		return;
+	}
+	if (GetNetMode() == NM_Standalone)
+	{
+		UGameplayStatics::OpenLevel(this, FName(*Map));   // alone (editor Play, no server): the local world changes
+	}
+	else if (Record && GM->IsBackendServer())
+	{
+		GM->TravelPlayer(this, Map);   // one server per map: only this player goes to the other server
+	}
+	else
+	{
+		World->ServerTravel(Map);   // server without nw-core: everyone goes along
+	}
+}
+
