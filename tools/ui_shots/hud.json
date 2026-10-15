@@ -1,0 +1,92 @@
+{
+ "screen": "hud",
+ "coins": 12345,
+ "items": [
+  [
+   "PotionHealthT5",
+   37
+  ],
+  [
+   "OreT1",
+   500
+  ]
+ ],
+ "equip": [
+  [
+   "1hSwordT2",
+   0,
+   250
+  ],
+  [
+   "1hHatchetT2",
+   1,
+   250
+  ],
+  [
+   "1hShieldAT2",
+   2,
+   250
+  ],
+  [
+   "PotionHealthT5",
+   15
+  ],
+  [
+   "BagAT5",
+   19
+  ]
+ ],
+ "shots": [
+  {
+   "name": "cidade",
+   "map": "L_SouthWindsward",
+   "yaw": 30,
+   "loadout": [
+    0,
+    1
+   ]
+  },
+  {
+   "name": "combate",
+   "health": 0.62,
+   "stamina": 0.4,
+   "combat": true,
+   "loadout": [
+    0,
+    1
+   ],
+   "yaw": 200,
+   "loot": [
+    [
+     "OreT1",
+     500
+    ],
+    [
+     "FiberT1",
+     100
+    ]
+   ]
+  },
+  {
+   "name": "gelo",
+   "health": 0.9,
+   "stamina": 0.8,
+   "combat": true,
+   "loadout": [
+    4,
+    0
+   ],
+   "active": 4
+  },
+  {
+   "name": "ultrawide",
+   "w": 2560,
+   "h": 1080,
+   "map": "L_QuedaEterna",
+   "loadout": [
+    0,
+    1
+   ]
+  }
+ ]
+}

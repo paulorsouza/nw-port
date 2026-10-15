@@ -82,6 +82,9 @@ public:
 	void ShowWarning(const FString& Text) { WarningText = Text; WarningAt = FPlatformTime::Seconds(); }
 	// After changing the language (NWText::SetLang): reloads the screens.
 	void ReloadLanguage();
+	/** Offline capture (NWUIShotCommandlet, tools/ui_shots/hud.json): loads the layouts and draws Who's combat HUD
+	 *  on InCanvas, with the camera at CameraYaw, without a player controller. */
+	void DrawShot(UCanvas* InCanvas, const class ANWCharacter* Who, float CameraYaw, bool bInCombat, const FString& MapName);
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 
 private:
@@ -89,7 +92,20 @@ private:
 	bool bMenuOpened = false;      // -nwmenu test
 	double HudFirstDraw = 0.0;
 	void SetDeathScreen(bool bOn);
+	void InitLayouts();
 	void SetupStatic();
+	/** The combat HUD (layout, compass, tickers, cards) when no full screen is open. */
+	void DrawCombatHUD(const class ANWCharacter* Me, float Dt);
+	// "In combat" as the vitals see it (healthmeter.lua isInCombat): damage taken or stamina spent in the last 10 s.
+	double CombatUntil = 0.0;
+	float LastHealthSeen = -1.f;
+	float LastStaminaSeen = -1.f;
+	// Offline capture: pawn and camera yaw without a player controller.
+	const class ANWCharacter* ShotPawn = nullptr;
+	float ShotYaw = 0.f;
+	bool bShotCombat = false;
+	FString ShotMap;
+	float ViewYaw() const;
 	void UpdateVitals(const UNWCombatComponent* C, float DeltaSeconds);
 	void UpdateAbilities(const class ANWCharacter* Me, float DeltaSeconds);
 	TMap<FName, TPair<FString, FString>> AbilityArt;   // action -> (icon, background)

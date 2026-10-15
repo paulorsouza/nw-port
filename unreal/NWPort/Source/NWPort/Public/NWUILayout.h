@@ -96,6 +96,9 @@ public:
 	/** LyShine-faithful text (area 4 screens): size = line height in pixels (measured on the font itself), exact family (Nimbus medium and italic), line wrapping, line spacing and shrink to fit.
 	 *  When off, the text comes out ~1.56× larger and on a single line (older screens were tuned that way). */
 	bool bExactText = false;
+	/** LyShine-exact scale: an element's Scale also scales its whole subtree (position, size and text) around its pivot.
+	 *  Off: the scale only resizes the element's own rectangle (older screens were tuned that way). */
+	bool bScaleChildren = false;
 	UFont* Fonts[3] = {nullptr, nullptr, nullptr};
 
 	void Draw(UCanvas* Canvas);

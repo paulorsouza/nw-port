@@ -26,6 +26,8 @@
 #include "NWProgressionComponent.h"
 #include "NWRefiningMenu.h"
 #include "NWInventoryMenu.h"
+#include "NWHUD.h"
+#include "NWCombatComponent.h"
 #include "NWInteractable.h"
 #include "NWNpcRewards.h"
 #include "NWShopMenu.h"
@@ -105,7 +107,8 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		return 1;
 	}
 	const FString Screen = S->GetStringField(TEXT("screen"));
-	if (Screen != TEXT("refining") && Screen != TEXT("shop") && Screen != TEXT("inventory") && Screen != TEXT("market") && Screen != TEXT("city"))
+	if (Screen != TEXT("refining") && Screen != TEXT("shop") && Screen != TEXT("inventory") && Screen != TEXT("market") && Screen != TEXT("city")
+		&& Screen != TEXT("hud"))
 	{
 		UE_LOG(LogNWUIShot, Error, TEXT("screen without capture: %s"), *Screen);
 		return 1;
@@ -313,7 +316,50 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		TSharedPtr<SNWMarket> Market;
 		TSharedPtr<SNWCity> CityMenu;
 		const bool bInventory = Screen == TEXT("inventory");
+		const bool bHud = Screen == TEXT("hud");
 		Menu.FixedNow = Shop.FixedNow = 1000.0;
+		// Combat HUD: {"health": 0..1, "stamina": 0..1, "combat": bool, "active": set, "loadout": [a, b], "yaw": deg,
+		// "map": "L_SouthWindsward", "loot": [[item, qty]], "xp": n}.
+		static ANWHUD* Hud = nullptr;
+		bool bHudCombat = false;
+		float HudYaw = 0.f;
+		FString HudMap;
+		if (bHud)
+		{
+			if (!Hud)
+			{
+				Hud = World->SpawnActor<ANWHUD>();
+			}
+			UNWCombatComponent* C = Me->Combat;
+			C->Health = C->MaxHealth * (Shot->HasField(TEXT("health")) ? float(Shot->GetNumberField(TEXT("health"))) : 1.f);
+			C->Stamina = C->MaxStamina * (Shot->HasField(TEXT("stamina")) ? float(Shot->GetNumberField(TEXT("stamina"))) : 1.f);
+			Shot->TryGetBoolField(TEXT("combat"), bHudCombat);
+			HudYaw = Shot->HasField(TEXT("yaw")) ? float(Shot->GetNumberField(TEXT("yaw"))) : 0.f;
+			Shot->TryGetStringField(TEXT("map"), HudMap);
+			const TArray<TSharedPtr<FJsonValue>>* Pair = nullptr;
+			if (Shot->TryGetArrayField(TEXT("loadout"), Pair) && Pair->Num() == 2)
+			{
+				Me->Loadout = {int32((*Pair)[0]->AsNumber()), int32((*Pair)[1]->AsNumber())};
+			}
+			Me->ActiveWeapon = Shot->HasField(TEXT("active")) ? int32(Shot->GetNumberField(TEXT("active"))) : Me->Loadout[0];
+			if (Me->WeaponSets.IsValidIndex(Me->ActiveWeapon))
+			{
+				Me->Abilities = Me->WeaponSets[Me->ActiveWeapon].Abilities;
+			}
+			const TArray<TSharedPtr<FJsonValue>>* Loot = nullptr;
+			if (Shot->TryGetArrayField(TEXT("loot"), Loot))
+			{
+				TArray<FNWItem> Gained;
+				for (const TSharedPtr<FJsonValue>& LV : *Loot)
+				{
+					FNWItem I;
+					I.ItemId = FName(LV->AsArray()[0]->AsString());
+					I.Quantity = int32(LV->AsArray()[1]->AsNumber());
+					Gained.Add(I);
+				}
+				Hud->ShowLoot(Gained, 0);
+			}
+		}
 		const int32 Count = Shot->HasField(TEXT("count")) ? int32(Shot->GetNumberField(TEXT("count"))) : 1;
 		if (bInventory)
 		{
@@ -449,7 +495,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 				Shop.Select(FName(Item), Count);
 			}
 		}
-		else
+		else if (!bHud)
 		{
 			Menu.Open(Me, St);
 			FString Recipe;
@@ -485,7 +531,14 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			UCanvas* C = NewObject<UCanvas>();
 			C->Init(W, H, nullptr, &Canvas);
 			C->Update();
-			bInventory ? Inventory.Draw(C, Mouse) : bShop ? Shop.Draw(C, Mouse) : Menu.Draw(C, Mouse);
+			if (bHud)
+			{
+				Hud->DrawShot(C, Me, HudYaw, bHudCombat, HudMap);
+			}
+			else
+			{
+				bInventory ? Inventory.Draw(C, Mouse) : bShop ? Shop.Draw(C, Mouse) : Menu.Draw(C, Mouse);
+			}
 			Canvas.Flush_GameThread(true);
 			FlushRenderingCommands();
 		};
@@ -493,7 +546,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		Frame();
 		SettleTextures();
 		Frame();
-		if (!bShop && !bInventory && Shot->HasField(TEXT("craft")) && Shot->GetBoolField(TEXT("craft")))
+		if (!bShop && !bInventory && !bHud && Shot->HasField(TEXT("craft")) && Shot->GetBoolField(TEXT("craft")))
 		{
 			Menu.ClickCraft();
 			Frame();   // the gear item arrives here (t0 of the roll); t counts from it

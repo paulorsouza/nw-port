@@ -88,8 +88,8 @@ Full spec of the inventory, equipment and storage screens: `docs/game/ui/invento
 - Bags: items `BagAT1`–`BagAT5`, `BagBT2`–`BagBT5`, `BagAT52` (`ItemClass` Bag, ItemType Armor, in
   `itemdefinitions_master_crafting`); capacity in `javelindata_itemdefinitions_armor` (`Encumbrance`, in tenths:
   AT1 +50, AT2 +100, AT3 +150, AT4 +225, AT5 +300; BT2 +125 … ) and `EncumbrancePerGS` (2–6). They go in their own
-  inventory slots. The port has no bags yet: in the game they come from crafting (Outfitting, pt-BR "Armoraria"), which does not exist
-  here.
+  inventory slots. In the port: 3 bag slots in the Tools tab; each equipped bag adds its `Encumbrance` to the max
+  weight (`EncumbrancePerGS` left out, no source for the formula). No recipe yet: bags come from F10 > Test items.
 
 ## Status
 
@@ -148,7 +148,7 @@ Post screen `SNWMarket` and the shared storage; see `docs/notes/ui.md` and `docs
 
 | Screen | State |
 |---|---|
-| Combat HUD (health, stamina, abilities, weapons, consumables) | done (hud2024) |
+| Combat HUD (health, stamina, abilities, weapons, consumables) | done (hud2024), with the Lua rules: scale reaches the children (`FNWUILayout::bScaleChildren`: inactive weapon row at 0.5, consumable item at 1.15), colors of `uistyle.lua` in sRGB (health `COLOR_RED_DARK`, gray at full; stamina `COLOR_STAMINA`, gray when exhausted; mana `COLOR_MANA`), opacity at full out of combat 0.4 (mana 0: hidden), health text `max` when full and `value/max` otherwise, mana and XP at the positions of `hudlayoutdatadefault.lua`, swap hint with the other weapon's key, cooldown `COLOR_ABILITY_COOLDOWN` at 0.8 with a decimal in the last second, quick slots 3–6, town name under the compass inside the town. Offline capture: `tools/ui_shots/hud.json` |
 | Inventory + equipment + weight + coins | done (the game's layout, original tiles); spec in `docs/game/ui/inventory.md` |
 | Camera with the game's values | done: normal/sprint/inventory states, wheel zoom (0.2–6 m), 50° vertical FOV, character turns to face the camera in the inventory (`ANWCharacter::UpdateCamera`) |
 | Esc menu | done: Continue, Settings, Unstuck (returns to a recent position on the ground after 5 s, 60 s cooldown, the game's `ui_unstuck_*` messages), Exit to Main Menu, Exit to Desktop (`FNWGameMenu`) |

@@ -262,6 +262,15 @@ void FNWUILayout::DrawCanvas(UCanvas* Canvas, FNWUICanvasLayout& L)
 	TArray<FBox2f> Rects;
 	TArray<float> Alphas;
 	TArray<bool> Shown;
+	// bScaleChildren: rectangle in the parent's unscaled frame and the accumulated transform (screen = K * local + B).
+	TArray<FBox2f> Locals;
+	TArray<FVector2f> K, B;
+	if (bScaleChildren)
+	{
+		Locals.SetNum(L.Elements.Num());
+		K.Init(FVector2f(1.f, 1.f), L.Elements.Num());
+		B.Init(FVector2f(0.f, 0.f), L.Elements.Num());
+	}
 	Rects.SetNum(L.Elements.Num());
 	Alphas.SetNum(L.Elements.Num());
 	Shown.SetNum(L.Elements.Num());
@@ -277,7 +286,7 @@ void FNWUILayout::DrawCanvas(UCanvas* Canvas, FNWUICanvasLayout& L)
 		}
 		FNWUIElement& E = L.Elements[i];
 		const bool bHasParent = L.Elements.IsValidIndex(E.Parent);
-		const FBox2f P = bHasParent ? Rects[E.Parent] : Screen;
+		const FBox2f P = bHasParent ? (bScaleChildren ? Locals[E.Parent] : Rects[E.Parent]) : Screen;
 		const FVector2f PS = P.GetSize();
 		float Left = P.Min.X + E.Anchors.X * PS.X + E.Offsets.X + E.Translate.X;
 		float Top = P.Min.Y + E.Anchors.Y * PS.Y + E.Offsets.Y + E.Translate.Y;
@@ -291,13 +300,28 @@ void FNWUILayout::DrawCanvas(UCanvas* Canvas, FNWUICanvasLayout& L)
 			Left = PX - FitW * E.Pivot.X;
 			Right = Left + FitW;
 		}
-		if (E.Scale.X != 1.f || E.Scale.Y != 1.f)
+		float ElemScale = UIScale;   // reference px -> screen px for this element's images and text
+		if (bScaleChildren)
 		{
-			const float CX = Left + (Right - Left) * E.Pivot.X, CY = Top + (Bottom - Top) * E.Pivot.Y;
-			Left = CX - (CX - Left) * E.Scale.X; Right = CX + (Right - CX) * E.Scale.X;
-			Top = CY - (CY - Top) * E.Scale.Y; Bottom = CY + (Bottom - CY) * E.Scale.Y;
+			Locals[i] = FBox2f(FVector2f(Left, Top), FVector2f(Right, Bottom));
+			const FVector2f C(Left + (Right - Left) * E.Pivot.X, Top + (Bottom - Top) * E.Pivot.Y);
+			const FVector2f KP = bHasParent ? K[E.Parent] : FVector2f(1.f, 1.f);
+			const FVector2f BP = bHasParent ? B[E.Parent] : FVector2f(0.f, 0.f);
+			K[i] = KP * E.Scale;
+			B[i] = KP * (C - E.Scale * C) + BP;
+			Rects[i] = FBox2f(K[i] * Locals[i].Min + B[i], K[i] * Locals[i].Max + B[i]);
+			ElemScale = UIScale * K[i].Y;
 		}
-		Rects[i] = FBox2f(FVector2f(Left, Top), FVector2f(Right, Bottom));
+		else
+		{
+			if (E.Scale.X != 1.f || E.Scale.Y != 1.f)
+			{
+				const float CX = Left + (Right - Left) * E.Pivot.X, CY = Top + (Bottom - Top) * E.Pivot.Y;
+				Left = CX - (CX - Left) * E.Scale.X; Right = CX + (Right - CX) * E.Scale.X;
+				Top = CY - (CY - Top) * E.Scale.Y; Bottom = CY + (Bottom - CY) * E.Scale.Y;
+			}
+			Rects[i] = FBox2f(FVector2f(Left, Top), FVector2f(Right, Bottom));
+		}
 		Alphas[i] = (bHasParent ? Alphas[E.Parent] : 1.f) * E.Fade * E.AlphaMul;
 		Shown[i] = (bHasParent ? Shown[E.Parent] : true) && E.Visible.Get(E.bEnabled);
 		const FBox2f Px(Rects[i].Min * UIScale, Rects[i].Max * UIScale);
@@ -325,11 +349,11 @@ void FNWUILayout::DrawCanvas(UCanvas* Canvas, FNWUICanvasLayout& L)
 		}
 		if (E.bHasImage)
 		{
-			DrawImage(Canvas, E, Px, Alphas[i], UIScale, Clip);
+			DrawImage(Canvas, E, Px, Alphas[i], ElemScale, Clip);
 		}
 		if (E.bHasText)
 		{
-			DrawText(Canvas, E, Px, Alphas[i], UIScale, Clip);
+			DrawText(Canvas, E, Px, Alphas[i], ElemScale, Clip);
 		}
 	}
 }

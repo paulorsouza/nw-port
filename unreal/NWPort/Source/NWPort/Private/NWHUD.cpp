@@ -1,4 +1,6 @@
 #include "NWHUD.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
 #include "NWManaComponent.h"
 #include "NWShop.h"
 #include "SNWCity.h"
@@ -59,8 +61,15 @@ static const TCHAR* SlotKeys[3] = {TEXT("Q"), TEXT("R"), TEXT("F")};
 void ANWHUD::BeginPlay()
 {
 	Super::BeginPlay();
+	InitLayouts();
+}
+
+void ANWHUD::InitLayouts()
+{
 	// Outside Content: the editor watches Content and would try to import the .json and the .otf as assets.
 	Layout.Load(NWText::DataPath(TEXT("Data/UI/hud_layout.json")));
+	Layout.bScaleChildren = true;   // the inactive weapon row (0.5) and the consumable item (1.15) scale with their children
+	Layout.bExactText = true;       // LyShine text sizes (the health value was ~1.5x too large)
 	Layout.ResolveTexture = [this](const FString& P) { return ResolveTexture(P); };
 	// Icon and background of each ability (tools/make_abilities.py), for both weapons.
 	FString Raw;
@@ -101,6 +110,8 @@ void ANWHUD::BeginPlay()
 void ANWHUD::ReloadLanguage()
 {
 	Layout.Load(NWText::DataPath(TEXT("Data/UI/hud_layout.json")));
+	Layout.bScaleChildren = true;
+	Layout.bExactText = true;
 	bStaticDone = false;
 	Mastery.Close();
 	Mastery = FNWMasteryMenu();
@@ -123,8 +134,7 @@ UTexture2D* ANWHUD::ResolveTexture(const FString& GameTexture)
 void ANWHUD::SetupStatic()
 {
 	bStaticDone = true;
-	for (FNWUIElement* E : Layout.Find(WeaponCanvas, TEXT("WeaponQuickslots/SwapHint"))) E->Visible = false;
-	// No consumables for now: empty frames.
+	// Quick slots start empty (UpdateConsumables fills the equipped ones).
 	for (FNWUIElement* E : Layout.Find(ConsumableCanvas, TEXT("ItemLayoutConsumable"))) E->Visible = false;
 	for (FNWUIElement* E : Layout.Find(ConsumableCanvas, TEXT("CooldownTimer"))) E->Visible = false;
 	// Game keys (libs/config/defaultprofile.xml: quickslot-consumable-1..4 = 3..6); no controller icon.
@@ -134,13 +144,29 @@ void ANWHUD::SetupStatic()
 		if (FNWUIElement* E = Layout.FindOne(ConsumableCanvas, FString(ConsumableSlots[i]) + TEXT("/Hint/HintText"))) E->TextOverride = FString::FromInt(3 + i);
 	}
 	for (FNWUIElement* E : Layout.Find(ConsumableCanvas, TEXT("ModifierDivider/HintModifier"))) E->Visible = false;
-	// Colors the Lua applied to the bars.
+	// Colors the Lua applies to the bars (uistyle.lua, in sRGB): decrease color of each meter; the main fill changes
+	// with the state in UpdateVitals.
 	auto Tint = [this](const TCHAR* Path, const FLinearColor& C) { for (FNWUIElement* E : Layout.Find(VitalsCanvas, Path)) E->Tint = C; };
-	Tint(TEXT("HealthMeter/MultiFillMeter/MainFill"), FLinearColor(0.70f, 0.13f, 0.10f));
-	Tint(TEXT("HealthMeter/MultiFillMeter/UnderFill"), FLinearColor(0.95f, 0.78f, 0.62f, 0.85f));
-	Tint(TEXT("ManaMeter/MultiFillMeter/MainFill"), FLinearColor(0.22f, 0.48f, 0.88f));
-	Tint(TEXT("ManaMeter/MultiFillMeter/UnderFill"), FLinearColor(0.6f, 0.75f, 1.f, 0.6f));
-	Tint(TEXT("StaminaMeter/MultiFillMeter/UnderFill"), FLinearColor(1.f, 0.95f, 0.75f, 0.7f));
+	Tint(TEXT("HealthMeter/MultiFillMeter/UnderFill"), FLinearColor(FColor(221, 221, 221)));      // COLOR_GRAY_90
+	Tint(TEXT("ManaMeter/MultiFillMeter/MainFill"), FLinearColor(FColor(47, 97, 251)));          // COLOR_MANA
+	Tint(TEXT("ManaMeter/MultiFillMeter/UnderFill"), FLinearColor(FColor(168, 178, 197)));       // COLOR_BLUE_PALE
+	Tint(TEXT("StaminaMeter/MultiFillMeter/UnderFill"), FLinearColor(FColor(158, 148, 126)));    // COLOR_TAN
+	// Default HUD layout (hudlayoutdatadefault.lua): the canvas has other positions for mana and XP. Lua x/y = center
+	// from the bottom middle of the screen.
+	auto Place = [this](const FString& CanvasName, const TCHAR* Path, float Y, float W, float H)
+	{
+		if (FNWUIElement* E = Layout.FindOne(CanvasName, Path))
+		{
+			E->Offsets = FVector4f(-W * 0.5f, Y - H * 0.5f, W * 0.5f, Y + H * 0.5f);
+		}
+	};
+	Place(VitalsCanvas, TEXT("Window/ManaMeterLayoutElement"), -382.f, 174.f, 18.f);
+	Place(XpCanvas, TEXT("Window/XpMeterLayoutElement"), -41.f, 334.f, 58.f);
+	// Consumable item: square layout (itemlayout.lua SetLayoutByItemType for consumables), 52 x 52 at the canvas'
+	// 1.15 scale = the 60 px of the slot; the icon square too, and no tier.
+	for (FNWUIElement* E : Layout.Find(ConsumableCanvas, TEXT("ItemLayoutConsumable"))) E->Offsets = FVector4f(1.f, 1.f, 53.f, 53.f);
+	for (FNWUIElement* E : Layout.Find(ConsumableCanvas, TEXT("ItemLayoutConsumable/ItemIcon"))) E->Offsets = FVector4f(-26.f, -26.f, 26.f, 26.f);
+	for (FNWUIElement* E : Layout.Find(ConsumableCanvas, TEXT("ItemLayoutConsumable/ItemTier"))) E->Visible = false;
 	for (const TCHAR* Cover : {TEXT("WarningCover"), TEXT("RefillCover")})
 	{
 		for (FNWUIElement* E : Layout.Find(VitalsCanvas, Cover)) E->Visible = false;
@@ -151,24 +177,57 @@ void ANWHUD::UpdateVitals(const UNWCombatComponent* C, float DeltaSeconds)
 {
 	const float H = C->MaxHealth > 0.f ? C->Health / C->MaxHealth : 0.f;
 	const float S = C->MaxStamina > 0.f ? C->Stamina / C->MaxStamina : 0.f;
+	const double Now = FPlatformTime::Seconds();
+	if ((LastHealthSeen >= 0.f && C->Health < LastHealthSeen) || (LastStaminaSeen >= 0.f && C->Stamina < LastStaminaSeen - 0.5f))
+	{
+		CombatUntil = Now + 10.0;
+	}
+	LastHealthSeen = C->Health;
+	LastStaminaSeen = C->Stamina;
+	const bool bInCombat = ShotPawn ? bShotCombat : Now < CombatUntil;
 	// The back bar follows the front one with a delay when it drops; when it rises, together.
 	HealthLag = H >= HealthLag ? H : FMath::FInterpConstantTo(HealthLag, H, DeltaSeconds, 0.35f);
 	StaminaLag = S >= StaminaLag ? S : FMath::FInterpConstantTo(StaminaLag, S, DeltaSeconds, 0.6f);
-	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("HealthMeter/MultiFillMeter/MainFill"))) E->Fill = H;
+	// Opacity (healthmeter.lua UpdateOpacity): 1 in combat or not full, otherwise opacityAtFull of the default layout
+	// (health and stamina 0.4, mana 0); the value text never below textMinOpacity 0.8.
+	auto Meter = [this](const TCHAR* Root, float Ratio, float AtFull, bool bCombat)
+	{
+		const float Alpha = bCombat || Ratio < 0.999f ? 1.f : AtFull;
+		for (FNWUIElement* E : Layout.Find(VitalsCanvas, FString(Root) + TEXT("/MultiFillMeter"))) E->AlphaMul = Alpha;
+		for (FNWUIElement* E : Layout.Find(VitalsCanvas, FString(Root) + TEXT("/ValueText"))) E->AlphaMul = Alpha > 0.f ? FMath::Max(Alpha, 0.8f) : 0.f;
+	};
+	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("HealthMeter/MultiFillMeter/MainFill")))
+	{
+		E->Fill = H;
+		// SetColorThreshold: full = COLOR_GRAY_50, below = COLOR_HEALTH (COLOR_RED_DARK).
+		E->Tint = H >= 0.999f ? FLinearColor(FColor(128, 128, 128)) : FLinearColor(FColor(180, 47, 14));
+	}
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("HealthMeter/MultiFillMeter/UnderFill"))) E->Fill = HealthLag;
-	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("HealthMeter/ValueText"))) E->TextOverride = FString::FromInt(FMath::CeilToInt(C->Health));
+	// Text (UpdateText): full = the max; otherwise @ui_vitals_value ("value/max"), numbers with the language separators.
+	const FCulturePtr Culture = FInternationalization::Get().GetCulture(NWText::Lang() == TEXT("pt-br") ? TEXT("pt-BR") : TEXT("en-US"));
+	auto Num = [&Culture](float V) { return FText::AsNumber(FMath::Max(0, FMath::CeilToInt(V)), nullptr, Culture).ToString(); };
+	const FString HealthText = H >= 0.999f ? Num(C->MaxHealth) : Num(C->Health) + TEXT("/") + Num(C->MaxHealth);
+	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("HealthMeter/ValueText"))) E->TextOverride = HealthText;
+	Meter(TEXT("HealthMeter"), H, 0.4f, bInCombat);
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("StaminaMeter/MultiFillMeter/MainFill")))
 	{
 		E->Fill = S;
-		E->Tint = C->bExhausted ? FLinearColor(0.55f, 0.45f, 0.22f) : FLinearColor(0.88f, 0.70f, 0.22f);
+		// COLOR_STAMINA; exhausted (StaminaLocked) = COLOR_STAMINA_LOCKED (COLOR_GRAY_50).
+		E->Tint = C->bExhausted ? FLinearColor(FColor(128, 128, 128)) : FLinearColor(FColor(255, 207, 42));
 	}
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("StaminaMeter/MultiFillMeter/UnderFill"))) E->Fill = StaminaLag;
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("StaminaMeter/ValueText"))) E->Visible = false;
+	Meter(TEXT("StaminaMeter"), S, 0.4f, bInCombat);
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/ValueText"))) E->Visible = false;
-	// Mana (UNWManaComponent, sub-area 1a): full bar with no delay for now.
+	// Mana (UNWManaComponent, sub-area 1a): only with a mana weapon; full = hidden (opacityAtFull 0).
 	const UNWManaComponent* Mana = C->GetOwner()->FindComponentByClass<UNWManaComponent>();
-	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/MultiFillMeter/MainFill"))) E->Fill = Mana ? Mana->GetRatio() : 1.f;
-	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/MultiFillMeter/UnderFill"))) E->Fill = Mana ? Mana->GetRatio() : 1.f;
+	const ANWCharacter* Owner = Cast<ANWCharacter>(C->GetOwner());
+	const bool bManaWeapon = Mana && Owner && Owner->WeaponSets.IsValidIndex(Owner->ActiveWeapon) && Owner->WeaponSets[Owner->ActiveWeapon].Id == TEXT("IceGauntlet");
+	const float M = Mana ? Mana->GetRatio() : 1.f;
+	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/MultiFillMeter/MainFill"))) E->Fill = M;
+	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/MultiFillMeter/UnderFill"))) E->Fill = M;
+	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("Window/ManaMeterLayoutElement"))) E->Visible = bManaWeapon;
+	Meter(TEXT("ManaMeter"), M, 0.f, false);
 }
 
 void ANWHUD::UpdateAbilities(const ANWCharacter* Me, float DeltaSeconds)
@@ -176,12 +235,21 @@ void ANWHUD::UpdateAbilities(const ANWCharacter* Me, float DeltaSeconds)
 	const UNWCombatComponent* C = Me->Combat;
 	ReadyFlash.SetNumZeroed(6);
 	WasCooling.SetNumZeroed(6);
+	// Swap hint (weaponquickslots.lua UpdateSwapHint): the key of the weapon that is not in hand, beside the inactive row.
+	const int32 Other = Me->OtherWeapon();
+	const bool bOtherIsFirst = Me->Loadout.IsValidIndex(0) && Me->Loadout[0] == Other;
+	for (FNWUIElement* E : Layout.Find(WeaponCanvas, TEXT("WeaponQuickslots/SwapHint"))) E->Visible = Me->WeaponSets.IsValidIndex(Other);
+	if (FNWUIElement* E = Layout.FindOne(WeaponCanvas, TEXT("WeaponQuickslots/SwapHint/HintText")))
+	{
+		E->TextOverride = FNWOptions::Get().KeyFor(bOtherIsFirst ? TEXT("Weapon1") : TEXT("Weapon2")).GetDisplayName().ToString();
+	}
 	for (int32 Row = 0; Row < 2; ++Row)
 	{
 		// Row 0 (bottom, larger) = active weapon; row 1 = the other one, with the game's "inactive" background.
 		const FString Set = SetNames[Row];
 		const int32 SetIndex = Me->WeaponSets.Num() > 0 ? (Row == 0 ? Me->ActiveWeapon : Me->OtherWeapon()) : INDEX_NONE;
-		const bool bShown = Row == 0 || Me->WeaponSets.Num() > 1;
+		// Row 1 only with a second weapon in the pair (Weapon 2 empty or unarmed: hidden).
+		const bool bShown = Row == 0 || Me->WeaponSets.IsValidIndex(SetIndex);
 		if (FNWUIElement* Root = Layout.FindOne(WeaponCanvas, Set))
 		{
 			Root->Visible = bShown;
@@ -195,11 +263,12 @@ void ANWHUD::UpdateAbilities(const ANWCharacter* Me, float DeltaSeconds)
 		const TArray<FName>& Abilities = WS ? WS->Abilities : Me->Abilities;
 		if (FNWUIElement* Icon = Layout.FindOne(WeaponCanvas, Set + TEXT("/WeaponIcon")))
 		{
-			Icon->TextureOverride = WS ? WS->HudIcon : FString(TEXT("lyshineui/images/icons/items/drawing/1hsword.dds"));
+			Icon->TextureOverride = WS ? WS->HudIcon : FString();
+			Icon->Visible = WS != nullptr;
 		}
 		if (FNWUIElement* ShieldIcon = Layout.FindOne(WeaponCanvas, Set + TEXT("/ShieldIcon")))
 		{
-			ShieldIcon->Visible = !WS || WS->bUsesShield;
+			ShieldIcon->Visible = WS && WS->bUsesShield;
 		}
 		for (int32 i = 0; i < 3; ++i)
 		{
@@ -228,8 +297,16 @@ void ANWHUD::UpdateAbilities(const ANWCharacter* Me, float DeltaSeconds)
 			const float Remaining = Ability.IsNone() ? 0.f : C->GetCooldownRemaining(Ability, &Duration);
 			const bool bCooling = Remaining > 0.f;
 			if (FNWUIElement* Timer = Layout.FindOne(WeaponCanvas, Slot + TEXT("/CooldownTimer"))) Timer->Visible = bCooling;
-			if (FNWUIElement* Bar = Layout.FindOne(WeaponCanvas, Slot + TEXT("/CooldownTimer/BarFill"))) Bar->Fill = Duration > 0.f ? Remaining / Duration : 0.f;
-			if (FNWUIElement* Text = Layout.FindOne(WeaponCanvas, Slot + TEXT("/CooldownTimer/TimerText"))) Text->TextOverride = FString::FromInt(FMath::CeilToInt(Remaining));
+			// boxtimer.lua SetTimerStyle: COLOR_ABILITY_COOLDOWN (COLOR_AMAZON_ORANGE) at 0.8; the last second with a decimal.
+			if (FNWUIElement* Bar = Layout.FindOne(WeaponCanvas, Slot + TEXT("/CooldownTimer/BarFill")))
+			{
+				Bar->Fill = Duration > 0.f ? Remaining / Duration : 0.f;
+				Bar->Tint = FLinearColor(FColor(255, 153, 0)).CopyWithNewOpacity(0.8f);
+			}
+			if (FNWUIElement* Text = Layout.FindOne(WeaponCanvas, Slot + TEXT("/CooldownTimer/TimerText")))
+			{
+				Text->TextOverride = Remaining < 1.f ? FString::Printf(TEXT("%.1f"), Remaining) : FString::FromInt(FMath::CeilToInt(Remaining));
+			}
 			if (FNWUIElement* Dim = Layout.FindOne(WeaponCanvas, Slot + TEXT("/Dimmer")))
 			{
 				Dim->Visible = bCooling || Row == 1;
@@ -483,6 +560,16 @@ void ANWHUD::DrawGameHUD()
 		DrawNavbar(1, FVector2D(MX, MY));
 		return;
 	}
+	DrawCombatHUD(Me, Dt);
+	if (bShowDiagnostics || CVarHudDebug.GetValueOnGameThread())
+	{
+		DrawDiagnostics(Me);
+	}
+}
+
+void ANWHUD::DrawCombatHUD(const ANWCharacter* Me, float Dt)
+{
+	const UNWCombatComponent* C = Me->Combat;
 	if (Layout.IsLoaded())
 	{
 		if (!bStaticDone)
@@ -496,34 +583,56 @@ void ANWHUD::DrawGameHUD()
 		Layout.Draw(Canvas);
 	}
 
-	// Heavy charge, near the reticle: normal heavy mark; full = charged.
+	// Heavy charge, below the reticle: normal heavy mark; full = charged.
 	if (C->IsCharging())
 	{
-		const float CW = 120.f;
+		const float S = Canvas->ClipY / 1080.f;
+		const float CW = 120.f * S;
 		const float CX = (Canvas->ClipX - CW) * 0.5f;
-		const float CY = Canvas->ClipY * 0.5f + 60.f;
+		const float CY = Canvas->ClipY * 0.5f + 60.f * S;
 		const float Ratio = C->GetChargeRatio();
-		DrawBar(CX, CY, CW, 5.f, Ratio, Ratio >= 1.f ? FLinearColor(1.f, 0.85f, 0.3f) : FLinearColor(0.85f, 0.85f, 0.85f));
-		DrawRect(FLinearColor::Black, CX + CW * (C->HeavyMinHold / C->HeavyFullCharge) - 1.f, CY - 2.f, 2.f, 9.f);
+		DrawBar(CX, CY, CW, 5.f * S, Ratio, Ratio >= 1.f ? FLinearColor(FColor(237, 198, 62)) : FLinearColor(FColor(221, 221, 221)));
+		DrawRect(FLinearColor::Black, CX + CW * (C->HeavyMinHold / C->HeavyFullCharge) - 1.f, CY - 2.f * S, 2.f, 9.f * S);
 	}
 	DrawCompass();
 	DrawLevelUp();
-	DrawHitIndicators();
 	DrawWarning();
-	DrawDamageNumbers();
 	DrawEncumbrance(Me);
+	DrawLootTicker();
+	if (ShotPawn)
+	{
+		return;   // offline capture: no world to project names and cards onto
+	}
+	DrawHitIndicators();
+	DrawDamageNumbers();
 	DrawNameplates(Me);
 	DrawGroup(Me);
-	DrawLootTicker();
 	DrawNpcNames(Me);
 	DrawGather(Me);
 	DrawInteract(Me);
 	DrawTarget(Me);
 	Chat.Draw(Canvas);
-	if (bShowDiagnostics || CVarHudDebug.GetValueOnGameThread())
+}
+
+float ANWHUD::ViewYaw() const
+{
+	const APlayerController* PC = GetOwningPlayerController();
+	return ShotPawn ? ShotYaw : PC ? PC->GetControlRotation().Yaw : 0.f;
+}
+
+void ANWHUD::DrawShot(UCanvas* InCanvas, const ANWCharacter* Who, float CameraYaw, bool bInCombat, const FString& MapName)
+{
+	bShotCombat = bInCombat;
+	ShotMap = MapName;
+	if (!Layout.IsLoaded())
 	{
-		DrawDiagnostics(Me);
+		InitLayouts();
 	}
+	Canvas = InCanvas;
+	ShotPawn = Who;
+	ShotYaw = CameraYaw;
+	DrawCombatHUD(Who, 0.f);
+	Canvas = nullptr;
 }
 
 void ANWHUD::DrawGather(const APawn* Me)
@@ -748,8 +857,10 @@ void ANWHUD::DrawTarget(const APawn* Me)
 	{
 		Canvas->TextSize(Font, Name, W, H, S, S);
 	}
-	DrawText(Name, FLinearColor(0.93f, 0.88f, 0.78f), (Canvas->ClipX - W) * 0.5f, 30.f, Font, S);
-	DrawBar(TX, 34.f + H, TW, 8.f, T->Health / T->MaxHealth, FLinearColor(0.70f, 0.13f, 0.10f));
+	// Below the compass (its line and the town name end at ~80 px of the 1080p screen).
+	const float U = Canvas->ClipY / 1080.f;
+	DrawText(Name, FLinearColor(FColor(0xEB, 0xE3, 0xD6)), (Canvas->ClipX - W) * 0.5f, 84.f * U, Font, S);
+	DrawBar(TX, 88.f * U + H, TW, 8.f * U, T->Health / T->MaxHealth, FLinearColor(FColor(180, 47, 14)));
 }
 
 void ANWHUD::SetDeathScreen(bool bOn)
@@ -907,29 +1018,37 @@ void ANWHUD::DrawGroup(const APawn* Me)
 
 void ANWHUD::UpdateConsumables(const ANWCharacter* Me)
 {
-	// Shortcut 3 = best health potion in the bag (in the game the player picks; here it is automatic for now).
+	// Quick slots 3-6: the consumables equipped in the inventory (NWEquip::Quick1..4); the count is the whole inventory's,
+	// as the slot refills from the bag.
 	const UNWInventoryComponent* Inv = Me->Inventory;
-	const int32 Slot = Inv ? Inv->BestPotionSlot() : INDEX_NONE;
-	const FNWItem* Item = Slot != INDEX_NONE ? Inv->At(ENWItemContainer::Bag, Slot) : nullptr;
-	const FNWItemDef* Def = Item ? FNWItemCatalog::Get().Find(Item->ItemId) : nullptr;
-	const FString Root = TEXT("ConsumableQuickslot/");
-	if (FNWUIElement* L = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable"))) L->Visible = Def != nullptr;
-	if (!Def)
+	static const TCHAR* Roots[NWEquip::QuickCount] = {TEXT("ConsumableQuickslot/"), TEXT("ConsumableQuickslot2/"),
+		TEXT("ConsumableQuickslot3/"), TEXT("ConsumableQuickslot4/")};
+	for (int32 i = 0; i < NWEquip::QuickCount; ++i)
 	{
-		if (FNWUIElement* T = Layout.FindOne(ConsumableCanvas, Root + TEXT("CooldownTimer"))) T->Visible = false;
-		return;
+		const FString Root = Roots[i];
+		const FNWItem* Item = Inv ? Inv->At(ENWItemContainer::Equip, NWEquip::Quick1 + i) : nullptr;
+		const FNWItemDef* Def = Item ? FNWItemCatalog::Get().Find(Item->ItemId) : nullptr;
+		if (FNWUIElement* L = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable"))) L->Visible = Def != nullptr;
+		const float Cd = Def && Def->Heal > 0.f ? Inv->GetPotionCooldown() : 0.f;
+		if (FNWUIElement* T = Layout.FindOne(ConsumableCanvas, Root + TEXT("CooldownTimer"))) T->Visible = Cd > 0.f;
+		if (!Def)
+		{
+			continue;
+		}
+		if (FNWUIElement* I = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemIcon"))) I->TextureOverride = Def->Icon;
+		if (FNWUIElement* R = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemRarityBg"))) R->Visible = false;
+		if (FNWUIElement* T = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemTier"))) T->TextOverride = FString::FromInt(Def->Tier);
+		if (FNWUIElement* Q = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemQuantity"))) Q->TextOverride = FString::FromInt(Inv->CountOf(Item->ItemId));
+		if (FNWUIElement* A = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemAnimatedIndicator"))) A->Visible = false;
+		if (FNWUIElement* D = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemDimmer"))) D->Visible = false;
+		const float Total = FMath::Max(1.f, Def->Cooldown);
+		if (FNWUIElement* B = Layout.FindOne(ConsumableCanvas, Root + TEXT("CooldownTimer/BarFill")))
+		{
+			B->Fill = Cd / Total;
+			B->Tint = FLinearColor(FColor(255, 153, 0)).CopyWithNewOpacity(0.8f);
+		}
+		if (FNWUIElement* X = Layout.FindOne(ConsumableCanvas, Root + TEXT("CooldownTimer/TimerText"))) X->TextOverride = FString::FromInt(FMath::CeilToInt(Cd));
 	}
-	if (FNWUIElement* I = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemIcon"))) I->TextureOverride = Def->Icon;
-	if (FNWUIElement* R = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemRarityBg"))) R->Visible = false;
-	if (FNWUIElement* T = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemTier"))) T->TextOverride = FString::FromInt(Def->Tier);
-	if (FNWUIElement* Q = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemQuantity"))) Q->TextOverride = FString::FromInt(Inv->CountOf(Item->ItemId));
-	if (FNWUIElement* A = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemAnimatedIndicator"))) A->Visible = false;
-	if (FNWUIElement* D = Layout.FindOne(ConsumableCanvas, Root + TEXT("ItemLayoutConsumable/ItemDimmer"))) D->Visible = false;
-	const float Cd = Inv->GetPotionCooldown();
-	const float Total = FMath::Max(1.f, Def->Cooldown);
-	if (FNWUIElement* T = Layout.FindOne(ConsumableCanvas, Root + TEXT("CooldownTimer"))) T->Visible = Cd > 0.f;
-	if (FNWUIElement* B = Layout.FindOne(ConsumableCanvas, Root + TEXT("CooldownTimer/BarFill"))) B->Fill = Cd / Total;
-	if (FNWUIElement* X = Layout.FindOne(ConsumableCanvas, Root + TEXT("CooldownTimer/TimerText"))) X->TextOverride = FString::FromInt(FMath::CeilToInt(Cd));
 }
 
 void ANWHUD::ShowLoot(const TArray<FNWItem>& Gained, int64 Coins)
@@ -987,17 +1106,23 @@ void ANWHUD::DrawLootTicker()
 			Canvas->DrawItem(Item);
 		}
 	};
+	// Draws and returns the right edge of the text (the next text starts after it).
 	auto Text = [&](const FString& Str, float X, float Y, float Size, FLinearColor Color, float Alpha)
 	{
 		const float Scale = Size * S / FMath::Max(1, Font->LegacyFontSize);
 		DrawText(Str, Color.CopyWithNewOpacity(Alpha), X, Y, Font, Scale);
+		float TW = 0.f, TH = 0.f;
+		Canvas->TextSize(Font, Str, TW, TH, Scale, Scale);
+		return X + TW;
 	};
 	float MaxAlpha = 0.f;
 	for (const FLootLine& L : LootLines)
 	{
 		MaxAlpha = FMath::Max(MaxAlpha, FMath::Clamp(float(6.0 - (Now - L.Time)) / 1.5f, 0.f, 1.f));
 	}
-	Tex(TEXT("lyshineui/images/hud2024/lootticker/loottickerbg.dds"), O + FVector2D(28.f, 0.f) * S, FVector2D(420.f, 310.f) * S, 0.8f * MaxAlpha);
+	// Background only behind the lines there are (a fixed 310 px block looked like an empty panel).
+	const float BgH = 24.f + FMath::Min(LootLines.Num(), 5) * 58.f;
+	Tex(TEXT("lyshineui/images/hud2024/lootticker/loottickerbg.dds"), O + FVector2D(28.f, -6.f) * S, FVector2D(420.f, BgH) * S, 0.6f * MaxAlpha);
 	const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6));
 	for (int32 i = 0; i < LootLines.Num(); ++i)
 	{
@@ -1029,8 +1154,8 @@ void ANWHUD::DrawLootTicker()
 		if (L.Coins > 0)
 		{
 			Tex(TEXT("lyshineui/images/icons/objectives/reward_coin_cover.dds"), Row + FVector2D(52.f, 8.f) * S, FVector2D(42.f) * S, Alpha);
-			Text(TEXT("+") + UNWInventoryComponent::FormatCoins(L.Coins), Row.X + 107.f * S, Row.Y + 14.f * S, 19.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
-			Text(NWText::Get(TEXT("nw.inv.coins")), Row.X + 175.f * S, Row.Y + 14.f * S, 18.f, Tan, Alpha);
+			const float End = Text(TEXT("+") + UNWInventoryComponent::FormatCoins(L.Coins), Row.X + 107.f * S, Row.Y + 14.f * S, 19.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
+			Text(NWText::Get(TEXT("nw.inv.coins")), FMath::Max(Row.X + 175.f * S, End + 8.f * S), Row.Y + 14.f * S, 18.f, Tan, Alpha);
 			continue;
 		}
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(L.ItemId);
@@ -1048,8 +1173,8 @@ void ANWHUD::DrawLootTicker()
 		static const TCHAR* Roman[] = {TEXT(""), TEXT("I"), TEXT("II"), TEXT("III"), TEXT("IV"), TEXT("V")};
 		Text(Roman[FMath::Clamp(D->Tier, 0, 5)], Tile.X + 4.f * S, Tile.Y, 13.f, Tan, Alpha);
 		// "+N" and the name on the right (ItemQuantity / ItemName), name in the weapons' rarity color.
-		Text(FString::Printf(TEXT("+%d"), L.Quantity), Row.X + 112.f * S, Row.Y + 16.f * S, 18.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
-		Text(D->Name, Row.X + 160.f * S, Row.Y + 16.f * S, 18.f, D->Type == TEXT("weapon") || D->Type == TEXT("armor") ? NWRarityColor(L.Rarity) : Tan, Alpha);
+		const float End = Text(FString::Printf(TEXT("+%d"), L.Quantity), Row.X + 112.f * S, Row.Y + 16.f * S, 18.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
+		Text(D->Name, FMath::Max(Row.X + 160.f * S, End + 8.f * S), Row.Y + 16.f * S, 18.f, D->Type == TEXT("weapon") || D->Type == TEXT("armor") ? NWRarityColor(L.Rarity) : Tan, Alpha);
 	}
 }
 
@@ -1102,14 +1227,15 @@ void ANWHUD::DrawCompass()
 {
 	APlayerController* PC = GetOwningPlayerController();
 	UTexture2D* Strip = FNWUILayout::GameTexture(TEXT("lyshineui/images/compass/compass2048.dds"));
-	if (!PC || !Strip || !Canvas)
+	const APawn* ViewPawn = ShotPawn ? ShotPawn : PC ? PC->GetPawn() : nullptr;
+	if (!ViewPawn || !Strip || !Canvas)
 	{
 		return;
 	}
 	const float S = Canvas->ClipY / 1080.f;
 	const float CX = Canvas->ClipX * 0.5f;
 	// Camera direction in compass degrees (0 = north, 90 = east), -180..180.
-	const float Heading = FRotator::NormalizeAxis(PC->GetControlRotation().Yaw - CompassNorthYaw);
+	const float Heading = FRotator::NormalizeAxis(ViewYaw() - CompassNorthYaw);
 	// On the strip: N at 1021.6 px, 4.592 px per degree; covers from -180° (S on the left) to +222°. 1:1 scale on the 1080p screen.
 	constexpr float PxPerDeg = 4.592f, NorthPx = 1021.6f, TexW = 2048.f, Half = 386.f / PxPerDeg;
 	const float Y0 = 3.f * S, H = 64.f * S;
@@ -1148,7 +1274,7 @@ void ANWHUD::DrawCompass()
 		Piece(-180.f, Heading + Half - 360.f, 180.f - Heading);
 	}
 	// POIs up to 400 m on the strip, at their bearing (the game shows nearby points on the compass).
-	if (const APawn* Me = PC->GetPawn())
+	if (const APawn* Me = ViewPawn)
 	{
 		WorldMap.EnsureLoaded();
 		const float IconSz = 28.f * S;
@@ -1160,7 +1286,7 @@ void ANWHUD::DrawCompass()
 			{
 				continue;
 			}
-			const float Rel = FRotator::NormalizeAxis(FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X)) - PC->GetControlRotation().Yaw);
+			const float Rel = FRotator::NormalizeAxis(FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X)) - ViewYaw());
 			if (FMath::Abs(Rel) > Half)
 			{
 				continue;
@@ -1176,10 +1302,10 @@ void ANWHUD::DrawCompass()
 		}
 	}
 	// Map marker on the strip (waypoint_compass) with the distance below; pinned to the edge when it is behind.
-	if (const APawn* Me = PC->GetPawn(); Me && WorldMap.Waypoint)
+	if (const APawn* Me = ViewPawn; Me && WorldMap.Waypoint)
 	{
 		const FVector2D D = WorldMap.ToUnreal(*WorldMap.Waypoint) - FVector2D(Me->GetActorLocation());
-		const float Rel = FMath::Clamp(FRotator::NormalizeAxis(FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X)) - PC->GetControlRotation().Yaw), -Half, Half);
+		const float Rel = FMath::Clamp(FRotator::NormalizeAxis(FMath::RadiansToDegrees(FMath::Atan2(D.Y, D.X)) - ViewYaw()), -Half, Half);
 		const float SX = CX + Rel * PxPerDeg * S;
 		const float IconSz = 30.f * S;
 		if (UTexture2D* Icon = FNWUILayout::GameTexture(TEXT("lyshineui/images/map/icon/waypoint_compass.dds")))
@@ -1209,6 +1335,21 @@ void ANWHUD::DrawCompass()
 		FCanvasTileItem T(FVector2D(CX - 6.f * S, 41.f * S), Needle->GetResource(), FVector2D(12.f * S, 6.f * S), FLinearColor::White);
 		T.BlendMode = SE_BLEND_Translucent;
 		Canvas->DrawItem(T);
+	}
+	// Settlement name under the line while inside the town (the game's "CORINTH"): both city maps use the town's frame,
+	// with the capital at the origin; 250 m around it.
+	const FString MapName = ShotPawn ? ShotMap : UWorld::RemovePIEPrefix(GetWorld() ? GetWorld()->GetMapName() : FString());
+	const TCHAR* Town = MapName.Contains(TEXT("SouthWindsward")) ? TEXT("windsward") : MapName.Contains(TEXT("QuedaEterna")) ? TEXT("everfall") : nullptr;
+	if (UFont* Pica = FNWUILayout::GameFont(3); Town && Pica && FVector2D(ViewPawn->GetActorLocation()).Size() < 25000.0)
+	{
+		const FString Spaced = NWText::Get(Town).ToUpper();
+		const float Scale = 15.f * S / FMath::Max(1, Pica->LegacyFontSize);
+		float TW = 0.f, TH = 0.f;
+		Canvas->TextSize(Pica, Spaced, TW, TH, Scale, Scale);
+		FFontRenderInfo Shadow;
+		Shadow.bEnableShadow = true;
+		Canvas->SetDrawColor(FColor(0xEB, 0xE3, 0xD6));
+		Canvas->DrawText(Pica, Spaced, CX - TW * 0.5f, 54.f * S, Scale, Scale, Shadow);
 	}
 }
 
