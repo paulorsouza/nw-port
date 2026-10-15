@@ -42,6 +42,7 @@ pub fn router() -> Router<AppState> {
         .route("/internal/market/orders/{id}/fill", post(market::fill))
         .route("/internal/market/orders/{id}/cancel", post(market::cancel))
         .route("/internal/item-log", get(journal::list))
+        .route("/internal/characters/{id}/coins-cap", post(journal::coins_cap))
         .route("/internal/regions/{region}/city", get(city::get).put(city::manage))
         .route("/internal/regions/{region}/city/log", get(city::log_list))
         .route("/internal/regions/{region}/city/buy", post(city::buy_city))

@@ -3,7 +3,9 @@
 
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/Pawn.h"
+#include "NWBackend.h"
 #include "NWCharacter.h"
+#include "NWCity.h"
 #include "NWCombatComponent.h"
 #include "NWHUD.h"
 #include "NWItemRules.h"
@@ -204,6 +206,30 @@ FString UNWInventoryComponent::FormatCoins(int64 Cents)
 
 void UNWInventoryComponent::AddCoins(int64 Amount)
 {
+	// Teto de moedas (governança, dono 2026-10-15): o que passa não entra, sem crédito; fica no log do servidor e no
+	// log de itens do nw-core.
+	const int64 Max = NWCity::Rules().CoinsMax;
+	if (Amount > 0 && Max > 0 && Coins + Amount > Max)
+	{
+		const int64 Kept = FMath::Max<int64>(0, Max - Coins);
+		const int64 Lost = Amount - Kept;
+		Amount = Kept;
+		const APawn* P = Cast<APawn>(GetOwner());
+		const ANWPlayerController* PC = P ? Cast<ANWPlayerController>(P->GetController()) : nullptr;
+		UE_LOG(LogTemp, Warning, TEXT("Teto de moedas: %s perdeu %lld (%s)"), PC && PC->Record ? *PC->Record->Name : *GetNameSafe(GetOwner()), Lost,
+			*NWOps::CurrentReason(TEXT("coins_cap")));
+		if (PC && PC->Record && GetWorld() && GetWorld()->GetGameInstance())
+		{
+			if (UNWBackend* B = GetWorld()->GetGameInstance()->GetSubsystem<UNWBackend>(); B && B->IsServerEnabled())
+			{
+				B->CoinsCap(PC->Record->Id, Lost, NWOps::CurrentReason(TEXT("coins_cap")));
+			}
+		}
+		if (PC)
+		{
+			const_cast<ANWPlayerController*>(PC)->Warning(NWText::Key(TEXT("nw.coins_cap")));
+		}
+	}
 	Coins = FMath::Max<int64>(0, Coins + Amount);
 	Changed();
 }

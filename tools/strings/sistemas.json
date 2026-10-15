@@ -792,6 +792,14 @@
     "nw.city.week_left": {
       "pt-br": "Restante na semana",
       "en-us": "Left this week"
+    },
+    "nw.coins_cap": {
+      "pt-br": "Limite de 20 milhões de moedas",
+      "en-us": "20 million coin limit reached"
+    },
+    "nw.market.price_too_high": {
+      "pt-br": "Preço acima de 5 milhões",
+      "en-us": "Price above 5 million"
     }
   },
   "chaves_do_jogo": [

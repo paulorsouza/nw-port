@@ -105,7 +105,7 @@ fabricação, nível de cada mesa, equipamento de defesa (armas), buffs ativos, 
 
 - Sem dono: preço fixo, quem pagar primeiro leva; o valor some.
 - Com dono, toda venda é um leilão de 24 h (dono 2026-10-14):
-  - do governador: depois da carência de 14 dias, com o lance inicial que ele quiser; pode cancelar enquanto não
+  - do governador: depois da carência de 7 dias, com o lance inicial que ele quiser; pode cancelar enquanto não
     houver lance; no fim recebe o maior lance menos a taxa de 10%;
   - obrigatório (tenebroso): começa no preço inicial da cidade, o dono não cancela, e no fim recebe o maior lance
     inteiro.
@@ -115,6 +115,15 @@ fabricação, nível de cada mesa, equipamento de defesa (armas), buffs ativos, 
   ao preço fixo) e o governador que sai não recebe nada (dono 2026-10-15).
 - Balancete, estoque, mesas e defesa ficam com a cidade.
 - Sem dono: preços no meio da faixa, imposto padrão, sem ataques e sem prêmio.
+
+## Limites de moedas (dono 2026-10-15)
+
+- Por personagem: no máximo 20 milhões de moedas (`moedas_max` em `tools/governanca.json`).
+- Por item: preço unitário de no máximo 5 milhões no mercado, pedido de venda e de compra (`preco_item_max`).
+- Ganho que passa do teto não entra e não vira crédito: o servidor de jogo corta em `AddCoins`, avisa o jogador e
+  registra (log do servidor e `coins_cap` no log de itens do nw-core, `POST /internal/characters/{id}/coins-cap`). O
+  nw-core corta também qualquer gravação acima do teto e registra o excedente (garantia).
+- Carência para pôr a cidade em leilão: 7 dias.
 
 ## Balanceamento
 

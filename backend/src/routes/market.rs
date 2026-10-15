@@ -225,6 +225,9 @@ pub async fn create(
     if is_bound(&c.props) {
         return Err(ApiError::bad_request("item_bound", "Item vinculado não vai ao posto de trocas."));
     }
+    if c.unit_price > crate::routes::city::RULES.preco_item_max {
+        return Err(ApiError::bad_request("price_too_high", "Preço acima do máximo por item."));
+    }
     if !(1..=MAX_HOURS).contains(&c.duration_hours) {
         return Err(ApiError::bad_request("invalid_order", "Duração inválida."));
     }

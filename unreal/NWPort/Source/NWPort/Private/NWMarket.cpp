@@ -4,6 +4,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "NWBackend.h"
+#include "NWCity.h"
 #include "NWCharacter.h"
 #include "NWCrafting.h"
 #include "NWInteractable.h"
@@ -345,6 +346,12 @@ void UNWInteractorComponent::ServerMarketPostSell_Implementation(int32 Req, int3
 		ClientMarketDone(Req, false);
 		return;
 	}
+	if (NWCity::Rules().ItemPriceMax > 0 && UnitPrice > NWCity::Rules().ItemPriceMax)
+	{
+		MarketWarn(this, TEXT("nw.market.price_too_high"));
+		ClientMarketDone(Req, false);
+		return;
+	}
 	TWeakObjectPtr<UNWInteractorComponent> Self(this);
 	TSharedRef<FNWItem> Listed = MakeShared<FNWItem>();
 	NWOps::Run(Me, TEXT("market_post_sell"),
@@ -372,7 +379,8 @@ void UNWInteractorComponent::ServerMarketPostBuy_Implementation(int32 Req, FName
 {
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	const FNWItemDef* D = FNWItemCatalog::Get().Find(ItemId);
-	if (!Me || !D || !bMarketOpen || !NearTradingPost() || Quantity <= 0 || UnitPrice <= 0 || !NWMarket::ValidDays(Days) || !MarketBackend(this))
+	if (!Me || !D || !bMarketOpen || !NearTradingPost() || Quantity <= 0 || UnitPrice <= 0 || !NWMarket::ValidDays(Days) || !MarketBackend(this)
+		|| (NWCity::Rules().ItemPriceMax > 0 && UnitPrice > NWCity::Rules().ItemPriceMax))
 	{
 		ClientMarketDone(Req, false);
 		return;

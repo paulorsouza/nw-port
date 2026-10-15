@@ -956,6 +956,21 @@ void UNWBackend::CityBuy(const FNWCharacterRecord& Record, const FString& Region
 		});
 }
 
+void UNWBackend::CoinsCap(const FString& CharacterId, int64 Amount, const FString& Reason)
+{
+	TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetNumberField(TEXT("amount"), double(Amount));
+	Body->SetStringField(TEXT("reason"), Reason.IsEmpty() ? FString(TEXT("coins_cap")) : Reason.Left(80));
+	Request(TEXT("POST"), FString::Printf(TEXT("/internal/characters/%s/coins-cap"), *CharacterId), WriteJson(Body), true,
+		[](int32 Status, TSharedPtr<FJsonObject>)
+		{
+			if (Status != 204)
+			{
+				UE_LOG(LogNWBackend, Warning, TEXT("coins-cap: nw-core respondeu %d"), Status);
+			}
+		});
+}
+
 void UNWBackend::CityBid(const FNWCharacterRecord& Record, const FString& Region, int64 Amount, const FString& Reason, FCityDone Done)
 {
 	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());

@@ -54,6 +54,7 @@ Servidor de jogo (`X-NW-Server-Secret`):
 | GET | `/internal/characters/{id}/ground` | | sacos vivos (`id`, `map`, `position`, `expires_at`, `items`); apaga os vencidos |
 | POST | `/internal/characters/{id}/ground` | `map`, `position`, `ttl_seconds`, `items`, `inventory`, `coins` | 201 saco |
 | POST | `/internal/ground/{saco}/take` | `character_id`, `items` (o que sobra), `inventory`, `coins` | `remaining`; 409 `ground_gone` |
+| POST | `/internal/characters/{id}/coins-cap` | `amount`, `reason` | 204: registra moedas cortadas pelo teto (20 milhões) |
 | GET | `/internal/item-log` | filtros `character_id`, `character`, `item_id`, `serial`, `since`, `limit` | linhas do log, mais novas primeiro |
 | POST | `/internal/characters/{id}/serials` | | 201 `serial` (número de série do item assinado; o personagem é o artesão) |
 | GET | `/internal/characters/{id}/npc-rewards` | `period` (terça da semana) | `claims`: brindes já pegos (`once` + o período) |

@@ -13,7 +13,7 @@
   "preco_cidade": 15000000,
   "balancete_inicial": 20000000,
   "taxa_revenda": 0.1,
-  "carencia_dias": 14,
+  "carencia_dias": 7,
   "imposto": {
     "min": 0.0,
     "max": 0.1,
@@ -133,5 +133,7 @@
   "leilao": {
     "horas": 24,
     "incremento_minimo": 0.05
-  }
+  },
+  "moedas_max": 2000000000,
+  "preco_item_max": 500000000
 }

@@ -163,8 +163,15 @@ pub(crate) async fn write_bag(
     coins: Option<i64>,
 ) -> ApiResult<()> {
     let id = ctx.character_id;
-    if let Some(c) = coins {
+    if let Some(mut c) = coins {
         let was = coins_of(tx, id).await?;
+        // Teto de moedas: o que passa não entra e fica no log (o servidor de jogo já corta antes; isto é a garantia).
+        let max = crate::routes::city::RULES.moedas_max;
+        if c > max && c > was {
+            let kept = max.max(was);
+            log(tx, ctx, "coins_cap", None, -(c - kept), 0, 0, &serde_json::json!({})).await?;
+            c = kept;
+        }
         sqlx::query("update characters set coins = $2 where id = $1").bind(id).bind(c).execute(&mut *tx).await?;
         log(tx, ctx, "coins", None, c - was, 0, 0, &serde_json::json!({})).await?;
     }
@@ -286,6 +293,30 @@ pub struct LogRow {
 }
 
 /// `GET /internal/item-log`: filtros por personagem, item, número de série e data; mais novos primeiro.
+/// Moedas que o servidor de jogo deixou de dar por causa do teto (`coins_cap`): só o registro.
+#[derive(Deserialize)]
+pub struct CoinsCap {
+    pub amount: i64,
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
+pub async fn coins_cap(
+    State(state): State<AppState>,
+    _server: GameServer,
+    axum::extract::Path(id): axum::extract::Path<Uuid>,
+    axum::Json(c): axum::Json<CoinsCap>,
+) -> ApiResult<axum::http::StatusCode> {
+    if c.amount <= 0 {
+        return Err(ApiError::bad_request("invalid_amount", "Valor inválido."));
+    }
+    let reason = c.reason.unwrap_or_else(|| "coins_cap".into());
+    let mut tx = state.db.begin().await?;
+    log(&mut tx, &Ctx::core(id, &reason.chars().take(MAX_REASON).collect::<String>()), "coins_cap", None, -c.amount, 0, 0, &serde_json::json!({})).await?;
+    tx.commit().await?;
+    Ok(axum::http::StatusCode::NO_CONTENT)
+}
+
 pub async fn list(State(state): State<AppState>, _server: GameServer, Query(q): Query<LogQuery>) -> ApiResult<Json<Vec<LogRow>>> {
     let limit = q.limit.unwrap_or(200).clamp(1, 5000);
     let rows: Vec<LogRow> = sqlx::query_as(

@@ -1,5 +1,6 @@
 #include "SNWMarket.h"
 
+#include "NWCity.h"
 #include "NWSlate.h"
 
 #include "Engine/Font.h"
@@ -1159,7 +1160,11 @@ void SNWMarket::RefreshPanel(EPage P)
 				SNew(SButton)
 				.ButtonStyle(&St().Primary)
 				.HAlign(HAlign_Center).VAlign(VAlign_Center)
-				.IsEnabled_Lambda([this]() { return Price > 0 && MyOrders() < FNWItemRules::Get().MarketMaxOrders; })
+				.IsEnabled_Lambda([this]()
+				{
+					const int64 Max = NWCity::Rules().ItemPriceMax;
+					return Price > 0 && (Max <= 0 || Price <= Max) && MyOrders() < FNWItemRules::Get().MarketMaxOrders;
+				})
 				.OnClicked_Lambda([this]() { PostSell(); return FReply::Handled(); })
 				[
 					Txt(NWText::Get(TEXT("ui_placesellorder")), 2, 17, Tan)

@@ -110,6 +110,9 @@ namespace NWCity
 				Out.GsPerLevel = int32(E->GetNumberField(TEXT("gs")));
 				Out.QualityPerLevel = int32(E->GetNumberField(TEXT("qualidade_minima")));
 				Out.TaxDefault = float(G->GetObjectField(TEXT("imposto"))->GetNumberField(TEXT("padrao")));
+				Out.GraceDays = int32(G->GetNumberField(TEXT("carencia_dias")));
+				Out.CoinsMax = int64(G->GetNumberField(TEXT("moedas_max")));
+				Out.ItemPriceMax = int64(G->GetNumberField(TEXT("preco_item_max")));
 				const TSharedPtr<FJsonObject> Pr = G->GetObjectField(TEXT("premio"));
 				Out.TenebMaterial = int64(Pr->GetNumberField(TEXT("tenebroso_materia_prima")));
 				Out.TenebList = int64(Pr->GetNumberField(TEXT("tenebroso_lista")));
@@ -168,7 +171,7 @@ namespace NWCity
 		}
 		if (J->TryGetStringField(TEXT("owner_since"), Since) && FDateTime::ParseIso8601(*Since, When))
 		{
-			Out.SaleGraceDays = FMath::Max(0.f, float(14.0 - (FDateTime::UtcNow() - When).GetTotalDays()));
+			Out.SaleGraceDays = FMath::Max(0.f, float(Rules().GraceDays - (FDateTime::UtcNow() - When).GetTotalDays()));
 		}
 		Out.Treasury = int64(J->GetNumberField(TEXT("treasury")));
 		Out.Tax = float(J->GetNumberField(TEXT("tax")));

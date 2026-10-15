@@ -1051,3 +1051,25 @@ async fn cidade_leilao_do_dono_e_sem_lance(db: PgPool) {
 
 }
 
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn teto_de_moedas_e_preco_maximo(db: PgPool) {
+    let api = Api::new(db.clone());
+    let id = character(&api, &db, "Paulo", "Aranha").await;
+    // Gravação acima de 20 milhões: entra só até o teto e o excedente fica no log.
+    let state = json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {}, "coins": 2_000_000_500i64 });
+    let (status, b) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state)).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{b}");
+    assert_eq!(coins_of(&db, &id).await, 2_000_000_000);
+    let (_, log) = api.call("GET", &format!("/internal/item-log?character_id={id}"), None, true, None).await;
+    let cap = log.as_array().unwrap().iter().find(|l| l["location"] == "coins_cap" || l["place"] == "coins_cap").cloned().unwrap_or(Value::Null);
+    assert_eq!(cap["quantity"], -500, "{log}");
+    // Corte feito pelo servidor de jogo: só o registro.
+    let (status, _) = api.call("POST", &format!("/internal/characters/{id}/coins-cap"), None, true, Some(json!({ "amount": 700, "reason": "loot:teste" }))).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    // Mercado: preço unitário acima de 5 milhões é recusado.
+    let order = json!({ "character_id": id, "kind": "buy", "item_id": "IngotT5", "quantity": 1, "unit_price": 500_000_001i64,
+                        "duration_hours": 24, "coins": 0, "inventory": [] });
+    let (status, e) = api.call("POST", "/internal/market/global/orders", None, true, Some(order)).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::BAD_REQUEST, Some("price_too_high")));
+}
+

@@ -136,6 +136,8 @@ public:
 		const FString& Reason, FCityDone Done);
 	/** Comprar a cidade pelo preço visto; Record já sem as moedas. */
 	void CityBuy(const FNWCharacterRecord& Record, const FString& Region, int64 Price, const FString& Reason, FCityDone Done);
+	/** Registra moedas que o personagem deixou de ganhar pelo teto (só o log; nada muda nas moedas). */
+	void CoinsCap(const FString& CharacterId, int64 Amount, const FString& Reason);
 	/** Lance no leilão da cidade; Record já sem as moedas do lance. */
 	void CityBid(const FNWCharacterRecord& Record, const FString& Region, int64 Amount, const FString& Reason, FCityDone Done);
 	/** Ações do governador sem bolsa: Sub = "" (PUT preços/imposto), "sale", "projects". */

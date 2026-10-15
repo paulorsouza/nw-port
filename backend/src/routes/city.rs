@@ -45,6 +45,10 @@ pub(crate) struct Rules {
     pub ataque: Attack,
     pub premio: Prize,
     pub leilao: AuctionRule,
+    /// Teto de moedas por personagem (centavos): o que passa não entra (dono 2026-10-15).
+    pub moedas_max: i64,
+    /// Preço unitário máximo no mercado (centavos).
+    pub preco_item_max: i64,
 }
 
 #[derive(Deserialize)]

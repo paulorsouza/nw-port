@@ -120,6 +120,9 @@ namespace NWCity
 		int32 GsPerLevel = 0;
 		int32 QualityPerLevel = 0;
 		float TaxDefault = 0.05f;
+		int32 GraceDays = 7;                           // carência antes de pôr a cidade em leilão
+		int64 CoinsMax = 0;                            // teto de moedas por personagem (centavos)
+		int64 ItemPriceMax = 0;                        // preço unitário máximo no mercado (centavos)
 		int64 TenebMaterial = 0;                       // metas mínimas da semana (abaixo = tenebroso)
 		int64 TenebList = 0;
 		TMap<FName, int64> Reference;                  // preço de referência (centavos) para o imposto
