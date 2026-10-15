@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Fatos da engenharia reversa (re-local/valores/<área>.json) → unreal/NWPort/Data/regras.json, lido pelo
 FNWRules. Só os que têm valor numérico; as regras (valor null) entram no código com o id citado em comentário.
-Sem re-local/, gera regras.json vazio e o C++ usa os padrões.
+Sem re-local/, mantém o regras.json que veio nos zips de assets (docs/sincronizar-assets.md) ou, sem ele, grava
+um vazio e o C++ usa os padrões.
 Conferir o que falta aplicar: python3 tools/re_check.py.
 
 Cada arquivo: {"valores": {"<área>.<nome>": {"valor", "unidade", "prova" (C/R/H), "endereco", "doc", "o_que"}}}.
@@ -32,8 +33,11 @@ def load_values():
 
 
 def main():
-    out = {k: v["valor"] for k, v in load_values().items() if isinstance(v.get("valor"), (int, float))}
     path = os.path.join(ROOT, "unreal", "NWPort", "Data", "regras.json")
+    if not os.path.isdir(VALUES) and os.path.exists(path):
+        print(f"sem re-local/valores: mantido {os.path.relpath(path, ROOT)}")
+        return
+    out = {k: v["valor"] for k, v in load_values().items() if isinstance(v.get("valor"), (int, float))}
     os.makedirs(os.path.dirname(path), exist_ok=True)
     json.dump(out, open(path, "w"), indent=1, sort_keys=True)
     print(f"{len(out)} valores em {os.path.relpath(path, ROOT)}")
