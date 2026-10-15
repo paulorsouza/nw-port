@@ -7,8 +7,9 @@ description: Esteira 4 — sistemas do New World na capital de Queda Eterna (map
 
 Regras de trabalho: skill `nw-esteira` e `docs/esteiras.md`. Estado e levantamento: `docs/sistemas.md` (crie no
 primeiro item). Testes: `docs/testes/sistemas.md`, mapa `L_QuedaEterna`.
-Telas: `docs/hud/README.md` (spec da tela, captura sem o jogo com `tools/ui_shot.sh`, comparação com o print do
-original, regras do LyShine, anotações do dono para a próxima sessão).
+Telas: `docs/hud/README.md` (spec da tela; captura sem o jogo pela skill da plataforma, no Linux
+`tools/linux/ui_shot.sh`; comparação com o print do original, regras do LyShine, anotações do dono para a próxima
+sessão).
 
 ## Escopo
 
@@ -17,8 +18,8 @@ próprio. Outras cidades e o território inteiro de Queda Eterna, só com pedido
 
 ## Ordem
 
-1. Cidade e mapa: skill `nw-convert-city` (`tools/pesado.sh tools/convert_city.sh <slice>`), depois os scripts de
-   `tools/ue/` das etapas 04 e 05 do `ue_import_all.sh` apontando para o mapa novo.
+1. Cidade e mapa: skill `nw-convert-city`, depois os scripts de `tools/ue/` das etapas 04 e 05 do
+   import apontando para o mapa novo.
 2. NPCs: posições e aparência dos slices da cidade, animação parada, nome.
 3. Estações de refino e ofício: interação, receitas (`datatables/javelindata_crafting*`), tempo, XP de ofício
    (`javelindata_tradeskill*`), nível mínimo.
@@ -37,5 +38,5 @@ próprio. Outras cidades e o território inteiro de Queda Eterna, só com pedido
   (pt-BR e en-US).
 - Persistência: o servidor dedicado manda, o nw-core (`backend/`, Rust + Postgres) guarda. Mudança de banco é
   migration nova; plano em `docs/plano-servidor.md`. Mostre o plano ao dono antes de mexer no backend.
-- Itens e catálogos: `tools/make_items.py` e `tools/make_data.sh` (skill `nw-make-data`).
+- Itens e catálogos: `tools/make_items.py` e `python3 tools/make_data.py` (skill `nw-make-data`).
 - Compilar e importar com o editor fechado, abrir no mapa, pedir print.

@@ -8,7 +8,7 @@ para o port em `~/workspace/nw-port`. Responda em pt-BR, texto direto.
 
 ## Antes
 
-Confira a build: `tools/jogo_versao.sh --exe` (endereços valem só para o exe de `tools/jogo.versao`; se for
+Confira a build: `tools/linux/jogo_versao.sh --exe` (endereços valem só para o exe de `tools/jogo.versao`; se for
 outro, pare e avise). Leia `docs/ghidra.md`, `docs/analise-re/ferramentas.md`, `docs/analise-re/simbolos.md` e a
 pergunta pedida em `docs/analise-re/perguntas/<id>.md`. Leia também o doc que ela cita. Endereço já catalogado não se reverte de novo.
 
@@ -19,9 +19,9 @@ pergunta pedida em `docs/analise-re/perguntas/<id>.md`. Leia também o doc que e
 - Todo endereço ou função que você identificar entra em `docs/analise-re/simbolos.md` na hora, com uma linha do que é.
 - Ghidra: o servidor MCP headless (porta 8089) é compartilhado. Se não estiver no ar, suba com o comando de
   `docs/ghidra.md` (já tem teto de memória). Descompilação em lote (`tools/re/RangeDecompile.java`) para o MCP e
-  roda pela fila: `tools/pesado.sh systemd-run --user --scope -p MemoryMax=14G ...` como em `ferramentas.md`; depois
+  roda pela fila: `tools/linux/pesado.sh systemd-run --user --scope -p MemoryMax=14G ...` como em `ferramentas.md`; depois
   suba o MCP de novo.
-- nwbt só pela fila: `tools/pesado.sh nwbt ...`, o mínimo de chamadas.
+- nwbt só pela fila: `tools/linux/pesado.sh nwbt ...`, o mínimo de chamadas.
 - Comece pelas strings (`python3 -I tools/re/xref.py str "..."`), depois `va`, `dis.py`, descompilação função a
   função. Parsers de datasheet: `xref.datasheet_columns`; colunas novas em `tools/re/colunas.py` (`PARSERS`).
 - Cada afirmação com prova: C (código lido), R (reflexão ou parser de dados), H (hipótese). Endereço e trecho

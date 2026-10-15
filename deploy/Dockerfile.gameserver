@@ -1,4 +1,4 @@
-# Servidor de jogo (Unreal dedicado, Linux). Recebe a pasta empacotada por tools/package_server.sh em
+# Servidor de jogo (Unreal dedicado, Linux). Recebe a pasta empacotada por tools/linux/package_server.sh em
 # build/LinuxServer — conteúdo do jogo extraído da instalação de quem empacota: imagem privada, não publicar.
 FROM ubuntu:24.04
 # A Unreal traz a própria libcurl; o usuário "ubuntu" (UID 1000) já vem na imagem.

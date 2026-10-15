@@ -1,4 +1,2 @@
-# source tools/env.sh — coloca nwbt, texconv e blender no PATH.
-root="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
-export PATH="$root/bin:$HOME/.local/go/bin:$HOME/.local/opt/blender-5.2.2-linux-x64:$PATH"
-export NWBT_OODLE="$root/bin/libooz.so"
+# Movido para tools/linux/env.sh (2026-10-15); atalho temporário para as sessões que já estavam abertas.
+source "$(dirname "${BASH_SOURCE[0]:-$0}")/linux/env.sh"

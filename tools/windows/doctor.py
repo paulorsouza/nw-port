@@ -8,6 +8,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import nwplatform
+import build_nwbt
 
 
 def main():
@@ -36,9 +37,16 @@ def main():
         ue = os.environ.get("NW_UE", "")
         checks["UnrealEditor-Cmd"] = bool(ue) and (
             Path(ue) / "Engine/Binaries/Win64/UnrealEditor-Cmd.exe").is_file()
+    # nwbt compilado com o patch deste checkout (patches/nwbt.patch, tools/build_nwbt.py).
+    notes = {}
+    if checks["nwbt"]:
+        checks["nwbt do patch atual"], notes["nwbt do patch atual"] = build_nwbt.check_binary()
+        if args.full and checks["New World assets"]:
+            # Converte um cubo do jogo por "@lista" (carrega os paks, ~20 s).
+            checks["nwbt @lista"], notes["nwbt @lista"] = build_nwbt.test_argfile()
     print("NW_GAME:", nwplatform.game_directory())
     for name, ok in checks.items():
-        print(("OK   " if ok else "FALTA"), name)
+        print(("OK   " if ok else "FALTA"), name, ("- " + notes[name]) if name in notes and not ok else "")
     return 0 if all(checks.values()) else 1
 
 

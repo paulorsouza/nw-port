@@ -3,7 +3,7 @@
     python3 tools/make_spawns.py
 
 Cada capital das camadas `06sw0*_ai` aponta para uma slice CoatGen/PointSpawner_*.dynamicslice (extract/spawners,
-nwbt --x-objects json, tools/build_all.sh 12). Da slice saem:
+nwbt --x-objects json, tools/linux/build_all.sh 12). Da slice saem:
   - AIVariantProviderComponent: linha de javelindata_vitals (m_vitalstablerowid), categoria e nível;
   - entidades wp1..wpN (AIWaypointComponent): posição local ao spawner, tarefa do jogo (POI_Graze_LOOP...) e duração.
 Das tabelas: basevitals_common (família, tipo, HealthMod, DamageMod, saque, escala, nome) e levelvariantvitals_common

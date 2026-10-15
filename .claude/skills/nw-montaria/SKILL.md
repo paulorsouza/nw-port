@@ -23,14 +23,14 @@ regras de ações em `docs/analise-re/resumo-plano-a.md`.
 | Telas | ícones `IconPath` da tabela; HUD de montaria do jogo (`docs/hud-original.md`) |
 
 `datatables/` = `extract/data/sharedassets/springboardentitites/datatables/`; `.adb` em
-`extract/models/animations/mannequin/adb/`. Arquivo não extraído: `tools/pesado.sh nwbt cat -g "$NW_GAME" <caminho>`.
+`extract/models/animations/mannequin/adb/`. Arquivo não extraído: `python3 tools/pesado.py nwbt cat -g "$NW_GAME" <caminho>`.
 
 ## Por montaria (ordem: cavalo, lobo, felino, depois os outros tipos)
 
 1. Levantamento em `docs/montarias.md`: dados da tabela, fragmentos e janelas, regras das actionlists.
 2. Conjunto novo `tools/sets/mount_<tipo>.json` (modelo: `tools/sets/wolf.json` e `boar.json`); montagens do
    cavaleiro com prefixo `AM_Mt_` em `tools/sets/player/montaria.json` (parte do conjunto do jogador).
-   Conversão pela fila (`tools/pesado.sh python3 tools/build_set.py ...`).
+   Conversão pela fila (`python3 tools/pesado.py python3 tools/build_set.py ...`).
 3. C++: o `UNWMountComponent` já existe no personagem (`Mount`, vazio); a montaria em si é `ANWMount` (novo, seu).
    Locomoção montada pelo `SetLocomotionOverride`, teclas pelo `NW_REGISTER_INPUT`, botões de teste pelo
    `NW_REGISTER_DEV`: sem mexer no `ANWCharacter` nem no `ABP_NW`.

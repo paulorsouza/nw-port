@@ -4,7 +4,7 @@
     python tools/ue_import_all.py 05       # so a etapa 05 (refeita mesmo se ja feita)
     python tools/ue_import_all.py --dry-run
 
-Equivale a tools/ue_import_all.sh. Cada etapa grava extract/.etapas/ue_<NN>.ok. Os commandlets devolvem codigo de
+Equivale a tools/linux/ue_import_all.sh. Cada etapa grava extract/.etapas/ue_<NN>.ok. Os commandlets devolvem codigo de
 erro por avisos de material do glTF: por isso cada chamada confere a linha de resultado no log, nao o codigo de saida.
 A engine vem de NW_UE (padrao C:/UnrealEngine no Windows).
 """

@@ -12,7 +12,7 @@ da própria instalação (`docs/plano-servidor.md`): o pacote é privado, só pa
 | Servidor de jogo (Unreal dedicado Linux, Guardaventos) | Docker neste PC, mesmo projeto | UDP 7777 em `<IP do PC>`, alcançado pelo Cloudflare WARP |
 | Cliente | Windows de cada um | `Jogar.bat` com `-nwbackend` e `-nwconnect` |
 
-O nw-core de desenvolvimento (`tools/backend_dev.sh`, porta 8090) continua separado, com outro banco.
+O nw-core de desenvolvimento (`tools/linux/backend_dev.sh`, porta 8090) continua separado, com outro banco.
 Segredos da rede em `deploy/.env` (fora do git).
 
 ## Por que WARP
@@ -24,7 +24,7 @@ Reservar esse IP para o PC no DHCP do roteador, para ele não mudar.
 
 ## Uma vez
 
-1. No terminal: `cloudflared tunnel login` (abre o navegador; escolher `<seu domínio>`). Depois `tools/rede.sh tunnel`
+1. No terminal: `cloudflared tunnel login` (abre o navegador; escolher `<seu domínio>`). Depois `tools/linux/rede.sh tunnel`
    (cria o túnel `nw-rede`, o `<NW_REDE_HOST>` e a rota privada `<IP do PC>/32`).
 2. Painel Zero Trust (one.dash.cloudflare.com), organização gratuita:
    - Settings > Custom pages / Team name: escolher o nome da equipe (os amigos digitam no WARP).
@@ -39,16 +39,16 @@ Reservar esse IP para o PC no DHCP do roteador, para ele não mudar.
 ## Servidor (neste PC)
 
 ```bash
-tools/rede.sh build
+tools/linux/rede.sh build
 ```
 
 ```bash
-tools/rede.sh up
+tools/linux/rede.sh up
 ```
 
 `build` compila o servidor na engine do código-fonte, cozinha Guardaventos e refaz as imagens (pesado, editor
-fechado). `up` sobe Postgres, nw-core e jogo, e o túnel (<NW_REDE_HOST> + rede privada). `tools/rede.sh invite` gera convites de conta; `tools/rede.sh admin <conta>` libera o F10 só para essa conta (sem admin, o servidor recusa e o menu não abre);
-`tools/rede.sh down` para tudo (o banco fica); `tools/rede.sh logs` mostra os logs.
+fechado). `up` sobe Postgres, nw-core e jogo, e o túnel (<NW_REDE_HOST> + rede privada). `tools/linux/rede.sh invite` gera convites de conta; `tools/linux/rede.sh admin <conta>` libera o F10 só para essa conta (sem admin, o servidor recusa e o menu não abre);
+`tools/linux/rede.sh down` para tudo (o banco fica); `tools/linux/rede.sh logs` mostra os logs.
 
 ## Cliente Windows (na máquina Windows do dono)
 
@@ -65,7 +65,7 @@ start "" "%~dp0NWPort.exe" -nwbackend=https://<NW_REDE_HOST> -nwconnect=<IP do P
 ```
 
 Zipar a pasta `Windows` e mandar só para os amigos (com o WARP ligado). Cada um entra pela tela de entrada com o convite
-(`tools/rede.sh invite`).
+(`tools/linux/rede.sh invite`).
 
 ## Versão
 

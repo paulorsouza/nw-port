@@ -65,18 +65,18 @@ indo para uma máquina sua, privada. Os clientes continuam extraindo cada um da 
 
 - F0: engine 5.8.3 compilada do código-fonte em `/mnt/jogos/UnrealEngine/src-5.8.3` (dependências só de Linux;
   dois ícones do AutomationTool/IOS gerados no lugar para o UAT compilar). Servidor `NWPortServer` empacotado
-  por `tools/package_server.sh` em `deploy/build/LinuxServer` (2,3 GB; cozido com o editor instalado, mesmo
+  por `tools/linux/package_server.sh` em `deploy/build/LinuxServer` (2,3 GB; cozido com o editor instalado, mesmo
   CompatibleChangelist). Versão de rede própria do jogo (`FNWPortModule`, `NetProtocol`): sem isso o servidor
-  do código-fonte recusa clientes da engine instalada. Testado com `NW_SERVER=pacote tools/net_test.sh 3`: 3
+  do código-fonte recusa clientes da engine instalada. Testado com `NW_SERVER=pacote tools/linux/net_test.sh 3`: 3
   personagens entram e salvam, intruso recusado. **F0 concluída** no Docker (`deploy/build_images.sh` + `docker compose
-  up -d`; segredos em `deploy/.env`). Medição com 10 bots (`NW_SERVER=docker tools/net_test.sh 10`, `-nwbot`
+  up -d`; segredos em `deploy/.env`). Medição com 10 bots (`NW_SERVER=docker tools/linux/net_test.sh 10`, `-nwbot`
   anda e ataca), com os 10 conectados: CPU 26–31% de um núcleo, RAM ~530 MB, saída ~66 KB/s no total
   (~53 kbit/s por jogador). Uma VM de 2 vCPU / 2–4 GB sobra para o clã; banda não é problema.
 - F1, backend: `backend/` (crate `nw-core`) pronto, com 8 testes passando contra Postgres. Ver
   `backend/README.md`.
 - F1, servidor de jogo: `UNWBackend` (HTTP) e `ANWGameMode` (passe no `PreLoginAsync`, nasce na posição
   salva, salva a cada 30 s e ao sair). Habilidades e maestria passam a ser guardadas pelo servidor e
-  replicadas só para o dono. Testado com `tools/net_test.sh` (servidor `-server` + 2 clientes): entrada pelo
+  replicadas só para o dono. Testado com `tools/linux/net_test.sh` (servidor `-server` + 2 clientes): entrada pelo
   passe, combate entre os dois, posição/vida/arma/habilidades salvas e restauradas, conexão sem passe
   recusada. A posição só é salva com o personagem no chão (caindo, fica a última boa).
 - Cliente: tela de entrada (`FNWLoginMenu`) montada com peças do jogo (landingscreenv2: painel de 3 vagas e
@@ -141,7 +141,7 @@ Etapa 3 (2026-10-14, sem migration):
 - O cliente manda só intenções (ação, espaço da bolsa, receita); dano, sorteio, itens e moedas são do servidor, e o
   cliente nunca tem o segredo do nw-core.
 - F10 (comandos de teste): o servidor só aceita de conta admin no nw-core (`nw-core admin <conta>`,
-  `tools/rede.sh admin`); sem nw-core ou no Play do editor, liberado. O cliente sem permissão não abre o menu. Cada
+  `tools/linux/rede.sh admin`); sem nw-core ou no Play do editor, liberado. O cliente sem permissão não abre o menu. Cada
   uso vai para o log do servidor (`F10: conta/personagem usou X`, recusas em Warning) e para o `item_log` com o
   motivo `dev:<comando>`.
 - Em aberto (esteira 1): maestria (`ServerSetMastery`) e habilidades na barra (`ServerSetWeaponAbilities`) aceitam o

@@ -35,7 +35,7 @@ git clone https://github.com/bnnm/wwiser.git vendor/wwiser
 git -C vendor/wwiser checkout 08e937b
 ```
 
-Pare se algum comando falhar. O build de nwbt requer acesso ao fork privado `paulorsouza/nw-buddy`; o script fixa o commit e aplica os patches. Para um checkout existente, use `-Source`; para um Go fora do PATH, use `-GoExe`. `texconv.exe` já está em `bin/`.
+Pare se algum comando falhar. O build de nwbt requer acesso ao fork privado `paulorsouza/nw-buddy`; o script (que chama `tools/build_nwbt.py`) fixa o commit, aplica `patches/nwbt.patch` e grava a versão no `nwbt.exe`; o `doctor.py` acusa binário de outro patch. Para um checkout existente, use `-Source`; para um Go fora do PATH, use `-GoExe`. `texconv.exe` já está em `bin/`.
 
 Para áudio, obtenha a distribuição Windows de [vgmstream](https://github.com/vgmstream/vgmstream/releases) e [oggenc2](https://www.rarewares.org/ogg-oggenc.php). Preserve as DLLs distribuídas junto dos executáveis e configure:
 

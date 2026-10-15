@@ -22,8 +22,8 @@ Windows nativo (em andamento): [plano, builds e validacao](docs/windows-convert.
 Resumo do setup, depois das ferramentas instaladas:
 
 ```bash
-tools/build_all.sh         # extrai e converte da sua instalação do New World (2 a 4 h)
-tools/ue_import_all.sh     # monta o projeto Unreal (editor fechado, ~1 h 30)
+tools/linux/build_all.sh         # extrai e converte da sua instalação do New World (2 a 4 h)
+tools/linux/ue_import_all.sh     # monta o projeto Unreal (editor fechado, ~1 h 30)
 ```
 
 ## Estrutura

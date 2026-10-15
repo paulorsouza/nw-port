@@ -3,7 +3,7 @@
 Pesquisa nos arquivos do jogo (2026-10-11) e o que foi implementado no port. Levantamento detalhado de cada canvas
 (elementos, textos, texturas, Lua) em `docs/hud-levantamento.md`, gerado por `python3 tools/ui_survey.py`.
 
-As 164 telas LyShine estão em `extract/ui/lyshineui/**/*.dynamicuicanvas.json` (`tools/build_all.sh` etapa 03).
+As 164 telas LyShine estão em `extract/ui/lyshineui/**/*.dynamicuicanvas.json` (`tools/linux/build_all.sh` etapa 03).
 O jogo monta quase tudo por Lua (botões, listas, opções): o canvas traz só moldura e modelos; os textos dos
 botões e opções estão nos `.luac` (`strings` revela as chaves `@ui_*`, traduzidas em `extract/loc`).
 

@@ -14,8 +14,8 @@ Ações de coleta seguem as regras das actionlists lidas pela RE (`docs/analise-
 
 - C++: `NWGatherComponent` (interação, montagens `AM_GatherMine`/`AM_GatherCut`/`AM_GatherChop` do conjunto do
   jogador, saque, XP de ofício) e `NWGatherField` (instâncias, respawn).
-- Dados: `tools/make_gatherables.py` → `Data/World/guardaventos_gatherables.json`; malhas por
-  `tools/convert_gatherables.sh` (skill `nw-convert-gatherables`) e `tools/ue/import_gatherables.py`.
+- Dados: `tools/make_gatherables.py` → `Data/World/guardaventos_gatherables.json`; malhas pela skill
+  `nw-convert-gatherables` e `tools/ue/import_gatherables.py`.
 - Pendências: `docs/pendencias.md`, seção "Coleta: polimento".
 
 ## Fontes do jogo
@@ -30,19 +30,19 @@ Ações de coleta seguem as regras das actionlists lidas pela RE (`docs/analise-
 | Telas | `hud/unifiedinteractcard/*`, aviso de saque, bússola (`CompassIcon`); `docs/hud-original.md` |
 
 `datatables/` = `extract/data/sharedassets/springboardentitites/datatables/`. Arquivo que não estiver extraído:
-`tools/pesado.sh nwbt cat -g "$NW_GAME" <caminho>`.
+`python3 tools/pesado.py nwbt cat -g "$NW_GAME" <caminho>`.
 
 ## Por ofício
 
 1. Levantamento em `docs/coleta.md`: o que o jogo define (tabela acima) contra o que o port faz.
 2. Animações: montagens novas com prefixo `AM_Gather*`, ferramentas, fragmentos e janelas do `.adb` em
    `tools/sets/player/coleta.json` (parte do conjunto do jogador); conversão
-   `tools/pesado.sh python3 tools/build_set.py tools/sets/sword_shield.json`.
+   `python3 tools/pesado.py python3 tools/build_set.py tools/sets/sword_shield.json`.
 3. Regras e saque no `NWGatherComponent` e no `make_gatherables.py`, com a fonte de cada número.
 4. Som e efeitos: sons do Wwise já extraídos (`extract/audio`, `tools/extract_audio.py`), mapa de sons
    (`tools/make_sound_map.py`), VFX das variações.
 5. HUD: cartão de interação, barra de progresso, aviso de saque, bússola.
-6. Compilar e importar com o editor fechado (`tools/ue_import_all.sh 01`, `02`; coletáveis `03`/`13` conforme o caso),
+6. Compilar e importar com o editor fechado (etapa 01 do import, `02`; coletáveis `03`/`13` conforme o caso),
    abrir em `L_SouthWindsward`, pedir print.
 
 Esfolar precisa de criatura morta: criaturas e IA são da esteira de armas; peça pelo relatório o que faltar.
