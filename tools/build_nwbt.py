@@ -28,7 +28,7 @@ import nwplatform
 ROOT = nwplatform.ROOT
 PATCH = ROOT / "patches/nwbt.patch"
 # Commit do fork paulorsouza/nw-buddy (branch nw-port) sobre o qual o patch se aplica.
-BASE = "267f86568977c5801b716f02684f7bc69e0982d0"
+BASE = "5e2c7e195f05975b73e4dbc3399d60a815133ed8"
 FORK = "https://github.com/paulorsouza/nw-buddy.git"
 BUILD = ROOT / ".nwbt/build"
 # Malha minima do jogo para o teste do "@lista".

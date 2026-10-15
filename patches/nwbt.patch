@@ -1,5 +1,5 @@
 Patch unico do nwbt do nw-port, aplicado sobre o fork paulorsouza/nw-buddy (branch nw-port) no commit
-267f86568977c5801b716f02684f7bc69e0982d0, com fim de linha LF, nas duas compilacoes (Linux e Windows):
+5e2c7e195f05975b73e4dbc3399d60a815133ed8, com fim de linha LF, nas duas compilacoes (Linux e Windows):
 tools/build_nwbt.py. Como refazer: patches/README.md. O git apply ignora este cabecalho.
 
 Conteudo: Windows (ooz.dll, RTTI sem exec.LookPath, PATH, caminho do jogo com '/'), "@lista" em

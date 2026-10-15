@@ -142,7 +142,7 @@ python tools/windows/doctor.py --full
 ```
 
 build_nwbt.ps1 chama tools/build_nwbt.py, o mesmo script do Linux (2026-10-15). Ele clona o fork
-privado em vendor/nw-buddy se necessario, exporta o commit `267f86568977c5801b716f02684f7bc69e0982d0`
+privado em vendor/nw-buddy se necessario, exporta o commit `5e2c7e195f05975b73e4dbc3399d60a815133ed8`
 para `.nwbt/build/src` com fim de linha LF, aplica `patches/nwbt.patch` e grava a versao no binario
 (`nwbt --version` mostra `nwport-patch=<base>-<hash do patch>`). O checkout do fork nao e alterado.
 -Source e -GoExe continuam valendo; NW_PYTHON escolhe o Python. Mudar o nwbt: `patches/README.md`.
