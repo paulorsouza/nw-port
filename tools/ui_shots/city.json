@@ -5,15 +5,14 @@
  "city": {
   "region": "1",
   "name": "Queda Eterna",
-  "owner_id": "00000000-0000-0000-0000-000000000001",
+  "owner_id": "b1e7907b-f9a7-42c3-9304-a1d5669c4e2d",
   "owner_name": "Exilado",
-  "owner_since": "2026-10-08T12:00:00Z",
-  "price": 25000000,
-  "paid": 0,
-  "for_sale": null,
-  "forced_sale": false,
-  "treasury": 11234500,
-  "tax": 0.06,
+  "owner_since": "2026-10-15T01:27:01.023741Z",
+  "price": 15000000,
+  "paid": 15000000,
+  "auction": null,
+  "treasury": 2711000,
+  "tax": 0.05,
   "tax_min": 0.0,
   "tax_max": 0.1,
   "buy": [
@@ -24,7 +23,7 @@
     "max": 80,
     "padrao": 50,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "FiberT4",
@@ -33,7 +32,7 @@
     "max": 130,
     "padrao": 80,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "FiberT5",
@@ -42,7 +41,7 @@
     "max": 155,
     "padrao": 90,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "OrePreciousT1",
@@ -51,7 +50,7 @@
     "max": 80,
     "padrao": 50,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "OrePreciousT2",
@@ -60,7 +59,7 @@
     "max": 60,
     "padrao": 35,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "OrePreciousT3",
@@ -69,7 +68,7 @@
     "max": 90,
     "padrao": 50,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "OreT1",
@@ -77,8 +76,8 @@
     "min": 20,
     "max": 100,
     "padrao": 60,
-    "used": 3200,
-    "limit": 10000
+    "used": 0,
+    "limit": 5000
    },
    {
     "item_id": "OreT4",
@@ -87,7 +86,7 @@
     "max": 155,
     "padrao": 90,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "OreT5",
@@ -96,7 +95,7 @@
     "max": 185,
     "padrao": 110,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "RawhideT1",
@@ -105,7 +104,7 @@
     "max": 115,
     "padrao": 70,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "RawhideT4",
@@ -114,7 +113,7 @@
     "max": 95,
     "padrao": 60,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "RawhideT5",
@@ -123,7 +122,7 @@
     "max": 115,
     "padrao": 70,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "StoneT1",
@@ -132,7 +131,7 @@
     "max": 75,
     "padrao": 45,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "StoneT4",
@@ -141,7 +140,7 @@
     "max": 210,
     "padrao": 125,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "WoodT1",
@@ -150,7 +149,7 @@
     "max": 40,
     "padrao": 25,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "WoodT2",
@@ -159,7 +158,7 @@
     "max": 95,
     "padrao": 60,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "WoodT4",
@@ -168,7 +167,7 @@
     "max": 140,
     "padrao": 80,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    },
    {
     "item_id": "WoodT5",
@@ -177,7 +176,7 @@
     "max": 165,
     "padrao": 100,
     "used": 0,
-    "limit": 10000
+    "limit": 5000
    }
   ],
   "sell": [
@@ -241,91 +240,170 @@
     "station": "alchemy",
     "level": 0,
     "reached": 0,
-    "crafts": 0
+    "crafts": 0,
+    "tier": 2,
+    "work": null,
+    "work_target": null,
+    "work_ends_at": null
    },
    {
     "station": "blacksmith",
-    "level": 1,
-    "reached": 1,
-    "crafts": 0
+    "level": 0,
+    "reached": 0,
+    "crafts": 0,
+    "tier": 3,
+    "work": null,
+    "work_target": null,
+    "work_ends_at": null
    },
    {
     "station": "carpentry",
-    "level": 1,
-    "reached": 1,
-    "crafts": 0
+    "level": 0,
+    "reached": 0,
+    "crafts": 0,
+    "tier": 2,
+    "work": "tier",
+    "work_target": 3,
+    "work_ends_at": "2026-10-16T18:00:00Z"
    },
    {
     "station": "engineering",
     "level": 0,
     "reached": 0,
-    "crafts": 0
+    "crafts": 0,
+    "tier": 2,
+    "work": null,
+    "work_target": null,
+    "work_ends_at": null
    },
    {
     "station": "masonry",
     "level": 0,
     "reached": 0,
-    "crafts": 0
+    "crafts": 0,
+    "tier": 2,
+    "work": null,
+    "work_target": null,
+    "work_ends_at": null
    },
    {
     "station": "outfitting",
     "level": 0,
     "reached": 0,
-    "crafts": 0
+    "crafts": 0,
+    "tier": 2,
+    "work": null,
+    "work_target": null,
+    "work_ends_at": null
    },
    {
     "station": "smelting",
-    "level": 2,
-    "reached": 3,
-    "crafts": 0
+    "level": 0,
+    "reached": 0,
+    "crafts": 0,
+    "tier": 5,
+    "work": null,
+    "work_target": null,
+    "work_ends_at": null
    },
    {
     "station": "tanning",
     "level": 0,
     "reached": 0,
-    "crafts": 0
+    "crafts": 0,
+    "tier": 2,
+    "work": null,
+    "work_target": null,
+    "work_ends_at": null
    },
    {
     "station": "weaving",
-    "level": 3,
+    "level": 2,
     "reached": 3,
-    "crafts": 0
+    "crafts": 0,
+    "tier": 5,
+    "work": null,
+    "work_target": null,
+    "work_ends_at": null
    }
   ],
   "stock": {
-   "OreT1": 1800,
-   "OreT4": 4200,
-   "WoodT1": 900,
-   "FiberT5": 12000
+   "OreT1": 3500,
+   "WoodT2": 1200,
+   "FiberT1": 3000,
+   "RawhideT1": 3100,
+   "StoneT1": 800,
+   "OreT5": 22000,
+   "WoodT5": 21000,
+   "FiberT5": 20000,
+   "RawhideT5": 20000,
+   "StoneT4": 24000,
+   "OrePreciousT3": 9000
   },
   "buffs": [
    [
     "smelting",
     "xp"
-   ],
-   [
-    "weaving",
-    "extra"
    ]
   ],
-  "weapons": 4,
-  "next_attack_at": "2026-10-16T09:00:00Z",
+  "weapons": [
+   {
+    "weapon": "ballista",
+    "tier": 2,
+    "work_target": null,
+    "work_ends_at": null
+   },
+   {
+    "weapon": "explosive",
+    "tier": 1,
+    "work_target": null,
+    "work_ends_at": null
+   },
+   {
+    "weapon": "firebarrel",
+    "tier": 1,
+    "work_target": null,
+    "work_ends_at": null
+   },
+   {
+    "weapon": "hornofresilience",
+    "tier": 1,
+    "work_target": null,
+    "work_ends_at": null
+   },
+   {
+    "weapon": "repeater",
+    "tier": 1,
+    "work_target": 2,
+    "work_ends_at": "2026-10-16T10:00:00Z"
+   }
+  ],
+  "defense": 6,
+  "next_attack_at": "2026-10-22T01:27:01.023741Z",
   "last_attack": {
    "at": 0,
-   "strength": 3.4,
-   "weapons": 4,
+   "strength": 7.1,
+   "defense": 6,
    "won": false,
    "lost": [
-    "smelting",
-    "carpentry"
+    "weaving",
+    "ballista"
    ]
   },
   "week": "2026-10-13",
   "this_week": {
-   "raw_units": 3800,
-   "list_units": 640,
-   "buffs": 2,
-   "raw_coins": 0
+   "buffs": 18,
+   "list_coins": 510000,
+   "list_units": 4000,
+   "owner_id": "b1e7907b-f9a7-42c3-9304-a1d5669c4e2d",
+   "prize": null,
+   "project_value": 17700000,
+   "raw_coins": 99000,
+   "raw_units": 1980,
+   "repair_value": 0,
+   "score": null,
+   "tax_coins": 0,
+   "tier": null
   }
  },
  "city_mine": true,

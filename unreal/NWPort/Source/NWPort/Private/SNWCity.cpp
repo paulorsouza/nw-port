@@ -178,7 +178,9 @@ void SNWCity::Construct(const FArguments& Args)
 					]
 					+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
 					[
-						Coins(TAttribute<int64>::CreateLambda([this]() { return ShownCoins(); }), 2, 20, Gold)
+						bGovernance
+						? Treasury(TAttribute<int64>::CreateLambda([this]() { return State().Treasury; }), 2, 20)
+						: Coins(TAttribute<int64>::CreateLambda([this]() { return ShownCoins(); }), 2, 20, Gold)
 					]
 					+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(24.f, 0.f, 0.f, 0.f)
 					[
@@ -469,7 +471,11 @@ uint32 SNWCity::Signature() const
 	const FNWCityState& S = State();
 	uint32 H = HashCombine(GetTypeHash(S.bValid), GetTypeHash(S.bMine));
 	H = HashCombine(H, HashCombine(GetTypeHash(S.Treasury), GetTypeHash(S.Tax)));
-	H = HashCombine(H, HashCombine(GetTypeHash(S.OwnerName), GetTypeHash(S.Weapons)));
+	H = HashCombine(H, HashCombine(GetTypeHash(S.OwnerName), GetTypeHash(S.Defense)));
+	for (const FNWCityWeapon& X : S.Weapons)
+	{
+		H = HashCombine(H, HashCombine(GetTypeHash(X.Tier), GetTypeHash(X.WorkTarget)));
+	}
 	H = HashCombine(H, HashCombine(GetTypeHash(S.WeekRawUnits), GetTypeHash(S.WeekListUnits)));
 	H = HashCombine(H, HashCombine(GetTypeHash(S.WeekBuffs), GetTypeHash(S.bLastAttackWon)));
 	H = HashCombine(H, HashCombine(GetTypeHash(S.bAuction), GetTypeHash(S.AuctionBid)));
@@ -477,6 +483,7 @@ uint32 SNWCity::Signature() const
 	for (const FNWCityStation& X : S.Stations)
 	{
 		H = HashCombine(H, HashCombine(GetTypeHash(X.Level), GetTypeHash(X.Reached)));
+		H = HashCombine(H, HashCombine(GetTypeHash(X.Tier), GetTypeHash(X.Work)));
 	}
 	for (const FNWCityStock& X : S.Stock)
 	{
@@ -526,7 +533,17 @@ FString SNWCity::StationName(const FString& Station) const
 		{
 			if (const FString* N = S.Name.Find(NWText::Lang()))
 			{
-				return *N;
+				// O nome do jogo traz a escala da mesa ("Forja Escala 5"); a escala daqui é a da cidade.
+				FString Name = *N;
+				for (const TCHAR* Word : {TEXT(" Escala "), TEXT(" Tier ")})
+				{
+					const int32 At = Name.Find(Word, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+					if (At != INDEX_NONE && Name.Mid(At + FCString::Strlen(Word)).IsNumeric())
+					{
+						Name.LeftInline(At);
+					}
+				}
+				return Name;
 			}
 		}
 	}
@@ -795,10 +812,7 @@ TSharedRef<SWidget> SNWCity::BuildInfo()
 		{
 			if (B.Station == St0.Station)
 			{
-				Buffs->AddSlot().AutoWidth().Padding(0.f, 0.f, 8.f, 0.f)
-				[
-					Txt(BuffLabel(B.Buff), 0, 13, Gold)
-				];
+				Buffs->AddSlot().AutoWidth().Padding(0.f, 0.f, 8.f, 0.f)[Txt(BuffLabel(B.Buff), 0, 13, Gold)];
 			}
 		}
 		Wrap->AddSlot()
@@ -809,7 +823,7 @@ TSharedRef<SWidget> SNWCity::BuildInfo()
 				[
 					SNew(SVerticalBox)
 					+ SVerticalBox::Slot().AutoHeight()[Txt(StationName(St0.Station), 1, 15, Tan)]
-					+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f)[Txt(NWText::Format(TEXT("nw.city.level"), {FString::FromInt(St0.Level)}), 2, 14, Gold)]
+					+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 4.f)[Txt(TierText(St0), 2, 14, Gold)]
 					+ SVerticalBox::Slot().AutoHeight()[Buffs]
 				]
 			]
@@ -819,54 +833,96 @@ TSharedRef<SWidget> SNWCity::BuildInfo()
 	return SNew(SScrollBox).Style(&St().ScrollBox).ScrollBarStyle(&St().Scroll) + SScrollBox::Slot()[V];
 }
 
+FString SNWCity::TierText(const FNWCityStation& S) const
+{
+	FString T = NWText::Format(TEXT("nw.city.tier"), {FString::FromInt(S.Tier)});
+	if (S.Level > 0)
+	{
+		T += TEXT("  ·  ") + NWText::Format(TEXT("nw.city.level"), {FString::FromInt(S.Level)});
+	}
+	return T;
+}
+
+FString SNWCity::LostName(const FString& Id) const
+{
+	if (NWCity::Rules().Weapons.Contains(Id))
+	{
+		return NWText::Get(*(TEXT("siege_turret_") + Id));
+	}
+	return StationName(Id);
+}
+
+TSharedRef<SWidget> SNWCity::Basket(const NWCity::FUp& Up, float Share, bool bCoins)
+{
+	// Cesta da obra: cada matéria-prima com estoque / pedido (vermelho se falta) e as moedas do balancete.
+	const FNWCityState& S = State();
+	TSharedRef<SVerticalBox> V = SNew(SVerticalBox);
+	for (const TPair<FName, int64>& M : Up.Materials)
+	{
+		const int64 Need = int64(FMath::RoundToDouble(M.Value * Share));
+		const int64 Have = S.StockOf(M.Key);
+		V->AddSlot().AutoHeight().Padding(0.f, 2.f)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 8.f, 0.f)[Icon(M.Key, 26.f)]
+			+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[Txt(NameOf(M.Key), 0, 13, Gray)]
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+			[
+				Txt(FString::Printf(TEXT("%s / %s"), *FText::AsNumber(Have).ToString(), *FText::AsNumber(Need).ToString()), 1, 13, Have >= Need ? Tan : Red)
+			]
+		];
+	}
+	if (bCoins && Up.Coins > 0)
+	{
+		V->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[SNew(SBox).HAlign(HAlign_Right)[Treasury(Up.Coins, 1, 13)]];
+	}
+	return V;
+}
+
+bool SNWCity::CanPay(const NWCity::FUp& Up, float Share, bool bCoins) const
+{
+	const FNWCityState& S = State();
+	for (const TPair<FName, int64>& M : Up.Materials)
+	{
+		if (S.StockOf(M.Key) < int64(FMath::RoundToDouble(M.Value * Share)))
+		{
+			return false;
+		}
+	}
+	return !bCoins || S.Treasury >= Up.Coins;
+}
+
 // ---------------------------------------------------------------- quadro de planejamento (governador)
 
 TSharedRef<SWidget> SNWCity::BuildSummary()
 {
+	// Resumo do governador; a meta da semana fica só no nw-core (dono 2026-10-15).
 	const FNWCityState& S = State();
-	auto LostNames = [this, &S]()
-	{
-		TArray<FString> N;
-		for (const FString& X : S.LastAttackLost)
-		{
-			N.Add(StationName(X));
-		}
-		return FString::Join(N, TEXT(", "));
-	};
-	const NWCity::FRules& R = NWCity::Rules();
 	auto LineRow = [](const FString& Label, TSharedRef<SWidget> Right)
 	{
 		return SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[Txt(Label, 0, 15, Gray)]
 			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[Right];
 	};
-	auto Goal = [&LineRow](const FString& Label, int64 Have, int64 Need)
+	TArray<FString> Lost;
+	for (const FString& X : S.LastAttackLost)
 	{
-		return SNew(SVerticalBox)
-			+ SVerticalBox::Slot().AutoHeight()[LineRow(Label, Txt(FString::Printf(TEXT("%lld / %lld"), Have, Need), 1, 15, Have >= Need ? Tan : Gold))]
-			+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 14.f)[Bar(Need > 0 ? float(Have) / Need : 1.f)];
-	};
-	FString Attack = S.NextAttackIn >= 0.f ? NWText::Format(TEXT("nw.city.next_attack"), {Days(S.NextAttackIn)}) : FString(TEXT("—"));
-	FString Last = !S.bHasLastAttack ? FString(TEXT("—"))
+		Lost.Add(LostName(X));
+	}
+	const FString Attack = S.NextAttackIn >= 0.f ? NWText::Format(TEXT("nw.city.next_attack"), {Days(S.NextAttackIn)}) : FString(TEXT("—"));
+	const FString Last = !S.bHasLastAttack ? FString(TEXT("—"))
 		: S.bLastAttackWon ? NWText::Get(TEXT("nw.city.last_attack_won"))
-		: NWText::Format(TEXT("nw.city.last_attack_lost"), {LostNames()});
+		: NWText::Format(TEXT("nw.city.last_attack_lost"), {FString::Join(Lost, TEXT(", "))});
 	TSharedRef<SVerticalBox> Left = SNew(SVerticalBox)
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)[LineRow(NWText::Get(TEXT("nw.city.treasury")), Coins(S.Treasury, 2, 18, Gold))]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)
-		[
-			LineRow(NWText::Get(TEXT("nw.city.tax")), Txt(Pct(S.Tax * 100.f), 1, 15, Tan))
-		]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)[LineRow(NWText::Get(TEXT("nw.city.weapons")), Txt(FString::FromInt(S.Weapons), 1, 15, Tan))]
+		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)[LineRow(NWText::Get(TEXT("nw.city.treasury")), Treasury(S.Treasury, 2, 18))]
+		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)[LineRow(NWText::Get(TEXT("nw.city.tax")), Txt(Pct(S.Tax * 100.f), 1, 15, Tan))]
+		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)[LineRow(NWText::Get(TEXT("nw.city.defense_total")), Txt(FString::FromInt(S.Defense), 1, 15, Tan))]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)[LineRow(NWText::Get(TEXT("nw.city.attacks")), Txt(Attack, 1, 15, Tan))]
 		+ SVerticalBox::Slot().AutoHeight()[LineRow(NWText::Get(TEXT("nw.city.last_attack")), Txt(Last, 1, 15, S.bHasLastAttack && !S.bLastAttackWon ? Red : Tan))];
-	TSharedRef<SVerticalBox> Right = SNew(SVerticalBox)
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 14.f)[Txt(NWText::Get(TEXT("nw.city.week_goals")), 2, 17, Tan)]
-		+ SVerticalBox::Slot().AutoHeight()[Goal(NWText::Get(TEXT("nw.city.raw_week")), S.WeekRawUnits, R.TenebMaterial)]
-		+ SVerticalBox::Slot().AutoHeight()[Goal(NWText::Get(TEXT("nw.city.list_week")), S.WeekListUnits, R.TenebList)]
-		+ SVerticalBox::Slot().AutoHeight()[Goal(NWText::Get(TEXT("nw.city.buffs_week")), S.WeekBuffs, 1)];
-	return SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 24.f, 0.f)[SNew(SBorder).BorderImage(&St().Panel).Padding(FMargin(24.f, 20.f))[Left]]
-		+ SHorizontalBox::Slot().FillWidth(1.f)[SNew(SBorder).BorderImage(&St().Panel).Padding(FMargin(24.f, 20.f))[Right]];
+	return SNew(SBox).HAlign(HAlign_Left).VAlign(VAlign_Top)
+		[
+			SNew(SBox).WidthOverride(640.f)[SNew(SBorder).BorderImage(&St().Panel).Padding(FMargin(24.f, 20.f))[Left]]
+		];
 }
 
 TSharedRef<SWidget> SNWCity::PriceEditor(FName Item, const FNWCityPrice& P, bool bBuy)
@@ -1017,48 +1073,49 @@ TSharedRef<SWidget> SNWCity::BuildStations()
 	for (const FNWCityStation& Stn : S.Stations)
 	{
 		const FString Station = Stn.Station;
-		const TArray<FName>* Mats = R.StationMaterials.Find(Station);
 		TSharedRef<SVerticalBox> Card = SNew(SVerticalBox)
 			+ SVerticalBox::Slot().AutoHeight()
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot().FillWidth(1.f)[Txt(StationName(Station), 1, 15, Tan)]
-				+ SHorizontalBox::Slot().AutoWidth()[Txt(NWText::Format(TEXT("nw.city.level"), {FString::FromInt(Stn.Level)}), 2, 15, Gold)]
+				+ SHorizontalBox::Slot().AutoWidth()[Txt(TierText(Stn), 2, 15, Gold)]
 			];
-		if (Mats && Stn.Level < Mats->Num() && R.Steps.IsValidIndex(Stn.Level))
+		const FString Busy = TEXT("station:") + Station;
+		if (!Stn.Work.IsEmpty())
 		{
-			const bool bRepair = Stn.Level < Stn.Reached;
-			const FName Mat = (*Mats)[Stn.Level];
-			const int64 Need = bRepair ? int64(FMath::RoundToDouble(R.Steps[Stn.Level].Material * R.RepairFraction)) : R.Steps[Stn.Level].Material;
-			const int64 CoinsNeed = bRepair ? 0 : R.Steps[Stn.Level].Coins;
-			const int64 Have = S.StockOf(Mat);
-			Card->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 4.f)
+			// Obra em andamento: o que vira e quanto falta.
+			const FString What = Stn.Work == TEXT("tier") ? NWText::Format(TEXT("nw.city.tier"), {FString::FromInt(Stn.WorkTarget)})
+				: NWText::Format(TEXT("nw.city.level"), {FString::FromInt(Stn.WorkTarget)});
+			Card->AddSlot().AutoHeight().Padding(0.f, 12.f, 0.f, 4.f)
 			[
 				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 8.f, 0.f)[Icon(Mat, 28.f)]
-				+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[Txt(NameOf(Mat), 0, 13, Gray)]
-				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-				[
-					Txt(FString::Printf(TEXT("%lld / %lld"), Have, Need), 1, 13, Have >= Need ? Tan : Red)
-				]
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 8.f, 0.f)[Spinner(20.f)]
+				+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[Txt(NWText::Format(TEXT("nw.city.work"), {What}), 1, 14, Tan)]
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[Txt(Days(Stn.WorkEndsIn), 1, 14, Gold)]
 			];
-			if (CoinsNeed > 0)
+		}
+		else
+		{
+			bool bRepair = false;
+			if (const NWCity::FUp* Up = NWCity::NextStationUp(Stn, bRepair))
 			{
-				Card->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)[SNew(SBox).HAlign(HAlign_Right)[Coins(CoinsNeed, 1, 13, S.Treasury >= CoinsNeed ? Gold : Red)]];
-			}
-			const FString Busy = TEXT("station:") + Station;
-			Card->AddSlot().AutoHeight().Padding(0.f, 4.f)
-			[
-				ActionButton(NWText::Get(bRepair ? TEXT("nw.city.repair") : TEXT("nw.city.upgrade")), Busy,
-					[Have, Need, CoinsNeed, this]() { return Have >= Need && State().Treasury >= CoinsNeed; },
-					[this, Station, Busy]()
-					{
-						if (ANWCharacter* Me = Character.Get(); Me && Me->Interactor)
+				const float Share = bRepair ? R.RepairFraction : 1.f;
+				const FString Label = bRepair ? NWText::Get(TEXT("nw.city.repair"))
+					: Stn.Tier < 5 ? NWText::Format(TEXT("nw.city.to_tier"), {FString::FromInt(Up->To)})
+					: NWText::Format(TEXT("nw.city.to_level"), {FString::FromInt(Up->To)});
+				Card->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 6.f)[Basket(*Up, Share, !bRepair)];
+				Card->AddSlot().AutoHeight().Padding(0.f, 4.f)
+				[
+					ActionButton(Label, Busy, [this, Up, Share, bRepair]() { return CanPay(*Up, Share, !bRepair); },
+						[this, Station, Busy]()
 						{
-							Me->Interactor->ServerCityProject(Send(Busy), TEXT("station"), Station, FString());
-						}
-					}, false)
-			];
+							if (ANWCharacter* Me = Character.Get(); Me && Me->Interactor)
+							{
+								Me->Interactor->ServerCityProject(Send(Busy), TEXT("station"), Station, FString());
+							}
+						}, false)
+				];
+			}
 		}
 		// Buffs da semana desta mesa.
 		TSharedRef<SHorizontalBox> Buffs = SNew(SHorizontalBox);
@@ -1070,18 +1127,18 @@ TSharedRef<SWidget> SNWCity::BuildStations()
 			}
 			const FString Buff = B.Key;
 			const bool bActive = S.HasBuff(Station, Buff);
-			const FString Busy = TEXT("buff:") + Station + TEXT(":") + Buff;
+			const FString BuffBusy = TEXT("buff:") + Station + TEXT(":") + Buff;
 			const FString Label = BuffLabel(Buff);
 			Buffs->AddSlot().FillWidth(1.f).Padding(0.f, 0.f, 6.f, 0.f)
 			[
 				bActive
 				? StaticCastSharedRef<SWidget>(SNew(SBox).HeightOverride(48.f).VAlign(VAlign_Center).HAlign(HAlign_Center)[Txt(Label, 1, 13, Gold)])
-				: ActionButton(Label, Busy, [this, Cost = B.Value]() { return State().Treasury >= Cost; },
-					[this, Station, Buff, Busy]()
+				: ActionButton(Label, BuffBusy, [this, Cost = B.Value]() { return State().Treasury >= Cost; },
+					[this, Station, Buff, BuffBusy]()
 					{
 						if (ANWCharacter* Me = Character.Get(); Me && Me->Interactor)
 						{
-							Me->Interactor->ServerCityProject(Send(Busy), TEXT("buff"), Station, Buff);
+							Me->Interactor->ServerCityProject(Send(BuffBusy), TEXT("buff"), Station, Buff);
 						}
 					}, false)
 			];
@@ -1094,53 +1151,76 @@ TSharedRef<SWidget> SNWCity::BuildStations()
 
 TSharedRef<SWidget> SNWCity::BuildDefense()
 {
+	// Armas do forte do jogo, cada uma com escala; a defesa da cidade é a soma.
 	const FNWCityState& S = State();
-	auto LostNames = [this, &S]()
+	TArray<FString> Lost;
+	for (const FString& X : S.LastAttackLost)
 	{
-		TArray<FString> N;
-		for (const FString& X : S.LastAttackLost)
-		{
-			N.Add(StationName(X));
-		}
-		return FString::Join(N, TEXT(", "));
-	};
-	const NWCity::FRules& R = NWCity::Rules();
-	const FString Attack = S.NextAttackIn >= 0.f ? NWText::Format(TEXT("nw.city.next_attack"), {Days(S.NextAttackIn)}) : FString(TEXT("—"));
-	return SNew(SBox).HAlign(HAlign_Left).VAlign(VAlign_Top)
+		Lost.Add(LostName(X));
+	}
+	TSharedRef<SVerticalBox> V = SNew(SVerticalBox);
+	V->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 6.f)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[Txt(NWText::Get(TEXT("nw.city.defense_total")), 2, 17, Tan)]
+		+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[Txt(FString::FromInt(S.Defense), 2, 22, Gold)]
+	];
+	V->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 4.f)
+	[
+		Txt(S.NextAttackIn >= 0.f ? NWText::Format(TEXT("nw.city.next_attack"), {Days(S.NextAttackIn)}) : FString(TEXT("—")), 1, 14, Gray)
+	];
+	if (S.bHasLastAttack)
+	{
+		V->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 12.f)
 		[
-			SNew(SBox).WidthOverride(560.f)
-			[
-			SNew(SBorder).BorderImage(&St().Panel).Padding(FMargin(24.f, 20.f))
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot().AutoHeight()
-				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot().FillWidth(1.f)[Txt(NWText::Get(TEXT("nw.city.weapons")), 0, 15, Gray)]
-					+ SHorizontalBox::Slot().AutoWidth()[Txt(FString::FromInt(S.Weapons), 2, 22, Tan)]
-				]
-				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f)[Txt(Attack, 1, 15, Tan)]
-				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 0.f, 0.f, 10.f)
-				[
-					Txt(!S.bHasLastAttack ? FString() : S.bLastAttackWon ? NWText::Get(TEXT("nw.city.last_attack_won"))
-						: NWText::Format(TEXT("nw.city.last_attack_lost"), {LostNames()}), 1, 14,
-						S.bLastAttackWon ? Tan : Red)
-				]
-				+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 8.f)[SNew(SBox).HAlign(HAlign_Right)[Coins(R.WeaponCost, 1, 14, S.Treasury >= R.WeaponCost ? Gold : Red)]]
-				+ SVerticalBox::Slot().AutoHeight()
-				[
-					ActionButton(NWText::Get(TEXT("nw.city.buy_weapon")), TEXT("weapon"), [this, Cost = R.WeaponCost]() { return State().Treasury >= Cost; },
-						[this]()
-						{
-							if (ANWCharacter* Me = Character.Get(); Me && Me->Interactor)
-							{
-								Me->Interactor->ServerCityProject(Send(TEXT("weapon")), TEXT("weapon"), FString(), FString());
-							}
-						})
-				]
-			]
-			]
+			Txt(S.bLastAttackWon ? NWText::Get(TEXT("nw.city.last_attack_won")) : NWText::Format(TEXT("nw.city.last_attack_lost"), {FString::Join(Lost, TEXT(", "))}),
+				1, 14, S.bLastAttackWon ? Tan : Red)
 		];
+	}
+	TSharedRef<SWrapBox> Wrap = SNew(SWrapBox).UseAllottedSize(true).InnerSlotPadding(FVector2D(12.f, 12.f));
+	for (const FNWCityWeapon& W : S.Weapons)
+	{
+		const FString Weapon = W.Weapon;
+		const FString Busy = TEXT("weapon:") + Weapon;
+		TSharedRef<SVerticalBox> Card = SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().FillWidth(1.f)[Txt(LostName(Weapon), 1, 15, Tan)]
+				+ SHorizontalBox::Slot().AutoWidth()[Txt(NWText::Format(TEXT("nw.city.tier"), {FString::FromInt(W.Tier)}), 2, 15, Gold)]
+			];
+		if (W.WorkTarget > 0)
+		{
+			Card->AddSlot().AutoHeight().Padding(0.f, 12.f, 0.f, 4.f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 8.f, 0.f)[Spinner(20.f)]
+				+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)
+				[
+					Txt(NWText::Format(TEXT("nw.city.work"), {NWText::Format(TEXT("nw.city.tier"), {FString::FromInt(W.WorkTarget)})}), 1, 14, Tan)
+				]
+				+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[Txt(Days(W.WorkEndsIn), 1, 14, Gold)]
+			];
+		}
+		else if (const NWCity::FUp* Up = NWCity::NextWeaponUp(W))
+		{
+			Card->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 6.f)[Basket(*Up, 1.f, true)];
+			Card->AddSlot().AutoHeight().Padding(0.f, 4.f)
+			[
+				ActionButton(NWText::Format(TEXT("nw.city.to_tier"), {FString::FromInt(Up->To)}), Busy, [this, Up]() { return CanPay(*Up, 1.f, true); },
+					[this, Weapon, Busy]()
+					{
+						if (ANWCharacter* Me = Character.Get(); Me && Me->Interactor)
+						{
+							Me->Interactor->ServerCityProject(Send(Busy), TEXT("weapon"), Weapon, FString());
+						}
+					}, false)
+			];
+		}
+		Wrap->AddSlot()[SNew(SBox).WidthOverride(440.f)[SNew(SBorder).BorderImage(&St().Panel).Padding(FMargin(16.f, 14.f))[Card]]];
+	}
+	V->AddSlot().AutoHeight()[Wrap];
+	return SNew(SScrollBox).Style(&St().ScrollBox).ScrollBarStyle(&St().Scroll) + SScrollBox::Slot()[V];
 }
 
 TSharedRef<SWidget> SNWCity::BuildGovernment()
@@ -1162,12 +1242,20 @@ TSharedRef<SWidget> SNWCity::BuildGovernment()
 			];
 	};
 	Add(Txt(S.bHasOwner ? FString::Printf(TEXT("%s %s"), *NWText::Get(TEXT("nw.city.governor")), *S.OwnerName) : NWText::Get(TEXT("nw.city.no_governor")), 2, 18, Tan), 14.f);
+	// Moedas do jogador: só aqui, onde ele paga (o topo da tela mostra o balancete da cidade).
+	auto YourCoins = [this]()
+	{
+		return SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().FillWidth(1.f).VAlign(VAlign_Center)[Txt(NWText::Get(TEXT("nw.city.your_coins")), 0, 14, Gray)]
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[Coins(TAttribute<int64>::CreateLambda([this]() { return ShownCoins(); }), 1, 15, Gold)];
+	};
 
 	if (!S.bHasOwner)
 	{
 		// Sem governador: preço fixo, quem pagar leva.
 		const int64 Ask = S.Price;
 		Add(SNew(SBox).HAlign(HAlign_Right)[Coins(Ask, 2, 20, ShownCoins() >= Ask ? Gold : Red)]);
+		Add(YourCoins(), 14.f);
 		Add(ActionButton(NWText::Get(TEXT("nw.city.buy_city")), TEXT("buy_city"), [this, Ask]() { return ShownCoins() >= Ask; },
 			[this, Ask]()
 			{
@@ -1198,6 +1286,7 @@ TSharedRef<SWidget> SNWCity::BuildGovernment()
 			{
 				EditBid = S.AuctionMinBid;
 			}
+			Add(YourCoins());
 			Add(Field(EditBid, [this](int64 V0) { EditBid = V0; }));
 			Add(ActionButton(NWText::Get(TEXT("nw.city.place_bid")), TEXT("bid"),
 				[this]() { return EditBid >= State().AuctionMinBid && ShownCoins() >= EditBid; },

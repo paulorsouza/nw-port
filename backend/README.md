@@ -66,7 +66,7 @@ Servidor de jogo (`X-NW-Server-Secret`):
 | POST | `/internal/regions/{região}/city/bid` | `character_id`, `amount`, `inventory`, `coins` (já sem o lance) | cidade; 409 `no_auction`/`bid_too_low`/`own_city` |
 | POST | `/internal/regions/{região}/city/sell-raw` | `character_id`, `item_id`, `quantity`, `unit_price`, `inventory`, `coins` | cidade; 409 `price_changed`/`city_limit`/`city_no_funds` |
 | POST | `/internal/regions/{região}/city/buy-item` | idem (item da lista) | cidade; 409 `price_changed`/`city_limit` |
-| POST | `/internal/regions/{região}/city/projects` | `character_id` (governador), `kind` (`station`/`buff`/`weapon`), `station`, `buff` | cidade; 409 `city_no_stock`/`city_no_funds`/`buff_active`/`station_max` |
+| POST | `/internal/regions/{região}/city/projects` | `character_id` (governador), `kind` (`station`/`buff`/`weapon`), `station`, `buff`, `weapon` | cidade; obra de 24 h (mesa: escala até 5, depois nível ou conserto; arma: escala); 409 `city_no_stock`/`city_no_funds`/`buff_active`/`station_max`/`weapon_max`/`work_running` |
 | GET | `/internal/regions/{região}/city/log` | `limit` | log da cidade, mais novo primeiro |
 | POST | `/internal/cities/advance` | `now` (opcional, testes) | 204: virada da semana e ataques vencidos (o nw-core roda sozinho a cada minuto) |
 

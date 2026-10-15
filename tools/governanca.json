@@ -24,72 +24,18 @@
     "venda_por_item": 1000
   },
   "mesas": {
-    "smelting": [
-      "OreT1",
-      "OreT4",
-      "OreT5"
-    ],
-    "blacksmith": [
-      "OreT1",
-      "OreT4",
-      "OreT5"
-    ],
-    "engineering": [
-      "WoodT1",
-      "WoodT4",
-      "WoodT5"
-    ],
-    "carpentry": [
-      "WoodT1",
-      "WoodT4",
-      "WoodT5"
-    ],
-    "weaving": [
-      "FiberT1",
-      "FiberT4",
-      "FiberT5"
-    ],
-    "outfitting": [
-      "FiberT1",
-      "FiberT4",
-      "FiberT5"
-    ],
-    "tanning": [
-      "RawhideT1",
-      "RawhideT4",
-      "RawhideT5"
-    ],
-    "masonry": [
-      "StoneT1",
-      "StoneT4",
-      "StoneT4"
-    ],
-    "alchemy": [
-      "OrePreciousT1",
-      "OrePreciousT2",
-      "OrePreciousT3"
-    ]
+    "smelting": "OreT1",
+    "blacksmith": "OreT1",
+    "engineering": "WoodT1",
+    "carpentry": "WoodT1",
+    "weaving": "FiberT1",
+    "outfitting": "FiberT1",
+    "tanning": "RawhideT1",
+    "masonry": "StoneT1",
+    "alchemy": "OrePreciousT1"
   },
-  "evoluir": [
-    {
-      "materia_prima": 2000,
-      "moedas": 10000
-    },
-    {
-      "materia_prima": 12000,
-      "moedas": 500000
-    },
-    {
-      "materia_prima": 30000,
-      "moedas": 1000000
-    }
-  ],
   "conserto_fracao": 0.3,
   "manutencao_por_fabricacao_nivel": 2,
-  "efeito_por_nivel": {
-    "gs": 2,
-    "qualidade_minima": 1
-  },
   "buffs": {
     "xp": {
       "custo": 400000,
@@ -104,15 +50,14 @@
       "valor": 5
     }
   },
-  "arma_custo": 300000,
   "ataque": {
     "primeiro_apos_dias": 7,
     "intervalo_horas": 48,
-    "base": 2.0,
+    "base": 4.0,
     "por_semana": 0.5,
-    "por_nivel": 0.15,
+    "por_nivel": 0.2,
     "variacao": 0.3,
-    "mesas_perdidas": 2
+    "niveis_perdidos": 2
   },
   "premio": {
     "tenebroso": 500000,
@@ -135,5 +80,160 @@
     "incremento_minimo": 0.05
   },
   "moedas_max": 2000000000,
-  "preco_item_max": 500000000
+  "preco_item_max": 500000000,
+  "mesa_escala": {
+    "_comment": "Escala da mesa da cidade (2 a 5): bônus pequeno e visual; não trava receita (no jogo atual a escala só dá desconto). Subir de escala custa uma cesta de todos os tipos, mais moedas (projetos do jogo: 100 / 5 mil / 10 mil) e tempo de obra.",
+    "inicial": 2,
+    "subir": [
+      {
+        "para": 3,
+        "materiais": {
+          "OreT1": 3000,
+          "WoodT2": 3000,
+          "FiberT1": 3000,
+          "RawhideT1": 3000,
+          "StoneT1": 3000
+        },
+        "moedas": 10000
+      },
+      {
+        "para": 4,
+        "materiais": {
+          "OreT4": 4000,
+          "WoodT4": 4000,
+          "FiberT4": 4000,
+          "RawhideT4": 4000,
+          "StoneT4": 4000
+        },
+        "moedas": 500000
+      },
+      {
+        "para": 5,
+        "materiais": {
+          "OreT5": 5000,
+          "WoodT5": 5000,
+          "FiberT5": 5000,
+          "RawhideT5": 5000,
+          "StoneT4": 5000
+        },
+        "moedas": 1000000
+      }
+    ],
+    "efeito": {
+      "3": {
+        "gs": 1,
+        "qualidade": 0.5
+      },
+      "4": {
+        "gs": 2,
+        "qualidade": 1.0
+      },
+      "5": {
+        "gs": 3,
+        "qualidade": 1.5
+      }
+    }
+  },
+  "mesa_nivel": {
+    "_comment": "Níveis depois da escala 5: buff bem pequeno por nível, muito caros em material.",
+    "max": 5,
+    "subir": [
+      {
+        "nivel": 1,
+        "materiais": {
+          "OreT5": 20000,
+          "WoodT5": 20000,
+          "FiberT5": 20000,
+          "RawhideT5": 20000,
+          "StoneT4": 20000,
+          "OrePreciousT3": 8000
+        },
+        "moedas": 2000000
+      },
+      {
+        "nivel": 2,
+        "materiais": {
+          "OreT5": 40000,
+          "WoodT5": 40000,
+          "FiberT5": 40000,
+          "RawhideT5": 40000,
+          "StoneT4": 40000,
+          "OrePreciousT3": 16000
+        },
+        "moedas": 4000000
+      },
+      {
+        "nivel": 3,
+        "materiais": {
+          "OreT5": 60000,
+          "WoodT5": 60000,
+          "FiberT5": 60000,
+          "RawhideT5": 60000,
+          "StoneT4": 60000,
+          "OrePreciousT3": 24000
+        },
+        "moedas": 6000000
+      },
+      {
+        "nivel": 4,
+        "materiais": {
+          "OreT5": 80000,
+          "WoodT5": 80000,
+          "FiberT5": 80000,
+          "RawhideT5": 80000,
+          "StoneT4": 80000,
+          "OrePreciousT3": 32000
+        },
+        "moedas": 8000000
+      },
+      {
+        "nivel": 5,
+        "materiais": {
+          "OreT5": 100000,
+          "WoodT5": 100000,
+          "FiberT5": 100000,
+          "RawhideT5": 100000,
+          "StoneT4": 100000,
+          "OrePreciousT3": 40000
+        },
+        "moedas": 10000000
+      }
+    ],
+    "efeito": {
+      "gs": 1,
+      "qualidade": 0.5
+    }
+  },
+  "armas": {
+    "_comment": "Armas do forte do jogo (javelindata_territoryprogression, Fortress; nomes siege_turret_*). Escala 1 a 3; defesa da cidade = soma das escalas.",
+    "tipos": [
+      "ballista",
+      "repeater",
+      "explosive",
+      "firebarrel",
+      "hornofresilience"
+    ],
+    "inicial": 1,
+    "subir": [
+      {
+        "para": 2,
+        "materiais": {
+          "OreT1": 2000,
+          "WoodT2": 2000,
+          "StoneT1": 2000
+        },
+        "moedas": 50000
+      },
+      {
+        "para": 3,
+        "materiais": {
+          "OreT4": 3000,
+          "WoodT4": 3000,
+          "StoneT4": 3000
+        },
+        "moedas": 1000000
+      }
+    ]
+  },
+  "obra_horas": 24
 }

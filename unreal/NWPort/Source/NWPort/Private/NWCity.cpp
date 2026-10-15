@@ -21,10 +21,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogNWCity, Log, All);
 
 // ---------------------------------------------------------------- estado
 
-int32 FNWCityState::StationLevel(const FString& Station) const
+const FNWCityStation* FNWCityState::StationOf(const FString& Station) const
 {
-	const FNWCityStation* S = Stations.FindByPredicate([&Station](const FNWCityStation& X) { return X.Station == Station; });
-	return S ? S->Level : 0;
+	return Stations.FindByPredicate([&Station](const FNWCityStation& X) { return X.Station == Station; });
 }
 
 bool FNWCityState::HasBuff(const FString& Station, const FString& Buff) const
@@ -87,28 +86,47 @@ namespace NWCity
 					const TSharedPtr<FJsonObject> O = V->AsObject();
 					Out.CityToRegion.Add(O->GetStringField(TEXT("cidade")), O->GetStringField(TEXT("id")));
 				}
-				for (const auto& M : G->GetObjectField(TEXT("mesas"))->Values)
+				auto Ups = [](const TArray<TSharedPtr<FJsonValue>>& In, const TCHAR* ToField, TArray<FUp>& Into)
 				{
-					TArray<FName>& List = Out.StationMaterials.Add(FString(M.Key));
-					for (const TSharedPtr<FJsonValue>& V : M.Value->AsArray())
+					for (const TSharedPtr<FJsonValue>& V : In)
 					{
-						List.Add(FName(V->AsString()));
+						const TSharedPtr<FJsonObject> O = V->AsObject();
+						FUp U;
+						U.To = int32(O->GetNumberField(ToField));
+						U.Coins = int64(O->GetNumberField(TEXT("moedas")));
+						for (const auto& M : O->GetObjectField(TEXT("materiais"))->Values)
+						{
+							U.Materials.Add({FName(FString(M.Key)), int64(M.Value->AsNumber())});
+						}
+						Into.Add(U);
 					}
-				}
-				for (const TSharedPtr<FJsonValue>& V : G->GetArrayField(TEXT("evoluir")))
+				};
+				const TSharedPtr<FJsonObject> Tier = G->GetObjectField(TEXT("mesa_escala"));
+				Out.TierInitial = int32(Tier->GetNumberField(TEXT("inicial")));
+				Ups(Tier->GetArrayField(TEXT("subir")), TEXT("para"), Out.TierUps);
+				for (const auto& E : Tier->GetObjectField(TEXT("efeito"))->Values)
 				{
-					Out.Steps.Add({int64(V->AsObject()->GetNumberField(TEXT("materia_prima"))), int64(V->AsObject()->GetNumberField(TEXT("moedas")))});
+					const TSharedPtr<FJsonObject> O = E.Value->AsObject();
+					Out.TierEffect.Add(FCString::Atoi(*FString(E.Key)), {int32(O->GetNumberField(TEXT("gs"))), float(O->GetNumberField(TEXT("qualidade")))});
 				}
+				const TSharedPtr<FJsonObject> Lv = G->GetObjectField(TEXT("mesa_nivel"));
+				Out.LevelMax = int32(Lv->GetNumberField(TEXT("max")));
+				Ups(Lv->GetArrayField(TEXT("subir")), TEXT("nivel"), Out.LevelUps);
+				Out.GsPerLevel = int32(Lv->GetObjectField(TEXT("efeito"))->GetNumberField(TEXT("gs")));
+				Out.QualityPerLevel = float(Lv->GetObjectField(TEXT("efeito"))->GetNumberField(TEXT("qualidade")));
+				const TSharedPtr<FJsonObject> Arms = G->GetObjectField(TEXT("armas"));
+				for (const TSharedPtr<FJsonValue>& V : Arms->GetArrayField(TEXT("tipos")))
+				{
+					Out.Weapons.Add(V->AsString());
+				}
+				Ups(Arms->GetArrayField(TEXT("subir")), TEXT("para"), Out.WeaponUps);
+				Out.WorkHours = int32(G->GetNumberField(TEXT("obra_horas")));
 				Out.RepairFraction = float(G->GetNumberField(TEXT("conserto_fracao")));
 				for (const auto& B : G->GetObjectField(TEXT("buffs"))->Values)
 				{
 					Out.BuffCost.Add(FString(B.Key), int64(B.Value->AsObject()->GetNumberField(TEXT("custo"))));
 					Out.BuffValue.Add(FString(B.Key), float(B.Value->AsObject()->GetNumberField(TEXT("valor"))));
 				}
-				Out.WeaponCost = int64(G->GetNumberField(TEXT("arma_custo")));
-				const TSharedPtr<FJsonObject> E = G->GetObjectField(TEXT("efeito_por_nivel"));
-				Out.GsPerLevel = int32(E->GetNumberField(TEXT("gs")));
-				Out.QualityPerLevel = int32(E->GetNumberField(TEXT("qualidade_minima")));
 				Out.TaxDefault = float(G->GetObjectField(TEXT("imposto"))->GetNumberField(TEXT("padrao")));
 				Out.GraceDays = int32(G->GetNumberField(TEXT("carencia_dias")));
 				Out.CoinsMax = int64(G->GetNumberField(TEXT("moedas_max")));
@@ -195,12 +213,45 @@ namespace NWCity
 		};
 		Prices(TEXT("buy"), Out.Buy);
 		Prices(TEXT("sell"), Out.Sell);
+		auto EndsIn = [](const TSharedPtr<FJsonObject>& O)
+		{
+			FString Ends;
+			FDateTime At;
+			return O->TryGetStringField(TEXT("work_ends_at"), Ends) && FDateTime::ParseIso8601(*Ends, At)
+				? float((At - FDateTime::UtcNow()).GetTotalSeconds()) : 0.f;
+		};
 		for (const TSharedPtr<FJsonValue>& V : J->GetArrayField(TEXT("stations")))
 		{
 			const TSharedPtr<FJsonObject> O = V->AsObject();
-			Out.Stations.Add({O->GetStringField(TEXT("station")), int32(O->GetNumberField(TEXT("level"))),
-				int32(O->GetNumberField(TEXT("reached"))), int32(O->GetNumberField(TEXT("crafts")))});
+			FNWCityStation St;
+			St.Station = O->GetStringField(TEXT("station"));
+			St.Tier = int32(O->GetNumberField(TEXT("tier")));
+			St.Level = int32(O->GetNumberField(TEXT("level")));
+			St.Reached = int32(O->GetNumberField(TEXT("reached")));
+			St.Crafts = int32(O->GetNumberField(TEXT("crafts")));
+			O->TryGetStringField(TEXT("work"), St.Work);
+			double T = 0.0;
+			St.WorkTarget = O->TryGetNumberField(TEXT("work_target"), T) ? int32(T) : 0;
+			St.WorkEndsIn = EndsIn(O);
+			Out.Stations.Add(St);
 		}
+		const TArray<TSharedPtr<FJsonValue>>* Arms = nullptr;
+		if (J->TryGetArrayField(TEXT("weapons"), Arms))
+		{
+			for (const TSharedPtr<FJsonValue>& V : *Arms)
+			{
+				const TSharedPtr<FJsonObject> O = V->AsObject();
+				FNWCityWeapon W;
+				W.Weapon = O->GetStringField(TEXT("weapon"));
+				W.Tier = int32(O->GetNumberField(TEXT("tier")));
+				double T = 0.0;
+				W.WorkTarget = O->TryGetNumberField(TEXT("work_target"), T) ? int32(T) : 0;
+				W.WorkEndsIn = EndsIn(O);
+				Out.Weapons.Add(W);
+			}
+		}
+		double Defense = 0.0;
+		Out.Defense = J->TryGetNumberField(TEXT("defense"), Defense) ? int32(Defense) : 0;
 		for (const auto& S : J->GetObjectField(TEXT("stock"))->Values)
 		{
 			Out.Stock.Add({FName(S.Key), int64(S.Value->AsNumber())});
@@ -213,7 +264,6 @@ namespace NWCity
 				Out.Buffs.Add({A[0]->AsString(), A[1]->AsString()});
 			}
 		}
-		Out.Weapons = int32(J->GetNumberField(TEXT("weapons")));
 		FString Next;
 		if (J->TryGetStringField(TEXT("next_attack_at"), Next) && FDateTime::ParseIso8601(*Next, When))
 		{
@@ -283,6 +333,45 @@ namespace NWCity
 				Store(S);
 			}
 		});
+	}
+
+	void StationBonus(const FNWCityState* City, const FString& Station, int32& OutGs, float& OutQuality)
+	{
+		OutGs = 0;
+		OutQuality = 0.f;
+		const FNWCityStation* S = City ? City->StationOf(Station) : nullptr;
+		if (!S)
+		{
+			return;
+		}
+		if (const TPair<int32, float>* E = Rules().TierEffect.Find(S->Tier))
+		{
+			OutGs += E->Key;
+			OutQuality += E->Value;
+		}
+		OutGs += S->Level * Rules().GsPerLevel;
+		OutQuality += S->Level * Rules().QualityPerLevel;
+	}
+
+	const FUp* NextStationUp(const FNWCityStation& S, bool& bOutRepair)
+	{
+		bOutRepair = false;
+		const FRules& R = Rules();
+		if (S.Tier < 5)
+		{
+			return R.TierUps.FindByPredicate([&S](const FUp& U) { return U.To == S.Tier + 1; });
+		}
+		if (S.Level >= R.LevelMax)
+		{
+			return nullptr;
+		}
+		bOutRepair = S.Level < S.Reached;
+		return R.LevelUps.FindByPredicate([&S](const FUp& U) { return U.To == S.Level + 1; });
+	}
+
+	const FUp* NextWeaponUp(const FNWCityWeapon& W)
+	{
+		return Rules().WeaponUps.FindByPredicate([&W](const FUp& U) { return U.To == W.Tier + 1; });
 	}
 
 	int64 TaxFor(const FString& Region, const TMap<FName, int32>& Spent)
@@ -680,7 +769,8 @@ void UNWInteractorComponent::ServerCityProject_Implementation(int32 Req, const F
 	Body->SetStringField(TEXT("kind"), Kind);
 	if (!Station.IsEmpty())
 	{
-		Body->SetStringField(TEXT("station"), Station);
+		// Arma: o nome vai no campo "weapon"; mesa e buff, em "station".
+		Body->SetStringField(Kind == TEXT("weapon") ? TEXT("weapon") : TEXT("station"), Station);
 	}
 	if (!Buff.IsEmpty())
 	{

@@ -581,10 +581,6 @@
       "pt-br": "Nível {0}",
       "en-us": "Level {0}"
     },
-    "nw.city.upgrade": {
-      "pt-br": "Evoluir",
-      "en-us": "Upgrade"
-    },
     "nw.city.repair": {
       "pt-br": "Consertar",
       "en-us": "Repair"
@@ -600,14 +596,6 @@
     "nw.city.buff_economia": {
       "pt-br": "{0}% menos material",
       "en-us": "{0}% less material"
-    },
-    "nw.city.weapons": {
-      "pt-br": "Armas",
-      "en-us": "Weapons"
-    },
-    "nw.city.buy_weapon": {
-      "pt-br": "Comprar Arma",
-      "en-us": "Buy Weapon"
     },
     "nw.city.attacks": {
       "pt-br": "Ataques",
@@ -628,22 +616,6 @@
     "nw.city.last_attack_lost": {
       "pt-br": "Perdido: {0}",
       "en-us": "Lost: {0}"
-    },
-    "nw.city.week_goals": {
-      "pt-br": "Semana",
-      "en-us": "Week"
-    },
-    "nw.city.raw_week": {
-      "pt-br": "Matéria-prima comprada",
-      "en-us": "Raw materials bought"
-    },
-    "nw.city.list_week": {
-      "pt-br": "Itens vendidos",
-      "en-us": "Items sold"
-    },
-    "nw.city.buffs_week": {
-      "pt-br": "Buffs comprados",
-      "en-us": "Buffs bought"
     },
     "nw.city.buy_prices": {
       "pt-br": "Compra de matéria-prima",
@@ -800,6 +772,30 @@
     "nw.market.price_too_high": {
       "pt-br": "Preço acima de 5 milhões",
       "en-us": "Price above 5 million"
+    },
+    "nw.city.tier": {
+      "pt-br": "Escala {0}",
+      "en-us": "Tier {0}"
+    },
+    "nw.city.to_tier": {
+      "pt-br": "Evoluir para Escala {0}",
+      "en-us": "Upgrade to Tier {0}"
+    },
+    "nw.city.to_level": {
+      "pt-br": "Evoluir para Nível {0}",
+      "en-us": "Upgrade to Level {0}"
+    },
+    "nw.city.work": {
+      "pt-br": "Em obra: {0}",
+      "en-us": "Under construction: {0}"
+    },
+    "nw.city.defense_total": {
+      "pt-br": "Defesa",
+      "en-us": "Defense"
+    },
+    "nw.city.your_coins": {
+      "pt-br": "Suas moedas",
+      "en-us": "Your coins"
     }
   },
   "chaves_do_jogo": [
@@ -965,6 +961,11 @@
     "ui_canafford",
     "ui_quality",
     "ui_territory_board_town_project",
-    "ui_territory_planning_board"
+    "ui_territory_planning_board",
+    "siege_turret_ballista",
+    "siege_turret_repeater",
+    "siege_turret_explosive",
+    "siege_turret_firebarrel",
+    "siege_turret_hornofresilience"
   ]
 }

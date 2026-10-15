@@ -101,6 +101,11 @@ private:
 	int64 ShownCoins() const;
 	int32 ShownUsed(const FNWCityPrice& P, bool bSellRaw) const;
 	FString StationName(const FString& Station) const;
+	FString TierText(const FNWCityStation& S) const;
+	/** Nome do que o ataque derrubou (mesa ou arma). */
+	FString LostName(const FString& Id) const;
+	TSharedRef<SWidget> Basket(const NWCity::FUp& Up, float Share, bool bCoins);
+	bool CanPay(const NWCity::FUp& Up, float Share, bool bCoins) const;
 	int32 Send(const FString& Busy, FName Item = NAME_None, int32 Qty = 0, int64 Coins = 0);
 	void Close();
 };

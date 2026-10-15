@@ -46,6 +46,9 @@ namespace NWSlate
 	NWPORT_API TSharedRef<STextBlock> Txt(const FString& S, int32 Style, int32 Size, const FLinearColor& C);
 	/** Moedas com o ícone do jogo à esquerda (centavos; "12.345,00"). */
 	NWPORT_API TSharedRef<SWidget> Coins(TAttribute<int64> Cents, int32 Style, int32 Size, TAttribute<FSlateColor> Color);
+	/** Balancete da cidade: moeda de ouro grande do jogo, cor âmbar (diferente das moedas do jogador). */
+	NWPORT_API extern const FLinearColor Amber;
+	NWPORT_API TSharedRef<SWidget> Treasury(TAttribute<int64> Cents, int32 Style, int32 Size);
 	/** Botão de sair (X) do canto da tela. */
 	NWPORT_API TSharedRef<SWidget> CloseButton(TFunction<void()> OnClose);
 }

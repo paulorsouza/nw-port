@@ -239,4 +239,12 @@ Governança das cidades (docs/plano-governanca.md):
 117. Com outra conta (`tools/net_test.sh`): Dar Lance no mínimo: as moedas caem; outra conta cobre: o primeiro recebe
      o lance de volta (crédito ao abrir o quadro). No fim (ou `POST /internal/cities/advance` com `now` 25 h depois),
      o maior lance vira governador e o antigo recebe o lance menos 10%.
+118. Quadro de Planejamento: o topo mostra o balancete da cidade (moeda grande, âmbar); Resumo sem a meta da semana;
+     as moedas do jogador aparecem só em Governo (comprar a cidade, lance).
+119. Mesas: cada mesa mostra a escala (começa na 2) e a cesta da próxima (estoque / pedido, vermelho se falta). Com o
+     estoque completo, Evoluir: a mesa fica "Em obra" com o tempo; depois de 24 h (ou `POST /internal/cities/advance`
+     com `now`), sobe de escala. Na escala 5, a próxima é "Evoluir para Nível 1", bem mais cara.
+120. Fabricar numa mesa com escala 3+: GS e qualidade mínima um pouco maiores (escala 3: +1 GS; 5: +3; cada nível +1).
+121. Defesa: cinco armas do forte (Balista, Repetidor, Explosivo, Tonel de Óleo Quente, Trombeta de Resiliência), escala
+     1 a 3, cesta e obra de 24 h; a defesa é a soma das escalas.
 

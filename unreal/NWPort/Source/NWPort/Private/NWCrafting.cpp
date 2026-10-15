@@ -399,7 +399,9 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 	NWCity::RefreshIfOld(Who->GetWorld(), Region);
 	const FNWCityState* City = Region.IsEmpty() ? nullptr : NWCity::Cached(Region);
 	const NWCity::FRules& CR = NWCity::Rules();
-	const int32 StationLevel = City ? City->StationLevel(StationType) : 0;
+	int32 GsUp = 0;
+	float QualUp = 0.f;
+	NWCity::StationBonus(City, StationType, GsUp, QualUp);
 	TMap<FName, int32> Spent;
 	for (const FNWRecipe::FIngredient& I : R->Ingredients)
 	{
@@ -428,8 +430,7 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 			Crafter = PC->Record->Name;
 		}
 		// Mesa evoluída: um pouco de GS e de qualidade mínima por nível (docs/plano-governanca.md).
-		const int32 GsUp = StationLevel * CR.GsPerLevel;
-		const float QualMin = FMath::Min(100.f, Rules.QualityMin(Level, Who->Progression->TradeMaxLevel(Skill)) + StationLevel * CR.QualityPerLevel);
+		const float QualMin = FMath::Min(100.f, Rules.QualityMin(Level, Who->Progression->TradeMaxLevel(Skill)) + QualUp);
 		Out = Rules.Roll(R->Out, FMath::Min(Range.X + GsUp, Rules.GsMax), FMath::Min(Range.Y + GsUp, Rules.GsMax), QualMin, Crafter);
 	}
 	// Treino (abaixo do nível de fabricar): só XP, sem item. Com OutItem quem chamou põe na bolsa (e pede o número de

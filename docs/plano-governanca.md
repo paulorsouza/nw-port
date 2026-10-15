@@ -125,6 +125,39 @@ fabricação, nível de cada mesa, equipamento de defesa (armas), buffs ativos, 
   nw-core corta também qualquer gravação acima do teto e registra o excedente (garantia).
 - Carência para pôr a cidade em leilão: 7 dias.
 
+## Ajustes v2 (pedido do dono 2026-10-15)
+
+1. Quadro de Planejamento: a meta da semana (matéria-prima, itens vendidos, buffs) some da tela; fica só no nw-core.
+2. Moedas: no Quadro de Planejamento o topo mostra o balancete da cidade (ícone de bolsa de ouro, cor própria); as
+   moedas do jogador aparecem só onde ele paga (comprar a cidade, lance).
+3. Armas da cidade: as do forte do jogo (`javelindata_territoryprogression`, `ProjectType` Fortress): Balista,
+   Repetidor, Explosivo, Tonel de Óleo Quente e Trombeta de Resiliência (`siege_turret_*`). Cada uma tem escala (jogo:
+   Escala 2 = 500 moedas, Escala 3 = 10 mil, 24 h). Proposta: escala 1 a 3 por arma, evolução com material (minério,
+   madeira, pedra) + moedas + tempo de obra; defesa da cidade = soma das escalas das armas. Teto natural: 5 armas × 3
+   escalas, não dá para gastar o balancete sem fim.
+4. Mesas:
+   - Primeiro a escala (tier) da mesa, até 5. Cada subida pede material de todos os tipos (minério, madeira, fibra,
+     couro, pedra) em quantidade crescente, mais moedas e tempo de obra (jogo: 24 h). A escala libera as receitas da
+     escala (a mesa da cidade só fabrica até a escala dela).
+   - Escala muda o visual da mesa no mapa (malhas `station_t2..t5` do jogo): etapa de arte à parte (conversão e troca da
+     malha da mesa por escala).
+   - Depois da escala 5: níveis da cidade, buff bem pequeno por nível (ex.: +1 GS e +0,5 ponto de qualidade mínima),
+     muito caros em material, para a cidade ter de comprar muito.
+   - Custos das escalas menores até a 5; níveis bem caros.
+
+Achado (2026-10-15): no jogo atual a escala da mesa não trava receita. Nas receitas extraídas quase tudo pede só a
+mesa Escala 2 (lingote de orichalcum, Asmodeum, espada T5); a escala dos projetos dava desconto de azoth
+(`CraftingAzothDiscount`). No port a escala dá bônus pequeno e visual, sem travar receita.
+
+Decisões (2026-10-15): mesas começam na Escala 2; obra de 24 h (como o jogo); ataque perdido tira nível das mesas
+e, sem nível, escala de arma (a escala da mesa nunca cai). Regras em `tools/governanca.json` (`mesa_escala`,
+`mesa_nivel`, `armas`, `obra_horas`).
+
+Backend feito (2026-10-15, migration 0015): escala e nível da mesa, obra em andamento (fim da obra), armas por tipo com escala e
+obra, cestas de material por escala e por nível em `tools/governanca.json`, virada da obra no `advance`, ataques
+contra a soma das armas. Depois servidor de jogo (receitas limitadas pela escala da mesa da cidade, efeitos), telas e,
+por fim, a troca de malha das mesas.
+
 ## Balanceamento
 
 Simulador (`tools/sim_economia.py`): jogadores por semana, coleta por hora, dungeons (500 por entrada), compra de
@@ -189,5 +222,8 @@ que não ficaram no tenebroso; governador ativo mantém 30% de folga na defesa.
    brinde semanal dos NPCs. Buff "economia" ainda sem efeito.
 4. ~~Telas~~ (feito 2026-10-14): `SNWCity` (estilo `NWSlate`), captura `tools/ui_shots/city.json`, testes 106–115.
 5. Ajuste dos números; testes do dono.
+
+Estado (2026-10-15): primeira versão fechada pelo dono (backend, jogo, telas, leilão, tetos de moedas, escalas,
+níveis e armas). Para depois: troca da malha da mesa por escala no mapa, buff "economia", calibrar os números com uso.
 
 Fora desta esteira: dungeon simples (`docs/plano-dungeon.md`), PvP.

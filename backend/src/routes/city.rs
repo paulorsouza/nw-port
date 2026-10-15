@@ -36,12 +36,15 @@ pub(crate) struct Rules {
     pub carencia_dias: i64,
     pub imposto: TaxRange,
     pub limite_semanal: Limits,
-    pub mesas: BTreeMap<String, Vec<String>>,
-    pub evoluir: Vec<Step>,
+    /// Mesa -> matéria-prima da manutenção.
+    pub mesas: BTreeMap<String, String>,
+    pub mesa_escala: TierRule,
+    pub mesa_nivel: LevelRule,
+    pub armas: WeaponRule,
+    pub obra_horas: i64,
     pub conserto_fracao: f64,
     pub manutencao_por_fabricacao_nivel: i64,
     pub buffs: BTreeMap<String, Buff>,
-    pub arma_custo: i64,
     pub ataque: Attack,
     pub premio: Prize,
     pub leilao: AuctionRule,
@@ -76,10 +79,34 @@ pub(crate) struct Limits {
     pub venda_por_item: i64,
 }
 
+/// Uma subida (escala, nível ou arma): cesta de matéria-prima do estoque e moedas do balancete.
 #[derive(Deserialize)]
-pub(crate) struct Step {
-    pub materia_prima: i64,
+pub(crate) struct Up {
+    #[serde(default)]
+    pub para: Option<i32>,
+    #[serde(default)]
+    pub nivel: Option<i32>,
+    pub materiais: BTreeMap<String, i64>,
     pub moedas: i64,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct TierRule {
+    pub inicial: i32,
+    pub subir: Vec<Up>,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct LevelRule {
+    pub max: i32,
+    pub subir: Vec<Up>,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct WeaponRule {
+    pub tipos: Vec<String>,
+    pub inicial: i32,
+    pub subir: Vec<Up>,
 }
 
 #[derive(Deserialize)]
@@ -95,7 +122,7 @@ pub(crate) struct Attack {
     pub por_semana: f64,
     pub por_nivel: f64,
     pub variacao: f64,
-    pub mesas_perdidas: usize,
+    pub niveis_perdidos: usize,
 }
 
 #[derive(Deserialize)]
@@ -140,7 +167,9 @@ pub(crate) static RULES: LazyLock<Rules> =
 pub(crate) static PRICES: LazyLock<Prices> =
     LazyLock::new(|| serde_json::from_str(include_str!("../../../tools/precos_cidade.json")).expect("tools/precos_cidade.json"));
 
-const STATION_LEVELS: i32 = 3;
+/// Escala máxima da mesa (depois dela, níveis).
+const TOP_TIER: i32 = 5;
+const STATION_COLS: &str = "station, level, reached, crafts, tier, work, work_target, work_ends_at";
 
 // ---------------------------------------------------------------- semana
 
@@ -174,7 +203,6 @@ struct CityRow {
     tax: f32,
     buy_prices: Value,
     sell_prices: Value,
-    weapons: i32,
     next_attack_at: Option<OffsetDateTime>,
     last_attack: Option<Value>,
     week: String,
@@ -188,9 +216,39 @@ struct CityRow {
 #[derive(sqlx::FromRow, Debug, Clone, Serialize)]
 pub struct StationRow {
     pub station: String,
+    /// Nível depois da escala 5.
     pub level: i32,
     pub reached: i32,
     pub crafts: i32,
+    pub tier: i32,
+    /// Obra em andamento: "tier", "level" ou "repair".
+    pub work: Option<String>,
+    pub work_target: Option<i32>,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub work_ends_at: Option<OffsetDateTime>,
+}
+
+#[derive(sqlx::FromRow, Debug, Clone, Serialize)]
+pub struct WeaponRow {
+    pub weapon: String,
+    pub tier: i32,
+    pub work_target: Option<i32>,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub work_ends_at: Option<OffsetDateTime>,
+}
+
+async fn stations_of(tx: &mut sqlx::PgConnection, region: &str) -> ApiResult<Vec<StationRow>> {
+    Ok(sqlx::query_as(sqlx::AssertSqlSafe(format!("select {STATION_COLS} from city_stations where region = $1 order by station")))
+        .bind(region)
+        .fetch_all(&mut *tx)
+        .await?)
+}
+
+async fn weapons_of(tx: &mut sqlx::PgConnection, region: &str) -> ApiResult<Vec<WeaponRow>> {
+    Ok(sqlx::query_as("select weapon, tier, work_target, work_ends_at from city_weapons where region = $1 order by weapon")
+        .bind(region)
+        .fetch_all(&mut *tx)
+        .await?)
 }
 
 /// Preço em vigor de um item: o do governador ou o padrão.
@@ -214,9 +272,18 @@ async fn lock_city(tx: &mut sqlx::PgConnection, region: &str) -> ApiResult<CityR
     .execute(&mut *tx)
     .await?;
     for station in RULES.mesas.keys() {
-        sqlx::query("insert into city_stations (region, station) values ($1, $2) on conflict do nothing")
+        sqlx::query("insert into city_stations (region, station, tier) values ($1, $2, $3) on conflict do nothing")
             .bind(region)
             .bind(station)
+            .bind(RULES.mesa_escala.inicial)
+            .execute(&mut *tx)
+            .await?;
+    }
+    for weapon in &RULES.armas.tipos {
+        sqlx::query("insert into city_weapons (region, weapon, tier) values ($1, $2, $3) on conflict do nothing")
+            .bind(region)
+            .bind(weapon)
+            .bind(RULES.armas.inicial)
             .execute(&mut *tx)
             .await?;
     }
@@ -314,7 +381,9 @@ pub struct CityView {
     pub stations: Vec<StationRow>,
     pub stock: BTreeMap<String, i64>,
     pub buffs: Vec<(String, String)>,
-    pub weapons: i32,
+    pub weapons: Vec<WeaponRow>,
+    /// Defesa da cidade = soma das escalas das armas (prontas).
+    pub defense: i32,
     #[serde(with = "time::serde::rfc3339::option")]
     pub next_attack_at: Option<OffsetDateTime>,
     pub last_attack: Option<Value>,
@@ -362,10 +431,9 @@ async fn view(tx: &mut sqlx::PgConnection, region: &str, who: Option<Uuid>) -> A
         Some(id) => sqlx::query_scalar("select name from characters where id = $1").bind(id).fetch_optional(&mut *tx).await?,
         None => None,
     };
-    let stations: Vec<StationRow> = sqlx::query_as("select station, level, reached, crafts from city_stations where region = $1 order by station")
-        .bind(region)
-        .fetch_all(&mut *tx)
-        .await?;
+    let stations = stations_of(tx, region).await?;
+    let weapons = weapons_of(tx, region).await?;
+    let defense = weapons.iter().map(|w| w.tier).sum();
     let stock: Vec<(String, i64)> = sqlx::query_as("select item_id, quantity from city_stock where region = $1 and quantity > 0 order by item_id")
         .bind(region)
         .fetch_all(&mut *tx)
@@ -437,7 +505,8 @@ async fn view(tx: &mut sqlx::PgConnection, region: &str, who: Option<Uuid>) -> A
         stations,
         stock: stock.into_iter().collect(),
         buffs,
-        weapons: c.weapons,
+        weapons,
+        defense,
         next_attack_at: c.next_attack_at,
         last_attack: c.last_attack,
         week: c.week,
@@ -878,25 +947,65 @@ pub async fn manage(State(state): State<AppState>, _server: GameServer, Path(reg
 #[derive(Deserialize)]
 pub struct Project {
     pub character_id: Uuid,
-    /// "station" (evoluir ou consertar), "buff" ou "weapon".
+    /// "station" (escala, nível ou conserto, conforme a mesa), "buff" ou "weapon" (escala da arma).
     pub kind: String,
     #[serde(default)]
     pub station: Option<String>,
     #[serde(default)]
     pub buff: Option<String>,
+    #[serde(default)]
+    pub weapon: Option<String>,
+}
+
+/// Paga uma subida: cesta do estoque (fração `share` dela) e moedas; devolve o valor (padrão da faixa) da cesta paga.
+async fn pay(tx: &mut sqlx::PgConnection, region: &str, up: &Up, share: f64, coins: bool) -> ApiResult<i64> {
+    let mut value = 0;
+    for (item, qty) in &up.materiais {
+        let q = (*qty as f64 * share).round() as i64;
+        stock_add(tx, region, item, -q).await?;
+        value += q * PRICES.compra.get(item).map(|r| r.padrao).unwrap_or(0);
+    }
+    if coins && up.moedas > 0 {
+        set_treasury(tx, region, -up.moedas).await?;
+        value += up.moedas;
+    }
+    Ok(value)
 }
 
 pub async fn project(State(state): State<AppState>, _server: GameServer, Path(region): Path<String>, Json(p): Json<Project>) -> ApiResult<Json<CityView>> {
     let mut tx = state.db.begin().await?;
-    advance_city(&mut tx, &region, OffsetDateTime::now_utc()).await?;
+    let now = OffsetDateTime::now_utc();
+    advance_city(&mut tx, &region, now).await?;
     let c = lock_city(&mut tx, &region).await?;
     require_owner(&c, p.character_id)?;
+    let ends = now + Duration::hours(RULES.obra_horas);
     match p.kind.as_str() {
         "weapon" => {
-            set_treasury(&mut tx, &region, -RULES.arma_custo).await?;
-            sqlx::query("update cities set weapons = weapons + 1 where region = $1").bind(&region).execute(&mut *tx).await?;
-            week_add(&mut tx, &region, &c.week, "project_value", RULES.arma_custo).await?;
-            clog(&mut tx, &region, "weapon", Some(p.character_id), None, 1, RULES.arma_custo, json!({})).await?;
+            // Arma do forte: sobe uma escala (até a última da regra), obra de 24 h.
+            let Some(weapon) = p.weapon.as_ref().filter(|w| RULES.armas.tipos.contains(w)) else {
+                return Err(ApiError::bad_request("invalid_project", "Arma desconhecida."));
+            };
+            let w: WeaponRow = sqlx::query_as("select weapon, tier, work_target, work_ends_at from city_weapons where region = $1 and weapon = $2 for update")
+                .bind(&region)
+                .bind(weapon)
+                .fetch_one(&mut *tx)
+                .await?;
+            if w.work_ends_at.is_some() {
+                return Err(ApiError::conflict("work_running", "Já há uma obra nesta arma."));
+            }
+            let Some(up) = RULES.armas.subir.iter().find(|u| u.para == Some(w.tier + 1)) else {
+                return Err(ApiError::conflict("weapon_max", "A arma já está na escala máxima."));
+            };
+            let value = pay(&mut tx, &region, up, 1.0, true).await?;
+            sqlx::query("update city_weapons set work_target = $3, work_ends_at = $4 where region = $1 and weapon = $2")
+                .bind(&region)
+                .bind(weapon)
+                .bind(w.tier + 1)
+                .bind(ends)
+                .execute(&mut *tx)
+                .await?;
+            week_add(&mut tx, &region, &c.week, "project_value", value).await?;
+            clog(&mut tx, &region, "weapon", Some(p.character_id), None, 1, up.moedas, json!({"weapon": weapon, "tier": w.tier + 1})).await?;
         }
         "buff" => {
             let (Some(station), Some(buff)) = (&p.station, &p.buff) else {
@@ -924,52 +1033,84 @@ pub async fn project(State(state): State<AppState>, _server: GameServer, Path(re
             clog(&mut tx, &region, "buff", Some(p.character_id), None, 1, rule.custo, json!({"station": station, "buff": buff})).await?;
         }
         "station" => {
-            let Some(station) = &p.station else {
-                return Err(ApiError::bad_request("invalid_project", "Projeto sem mesa."));
-            };
-            let Some(materials) = RULES.mesas.get(station) else {
+            // Mesa: primeiro a escala (até a 5), depois os níveis; nível que a mesa já teve é conserto (30% da cesta,
+            // sem moedas, fora da meta). Tudo com obra de 24 h.
+            let Some(station) = p.station.as_ref().filter(|st| RULES.mesas.contains_key(*st)) else {
                 return Err(ApiError::bad_request("invalid_project", "Mesa desconhecida."));
             };
-            let s: StationRow = sqlx::query_as("select station, level, reached, crafts from city_stations where region = $1 and station = $2 for update")
+            let s: StationRow = sqlx::query_as(sqlx::AssertSqlSafe(format!("select {STATION_COLS} from city_stations where region = $1 and station = $2 for update")))
                 .bind(&region)
                 .bind(station)
                 .fetch_one(&mut *tx)
                 .await?;
-            if s.level >= STATION_LEVELS {
-                return Err(ApiError::conflict("station_max", "A mesa já está no nível máximo."));
+            if s.work.is_some() {
+                return Err(ApiError::conflict("work_running", "Já há uma obra nesta mesa."));
             }
-            let step = &RULES.evoluir[s.level as usize];
-            let material = &materials[s.level as usize];
-            let unit = PRICES.compra.get(material).map(|r| r.padrao).unwrap_or(0);
-            // Conserto (nível que a mesa já teve): só uma parte do material, sem moedas, e não conta na meta.
-            let repair = s.level < s.reached;
-            let (qty, coins) = if repair {
-                ((step.materia_prima as f64 * RULES.conserto_fracao).round() as i64, 0)
+            let (work, target, up) = if s.tier < TOP_TIER {
+                let Some(up) = RULES.mesa_escala.subir.iter().find(|u| u.para == Some(s.tier + 1)) else {
+                    return Err(ApiError::conflict("station_max", "Sem regra para a próxima escala."));
+                };
+                ("tier", s.tier + 1, up)
             } else {
-                (step.materia_prima, step.moedas)
+                if s.level >= RULES.mesa_nivel.max {
+                    return Err(ApiError::conflict("station_max", "A mesa já está no nível máximo."));
+                }
+                let Some(up) = RULES.mesa_nivel.subir.iter().find(|u| u.nivel == Some(s.level + 1)) else {
+                    return Err(ApiError::conflict("station_max", "Sem regra para o próximo nível."));
+                };
+                (if s.level < s.reached { "repair" } else { "level" }, s.level + 1, up)
             };
-            stock_add(&mut tx, &region, material, -qty).await?;
-            if coins > 0 {
-                set_treasury(&mut tx, &region, -coins).await?;
-            }
-            sqlx::query("update city_stations set level = level + 1, reached = greatest(reached, level + 1) where region = $1 and station = $2")
+            let repair = work == "repair";
+            let value = pay(&mut tx, &region, up, if repair { RULES.conserto_fracao } else { 1.0 }, !repair).await?;
+            sqlx::query("update city_stations set work = $3, work_target = $4, work_ends_at = $5 where region = $1 and station = $2")
                 .bind(&region)
                 .bind(station)
+                .bind(work)
+                .bind(target)
+                .bind(ends)
                 .execute(&mut *tx)
                 .await?;
-            if repair {
-                week_add(&mut tx, &region, &c.week, "repair_value", qty * unit).await?;
-            } else {
-                week_add(&mut tx, &region, &c.week, "project_value", coins + qty * unit).await?;
-            }
-            clog(&mut tx, &region, if repair { "repair" } else { "upgrade" }, Some(p.character_id), Some(material), qty, coins,
-                json!({"station": station, "level": s.level + 1})).await?;
+            week_add(&mut tx, &region, &c.week, if repair { "repair_value" } else { "project_value" }, value).await?;
+            clog(&mut tx, &region, work, Some(p.character_id), None, 0, if repair { 0 } else { up.moedas },
+                json!({"station": station, "target": target})).await?;
         }
         _ => return Err(ApiError::bad_request("invalid_project", "Projeto desconhecido.")),
     }
     let v = view(&mut tx, &region, Some(p.character_id)).await?;
     tx.commit().await?;
     Ok(Json(v))
+}
+
+/// Obras que terminaram: a mesa ou a arma sobe para o alvo.
+async fn works(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDateTime) -> ApiResult<()> {
+    let done: Vec<(String, String, i32)> = sqlx::query_as(
+        "update city_stations set
+             tier = case when work = 'tier' then work_target else tier end,
+             level = case when work in ('level', 'repair') then work_target else level end,
+             reached = case when work in ('level', 'repair') then greatest(reached, work_target) else reached end,
+             work = null, work_target = null, work_ends_at = null
+          where region = $1 and work_ends_at <= $2
+          returning station, 'mesa', tier + level",
+    )
+    .bind(region)
+    .bind(now)
+    .fetch_all(&mut *tx)
+    .await?;
+    for (station, _, _) in &done {
+        clog(tx, region, "work_done", None, None, 0, 0, json!({"station": station})).await?;
+    }
+    let armed: Vec<(String, i32)> = sqlx::query_as(
+        "update city_weapons set tier = work_target, work_target = null, work_ends_at = null
+          where region = $1 and work_ends_at <= $2 returning weapon, tier",
+    )
+    .bind(region)
+    .bind(now)
+    .fetch_all(&mut *tx)
+    .await?;
+    for (weapon, tier) in &armed {
+        clog(tx, region, "work_done", None, None, 0, 0, json!({"weapon": weapon, "tier": tier})).await?;
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------- tempo: ataques e virada da semana
@@ -995,6 +1136,7 @@ pub async fn advance_all(db: &sqlx::PgPool, now: OffsetDateTime) -> ApiResult<()
     }
     rollover(&mut tx, now).await?;
     for r in &RULES.regioes {
+        works(&mut tx, &r.id, now).await?;
         attacks(&mut tx, &r.id, now).await?;
         settle(&mut tx, &r.id, now).await?;
     }
@@ -1011,6 +1153,7 @@ async fn advance_city(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDate
         }
         rollover(tx, now).await?;
     }
+    works(tx, region, now).await?;
     attacks(tx, region, now).await?;
     settle(tx, region, now).await
 }
@@ -1030,18 +1173,20 @@ async fn attacks(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDateTime)
         if at > now {
             return Ok(());
         }
-        let stations: Vec<StationRow> = sqlx::query_as("select station, level, reached, crafts from city_stations where region = $1 order by level desc, station")
-            .bind(region)
-            .fetch_all(&mut *tx)
-            .await?;
+        let mut stations = stations_of(tx, region).await?;
+        stations.sort_by(|x, y| y.level.cmp(&x.level).then(x.station.cmp(&y.station)));
+        let weapons = weapons_of(tx, region).await?;
+        let defense: i32 = weapons.iter().map(|w| w.tier).sum();
         let a = &RULES.ataque;
         let weeks = ((at - since).whole_days() / 7) as f64;
-        let levels: i32 = stations.iter().map(|s| s.level).sum();
-        let strength = (a.base + a.por_semana * weeks + a.por_nivel * levels as f64) * (1.0 - a.variacao + 2.0 * a.variacao * rand01());
-        let won = c.weapons as f64 >= strength;
+        // Força cresce com a semana do dono e com o tamanho da cidade (escalas acima da inicial e níveis).
+        let growth: i32 = stations.iter().map(|s| (s.tier - RULES.mesa_escala.inicial).max(0) + s.level).sum();
+        let strength = (a.base + a.por_semana * weeks + a.por_nivel * growth as f64) * (1.0 - a.variacao + 2.0 * a.variacao * rand01());
+        let won = defense as f64 >= strength;
         let mut lost = Vec::new();
         if !won {
-            for s in stations.iter().filter(|s| s.level > 0).take(a.mesas_perdidas) {
+            // Perde nível das mesas (a escala nunca cai); sem nível para perder, uma arma perde escala.
+            for s in stations.iter().filter(|s| s.level > 0).take(a.niveis_perdidos) {
                 sqlx::query("update city_stations set level = level - 1 where region = $1 and station = $2")
                     .bind(region)
                     .bind(&s.station)
@@ -1049,11 +1194,20 @@ async fn attacks(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDateTime)
                     .await?;
                 lost.push(s.station.clone());
             }
+            if lost.is_empty() {
+                if let Some(w) = weapons.iter().filter(|w| w.tier > RULES.armas.inicial).max_by_key(|w| w.tier) {
+                    sqlx::query("update city_weapons set tier = tier - 1 where region = $1 and weapon = $2")
+                        .bind(region)
+                        .bind(&w.weapon)
+                        .execute(&mut *tx)
+                        .await?;
+                    lost.push(w.weapon.clone());
+                }
+            }
         }
-        let detail = json!({"at": at.unix_timestamp(), "strength": strength, "weapons": c.weapons, "won": won, "lost": lost});
-        sqlx::query("update cities set weapons = greatest(weapons - $2, 0), next_attack_at = $3, last_attack = $4 where region = $1")
+        let detail = json!({"at": at.unix_timestamp(), "strength": strength, "defense": defense, "won": won, "lost": lost});
+        sqlx::query("update cities set next_attack_at = $2, last_attack = $3 where region = $1")
             .bind(region)
-            .bind(if won { 0 } else { 1 })
             .bind(at + Duration::hours(a.intervalo_horas))
             .bind(&detail)
             .execute(&mut *tx)
@@ -1090,7 +1244,7 @@ async fn rollover(tx: &mut sqlx::PgConnection, now: OffsetDateTime) -> ApiResult
                 .bind(&c.week)
                 .fetch_one(&mut *tx)
                 .await?;
-            let avg_level: f64 = sqlx::query_scalar("select coalesce(avg(level), 0)::float8 from city_stations where region = $1")
+            let avg_level: f64 = sqlx::query_scalar("select coalesce(avg(greatest(tier - 2, 0) + level), 0)::float8 from city_stations where region = $1")
                 .bind(&c.region)
                 .fetch_one(&mut *tx)
                 .await?;
@@ -1170,16 +1324,16 @@ async fn rollover(tx: &mut sqlx::PgConnection, now: OffsetDateTime) -> ApiResult
 /// Manutenção da semana: cada fabricação numa mesa evoluída gasta matéria-prima do nível dela; sem material, a mesa
 /// perde um nível. Zera a contagem.
 async fn upkeep(tx: &mut sqlx::PgConnection, region: &str) -> ApiResult<()> {
-    let stations: Vec<StationRow> = sqlx::query_as("select station, level, reached, crafts from city_stations where region = $1 and level > 0")
-        .bind(region)
-        .fetch_all(&mut *tx)
-        .await?;
+    // Cada fabricação numa mesa acima da escala inicial (ou com nível) gasta a matéria-prima da mesa; sem material, a
+    // mesa perde um nível (a escala não cai).
+    let stations = stations_of(tx, region).await?;
     for s in stations {
-        let need = s.level as i64 * s.crafts as i64 * RULES.manutencao_por_fabricacao_nivel;
+        let size = (s.tier - RULES.mesa_escala.inicial).max(0) + s.level;
+        let need = size as i64 * s.crafts as i64 * RULES.manutencao_por_fabricacao_nivel;
         if need == 0 {
             continue;
         }
-        let material = &RULES.mesas[&s.station][(s.level - 1) as usize];
+        let material = &RULES.mesas[&s.station];
         let have = stock_of(tx, region, material).await?;
         if have >= need {
             sqlx::query("update city_stock set quantity = quantity - $3 where region = $1 and item_id = $2")
@@ -1190,11 +1344,13 @@ async fn upkeep(tx: &mut sqlx::PgConnection, region: &str) -> ApiResult<()> {
                 .await?;
             clog(tx, region, "upkeep", None, Some(material), need, 0, json!({"station": s.station})).await?;
         } else {
-            sqlx::query("update city_stations set level = level - 1 where region = $1 and station = $2")
-                .bind(region)
-                .bind(&s.station)
-                .execute(&mut *tx)
-                .await?;
+            if s.level > 0 {
+                sqlx::query("update city_stations set level = level - 1 where region = $1 and station = $2")
+                    .bind(region)
+                    .bind(&s.station)
+                    .execute(&mut *tx)
+                    .await?;
+            }
             clog(tx, region, "upkeep_failed", None, Some(material), need, 0, json!({"station": s.station, "had": have})).await?;
         }
     }

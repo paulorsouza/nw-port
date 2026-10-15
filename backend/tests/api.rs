@@ -927,24 +927,42 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     assert_eq!(c["treasury"].as_i64().unwrap(), before["treasury"].as_i64().unwrap() + 10 * pot);
     assert_eq!(c["this_week"]["list_units"], 10);
 
-    // Projetos: mesa sem material = 409; arma e buff saem do balancete.
-    let proj = |kind: &str, station: Option<&str>, buff: Option<&str>| json!({ "character_id": gov, "kind": kind, "station": station, "buff": buff });
+    // Projetos: mesa e arma pedem cesta de material do estoque + moedas e levam 24 h de obra; buff sai do balancete.
+    let proj = |kind: &str, station: Option<&str>, other: Option<&str>| json!({ "character_id": gov, "kind": kind, "station": station,
+                                                                              "buff": other, "weapon": other });
     let (status, e) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("station", Some("smelting"), None))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("city_no_stock")));
-    let (status, c) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("weapon", None, None))).await;
-    assert_eq!(status, StatusCode::OK, "{c}");
-    assert_eq!(c["weapons"], 1);
+    let st = c["stations"].as_array().unwrap().iter().find(|s| s["station"] == "smelting").unwrap().clone();
+    assert_eq!(st["tier"], 2);
+    assert_eq!((c["weapons"].as_array().unwrap().len(), c["defense"].as_i64()), (5, Some(5)));
     let (status, c) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("buff", Some("smelting"), Some("xp")))).await;
     assert_eq!(status, StatusCode::OK, "{c}");
     assert_eq!(c["buffs"], json!([["smelting", "xp"]]));
     let (status, e) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("buff", Some("smelting"), Some("xp")))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("buff_active")));
-    // Com 2000 minérios no estoque a fundição sobe para o nível 1.
-    sqlx::query("update city_stock set quantity = 2000 where region = '1' and item_id = 'OreT1'").execute(&db).await.unwrap();
+    // Com a cesta da escala 3 no estoque, a fundição entra em obra; segunda obra na mesma mesa = 409.
+    for item in ["OreT1", "WoodT2", "FiberT1", "RawhideT1", "StoneT1"] {
+        sqlx::query("insert into city_stock (region, item_id, quantity) values ('1', $1, 5000) on conflict (region, item_id) do update set quantity = 5000")
+            .bind(item).execute(&db).await.unwrap();
+    }
     let (status, c) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("station", Some("smelting"), None))).await;
     assert_eq!(status, StatusCode::OK, "{c}");
     let st = c["stations"].as_array().unwrap().iter().find(|s| s["station"] == "smelting").unwrap().clone();
-    assert_eq!((st["level"].as_i64(), st["reached"].as_i64()), (Some(1), Some(1)));
+    assert_eq!((st["tier"].as_i64(), st["work"].as_str(), st["work_target"].as_i64()), (Some(2), Some("tier"), Some(3)));
+    assert_eq!(c["stock"]["OreT1"], 2000);
+    let (status, e) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("station", Some("smelting"), None))).await;
+    assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("work_running")));
+    // Arma: balista para a escala 2.
+    let (status, c) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("weapon", None, Some("ballista")))).await;
+    assert_eq!(status, StatusCode::OK, "{c}");
+    // 25 h depois as obras terminam.
+    let later = (time::OffsetDateTime::now_utc() + time::Duration::hours(25)).format(&time::format_description::well_known::Rfc3339).unwrap();
+    let (status, _) = api.call("POST", "/internal/cities/advance", None, true, Some(json!({ "now": later }))).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (_, c) = api.call("GET", CITY, None, true, None).await;
+    let st = c["stations"].as_array().unwrap().iter().find(|s| s["station"] == "smelting").unwrap().clone();
+    assert_eq!((st["tier"].as_i64(), st["work"].is_null()), (Some(3), true));
+    assert_eq!(c["defense"], 6);
 
     // Imposto de fabricação no salvamento do personagem: entra no balancete e conta a fabricação na mesa.
     let (_, before) = api.call("GET", CITY, None, true, None).await;
@@ -964,7 +982,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     let (status, log) = api.call("GET", &format!("{CITY}/log"), None, true, None).await;
     assert_eq!(status, StatusCode::OK);
     let kinds: Vec<&str> = log.as_array().unwrap().iter().map(|l| l["kind"].as_str().unwrap()).collect();
-    for k in ["owner", "raw_bought", "manage", "list_sold", "weapon", "buff", "upgrade", "tax"] {
+    for k in ["owner", "raw_bought", "manage", "list_sold", "weapon", "buff", "tier", "work_done", "tax"] {
         assert!(kinds.contains(&k), "falta {k} no log: {kinds:?}");
     }
 }

@@ -145,6 +145,26 @@ namespace NWSlate
 			];
 	}
 
+	const FLinearColor Amber(FColor(0xF0, 0x9A, 0x4A));
+
+	TSharedRef<SWidget> Treasury(TAttribute<int64> Cents, int32 Style, int32 Size)
+	{
+		const float Icon = FMath::RoundToFloat(Size * 1.6f);
+		return SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 6.f, 0.f)
+			[
+				SNew(SBox).WidthOverride(Icon).HeightOverride(Icon)
+				[
+					SNew(SImage).Image(Tex(TEXT("lyshineui/images/icons/items/resource/mi_largegoldcoin.dds"), Icon))
+				]
+			]
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+			[
+				SNew(STextBlock).Font(Font(Style, Size)).ColorAndOpacity(Amber)
+				.Text_Lambda([Cents]() { return FText::FromString(UNWInventoryComponent::FormatCoins(Cents.Get())); })
+			];
+	}
+
 	TSharedRef<SWidget> CloseButton(TFunction<void()> OnClose)
 	{
 		return SNew(SBox).WidthOverride(40.f).HeightOverride(40.f)
