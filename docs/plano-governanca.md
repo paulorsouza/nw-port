@@ -112,7 +112,7 @@ fabricação, nível de cada mesa, equipamento de defesa (armas), buffs ativos, 
 - Lance mínimo: o lance inicial ou o maior lance + 5%. O lance sai das moedas de quem deu e volta em crédito quando
   alguém cobre. O governador não dá lance na própria cidade.
 - Sem lance até o fim: leilão do governador acaba sem mudança; leilão obrigatório deixa a cidade sem governador (volta
-  ao preço fixo).
+  ao preço fixo) e o governador que sai não recebe nada (dono 2026-10-15).
 - Balancete, estoque, mesas e defesa ficam com a cidade.
 - Sem dono: preços no meio da faixa, imposto padrão, sem ataques e sem prêmio.
 
