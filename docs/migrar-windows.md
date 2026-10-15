@@ -4,6 +4,9 @@ Para quem vai trocar o Linux pelo Windows na mesma máquina. O código está no 
 para o git: o que a Unreal importou e o que foi extraído do jogo. Com isso, o Windows não precisa converter nada de
 novo.
 
+Para manter as máquinas em dia depois da primeira cópia, sem HD: `docs/sincronizar-assets.md` (zips pelo OneDrive).
+Ele também serve para a primeira cópia do `Content`; o HD continua útil para o `extract/` e o jogo.
+
 ## O que vai no HD
 
 | Arquivo | Conteúdo | Tamanho | Precisa? |
