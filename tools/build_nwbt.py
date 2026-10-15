@@ -134,10 +134,11 @@ def write_patch():
 def prepare_source(source):
     if not source.exists():
         source.parent.mkdir(parents=True, exist_ok=True)
-        git("clone", "--branch", "nw-port", FORK, str(source))
+        # Shallow: the full history of nw-buddy is ~300 MB and only BASE is used.
+        git("clone", "--depth", "1", "--branch", "nw-port", FORK, str(source))
     if subprocess.run(["git", "-C", str(source), "cat-file", "-e", BASE + "^{commit}"],
                       capture_output=True).returncode != 0:
-        git("-C", str(source), "fetch", "origin", "nw-port")
+        git("-C", str(source), "fetch", "--depth", "1", "origin", BASE)
     src = BUILD / "src"
     if (src / ".git").is_dir() and src_diff(src) != patch_text()[len(patch_header().encode("utf-8")):]:
         raise SystemExit(f"{src} has changes outside patches/nwbt.patch: write the patch (--make-patch) "

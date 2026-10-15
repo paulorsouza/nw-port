@@ -226,7 +226,8 @@ def main():
     if args.step:
         print(f"Step ue_{args.step} done.")
         return 0
-    print(f"Done. Open the editor: {importer.ue / 'Engine/Binaries/Win64/UnrealEditor.exe'} {PROJECT} "
+    editor = "Engine/Binaries/Win64/UnrealEditor.exe" if nwplatform.WINDOWS else "Engine/Binaries/Linux/UnrealEditor"
+    print(f"Done. Open the editor: {importer.ue / editor} {PROJECT} "
           "/Game/NW/Maps/L_SouthWindsward")
     return 0
 

@@ -40,7 +40,7 @@ Build `ooz.dll`, `nwbt.exe` and `dbgwater.exe` in the **Developer PowerShell for
 `texconv.exe`:
 
 ```powershell
-git clone https://github.com/paulorsouza/nw-buddy.git vendor\nw-buddy
+git clone --depth 1 --branch nw-port https://github.com/paulorsouza/nw-buddy.git vendor\nw-buddy
 .\tools\windows\build_ooz.ps1
 .\tools\windows\build_nwbt.ps1 -Test
 Invoke-WebRequest https://github.com/microsoft/DirectXTex/releases/download/may2026/texconv.exe -OutFile bin\texconv.exe

@@ -48,7 +48,7 @@ tools/linux/heavy.sh python3 tools/build_nwbt.py --test-argfile || FAIL=1
 NW_IGNORE_VERSION=1 tools/linux/game_version.sh 2>&1 | sed 's/^/warn  /'
 
 # What from the RE has not made it into the port yet (informational).
-python3 tools/re_check.py 2>/dev/null | grep -E "^== (Valores|Perguntas)" | sed 's/^== /info  /'
+[ -d re-local/valores ] && python3 tools/re_check.py 2>/dev/null | grep -E "^== (Valores|Perguntas)" | sed 's/^== /info  /'
 
 if [ "${1:-}" = "--cpp" ]; then
     UE_DIR="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}"
