@@ -110,13 +110,21 @@ public:
 
 	// Player weapons (empty = single-weapon character, like the Lost).
 	UPROPERTY(EditAnywhere, Category = "NW|Armas") TArray<FNWWeaponSet> WeaponSets;
+	// Weapon in hand; INDEX_NONE = unarmed (player with nothing in Weapon 1/2).
 	UPROPERTY(ReplicatedUsing = OnRep_ActiveWeapon, BlueprintReadOnly, Category = "NW|Armas") int32 ActiveWeapon = 0;
-	// The two weapons in use (keys 1 and 2), indices into WeaponSets; as in the game, two at a time.
+	// The two weapons in use (keys 1 and 2), indices into WeaponSets (INDEX_NONE = empty slot); as in the game, two at a
+	// time. For players it comes from the items in Weapon 1/2 (SyncWeaponsFromInventory).
 	UPROPERTY(ReplicatedUsing = OnRep_ActiveWeapon, BlueprintReadOnly, Category = "NW|Armas") TArray<int32> Loadout = {0, 1};
 	/** The weapon of the pair that is not in hand (INDEX_NONE with a single weapon). */
 	int32 OtherWeapon() const;
-	/** Server: swaps the weapon pair (dev menu) and draws the first. */
+	/** Server: swaps the weapon pair (AI in the arena) and draws the first. */
 	void SetLoadout(int32 First, int32 Second);
+	/**
+	 * Server, player: the pair follows the weapons equipped in Weapon 1/2 of the inventory; the weapon in hand stays if it
+	 * is still in the pair, otherwise the first one, or unarmed. Waits for the current action to end.
+	 */
+	void SyncWeaponsFromInventory();
+	bool IsUnarmed() const { return WeaponSets.Num() > 0 && !WeaponSets.IsValidIndex(ActiveWeapon); }
 	// Weapon swap (1/2): plays the draw of the new weapon.
 	void SwitchWeapon(int32 Index);
 	void SetWeaponAbilities(int32 SetIndex, const TArray<FName>& New);
@@ -284,10 +292,11 @@ private:
 	UPROPERTY() TObjectPtr<UInputAction> IA_DevMenu;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Weapon1;
 	UPROPERTY() TObjectPtr<UInputAction> IA_Weapon2;
-	UPROPERTY() TObjectPtr<UInputAction> IA_Potion;
+	// Quick consumables 1-4 (keys 3-6).
+	UPROPERTY() TArray<TObjectPtr<UInputAction>> IA_Quick;
 	TObjectPtr<UInputAction> IA_Inventory;
 	TObjectPtr<UInputAction> IA_Interact;
-	void UsePotion();
+	void UseQuick(int32 Index);
 	void InventoryPressed();
 	void InteractPressed();
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> IA_Abilities;
@@ -295,6 +304,7 @@ private:
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> IA_Registered;
 
 	void TickDummy(float DeltaSeconds);
+	FTimerHandle SyncWeaponsTimer;
 
 	FVector2D LastMoveInput = FVector2D::ZeroVector;
 	float DummyTimer = 0.f;

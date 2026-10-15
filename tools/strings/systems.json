@@ -237,6 +237,14 @@
       "pt-br": "Bolsa de dev (peso)",
       "en-us": "Dev bag (weight)"
     },
+    "nw.dev.test_items": {
+      "pt-br": "Itens de teste (armas, bolsas, runas, águas, poções)",
+      "en-us": "Test items (weapons, bags, runes, waters, potions)"
+    },
+    "nw.dev.switch_character": {
+      "pt-br": "Trocar personagem",
+      "en-us": "Switch character"
+    },
     "nw.craft.too_far": {
       "pt-br": "Chegue mais perto da estação.",
       "en-us": "Get closer to the station."
@@ -800,8 +808,13 @@
   },
   "game_keys": [
     "everfall",
+    "windsward",
+    "outfitting_station",
     "ui_shop_default_name",
     "ui_consumable",
+    "ui_consumable2",
+    "ui_consumable3",
+    "ui_consumable4",
     "ui_buy",
     "ui_inventoryfull",
     "ui_insufficient_funds",

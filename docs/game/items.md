@@ -137,8 +137,8 @@ Appearance:
 - Catalog: `tools/make_items.py` gives armor and jewelry the slot (`set` Head…Earring), the weight class (`armor`)
   and the appearance icon.
 - `NWEquip` slots 7–14 (head, chest, hands, legs, feet, amulet, ring, earring) in the inventory panel, at the game's
-  positions; `NWEquip::IsTool` separates tools. The panel's average GS counts weapons, armor and jewelry. nw-core has
-  `MAX_EQUIP_SLOTS = 16`, so indexes 7–15 were free without a migration.
+  positions; `NWEquip::IsTool` separates tools. The panel's average GS counts weapons, armor and jewelry. Slot
+  indexes are in "Equipment slots" below.
 - Rules: `FNWItemRules::EquipClass` (armor, amulet, ring, earring), `Resistance` (`tools/itens.json`
   `resistencia_peito`, `resistencia_slot`); tooltip with physical and magic resistance; rarity is rolled (not set by
   tier).
@@ -148,6 +148,8 @@ Appearance:
   tooltips).
 - The character still has one mesh (`SK_player_male`) with the heroicheavy armor merged in Blender (`tools/nwchar.py`
   `attach_armor`, `tools/export_ue.py`). There is no armor component in C++.
+- Appearance meshes (body parts, one per armor appearance, one per weapon appearance) and the item → mesh map
+  `Data/Items/appearances.json`: [../tech/asset-pipeline.md](../tech/asset-pipeline.md#appearances).
 
 ## Slot and gems
 
@@ -211,6 +213,37 @@ Appearance:
   registry (`item_serials`) stores owner and location. Every write checks that the number exists and appears only once
   across bag, storage and Trading Post; otherwise the whole write is refused (migration 0009,
   `backend/src/routes/serials.rs`). The server gets the serial from nw-core before granting the item.
+
+## Equipment slots
+
+| Slots | What | Rule |
+|---|---|---|
+| 0, 1 | Weapon 1 and 2 (keys 1/2) | Any ported weapon (Sword, Hatchet, Bow, Rapier, Ice Gauntlet). The items here decide the character's weapon pair; both empty = unarmed (no attack, block or abilities; dodge stays). Decision of the maintainer, 2026-10-15 |
+| 2 | Shield | |
+| 3–6 | Gathering tools | |
+| 7–14 | Armor and jewelry | |
+| 15–18 | Quick consumables (keys 3–6, the game's `quickslot-consumable-1..4`) | Any consumable; a stack that ends refills from the bag |
+| 19–21 | Bags | Each adds its `Encumbrance` (tenths of kg) to the max weight |
+
+nw-core accepts slots 0–21 (`MAX_EQUIP_SLOTS`, no migration needed). Weapons, quick slots and bags have no F10
+shortcut: F10 > Test items puts them in the bag, and the player equips them.
+
+## Look
+
+Equipped items change the player's look (maintainer, 2026-10-15). `UNWAppearanceComponent` (created by the server for
+players, replicated to everyone) keeps the item id of each visible slot: head, chest, hands, legs, feet, weapon 1/2
+and shield.
+
+- Body: `SK_player_male` stays as the leader that animates and holds the weapon sockets, but is not drawn. One skinned
+  part per slot follows it (`SetLeaderPoseComponent`): the base part (head, shirt, gloves, pants, boots of
+  `player_male.cdf`) or the armor piece that covers it (`covers` in `Data/Items/appearances.json`).
+- Weapons: the hand, back and shield meshes come from the equipped item's `WeaponAppearanceOverride` →
+  `MeshOverride`. The reach stays the weapon class's: `ApplyWeapon` measures the blade with the class mesh before the
+  swap (maintainer, 2026-10-15). No shield equipped: no shield is drawn.
+- Male only. Dye masks are not used (the crafted armor has no override; weapons with mask overrides may look a bit
+  different).
+- Meshes from `tools/make_appearances.py` ([../tech/asset-pipeline.md](../tech/asset-pipeline.md)). Without
+  `appearances.json` or the imported meshes, the character keeps the old single mesh.
 
 ## Item data
 

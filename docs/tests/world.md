@@ -86,7 +86,7 @@ These items belong to the weapons area ([tests/weapons.md](weapons.md)); kept he
 
 Without this step the bow shoots, but the upper body does not animate (the arrow still flies).
 
-F10 > Switch weapon pair until "Bow + Rapier"; key 1.
+F10 > Test items, then equip the Bow in Weapon 1 and the Rapier in Weapon 2 (Tab); key 1.
 
 34. Click without aiming: quick shot. Right button: aim (camera comes close, slow walk). While aiming, hold the left button to draw; release before 0.5 s = normal shot, after = charged (stronger). After the shot it reloads by itself and returns to aim.
 35. The arrow drops after ~5 m of straight flight (aim above a far target). Hit a dummy's head: more damage.

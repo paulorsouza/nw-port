@@ -1,7 +1,7 @@
 # Tests: weapons
 
-Weapons area ([../game/weapons/README.md](../game/weapons/README.md)). Map `L_Arena` (F10 > Arena / Swap weapon
-pair). For each item, send a screenshot if something is wrong. How test checklists work: [README.md](README.md).
+Weapons area ([../game/weapons/README.md](../game/weapons/README.md)). Map `L_Arena` (F10 > Arena; weapons
+from F10 > Test items, equipped in Weapon 1/2 in the inventory). For each item, send a screenshot if something is wrong. How test checklists work: [README.md](README.md).
 Ice Gauntlet: [ice-gauntlet.md](ice-gauntlet.md).
 
 ## Arena test for any weapon

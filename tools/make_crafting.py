@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Everfall refining stations and the game's refining recipes -> unreal/NWPort/Data/Crafting/refining.json.
+"""City stations (Everfall and Windsward) and the game's refining recipes -> unreal/NWPort/Data/Crafting/refining.json.
 
     python3 tools/make_crafting.py        (before tools/make_items.py: the catalog includes the recipe items)
 
 Sources:
-- stations: PrefabSpawnerComponent of the city slice (extract/slicejson, step sistemas-02 of build_all), slice
-  `Settlement_Station_<Type>_T5` / `settlement_station_<type>_master`, position in m_worldtm (city frame);
+- stations: PrefabSpawnerComponent of each city slice (CITIES; extract/slicejson, step sistemas-02 of build_all),
+  slice `Settlement_Station_<Type>_T5` / `settlement_station_<type>_master`, position in m_worldtm. The slice frame is
+  the city map's frame (both maps are town-local, like make_npcs.py and make_gatherables.py), so each station keeps
+  its slice position and gets the `city` field; ANWNpcField spawns only its city's stations;
 - recipes: javelindata_crafting_refining, refining trade skills (Smelting, Woodworking, Leatherworking, Weaving,
   Stonecutting), known by default (bKnownByDefault), without the rune station (RuneglassStation1);
 - ingredient categories (Type = Category_Only): IngredientCategories column of javelindata_itemdefinitions_master_*;
@@ -23,8 +25,9 @@ import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DT = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites", "datatables")
-CITY = os.path.join(ROOT, "extract", "slicejson", "slices", "structures", "settlements", "v2_settlements",
-                    "settlement_northwindsward_complete.dynamicslice.json")
+SETTLEMENTS = os.path.join(ROOT, "extract", "slicejson", "slices", "structures", "settlements", "v2_settlements")
+# City id (Data/World/<city>_npcs.json, governance) -> settlement slice. Map: L_QuedaEterna and L_SouthWindsward.
+CITIES = {"queda_eterna": "settlement_northwindsward_complete", "guardaventos": "settlement_southwindsward_complete"}
 OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "Crafting", "refining.json")
 # Station type in the slice -> recipe StationType and trade skill. The storage sheds (settlement_storage_*) come in as
 # stations of type "storage" (city Storage).
@@ -43,14 +46,15 @@ CRAFT_SOURCES = ("javelindata_crafting_weapon", "javelindata_crafting_engineer",
                  "javelindata_crafting_jeweler", "javelindata_crafting_armorer")
 # Trade skills with no station of their own in the slice: armoring (plate at the forge, leather/cloth at outfitting).
 EXTRA_SKILLS = {"Armoring"}
-CRAFT_GEAR = re.compile(r"^Procedural_(Longsword|ShieldRound|ShieldKite|ShieldTower|Hatchet|LoggingAxe|MiningPick|"
+CRAFT_GEAR = re.compile(r"^Procedural_(Longsword|ShieldRound|ShieldKite|ShieldTower|Hatchet|LoggingAxe|MiningPick|GauntletIce|"
                         r"SkinningKnife|Sickle|"
                         # Armor (plate, leather, cloth; without the "dress" line) and jewelry (docs/game/items.md).
                         r"(Plate|Leather|Cloth)(Head|Chest|Hands|Legs|Feet)|Amulet|Ring|Earring)T[2-5]$")
 # Jewelry in the port (docs/game/items.md "Armor and jewelry"): no components; the precious ingot of each component
 # (chain, band, hook, setting) goes in directly, added to the recipe's precious metal.
 TRINKET_COMPONENT = re.compile(r"^Trinket(Chain|Band|Hook|Setting)(T\d+)?$")
-CRAFT_INSTANT = re.compile(r"^(Procedural_PotionHealthT5|Alchemy[A-Za-z]+T2|"
+# Bags (Armoring at the outfitting station; HoldingRune from the merchant) and the arcane waters of the Ice Gauntlet.
+CRAFT_INSTANT = re.compile(r"^(Procedural_PotionHealthT5|Alchemy[A-Za-z]+T2|Procedural_BagAT[2-5]|AlchemyWaterT3|EssenceWaterT1|"
                            r"(Onyx|Opal|Diamond|Sapphire|Jasper|Emerald|Malachite)CutT[1-4]|"
                            r"Runeglass_Case_Empty_(Melee|Arcane))$")
 # Runeglass (docs/game/items.md "Slot and gems"): the game uses the rune station (RuneglassStation1), which Everfall
@@ -75,9 +79,24 @@ def rows(name):
 
 
 def stations():
-    """Refining stations of the slice: type, tier and map position (UE = (-x, y, z) * 100, like make_npcs.py)."""
+    """Stations of every extracted city slice (city without an extracted slice: left out, with a message)."""
     out = []
-    data = json.load(open(CITY))
+    for city, name in CITIES.items():
+        path = os.path.join(SETTLEMENTS, name + ".dynamicslice.json")
+        if not os.path.exists(path):
+            print(f"== no slice {name}: city {city} without stations (step sistemas-02 of build_all)")
+            continue
+        found = city_stations(path)
+        for s in found:
+            s["city"] = city
+        out += found
+    return out
+
+
+def city_stations(path):
+    """Stations of one city slice: type, tier and map position (UE = (-x, y, z) * 100, like make_npcs.py)."""
+    out = []
+    data = json.load(open(path))
 
     def walk(o):
         if isinstance(o, dict):
@@ -181,7 +200,8 @@ def main():
         if r["RecipeID"].startswith("TerritoryStandingSupplies"):
             continue   # territory project supplies (need azoth), not refining
         ing = []
-        gear = crafted and CRAFT_GEAR.match(r["RecipeID"])
+        # Fixed refined material of the tier: gear, and bags (an item with no GS of its own in the port).
+        gear = crafted and (CRAFT_GEAR.match(r["RecipeID"]) or r["RecipeID"].startswith("Procedural_Bag"))
         for i in range(1, 8):
             iid, qty = r.get(f"Ingredient{i}"), r.get(f"Qty{i}")
             if not iid or not qty:
@@ -197,8 +217,12 @@ def main():
                 elif iid == "MetalPrecious":
                     iid = precious
                 else:
+                    # ArcanaWater: the water of the item tier, as in the game's named gauntlets of each tier
+                    # (javelindata_crafting_arcana 1hGauntletIce_*: T2 AlchemyWaterT1 ... T5 EssenceWaterT1).
                     iid = {"Timber": f"TimberT{tier}", "Leather": f"LeatherT{tier}", "Cloth": f"ClothT{tier}",
-                           "Metal": f"IngotT{tier}"}.get(iid, re.sub(r"^MetalT(\d)$", r"IngotT\1", iid))
+                           "Metal": f"IngotT{tier}",
+                           "ArcanaWater": {2: "AlchemyWaterT1", 3: "AlchemyWaterT2", 4: "AlchemyWaterT3"}.get(tier, "EssenceWaterT1"),
+                           }.get(iid, re.sub(r"^MetalT(\d)$", r"IngotT\1", iid))
                 cat = False
                 same = next((x for x in ing if x[0] == iid), None)
                 if same:
@@ -256,7 +280,8 @@ def main():
     by_skill = {}
     for r in recipes:
         by_skill[r["skill"]] = by_skill.get(r["skill"], 0) + 1
-    print(f"{OUT}: {len(st)} stations {[s['type'] for s in st]}, recipes {by_skill}, "
+    per_city = {c: [s["type"] for s in st if s["city"] == c] for c in CITIES}
+    print(f"{OUT}: {len(st)} stations {per_city}, recipes {by_skill}, "
           f"categories {[(c, len(v)) for c, v in out['categories'].items()]}")
 
 

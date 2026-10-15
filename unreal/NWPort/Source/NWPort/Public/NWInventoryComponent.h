@@ -6,8 +6,9 @@
 #include "NWInventoryComponent.generated.h"
 
 /**
- * Player inventory: bag of BagSize slots (stacks from the catalog), equipment (sword, hatchet,
- * shield and the four gathering tools) and coins. The server is authoritative; the owner receives the replicated copy and requests changes via RPC.
+ * Player inventory: bag of BagSize slots (stacks from the catalog), equipment (weapons 1/2, shield, tools, armor,
+ * jewelry, 4 quick consumables and 3 bags; NWEquip) and coins. The equipped weapons decide the character's weapon pair
+ * (ANWCharacter::SyncWeaponsFromInventory). The server is authoritative; the owner receives the replicated copy and requests changes via RPC.
  * Saved in nw-core together with the character state (FNWCharacterRecord).
  */
 UCLASS(ClassGroup = (NW), meta = (BlueprintSpawnableComponent))
@@ -23,8 +24,10 @@ public:
 	static constexpr int32 BagSize = 500;
 	// Max weight without overload (the game's base inventory); above it, no running, dodging or jumping.
 	static constexpr float BaseMaxWeight = 1000.f;
-	// This character's max weight: the base one, or 10,000,000 with the dev bag (F10, not saved).
+	// This character's max weight: the base one plus the equipped bags, or 10,000,000 with the dev bag (F10, not saved).
 	UPROPERTY(Replicated) float MaxWeight = BaseMaxWeight;
+	static constexpr float DevMaxWeight = 10000000.f;
+	bool bDevBag = false;
 	// The game's max health at level 60, to scale potion heals to ours (MaxHealth).
 	static constexpr float GameMaxHealth = 7000.f;
 
@@ -39,9 +42,14 @@ public:
 	int32 Take(FName ItemId, int32 Quantity);
 	/** Server: removes up to Quantity from the stack in bag slot BagSlot (storage); returns what came out (Quantity 0 = nothing). */
 	FNWItem TakeAt(int32 BagSlot, int32 Quantity);
-	/** Highest-tier health potion in the bag (slot) or INDEX_NONE. */
-	int32 BestPotionSlot() const;
-	/** Damage multiplier of the set's equipped weapon (Sword/Hatchet) by gear score; 1 without a weapon. */
+	/**
+	 * Equipment slot for the item (the game's EquipItemToBestSlot): a quick slot with the same stack, an empty slot that
+	 * takes it, or the first one that takes it (swap). INDEX_NONE if it is not equipment.
+	 */
+	int32 BestEquipSlot(const FNWItem& Item) const;
+	/** Weapon set (WeaponSet.Id) of the weapon in Weapon1/Weapon2, or None. */
+	FName WeaponSetAt(int32 WeaponSlot) const;
+	/** Damage multiplier of the equipped weapon of the set by gear score; 1 without a weapon. */
 	float DamageMultiplier(FName WeaponSet) const;
 	float GetPotionCooldown() const;
 	/** Total weight (bag + equipped), kg, from the catalog (the game's Weight). Server and owner have the items. */
@@ -61,6 +69,8 @@ public:
 	void Load(const TArray<FNWItem>& InItems, int64 InCoins);
 	/** Marks the bag as changed (replicates at the end of the cycle). */
 	void Changed();
+	/** Server: max weight = base + equipped bags (or the dev bag). */
+	void RefreshMaxWeight();
 	void GiveStarterKit();
 	/** T1 gathering tools in the empty slots (starter kit and dev menu). */
 	void GiveTools();
@@ -70,7 +80,8 @@ public:
 	// ---- owner -> server
 	UFUNCTION(Server, Reliable) void ServerMove(ENWItemContainer FromContainer, int32 FromSlot, ENWItemContainer ToContainer, int32 ToSlot);
 	UFUNCTION(Server, Reliable) void ServerUse(int32 BagSlot);
-	UFUNCTION(Server, Reliable) void ServerUseBestPotion();
+	/** Uses the consumable in quick slot Index (0..3, keys 3-6); refills it from the bag when the stack ends. */
+	UFUNCTION(Server, Reliable) void ServerUseQuick(int32 Index);
 	/** Destroys Quantity from the stack. */
 	UFUNCTION(Server, Reliable) void ServerDestroy(int32 BagSlot, int32 Quantity);
 	/** Drops Quantity from the stack on the ground, in a bag (ANWLootBag; up to 1000 kg on the ground per player). */
@@ -94,5 +105,7 @@ private:
 	void Warn(const TCHAR* Key) const;
 	int32 FreeBagSlot() const;
 	bool CanEquip(const FNWItem& Item, int32 EquipSlot) const;
+	/** Server: uses one of the consumable stack (potion heal and cooldown); false if it could not. */
+	bool UseStack(ENWItemContainer Container, int32 Slot);
 	float ServerNow() const;
 };

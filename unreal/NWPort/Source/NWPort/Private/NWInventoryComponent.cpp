@@ -1,4 +1,5 @@
 #include "NWInventoryComponent.h"
+#include "NWAppearance.h"
 #include "NWDevRegistry.h"
 
 #include "GameFramework/GameStateBase.h"
@@ -127,25 +128,48 @@ float UNWInventoryComponent::TotalWeight() const
 	return W;
 }
 
-int32 UNWInventoryComponent::BestPotionSlot() const
+int32 UNWInventoryComponent::BestEquipSlot(const FNWItem& Item) const
 {
-	int32 Best = INDEX_NONE, BestTier = -1;
-	for (const FNWItem& I : Items)
+	const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
+	if (!D || !D->IsEquippable())
 	{
-		const FNWItemDef* D = FNWItemCatalog::Get().Find(I.ItemId);
-		if (I.Container == ENWItemContainer::Bag && D && D->Heal > 0.f && D->Tier > BestTier)
-		{
-			Best = I.Slot;
-			BestTier = D->Tier;
-		}
+		return INDEX_NONE;
 	}
-	return Best;
+	int32 Empty = INDEX_NONE, First = INDEX_NONE;
+	for (int32 Slot = 0; Slot < NWEquip::Count; ++Slot)
+	{
+		if (!D->FitsSlot(Slot))
+		{
+			continue;
+		}
+		const FNWItem* There = At(ENWItemContainer::Equip, Slot);
+		if (There && NWEquip::IsQuick(Slot) && There->SameKind(Item) && There->Quantity < D->Stack)
+		{
+			return Slot;
+		}
+		First = First == INDEX_NONE ? Slot : First;
+		Empty = Empty == INDEX_NONE && !There ? Slot : Empty;
+	}
+	return Empty != INDEX_NONE ? Empty : First;
+}
+
+FName UNWInventoryComponent::WeaponSetAt(int32 WeaponSlot) const
+{
+	const FNWItem* I = NWEquip::IsWeapon(WeaponSlot) ? At(ENWItemContainer::Equip, WeaponSlot) : nullptr;
+	const FNWItemDef* D = I ? FNWItemCatalog::Get().Find(I->ItemId) : nullptr;
+	return D && NWEquip::IsWeaponSet(D->Set) ? D->Set : NAME_None;
 }
 
 float UNWInventoryComponent::DamageMultiplier(FName WeaponSet) const
 {
-	const int32 Slot = WeaponSet == TEXT("Hatchet") ? NWEquip::Hatchet : NWEquip::Sword;
-	const FNWItem* W = At(ENWItemContainer::Equip, Slot);
+	const FNWItem* W = nullptr;
+	for (const int32 Slot : {NWEquip::Weapon1, NWEquip::Weapon2})
+	{
+		if (!W && WeaponSetAt(Slot) == WeaponSet)
+		{
+			W = At(ENWItemContainer::Equip, Slot);
+		}
+	}
 	if (!W || W->GearScore <= 0)
 	{
 		return 1.f;
@@ -156,7 +180,38 @@ float UNWInventoryComponent::DamageMultiplier(FName WeaponSet) const
 
 void UNWInventoryComponent::Changed()
 {
+	if (GetOwner()->HasAuthority())
+	{
+		RefreshMaxWeight();
+		if (ANWCharacter* Me = Cast<ANWCharacter>(GetOwner()))
+		{
+			Me->SyncWeaponsFromInventory();
+			// Players: the look follows the equipment (component created here, replicated to everyone).
+			if (Cast<APlayerController>(Me->GetController()))
+			{
+				UNWAppearanceComponent* Look = Me->FindComponentByClass<UNWAppearanceComponent>();
+				if (!Look)
+				{
+					Look = NewObject<UNWAppearanceComponent>(Me, TEXT("Appearance"));
+					Look->RegisterComponent();
+				}
+				Look->RefreshFrom(this);
+			}
+		}
+	}
 	GetOwner()->ForceNetUpdate();
+}
+
+void UNWInventoryComponent::RefreshMaxWeight()
+{
+	float Max = BaseMaxWeight;
+	for (int32 Slot = NWEquip::Bag1; Slot < NWEquip::Bag1 + NWEquip::BagCount; ++Slot)
+	{
+		const FNWItem* I = At(ENWItemContainer::Equip, Slot);
+		const FNWItemDef* D = I ? FNWItemCatalog::Get().Find(I->ItemId) : nullptr;
+		Max += D ? D->Encumbrance : 0.f;
+	}
+	MaxWeight = bDevBag ? DevMaxWeight : Max;
 }
 
 int32 UNWInventoryComponent::AddItem(const FNWItem& In)
@@ -261,14 +316,16 @@ void UNWInventoryComponent::GiveStarterKit()
 		I.GearScore = GearScore;
 		Items.Add(I);
 	};
-	Equip(TEXT("1hSwordT2"), NWEquip::Sword, 250);
-	Equip(TEXT("1hHatchetT2"), NWEquip::Hatchet, 250);
+	Equip(TEXT("1hSwordT2"), NWEquip::Weapon1, 250);
+	Equip(TEXT("1hHatchetT2"), NWEquip::Weapon2, 250);
 	Equip(TEXT("1hShieldAT2"), NWEquip::Shield, 250);
 	GiveTools();
 	FNWItem Potions;
 	Potions.ItemId = TEXT("PotionHealthT5");
 	Potions.Quantity = 5;
-	AddItem(Potions);
+	Potions.Container = ENWItemContainer::Equip;
+	Potions.Slot = NWEquip::Quick1;
+	Items.Add(Potions);
 	AddCoins(50);
 }
 
@@ -319,7 +376,7 @@ bool UNWInventoryComponent::CanEquip(const FNWItem& Item, int32 EquipSlot) const
 	{
 		return false;
 	}
-	return !D->Set.IsNone() && NWEquip::SlotForSet(D->Set) == EquipSlot;
+	return D->FitsSlot(EquipSlot);
 }
 
 void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromContainer, int32 FromSlot, ENWItemContainer ToContainer, int32 ToSlot)
@@ -345,8 +402,9 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 	{
 		return;
 	}
-	// Same stack in the bag: merges.
-	if (To && To->SameKind(*From) && ToContainer == ENWItemContainer::Bag && FromContainer == ENWItemContainer::Bag)
+	// Same stack in the bag or in a quick slot: merges.
+	auto Stacks = [](ENWItemContainer C, int32 Slot) { return C == ENWItemContainer::Bag || NWEquip::IsQuick(Slot); };
+	if (To && To->SameKind(*From) && Stacks(ToContainer, ToSlot) && Stacks(FromContainer, FromSlot))
 	{
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(From->ItemId);
 		const int32 Take = D ? FMath::Min(From->Quantity, D->Stack - To->Quantity) : 0;
@@ -377,17 +435,27 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 	Changed();
 }
 
-void UNWInventoryComponent::ServerUseBestPotion_Implementation()
+void UNWInventoryComponent::ServerUseQuick_Implementation(int32 Index)
 {
 	TWeakObjectPtr<UNWInventoryComponent> Self(this);
-	if (NWOps::Defer(Cast<ANWCharacter>(GetOwner()), [Self]() { if (Self.IsValid()) { Self->ServerUseBestPotion_Implementation(); } }))
+	if (NWOps::Defer(Cast<ANWCharacter>(GetOwner()), [Self, Index]() { if (Self.IsValid()) { Self->ServerUseQuick_Implementation(Index); } }))
 	{
 		return;   // an operation is recording: runs after it
 	}
-	const int32 Slot = BestPotionSlot();
-	if (Slot != INDEX_NONE)
+	const int32 Slot = NWEquip::Quick1 + Index;
+	const FNWItem* Quick = Index >= 0 && Index < NWEquip::QuickCount ? At(ENWItemContainer::Equip, Slot) : nullptr;
+	if (!Quick)
 	{
-		ServerUse_Implementation(Slot);
+		return;
+	}
+	const FNWItem Kind = *Quick;
+	if (UseStack(ENWItemContainer::Equip, Slot) && !At(ENWItemContainer::Equip, Slot))
+	{
+		// The stack ended: the next one of the same item comes from the bag.
+		if (const FNWItem* More = Items.FindByPredicate([&](const FNWItem& I) { return I.Container == ENWItemContainer::Bag && I.SameKind(Kind); }))
+		{
+			ServerMove_Implementation(ENWItemContainer::Bag, More->Slot, ENWItemContainer::Equip, Slot);
+		}
 	}
 }
 
@@ -398,12 +466,17 @@ void UNWInventoryComponent::ServerUse_Implementation(int32 BagSlot)
 	{
 		return;   // an operation is recording: runs after it
 	}
-	FNWItem* I = Find(ENWItemContainer::Bag, BagSlot);
+	UseStack(ENWItemContainer::Bag, BagSlot);
+}
+
+bool UNWInventoryComponent::UseStack(ENWItemContainer Container, int32 Slot)
+{
+	FNWItem* I = Find(Container, Slot);
 	const FNWItemDef* D = I ? FNWItemCatalog::Get().Find(I->ItemId) : nullptr;
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	if (!I || !D || !Me || D->Heal <= 0.f || Me->Combat->State == ENWCombatState::Dead || GetPotionCooldown() > 0.f)
 	{
-		return;
+		return false;
 	}
 	// Potion: the game's fixed heal scaled to our max health + a percentage of health.
 	UNWCombatComponent* C = Me->Combat;
@@ -412,9 +485,10 @@ void UNWInventoryComponent::ServerUse_Implementation(int32 BagSlot)
 	PotionReadyAt = ServerNow() + FMath::Max(1.f, D->Cooldown);
 	if (--I->Quantity <= 0)
 	{
-		Items.RemoveAll([&](const FNWItem& X) { return X.Container == ENWItemContainer::Bag && X.Slot == BagSlot; });
+		Items.RemoveAll([&](const FNWItem& X) { return X.Container == Container && X.Slot == Slot; });
 	}
 	Changed();
+	return true;
 }
 
 void UNWInventoryComponent::Warn(const TCHAR* Key) const
@@ -659,13 +733,54 @@ NW_REGISTER_DEV(DevBag, TEXT("sistemas.dev_bag"), TEXT("nw.dev.dev_bag"),
 		const ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
 		if (C && C->Inventory)
 		{
-			C->Inventory->MaxWeight = C->Inventory->MaxWeight > UNWInventoryComponent::BaseMaxWeight
-				? UNWInventoryComponent::BaseMaxWeight : 10000000.f;
+			C->Inventory->bDevBag = !C->Inventory->bDevBag;
+			C->Inventory->RefreshMaxWeight();
+			C->Inventory->Changed();
 		}
 	},
 	[](const ANWPlayerController* PC)
 	{
 		const ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
-		return FText::FromString(C && C->Inventory && C->Inventory->MaxWeight > UNWInventoryComponent::BaseMaxWeight
-			? TEXT("10.000.000") : TEXT("1.000"));
+		return C && C->Inventory ? FText::AsNumber(FMath::RoundToInt(C->Inventory->MaxWeight)) : FText::GetEmpty();
+	});
+
+// Test items (F10): one of each ported weapon, bags and potions in the bag. The weapons only work once equipped in
+// Weapon 1/2 (the F10 no longer turns weapons on). Saved like any loot.
+NW_REGISTER_DEV(TestItems, TEXT("sistemas.test_items"), TEXT("nw.dev.test_items"),
+	[](ANWPlayerController* PC)
+	{
+		const ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
+		if (!C || !C->Inventory)
+		{
+			return;
+		}
+		static const TCHAR* Ids[] = {TEXT("1hSwordT2"), TEXT("1hHatchetT2"), TEXT("2hBowT2"), TEXT("1HswordBT2"),
+			TEXT("1hElementalGauntlet_IceT2"), TEXT("1hElementalGauntlet_IceT3"), TEXT("1hElementalGauntlet_IceT4"),
+			TEXT("1hElementalGauntlet_IceT5"), TEXT("1hShieldAT2"), TEXT("BagAT2"), TEXT("BagAT3"), TEXT("BagAT4"),
+			TEXT("BagAT5"), TEXT("BagBT2")};
+		TArray<FNWItem> Gained;
+		for (const TCHAR* Id : Ids)
+		{
+			FNWItem I;
+			I.ItemId = Id;
+			I.Quantity = 1;
+			if (FNWItemCatalog::Get().Find(I.ItemId))
+			{
+				FNWItemCatalog::Get().RollStats(I);
+				Gained.Add(I);
+			}
+		}
+		// Stacks: potions and the materials of the new recipes (bag runes, Ice Gauntlet waters).
+		for (const TPair<const TCHAR*, int32>& S : {TPair<const TCHAR*, int32>(TEXT("PotionHealthT5"), 20),
+			TPair<const TCHAR*, int32>(TEXT("HoldingRuneT2"), 2), TPair<const TCHAR*, int32>(TEXT("HoldingRuneT3"), 2),
+			TPair<const TCHAR*, int32>(TEXT("HoldingRuneT4"), 2), TPair<const TCHAR*, int32>(TEXT("HoldingRuneT5"), 2),
+			TPair<const TCHAR*, int32>(TEXT("AlchemyWaterT1"), 20), TPair<const TCHAR*, int32>(TEXT("AlchemyWaterT2"), 20),
+			TPair<const TCHAR*, int32>(TEXT("AlchemyWaterT3"), 20), TPair<const TCHAR*, int32>(TEXT("EssenceWaterT1"), 20)})
+		{
+			FNWItem I;
+			I.ItemId = S.Key;
+			I.Quantity = S.Value;
+			Gained.Add(I);
+		}
+		C->Inventory->Grant(Gained, 0);
 	});

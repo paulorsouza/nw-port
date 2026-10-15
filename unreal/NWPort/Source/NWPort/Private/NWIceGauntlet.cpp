@@ -85,22 +85,6 @@ void NWIceGauntlet::ApplySkin(ANWCharacter* Character, const FNWWeaponSet& Set)
 	}
 }
 
-// F10: Ice Gauntlet + sword and shield pair (the F10 pair cycle does not know the gauntlet).
-NW_REGISTER_DEV(IceGauntletLoadout, TEXT("armas.icegauntlet_loadout"), TEXT("nw.dev.icegauntlet_loadout"),
-	[](ANWPlayerController* PC)
-	{
-		ANWCharacter* C = PC ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
-		if (!C)
-		{
-			return;
-		}
-		const int32 Ice = C->WeaponSets.IndexOfByPredicate([](const FNWWeaponSet& S) { return S.Id == TEXT("IceGauntlet"); });
-		if (Ice != INDEX_NONE)
-		{
-			C->SetLoadout(Ice, 0);
-		}
-	});
-
 // ---------------------------------------------------------------- game numbers
 // Sources: playeractions_ability_icemagic.actionlist, player_magicgauntlet_ice.adb (procclips), spelltable,
 // statuseffects and the game's items/weapons/* slices (extract/weapons_icegauntlet); docs/game/weapons/ice-gauntlet.md §3.

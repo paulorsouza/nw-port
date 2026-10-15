@@ -5,7 +5,7 @@ Sub-area 1a of the weapons area. Map `L_Arena`. For each item, send a screenshot
 
 ## Part 1: weapon, mana, light, heavy, block, dodge
 
-1. Pick F10 > Ice Gauntlet + sword and press 1: the glove appears on the right arm and follows hand and fingers; crystal in the palm. Press 2 to switch to the sword (the glove disappears).
+1. F10 > Test items, equip the Ice Gauntlet in Weapon 1 and the sword in Weapon 2 (Tab), press 1: the glove appears on the right arm and follows hand and fingers; crystal in the palm. Press 2 to switch to the sword (the glove disappears).
 2. Click once: the ice projectile leaves at 0.167 s through the screen center while walking (only the torso animates). It disappears at 50 m.
 3. Hold the click: at 0.667 s the heavy fires by itself, with a larger projectile. The target hit is 10% slower for 3 s.
 4. Click repeatedly: the next shot only fires after the game window (~0.27 s after the shot, buffer up to 0.93 s).

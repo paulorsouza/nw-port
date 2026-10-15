@@ -85,6 +85,10 @@
       "pt-br": "Ir para South Windsward",
       "en-us": "Go to South Windsward"
     },
+    "nw.dev.go_everfall": {
+      "pt-br": "Ir para Queda Eterna",
+      "en-us": "Go to Everfall"
+    },
     "nw.dev.debug": {
       "pt-br": "Depuração",
       "en-us": "Debug"
@@ -156,10 +160,6 @@
     "nw.dev.arena_mixed": {
       "pt-br": "Onda mista",
       "en-us": "Mixed wave"
-    },
-    "nw.dev.weapon_pair": {
-      "pt-br": "Trocar par de armas",
-      "en-us": "Switch weapon pair"
     },
     "nw.dev.arena_archer": {
       "pt-br": "Arqueiro",

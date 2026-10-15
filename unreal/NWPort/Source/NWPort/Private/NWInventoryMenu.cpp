@@ -85,8 +85,11 @@ namespace
 	// Port slots at the equipmentv3 positions (relative to the panel origin).
 	struct FEquipPos { int32 Slot; float X, Y; const TCHAR* Empty; };
 	const FEquipPos CombatSlots[] = {
-		{NWEquip::Sword, 548.f, 216.f, TEXT("iconweapon")}, {NWEquip::Hatchet, 548.f, 284.f, TEXT("iconweapon")},
+		{NWEquip::Weapon1, 548.f, 216.f, TEXT("iconweapon")}, {NWEquip::Weapon2, 548.f, 284.f, TEXT("iconweapon")},
 		{NWEquip::Shield, 30.f, 556.f, TEXT("iconshield")},
+		// Quick consumables 2x2 (keys 3-6).
+		{NWEquip::Quick1, 30.f, 664.f, TEXT("iconquickslot")}, {NWEquip::Quick1 + 1, 100.f, 664.f, TEXT("iconquickslot")},
+		{NWEquip::Quick1 + 2, 30.f, 732.f, TEXT("iconquickslot")}, {NWEquip::Quick1 + 3, 100.f, 732.f, TEXT("iconquickslot")},
 		// Armor and jewelry (docs/game/items.md).
 		{NWEquip::Head, 30.f, 216.f, TEXT("iconhead")}, {NWEquip::Chest, 30.f, 284.f, TEXT("iconchest")},
 		{NWEquip::Hands, 30.f, 352.f, TEXT("iconhand")}, {NWEquip::Legs, 30.f, 420.f, TEXT("iconlegs")},
@@ -96,6 +99,9 @@ namespace
 	const FEquipPos ToolSlots[] = {
 		{NWEquip::LoggingAxe, 548.f, 351.f, TEXT("iconlogging")}, {NWEquip::Pick, 548.f, 419.f, TEXT("iconpickaxe")},
 		{NWEquip::SkinningKnife, 548.f, 487.f, TEXT("iconskinning")}, {NWEquip::Sickle, 548.f, 555.f, TEXT("iconsickle")},
+		// Bags (left column of the tab).
+		{NWEquip::Bag1, 30.f, 592.f, TEXT("iconbag")}, {NWEquip::Bag1 + 1, 30.f, 660.f, TEXT("iconbag")},
+		{NWEquip::Bag1 + 2, 30.f, 728.f, TEXT("iconbag")},
 	};
 	const TCHAR* EmptyIcon(int32 Slot)
 	{
@@ -371,7 +377,7 @@ const FNWItem* FNWInventoryMenu::ItemOf(const FSlotRef& S) const
 bool FNWInventoryMenu::Accepts(int32 EquipSlot, const FNWItem& Item) const
 {
 	const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
-	return D && NWEquip::SlotForSet(D->Set) == EquipSlot;
+	return D && D->FitsSlot(EquipSlot);
 }
 
 int32 FNWInventoryMenu::FreeBagSlot() const
@@ -1025,6 +1031,7 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 		DrawTexture(Canvas, Backdrop, Box(22.f, 202.f, 98.f, 436.f), Half);
 		DrawTexture(Canvas, Backdrop, Box(540.f, 202.f, 82.f, 228.f), Half);
 		DrawTexture(Canvas, Backdrop, Box(540.f, 428.f, 82.f, 228.f), Half);
+		DrawTexture(Canvas, Backdrop, Box(20.f, 656.f, 155.f, 151.f), Half);
 		for (const FEmptyPos& P : CombatEmpty)
 		{
 			EmptySlot(P.X, P.Y, P.Icon);
@@ -1070,9 +1077,9 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 	DrawTexture(Canvas, TEXT("lyshineui/images/icons/objectives/reward_xp.dds"), Box(524.f, 103.f, 48.f, 48.f));
 	DrawGameText(Canvas, FString::FromInt(Prog ? Prog->Level : 1), (EquipOrigin.X + 576.f) * S, 103.f * S, 48.f, InvTan, TEXT("pica_regular"));
 	int32 Sum = 0, Count = 0;
-	for (int32 Slot = 0; Slot < NWEquip::Count; ++Slot)   // weapons, armor and jewelry (tools do not count)
+	for (int32 Slot = 0; Slot < NWEquip::Count; ++Slot)   // weapons, armor and jewelry (tools, quick slots and bags do not count)
 	{
-		if (const FNWItem* I = NWEquip::IsTool(Slot) ? nullptr : Inv->At(ENWItemContainer::Equip, Slot); I && I->GearScore > 0)
+		if (const FNWItem* I = NWEquip::CountsForGearScore(Slot) ? Inv->At(ENWItemContainer::Equip, Slot) : nullptr; I && I->GearScore > 0)
 		{
 			Sum += I->GearScore;
 			++Count;
@@ -1110,7 +1117,7 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 	if (Dragged && Pressed.Source() == ESource::Bag && EquipArea.IsInside(FVector2f(Mouse)))
 	{
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(Dragged->ItemId);
-		const bool bOk = D && NWEquip::SlotForSet(D->Set) != INDEX_NONE;
+		const bool bOk = D && D->IsEquippable();
 		DrawDropZone(Canvas, EquipArea, bOk ? InvTan : FLinearColor(FColor(0xFF, 0x2E, 0x2E)));
 	}
 }
@@ -1440,12 +1447,11 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 		}
 		else if (EquipArea.IsInside(M))
 		{
-			// Universal target: equips into the item's slot (EquipItemToBestSlot).
-			const FNWItemDef* D = FNWItemCatalog::Get().Find(Item->ItemId);
-			if (const int32 To = D ? NWEquip::SlotForSet(D->Set) : INDEX_NONE; To != INDEX_NONE)
+			// Universal target: equips into the item's best slot (EquipItemToBestSlot).
+			if (const int32 To = Inv->BestEquipSlot(*Item); To != INDEX_NONE)
 			{
 				Inv->ServerMove(ENWItemContainer::Bag, Pressed.Slot, ENWItemContainer::Equip, To);
-				EquipTab = NWEquip::IsTool(To) ? 1 : 0;
+				EquipTab = NWEquip::IsTool(To) || NWEquip::IsBag(To) ? 1 : 0;
 			}
 		}
 		break;
@@ -1497,14 +1503,16 @@ void FNWInventoryMenu::RightClick(const FSlotRef& S)
 			Inv->ServerMove(ENWItemContainer::Equip, S.Slot, ENWItemContainer::Bag, B);
 		}
 	}
+	else if (const int32 To = Inv->BestEquipSlot(*Item); To != INDEX_NONE
+		&& !(D->IsConsumable() && Inv->At(ENWItemContainer::Equip, To) && !Inv->At(ENWItemContainer::Equip, To)->SameKind(*Item)))
+	{
+		// Equips (a consumable goes to a free quick slot or onto its own stack there).
+		Inv->ServerMove(ENWItemContainer::Bag, S.Slot, ENWItemContainer::Equip, To);
+		EquipTab = NWEquip::IsTool(To) || NWEquip::IsBag(To) ? 1 : 0;
+	}
 	else if (D->Heal > 0.f || D->HealPercent > 0.f)
 	{
-		Inv->ServerUse(S.Slot);
-	}
-	else if (const int32 To = NWEquip::SlotForSet(D->Set); To != INDEX_NONE)
-	{
-		Inv->ServerMove(ENWItemContainer::Bag, S.Slot, ENWItemContainer::Equip, To);
-		EquipTab = NWEquip::IsTool(To) ? 1 : 0;
+		Inv->ServerUse(S.Slot);   // quick slots full: uses it from the bag
 	}
 }
 

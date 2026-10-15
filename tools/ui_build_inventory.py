@@ -35,7 +35,8 @@ SLOT_TEXTURES = ([f"{IL}{k}{shape}{r}.dds" for k in ("itembg", "itemraritybg") f
                  + [f"{IL}{k}circle{r}.dds" for k in ("itembg", "itemraritybg") for r in range(5)]
                  + [f"{IL}itemhighlightcircle.dds"]
                  + [f"{EQ}{n}.dds" for n in ("iconhead", "iconchest", "iconhand", "iconlegs", "iconfeet", "iconrune", "iconamulet",
-                                             "iconring", "icontoken", "iconfishing", "equipmentstatsbackdrop")]
+                                             "iconring", "icontoken", "iconfishing", "equipmentstatsbackdrop",
+                                             "iconquickslot", "iconbag")]
                  + [f"lyshineui/images/icons/misc/{n}.dds" for n in ("icon_weight", "icon_filter_chrono", "icon_filter_gearscore",
                                                                     "icon_filter_tier", "dropdownarrowwhite", "icon_smallarrownarrow",
                                                                     "icon_gearscore_dropshadow")]

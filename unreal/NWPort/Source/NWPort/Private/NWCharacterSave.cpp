@@ -39,6 +39,10 @@
 #include "AnimationRuntime.h"
 #include "TimerManager.h"
 #include "EngineUtils.h"
+#include "NWDevRegistry.h"
+#include "NWGameMode.h"
+#include "GameFramework/PlayerState.h"
+#include "NWBackend.h"
 
 void ANWCharacter::RestoreFrom(const FNWCharacterRecord& Record)
 {
@@ -112,3 +116,20 @@ void ANWCharacter::CaptureTo(FNWCharacterRecord& Record) const
 	Record.StorageCapacity = Interactor ? Interactor->StorageCapacityNow() : -1.f;
 	Record.bFirstJoin = false;
 }
+
+// F10: switch character (editor Play: the account's next one in place, creating a second one if needed; client with
+// login: back to the character list).
+NW_REGISTER_DEV(SwitchCharacter, TEXT("sistemas.switch_character"), TEXT("nw.dev.switch_character"),
+	[](ANWPlayerController* PC)
+	{
+		if (ANWGameMode* GM = PC && PC->GetWorld() ? PC->GetWorld()->GetAuthGameMode<ANWGameMode>() : nullptr)
+		{
+			GM->SwitchCharacter(PC);
+		}
+	},
+	[](const ANWPlayerController* PC)
+	{
+		const APlayerState* PS = PC ? PC->PlayerState.Get() : nullptr;
+		return FText::FromString(PS ? PS->GetPlayerName() : FString());
+	});
+

@@ -375,7 +375,10 @@ void ANWCharacter::BuildInput()
 	IA_DevMenu = MakeAction(this, TEXT("IA_DevMenu"), EInputActionValueType::Boolean);
 	IA_Weapon1 = MakeAction(this, TEXT("IA_Weapon1"), EInputActionValueType::Boolean);
 	IA_Weapon2 = MakeAction(this, TEXT("IA_Weapon2"), EInputActionValueType::Boolean);
-	IA_Potion = MakeAction(this, TEXT("IA_Potion"), EInputActionValueType::Boolean);
+	for (const TCHAR* N : {TEXT("IA_Quick1"), TEXT("IA_Quick2"), TEXT("IA_Quick3"), TEXT("IA_Quick4")})
+	{
+		IA_Quick.Add(MakeAction(this, N, EInputActionValueType::Boolean));
+	}
 	IA_Inventory = MakeAction(this, TEXT("IA_Inventory"), EInputActionValueType::Boolean);
 	IA_Interact = MakeAction(this, TEXT("IA_Interact"), EInputActionValueType::Boolean);
 	for (const TCHAR* N : {TEXT("IA_Ability1"), TEXT("IA_Ability2"), TEXT("IA_Ability3")})
@@ -418,7 +421,10 @@ void ANWCharacter::MapKeys()
 	Mapping->MapKey(IA_DevMenu, EKeys::F10);
 	Mapping->MapKey(IA_Weapon1, Key(TEXT("Weapon1")));
 	Mapping->MapKey(IA_Weapon2, Key(TEXT("Weapon2")));
-	Mapping->MapKey(IA_Potion, Key(TEXT("Consumable1")));
+	for (int32 i = 0; i < IA_Quick.Num(); ++i)
+	{
+		Mapping->MapKey(IA_Quick[i], Key(*FString::Printf(TEXT("Consumable%d"), i + 1)));
+	}
 	Mapping->MapKey(IA_Inventory, Key(TEXT("Inventory")));
 	Mapping->MapKey(IA_Interact, Key(TEXT("Interact")));
 	Mapping->MapKey(IA_Dodge, Key(TEXT("Dodge")));
@@ -479,7 +485,10 @@ void ANWCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	In->BindAction(IA_DevMenu, ETriggerEvent::Started, this, &ANWCharacter::DevMenuPressed);
 	In->BindAction(IA_Weapon1, ETriggerEvent::Started, this, &ANWCharacter::Weapon1);
 	In->BindAction(IA_Weapon2, ETriggerEvent::Started, this, &ANWCharacter::Weapon2);
-	In->BindAction(IA_Potion, ETriggerEvent::Started, this, &ANWCharacter::UsePotion);
+	for (int32 i = 0; i < IA_Quick.Num(); ++i)
+	{
+		In->BindAction(IA_Quick[i], ETriggerEvent::Started, this, &ANWCharacter::UseQuick, i);
+	}
 	In->BindAction(IA_Inventory, ETriggerEvent::Started, this, &ANWCharacter::InventoryPressed);
 	In->BindAction(IA_Interact, ETriggerEvent::Started, this, &ANWCharacter::InteractPressed);
 	In->BindAction(IA_Walk, ETriggerEvent::Started, this, &ANWCharacter::WalkPressed);
@@ -691,11 +700,11 @@ void ANWCharacter::SkillMenuPressed()
 	}
 }
 
-void ANWCharacter::UsePotion()
+void ANWCharacter::UseQuick(int32 Index)
 {
 	if (!InMenu() && Inventory)
 	{
-		Inventory->ServerUseBestPotion();
+		Inventory->ServerUseQuick(Index);
 	}
 }
 
@@ -843,6 +852,18 @@ void ANWCharacter::RefreshLocomotion()
 	{
 		BS = WeaponSets[ActiveWeapon].Locomotion.LoadSynchronous();
 		From = WeaponSets[ActiveWeapon].Id;
+	}
+	else if (!BS && IsUnarmed())
+	{
+		// Unarmed: the game's unarmed_cmbtstrafe_blend (BS_Unarmed_Strafe, tools/sets/player/weapons.json); until it
+		// is imported, the one-hand base without the shield.
+		static const TCHAR* Paths[] = {TEXT("/Game/NW/sword_shield/Anims/BS_Unarmed_Strafe.BS_Unarmed_Strafe"),
+			TEXT("/Game/NW/sword_shield/Anims/BS_Hatchet_Strafe.BS_Hatchet_Strafe")};
+		for (const TCHAR* Path : Paths)
+		{
+			BS = BS ? BS : LoadObject<UBlendSpace>(nullptr, Path, nullptr, LOAD_NoWarn | LOAD_Quiet);
+		}
+		From = TEXT("Unarmed");
 	}
 	// By name: works for the C++ variable (NWAnimInstance) and for one created in the ABP itself.
 	int32 Assigned = 0;

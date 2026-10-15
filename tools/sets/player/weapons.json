@@ -37,6 +37,9 @@
       "rswrd_sprint_veerslope_blend",
       "shield_sprint_veerslope_blend"
     ],
+    "BS_Unarmed_Strafe": [
+      "unarmed_cmbtstrafe_blend"
+    ],
     "BS_Hatchet_Strafe": [
       "melee1h_cmbt_nav_strafe_blend",
       "rswrd_ststrafe_blend"

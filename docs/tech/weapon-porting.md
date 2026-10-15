@@ -159,8 +159,10 @@ table, locomotion blend space, icon, default abilities, hand (`Socket`), weapon 
 `javelindata_itemdefinitions_weapons` (`BaseDamage` on the port scale = game damage × 100/64, `CritChance`,
 `CritDamageMultiplier`, `StaggerDamage`, `BlockStaminaDamage`, `BlockStability`), heavy charge (`HeavyMinHold`,
 `HeavyFullCharge`) and `bAims` (aiming weapon). A sub-area weapon registers from its own `NWArma<Nome>.cpp` with one
-line in `AddPlayerWeaponSets`. The weapon pair in use (keys 1 and 2) is the `Loadout`; F10 > Swap weapon pair cycles
-the pairs.
+line in `AddPlayerWeaponSets`. The weapon pair in use (keys 1 and 2) is the `Loadout`; for players it follows the
+items equipped in Weapon 1/2 (`ANWCharacter::SyncWeaponsFromInventory`), so a new weapon needs its items in the
+catalog: the game's `ItemClass` → set in `WEAPON_CLASSES` of `tools/make_items.py`, the set name in
+`NWEquip::IsWeaponSet`, and one item in the F10 > Test items list (`NWInventoryComponent.cpp`).
 
 Add new mechanics to `UNWCombatComponent` only if the table below does not cover them. Write the game number and its
 source in a short comment, and add a row to this table. A new shared mechanic of a sub-area (for example mana) goes

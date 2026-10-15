@@ -1,6 +1,7 @@
 // Part of ANWCharacter for the weapons area (docs/workflow.md): player weapons, swap and loadout, attack, block,
 // dodge, Q/R/F abilities, AI brain and training dummy. The rest of the character is in NWCharacter.cpp.
 #include "NWCharacter.h"
+#include "NWAppearance.h"
 #include "Misc/App.h"
 #include "NWRules.h"
 #include "Animation/AnimInstance.h"
@@ -105,7 +106,7 @@ void ANWCharacter::UseBrain(uint8 Style, const TArray<FNWBrainAttack>& Attacks)
 void ANWCharacter::AttackPressed()
 {
 	// Menu click: neither the press nor the release becomes a hit.
-	bAttackPressAccepted = !InMenu();
+	bAttackPressAccepted = !InMenu() && !IsUnarmed();
 	if (!bAttackPressAccepted)
 	{
 		return;
@@ -144,7 +145,7 @@ void ANWCharacter::AttackReleased()
 
 void ANWCharacter::BlockPressed()
 {
-	if (InMenu())
+	if (InMenu() || IsUnarmed())
 	{
 		return;
 	}
@@ -280,6 +281,27 @@ void ANWCharacter::ApplyWeapon()
 {
 	if (!WeaponSets.IsValidIndex(ActiveWeapon))
 	{
+		if (WeaponSets.Num() > 0)
+		{
+			// Unarmed (nothing in Weapon 1/2): no weapon in hand or on the body; the first set's table stays for
+			// reactions, dodge and death, but attack, block and abilities do not start (IsUnarmed).
+			if (UDataTable* Table = WeaponSets[0].Actions.LoadSynchronous())
+			{
+				Combat->ActionTable = Table;
+			}
+			if (HasAuthority())
+			{
+				Combat->bAimWeapon = false;
+				Combat->bAiming = false;
+			}
+			Sword->SetStaticMesh(nullptr);
+			Combat->SetMainWeapon(nullptr);
+			NWIceGauntlet::ApplySkin(this, FNWWeaponSet());
+			Shield->SetVisibility(false);
+			Stowed->SetVisibility(false);
+			Abilities.Reset();
+			RefreshLocomotion();
+		}
 		return;
 	}
 	const FNWWeaponSet& Set = WeaponSets[ActiveWeapon];
@@ -372,6 +394,11 @@ void ANWCharacter::ApplyWeapon()
 		*Shield->GetAttachSocketName().ToString(), *Shield->GetRelativeTransform().ToString(),
 		*Shield->GetComponentRotation().ToString(), *Body->GetComponentRotation().ToString());
 	Abilities = Set.Abilities;
+	// Equipped items' meshes (players); the blade was measured above with the class mesh, so the reach does not change.
+	if (UNWAppearanceComponent* Look = FindComponentByClass<UNWAppearanceComponent>())
+	{
+		Look->ApplyWeaponLook();
+	}
 }
 
 void ANWCharacter::SwitchWeapon(int32 Index)
@@ -393,16 +420,10 @@ void ANWCharacter::ServerSwitchWeapon_Implementation(int32 Index)
 	{
 		return;
 	}
-	// Player with inventory: only swaps to an equipped weapon.
-	if (Inventory && Inventory->Items.Num() > 0)
+	// Only to a weapon of the pair (for players, the weapons equipped in Weapon 1/2).
+	if (!Loadout.Contains(Index))
 	{
-		// Bow and Rapier still have no slot of their own in the equipment: allowed (test arena).
-		const FName Id = WeaponSets[Index].Id;
-		const int32 Slot = Id == TEXT("Hatchet") ? NWEquip::Hatchet : NWEquip::Sword;
-		if ((Id == TEXT("Sword") || Id == TEXT("Hatchet")) && !Inventory->At(ENWItemContainer::Equip, Slot))
-		{
-			return;
-		}
+		return;
 	}
 	if (Combat->State == ENWCombatState::Blocking)
 	{
@@ -415,9 +436,10 @@ void ANWCharacter::ServerSwitchWeapon_Implementation(int32 Index)
 
 int32 ANWCharacter::OtherWeapon() const
 {
-	if (Loadout.Num() == 2 && WeaponSets.IsValidIndex(Loadout[0]) && WeaponSets.IsValidIndex(Loadout[1]))
+	if (Loadout.Num() == 2)
 	{
-		return Loadout[0] == ActiveWeapon ? Loadout[1] : Loadout[0];
+		const int32 Other = Loadout[0] == ActiveWeapon ? Loadout[1] : Loadout[0];
+		return WeaponSets.IsValidIndex(Other) && Other != ActiveWeapon ? Other : INDEX_NONE;
 	}
 	return WeaponSets.Num() > 1 ? (ActiveWeapon + 1) % WeaponSets.Num() : INDEX_NONE;
 }
@@ -439,6 +461,48 @@ void ANWCharacter::SetLoadout(int32 First, int32 Second)
 	Combat->PlayDraw();
 }
 
+void ANWCharacter::SyncWeaponsFromInventory()
+{
+	// Players only (the arena AI and creatures keep the pair they were given).
+	if (!HasAuthority() || !Inventory || WeaponSets.Num() == 0 || !Cast<APlayerController>(GetController()))
+	{
+		return;
+	}
+	TArray<int32> New;
+	for (const int32 Slot : {NWEquip::Weapon1, NWEquip::Weapon2})
+	{
+		const FName Set = Inventory->WeaponSetAt(Slot);
+		New.Add(Set.IsNone() ? INDEX_NONE : WeaponSets.IndexOfByPredicate([Set](const FNWWeaponSet& W) { return W.Id == Set; }));
+	}
+	int32 Active = ActiveWeapon;
+	if (!New.Contains(Active) || Active == INDEX_NONE)
+	{
+		Active = WeaponSets.IsValidIndex(New[0]) ? New[0] : New[1];
+	}
+	if (New == Loadout && Active == ActiveWeapon)
+	{
+		return;
+	}
+	// Mid action (attack, dodge, reaction): tries again shortly.
+	if (Combat->IsBusy())
+	{
+		GetWorldTimerManager().SetTimer(SyncWeaponsTimer, this, &ANWCharacter::SyncWeaponsFromInventory, 0.25f, false);
+		return;
+	}
+	if (Combat->State == ENWCombatState::Blocking)
+	{
+		Combat->RequestBlock(false);
+	}
+	const bool bDraw = Active != ActiveWeapon && WeaponSets.IsValidIndex(Active);
+	Loadout = New;
+	ActiveWeapon = Active;
+	ApplyWeapon();
+	if (bDraw)
+	{
+		Combat->PlayDraw();
+	}
+}
+
 void ANWCharacter::OnRep_ActiveWeapon()
 {
 	ApplyWeapon();
@@ -446,7 +510,7 @@ void ANWCharacter::OnRep_ActiveWeapon()
 
 void ANWCharacter::Ability(int32 Index)
 {
-	if (InMenu())
+	if (InMenu() || IsUnarmed())
 	{
 		return;
 	}

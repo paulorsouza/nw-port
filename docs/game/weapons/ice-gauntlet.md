@@ -253,7 +253,7 @@ Code:
 - Actions that chain into themselves (`WindChillAim`, `EntombedLoop`) play the montage in a loop
   (`MulticastPlayLoop`) instead of restarting it each round. Restarting the same montage interrupts the previous one.
 
-Default abilities on Q/R/F: Ice Storm, Wind Chill, Ice Spikes. Dev pair: F10 > Ice Gauntlet + sword.
+Default abilities on Q/R/F: Ice Storm, Wind Chill, Ice Spikes. For testing: F10 > Test items gives the item; equip it in Weapon 1/2.
 
 ## Known issues
 

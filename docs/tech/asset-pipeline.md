@@ -166,6 +166,36 @@ Order for a set by hand:
    creates empty ones.
 6. `py ".../tools/ue/make_test_map.py"`: `L_Arena`.
 
+## Appearances
+
+Meshes that make equipped items change the player's look. The C++ puts one skeletal mesh per slot on the hidden
+`SK_player_male` with `SetLeaderPoseComponent`, and the weapon's static mesh in the hand socket.
+
+```bash
+python3 tools/make_appearances.py                            # light: plan + Data/Items/appearances.json
+python3 tools/heavy.py python3 tools/convert_appearances.py  # nwbt + Blender (build step appearances-01)
+tools/linux/ue_import_all.sh appearances-01                  # editor closed: tools/ue/import_appearances.py
+```
+
+- Items: catalog `Data/Items/items.pt-br.json`. Armor (`set` Head…Feet): `ArmorAppearanceM` →
+  `javelindata_itemappearancedefinitions` (`Skin1`, `Material1`, cloth from `AppearanceCDF`, `HideHair`, `HideHead`).
+  Weapons, shields and tools: `WeaponAppearanceOverride` → `javelindata_itemdefinitions_weaponappearances`
+  `MeshOverride` (.cdf). Ice Gauntlet: only the palm crystal
+  (`gauntletcore/1h/<gauntlet folder>/wep_mag_gauntcore_1h_<folder>.cdf`); the glove stays the set's
+  `SK_icegauntlet`.
+- nwbt (batches of 8, `-w 2`, `--skip`): armor with `models appearances --ids` (substring filter: the female `F_*`
+  variants come along and are ignored), weapons with `models files <cdf>`. Output in `extract/ue/appearances/glb`.
+- Blender (`tools/export_appearances.py`): skinned parts go through the same path as `SK_player_male`
+  (`nwchar.import_character` on the set's `player_male.cdf.glb`, `attach_armor`, `to_centimeters`), so bone names
+  and bind pose match the player skeleton. Weapons as `export_ue.py` (origin at the grip point, same rotation in the
+  socket).
+- Output: `extract/ue/appearances/{Body,Armor,Weapons}/<name>/` with `<name>.fbx`, `textures/`, `materials.json`.
+- Unreal: `/Game/NW/Appearances/Body/SK_body_<part>` (head, shirt1, gloves1, pants1, boots1),
+  `Armor/SK_<appearance>`, `Weapons/SM_<appearance>`; materials `MI_*` of `M_NW_SpecGloss[_Masked]` in a subfolder
+  per mesh.
+- `Data/Items/appearances.json`: `body` (part → mesh), `armor` (item → slot, mesh, `covers` = base parts it
+  replaces, `hide_hair`), `weapons` (item → mesh). Appearances that only change the dye share one mesh.
+
 ## Armor gallery
 
 ```bash

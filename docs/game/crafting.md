@@ -101,6 +101,14 @@ Indexes from `NWTradeskill` (`NWProgressionComponent.h`). Progression uses the g
   (`alchemy`, Arcana) from the city slice. 33 recipes for weapons, shields and tools T2–T5 (`gear` in
   `refining.json`, with fixed refined material of the tier) and 9 alchemy recipes (T5 health potion, T2 reagents),
   instant like refining. Armor and jewelry recipes: [items.md](items.md#implementation-mechanics-no-visuals).
+- Ice Gauntlet T2–T5 (`Procedural_GauntletIceT*`, Arcana, Arcane Repository): leather, cloth and ingot of the tier and
+  the game's `ArcanaWater` as the water of the tier (T2 `AlchemyWaterT1`, T3 `AlchemyWaterT2`, T4 `AlchemyWaterT3`, T5
+  `EssenceWaterT1`, the waters of the game's named gauntlets of each tier). `AlchemyWaterT3` and `EssenceWaterT1` are
+  crafted at the same station (game recipes); `AlchemyWaterT1` comes from gathering.
+- Bags AT2–AT5 (`Procedural_BagAT*`, Armoring, outfitting station): leather, cloth and ingot of the tier (fixed, like
+  gear) and a Holding Rune of the tier. The rune comes from the game's faction shops; in the port the town merchants sell
+  it at the game's coin price (`BuyCurrencyCost`: 250.00 / 500.00 / 1,000.00 / 1,500.00, without faction tokens). The
+  bag comes out instant, without gear score (`EncumbrancePerGS` is not used).
 - Server: `FNWCrafting::Craft` / `UNWInteractorComponent::ServerCraft`. Below level 50 it is training (XP only). From
   50 on the item is rolled (`FNWItemRules::Roll`, range `FNWCrafting::GsRange`) and goes to the bag. A signed item
   (quality ≥ 80%) gets its serial number from nw-core first (migration 0009, `backend/src/routes/serials.rs`).

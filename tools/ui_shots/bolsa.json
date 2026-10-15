@@ -1,0 +1,56 @@
+{
+ "screen": "refining",
+ "station": {
+  "type": "outfitting",
+  "tier": 5,
+  "name": "Equipagem Escala 5"
+ },
+ "coins": 77914,
+ "trade": {
+  "Armoring": 200
+ },
+ "items": [
+  [
+   "LeatherT3",
+   60
+  ],
+  [
+   "ClothT3",
+   40
+  ],
+  [
+   "IngotT3",
+   60
+  ],
+  [
+   "AlchemyWaterT2",
+   12
+  ],
+  [
+   "HoldingRuneT3",
+   1
+  ],
+  [
+   "LeatherT5",
+   60
+  ],
+  [
+   "ClothT5",
+   40
+  ],
+  [
+   "IngotT5",
+   60
+  ],
+  [
+   "EssenceWaterT1",
+   12
+  ]
+ ],
+ "shots": [
+  {
+   "name": "bolsa_t3",
+   "recipe": "Procedural_BagAT3"
+  }
+ ]
+}

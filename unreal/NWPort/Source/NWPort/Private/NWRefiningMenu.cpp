@@ -5,6 +5,7 @@
 #include "Engine/Font.h"
 #include "GameFramework/PlayerController.h"
 #include "NWCharacter.h"
+#include "NWCity.h"
 #include "NWCrafting.h"
 #include "NWInteractable.h"
 #include "NWInventoryComponent.h"
@@ -92,11 +93,13 @@ namespace
 	}
 
 	FString Loc(const TCHAR* Key) { return NWText::Get(Key); }
-	// Territory name of the station's city (javelindata_territorydefinitions: Everfall = @Everfall).
+	// Territory name of the station's city (javelindata_territorydefinitions: @Everfall, @Windsward), from the
+	// `territorio` key of the city in tools/governanca.json.
 	FString TerritoryName(const FString& City)
 	{
-		// Only Everfall has stations in the port (offline capture: station without a city).
-		return City.IsEmpty() || City == TEXT("queda_eterna") ? NWText::Get(TEXT("everfall")) : City;
+		// Offline capture: station without a city shows Everfall.
+		const FString* Key = NWCity::Rules().CityTerritory.Find(City.IsEmpty() ? FString(TEXT("queda_eterna")) : City);
+		return Key ? NWText::Get(*Key) : City;
 	}
 	FString NameOf(const TMap<FString, FString>& M, const FString& Fallback)
 	{
@@ -967,8 +970,8 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 		{
 			const FNWItem* It = ResultInBag();
 			const FNWItemDef* D = It ? FNWItemCatalog::Get().Find(It->ItemId) : nullptr;
-			const int32 To = D ? NWEquip::SlotForSet(D->Set) : INDEX_NONE;
-			if (Me && Me->Inventory && To != INDEX_NONE)
+			const int32 To = D && Me && Me->Inventory ? Me->Inventory->BestEquipSlot(*It) : INDEX_NONE;
+			if (To != INDEX_NONE)
 			{
 				Me->Inventory->ServerMove(ENWItemContainer::Bag, It->Slot, ENWItemContainer::Equip, To);
 			}

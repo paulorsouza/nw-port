@@ -27,7 +27,8 @@ def steps(root):
     else:
         print("== no extract/audio: Data/Audio stays as is", flush=True)
     for name in (
-        "make_items", "make_port_items", "make_abilities", "make_progression", "make_worldmap", "build_strings",
+        "make_items", "make_port_items", "make_appearances", "make_abilities", "make_progression", "make_worldmap",
+        "build_strings",
         "ui_build_hud", "ui_build_mastery", "ui_build_tradeskills", "ui_build_attributes",
         "ui_build_login", "ui_build_respawn", "ui_build_group", "ui_build_inventory",
     ):

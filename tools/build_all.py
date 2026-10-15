@@ -216,6 +216,21 @@ class Extraction:
         ):
             self.unpack("extract/slicejson", pattern, 2, "--x-objects", "json", *self.objects())
 
+    def systems_windsward_slices(self):
+        # Same as tools/steps/systems.build.sh, sistemas-04.
+        self.unpack("extract/slicejson",
+                    r"(slices/structures/settlements/v2_settlements/settlement_southwindsward_complete|"
+                    r"coatgen/(8492f4cf|8d616dd7|f80302f)/[^/]*npc[^/]*|slices/characters/mission/npc_06[^/]*)\.dynamicslice$",
+                    2, "--x-objects", "json", *self.objects())
+        self.unpack("extract/npcs", r"^objects/characters/npc/.*\.cdf$", 2)
+
+    def systems_windsward_npcs(self):
+        # Same as tools/steps/systems.build.sh, sistemas-05.
+        os.environ["NW_NWBT_WORKERS"] = "2"
+        self.py("make_npcs", "guardaventos", heavy=False)
+        self.py("build_set", "tools/sets/npc_guardaventos.json")
+        self.py("convert_npcs", "guardaventos")
+
     def pipeline(self):
         def audio():
             self.py("extract_audio")
@@ -249,6 +264,11 @@ class Extraction:
             ("sistemas-02", "Everfall entities and plots", self.systems_slices),
             ("sistemas-03", "NPC timelines", lambda: self.unpack("extract/timelines", r"libs/timeline/npc/.*\.timeline$", 2,
                                                                        "--x-objects", "json", *self.objects())),
+            ("sistemas-04", "Windsward slices and NPC .cdf", self.systems_windsward_slices),
+            ("sistemas-05", "Windsward NPCs (list, animations, appearances)", self.systems_windsward_npcs),
+            # Same as tools/steps/appearances.build.sh.
+            ("appearances-01", "Equipment appearances (body parts, armor, weapons) to FBX",
+             lambda: self.py("convert_appearances")),
         ]
 
 
@@ -264,7 +284,7 @@ def main():
     pipeline = extraction.pipeline()
     if args.step and args.step not in {name for name, _, _ in pipeline}:
         parser.error("unknown step")
-    extra = {p.name for p in (nwplatform.ROOT / "tools/steps").glob("*.build.sh")} - {"systems.build.sh"}
+    extra = {p.name for p in (nwplatform.ROOT / "tools/steps").glob("*.build.sh")} - {"systems.build.sh", "appearances.build.sh"}
     if extra:
         parser.error("areas not ported yet: " + ", ".join(sorted(extra)))
     runner = nwprocess.Steps(nwplatform.ROOT / "extract/.etapas", only=args.step,

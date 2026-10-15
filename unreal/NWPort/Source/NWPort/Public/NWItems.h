@@ -13,17 +13,18 @@ enum class ENWItemContainer : uint8
 	Equip,
 };
 
-/** Equipment slots: weapons (sword, Hatchet, shield), gathering tools (F4), armor and jewelry. */
+/** Equipment slots: weapons 1/2 and shield, gathering tools (F4), armor, jewelry, quick consumables and bags. */
 namespace NWEquip
 {
-	constexpr int32 Sword = 0;
-	constexpr int32 Hatchet = 1;
+	// Weapon 1 and 2 (keys 1/2) take any ported weapon; the equipped item decides the character's weapon set.
+	constexpr int32 Weapon1 = 0;
+	constexpr int32 Weapon2 = 1;
 	constexpr int32 Shield = 2;
 	constexpr int32 Pick = 3;
 	constexpr int32 Sickle = 4;
 	constexpr int32 LoggingAxe = 5;
 	constexpr int32 SkinningKnife = 6;
-	// Armor and jewelry (docs/game/items.md); nw-core accepts slots 0..15.
+	// Armor and jewelry (docs/game/items.md).
 	constexpr int32 Head = 7;
 	constexpr int32 Chest = 8;
 	constexpr int32 Hands = 9;
@@ -32,13 +33,25 @@ namespace NWEquip
 	constexpr int32 Amulet = 12;
 	constexpr int32 Ring = 13;
 	constexpr int32 Earring = 14;
-	constexpr int32 Count = 15;
+	// Quick consumables (keys 3-6, the game's quickslot-consumable-1..4) and bags (Tools tab).
+	constexpr int32 Quick1 = 15;
+	constexpr int32 QuickCount = 4;
+	constexpr int32 Bag1 = 19;
+	constexpr int32 BagCount = 3;
+	constexpr int32 Count = 22;   // nw-core accepts slots 0..Count-1 (MAX_EQUIP_SLOTS)
 	constexpr int32 FirstTool = Pick;
 	constexpr int32 LastTool = SkinningKnife;
 	constexpr int32 FirstArmor = Head;
 	inline bool IsTool(int32 Slot) { return Slot >= FirstTool && Slot <= LastTool; }
+	inline bool IsWeapon(int32 Slot) { return Slot == Weapon1 || Slot == Weapon2; }
+	inline bool IsQuick(int32 Slot) { return Slot >= Quick1 && Slot < Quick1 + QuickCount; }
+	inline bool IsBag(int32 Slot) { return Slot >= Bag1 && Slot < Bag1 + BagCount; }
+	/** Slots whose gear score counts in the character's (weapons, shield, armor and jewelry). */
+	inline bool CountsForGearScore(int32 Slot) { return Slot >= 0 && Slot <= Earring && !IsTool(Slot); }
 
-	/** Slot of the catalog set (Sword, Hatchet, Shield, Pick, ...) or INDEX_NONE. */
+	/** Character weapon set (ANWCharacter::WeaponSets Id) of a weapon item set, or false. */
+	NWPORT_API bool IsWeaponSet(FName Set);
+	/** First slot of the catalog set (Sword -> Weapon1, Bag -> Bag1, Pick, Head...) or INDEX_NONE. */
 	NWPORT_API int32 SlotForSet(FName Set);
 }
 
@@ -104,6 +117,7 @@ struct FNWItemDef
 	float Cooldown = 0.f;
 	FName Gather;       // tool: Mining, Cutting, Chopping, Dressing
 	FName Armor;        // armor: Heavy, Medium, Light (jewelry: empty)
+	float Encumbrance = 0.f;  // bag: kg added to the max weight
 	float Efficiency = 1.f;
 	float Weight = 0.f;  // kg (the game stores tenths)
 	FString Name;
@@ -111,6 +125,12 @@ struct FNWItemDef
 	FString TypeName;   // The game's ItemTypeDisplayName ("Recurso", "Espada")
 	FName UiClass;      // inventory section (UiItemClass without "UI_": Weapon, Tools, Smelting...)
 	bool bRound = false; // round piece (resource, lore, dye, house item)
+
+	bool IsConsumable() const { return Type == TEXT("consumable"); }
+	/** The item fits equipment slot Slot. */
+	NWPORT_API bool FitsSlot(int32 Slot) const;
+	/** The item goes in some equipment slot. */
+	bool IsEquippable() const { return IsConsumable() || NWEquip::SlotForSet(Set) != INDEX_NONE; }
 };
 
 /** Item catalog and loot table, loaded once (Data/Items). */

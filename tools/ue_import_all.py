@@ -161,6 +161,12 @@ class Importer:
         self.py("systems_npc_anims", self.tool("import_nw"), ROOT / "extract/ue/NpcQuedaEterna/manifest.json")
         self.py("systems_npcs", self.tool("import_npcs"), ROOT / "extract/ue/npcs", "NpcQuedaEterna", "L_QuedaEterna")
 
+    def systems_windsward_npcs(self):
+        # Same as tools/steps/systems.ue.sh, sistemas-06.
+        self.py("systems_npc_anims_ww", self.tool("import_nw"), ROOT / "extract/ue/NpcGuardaventos/manifest.json")
+        self.py("systems_npcs_ww", self.tool("import_npcs"), ROOT / "extract/ue/npcs_guardaventos", "NpcGuardaventos",
+                "L_SouthWindsward", "guardaventos_npcs.json")
+
     def pipeline(self):
         materials = ["/Game/NW/Cities", "/Game/NW/Gatherables", "/Game/NW/Region", "/Game/NW/Materials", "/Game/NW/Terrain"]
         return [
@@ -180,6 +186,10 @@ class Importer:
             ("sistemas-01", "Everfall city (L_QuedaEterna)", self.systems_city),
             ("sistemas-02", "Everfall terrain and materials", self.systems_terrain),
             ("sistemas-03", "Everfall NPCs (animations, appearances, training ground on the map)", self.systems_npcs),
+            ("sistemas-06", "Windsward NPCs and city field (L_SouthWindsward)", self.systems_windsward_npcs),
+            # Same as tools/steps/appearances.ue.sh.
+            ("appearances-01", "Equipment appearances in /Game/NW/Appearances",
+             lambda: self.py("appearances", self.tool("import_appearances"), ROOT / "extract/ue/appearances")),
         ]
 
 
@@ -202,7 +212,7 @@ def main():
     pipeline = importer.pipeline()
     if args.step and args.step not in {name for name, _, _ in pipeline}:
         parser.error("unknown step")
-    extra = {p.name for p in (ROOT / "tools/steps").glob("*.ue.sh")} - {"systems.ue.sh"}
+    extra = {p.name for p in (ROOT / "tools/steps").glob("*.ue.sh")} - {"systems.ue.sh", "appearances.ue.sh"}
     if extra:
         parser.error("areas not ported yet: " + ", ".join(sorted(extra)))
     if not args.dry_run:

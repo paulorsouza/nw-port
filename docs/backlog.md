@@ -21,6 +21,7 @@ past rounds are in [notes/project.md](notes/project.md). Area rules and owners: 
 - Hatchet: the hatchet disappears from the hand during the throw.
 - Hatchet: reactions and death use the sword montages (shield arm).
 - Hatchet: specials 4/5 were mapped to Infected Throw/Berserk by deduction; check visually.
+- Unarmed locomotion `BS_Unarmed_Strafe` (`unarmed_cmbtstrafe_blend`) is in the weapons set, but `build_set.py tools/sets/sword_shield.json` stops at "blend space not found: ice_gnt_idle_rhand" (`BS_Ig_Strafe` in `weapons_ice-gauntlet.json` lists a clip as a layer). Until that is fixed and the set rebuilt, unarmed uses `BS_Hatchet_Strafe`.
 - Hatchet's own locomotion (deferred): game layers `raxe_pose_add` (idle) and `v2_raxe_cmbt_walk_layer_l/r` (walking) on `melee1h_cmbt_nav_strafe_blend` are additive (`_add`); the nwbt/pipeline does not add additive layers yet. Today `BS_Hatchet_*` = one-hand base + sword arm.
 - Weapon Mastery: passive and ultimate effects (they only count points today).
 
@@ -37,8 +38,9 @@ past rounds are in [notes/project.md](notes/project.md). Area rules and owners: 
 - Check on screen: stacked damage numbers (Settings > Game) and Unstuck (Esc).
 - Check on screen: Trade skills tab in the K window (level and ring).
 - Check on screen: hit indicator (get hit by a Lost from the sides: arrow and glow on the right edge; the direction of the Canvas rotation was not seen).
-- HUD: exact cooldown style (the Lua uses `COLOR_ABILITY_COOLDOWN`; today the gold bar covers the icon).
-- HUD: potions working (slots 3–6).
+- HUD: active effects above the health bar (`statuseffects/statuseffectsv2`, `hud2024/afflictions`: food and potion icons with time).
+- Look: cloth (skirts, capes) follows the skin without simulation; female character and dye masks not done.
+- Travel between servers: if the target map's server is down, the character stays saved on that map and returns to the login screen until it comes up.
 - HUD: target bar and damage numbers in the game's style (`hud/damagenumbers`, nameplates).
 - HUD: H2 (menus).
 - Mastery screen: tooltip with the game's tooltip art; unlock animations (pulses); drag an ability to a slot.

@@ -2,8 +2,8 @@
 
     python3 tools/make_items.py
 
-Included: one-handed swords, hatchets and shields (tiers 1 to 5, no named/seasonal/test), health potions and the
-materials the Lost drop. Reads extract/data (itemdefinitions_master_*, itemdefinitions_weapons,
+Included: the ported weapons (sword, hatchet, shield, bow, rapier, ice gauntlet; tiers 1 to 5, no
+named/seasonal/test), bags, health potions and the materials the Lost drop. Reads extract/data (itemdefinitions_master_*, itemdefinitions_weapons,
 itemdefinitions_consumables, statuseffects_item) and the strings in extract/loc/localization/<language>.
 
 Also included: the gathering tools (pick, sickle, logging axe, skinning knife, T1–T5) and every item
@@ -30,7 +30,12 @@ ICONS = {os.path.basename(p)[:-4]: p for p in open(os.path.join(ROOT, "extract",
          if os.path.basename(p)[:-4]}
 
 # Game class -> character weapon set (ANWCharacter::WeaponSets) or shield.
-WEAPON_CLASSES = [("EquippableMainHand+Sword", "Sword"), ("EquippableMainHand+Hatchet", "Hatchet"), ("+Shield", "Shield")]
+# The set is the WeaponSet.Id the item turns on when equipped in Weapon 1/2 (docs/game/items.md).
+WEAPON_CLASSES = [("EquippableMainHand+Sword", "Sword"), ("EquippableMainHand+Hatchet", "Hatchet"), ("+Shield", "Shield"),
+                  ("EquippableTwoHand+Bow", "Bow"), ("EquippableMainHand+Rapier", "Rapier"),
+                  ("EquippableMainHand+IceMagic", "IceGauntlet")]
+# Bags (ItemClass Bag): equipped in the 3 bag slots, each adds its Encumbrance to the max weight.
+BAGS = ["BagAT1", "BagAT2", "BagAT3", "BagAT4", "BagAT5", "BagBT2", "BagBT3", "BagBT4", "BagBT5"]
 SKIP = re.compile(r"Dagger|_Shop|_FTUE|Covenant|Syndicate|Marauder|Winter|Named|Debug|Legacy|Crassus|Test|_S\d|Season|Artifact|Quest|Faction|PvP|Unique|Omega|Skin|AI_", re.I)
 POTIONS = ["PotionHealthT5"]   # maintainer decision (2026-10-13): only the T5 potion exists in the port
 # Basic materials (ore, wood, fiber, rawhide, stone), tiers 1 and 2.
@@ -144,6 +149,7 @@ def main():
     weapons = {r["WeaponID"]: r for r in rows("itemdefinitions_weapons")}
     APPEARANCE.update({r["ItemID"]: r for r in rows("itemappearancedefinitions")})
     consumables = {r["ConsumableID"]: r for r in rows("itemdefinitions_consumables")}
+    armor_stats = {r["WeaponID"]: r for r in rows("itemdefinitions_armor")}
     effects = {r["StatusID"]: r for r in rows("statuseffects_item")}
 
     chosen = []
@@ -168,6 +174,8 @@ def main():
             chosen.append((items[tid], weapon_set))
     for pid in POTIONS:
         chosen.append((items[pid], ""))
+    for bid in BAGS:
+        chosen.append((items[bid], "Bag"))
     for rid in RESOURCES:
         if rid in items:
             chosen.append((items[rid], ""))
@@ -207,7 +215,11 @@ def main():
             "ui_class": str(r.get("UiItemClass") or "").removeprefix("UI_"),
             "round": str(r.get("ItemType")) in ("Resource", "Lore", "Dye", "HousingItem"),
         }
-        if r.get("ItemType") == "Armor":
+        if weapon_set == "Bag":
+            # Encumbrance in tenths of kg, like Weight (javelindata_itemdefinitions_armor). EncumbrancePerGS is left out
+            # (no source for the formula).
+            e["encumbrance"] = float(armor_stats.get(r.get("ItemStatsRef"), {}).get("Encumbrance") or 0) / 10
+        elif r.get("ItemType") == "Armor":
             cls = str(r.get("ItemClass"))
             e["set"] = next((slot for key, slot in ARMOR_SLOTS if key in cls), weapon_set)
             # Weight class of the piece (Heavy, Medium, Light); jewelry has none.

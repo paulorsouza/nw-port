@@ -185,3 +185,42 @@ Rules: [game/economy.md](../game/economy.md).
 119. Stations: each station shows its tier (starts at 2) and the basket for the next one (stock / needed, red if short). With the stock complete, Upgrade: the station is "Under construction" with the time; after 24 h (or `POST /internal/cities/advance` with `now`), it rises a tier. At tier 5, the next one is "Upgrade to Level 1", much more expensive.
 120. Craft at a station with tier 3+: GS and minimum quality slightly higher (tier 3: +1 GS; 5: +3; each level +1).
 121. Defense: five fort weapons (Ballista, Repeater, Explosive, Burning Oil Vat, Horn of Resilience), tier 1 to 3, basket and 24 h construction; defense is the sum of the tiers.
+
+## Equipment: weapons, quick slots and bags
+
+Rules: [game/items.md](../game/items.md) "Equipment slots".
+
+122. New character (or after F10 > Test items): sword in Weapon 1, hatchet in Weapon 2, potions in quick slot 1 (key 3). Keys 1/2 swap between them.
+123. Tab: drag the Bow to Weapon 1. Back in the game the bow is in hand (draw animation) and key 1 draws it; F10 no longer has "Switch weapon pair" nor "Ice Gauntlet + sword".
+124. Rapier and Ice Gauntlet the same way, in either slot. Unequip a weapon while it is in hand: the other one of the pair comes to the hand.
+125. Empty both weapon slots: no weapon in hand or on the body, unarmed walk; click, right button, Q/R/F and 1/2 do nothing; dodge still works.
+126. Equip during an attack: the swap waits for the attack to end.
+127. Right click on a potion in the bag: goes to a free quick slot (or onto its stack there). Keys 3–6 use the item of each slot; the HUD shows icon, count and cooldown on each.
+128. Use the last potion of the quick slot with more in the bag: the slot refills from the bag.
+129. Tools tab: 3 bag slots. Equip BagAT5: the max weight in the bag header rises by 300; unequip: drops back. The F10 dev bag still gives 10,000,000 and turning it off goes back to base + bags.
+130. Leave and enter again: weapons, quick slots and bags come back where they were (nw-core, slots up to 21).
+131. Damage: Bow with high GS hits harder than the same Bow at low GS (the GS of the weapon in hand, not the sword's).
+
+## Windsward town (city systems)
+
+Rules: [game/city.md](../game/city.md) "Cities", [game/world/windsward.md](../game/world/windsward.md) "City systems". Map `L_SouthWindsward`.
+
+132. Open `L_SouthWindsward`: the town has its NPCs standing in their idle pose (27), dressed, no T-pose; Leovix Silva, Nessa Harrower and Saatvik Agrawal show only once.
+133. Walk into the town: message "City discovered: storage +1000 kg". With Everfall already known, the storage capacity is 2000 kg.
+134. [E] at each refining station (Loom, Smelter, Woodshop, Tannery, Stonecutting Table) and crafting station (Forge, Workshop, Arcane Repository, Outfitting): the card shows over the station's mesh and the screen opens; the header shows "Guardaventos" / "Windsward". No station floats or stands outside the town.
+135. Refine at the Smelter: the item enters the bag and the city tax goes to Windsward (region 2), not to Everfall: Territory Planning Board of Windsward shows the treasury up by the tax.
+136. [E] at the 3 storage sheds: the same shared storage as in Everfall.
+137. Merchant (`WW_Ambient_Merchant_00`, near the Trading Post): shop icon over the head, the shop opens with the same list as Everfall; the weekly limit is shared with the Everfall merchant.
+138. Town Project Board and Territory Planning Board of Windsward: their own city (no governor, own treasury and prices); buying Windsward does not make you governor of Everfall, and the other way round.
+139. NPC gifts: one NPC per trade skill (guard, ore, tailor, tavern, alchemy, wood) has the marker; claiming in Windsward does not use up the weekly gift of Everfall.
+140. `L_QuedaEterna` unchanged: its 30 NPCs and 14 stations, and none of Windsward's.
+
+## Crafting: Ice Gauntlet and bags
+
+141. Arcane Repository (either town), F10 > "+50 levels in crafting skills" and "Crafting materials": Ice Gauntlet T2–T5 in the list with leather, cloth, ingot and water of the tier; crafting rolls GS and quality like the other weapons. Equip it in Weapon 1: the gauntlet works and its look is the crafted tier's crystal.
+142. Same station: Arcane Water T3 (from T2) and Water Essence (from T3).
+143. Merchant: Small/T3/T4/T5 Holding Rune at 250.00 / 500.00 / 1,000.00 / 1,500.00.
+144. Outfitting station: bags AT2–AT5 with leather, cloth, ingot and the rune of the tier; the bag comes out at once, the Equip button puts it in a bag slot and the max weight rises.
+145. F10 > Test items: Ice Gauntlets T2–T5, bags AT2–AT5 and BT2, holding runes and waters T1–T3 and Water Essence in the bag. F10 > Crafting materials also gives cloth, waters and runes.
+146. F10 > Switch character (editor Play): saves, creates a second test character on the account if there is only one and enters it in place (name in the F10 line, other inventory, levels and position); pressing again goes back to the first. With the login screen (packaged client): back to the character list.
+

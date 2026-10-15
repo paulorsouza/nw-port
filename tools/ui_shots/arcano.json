@@ -1,0 +1,62 @@
+{
+ "screen": "refining",
+ "station": {
+  "type": "alchemy",
+  "tier": 5,
+  "name": "Reposit\u00f3rio Arcano Escala 5"
+ },
+ "coins": 77914,
+ "trade": {
+  "Arcana": 200
+ },
+ "items": [
+  [
+   "LeatherT3",
+   60
+  ],
+  [
+   "ClothT3",
+   40
+  ],
+  [
+   "IngotT3",
+   60
+  ],
+  [
+   "AlchemyWaterT2",
+   12
+  ],
+  [
+   "HoldingRuneT3",
+   1
+  ],
+  [
+   "LeatherT5",
+   60
+  ],
+  [
+   "ClothT5",
+   40
+  ],
+  [
+   "IngotT5",
+   60
+  ],
+  [
+   "EssenceWaterT1",
+   12
+  ]
+ ],
+ "shots": [
+  {
+   "name": "manopla_t3",
+   "recipe": "Procedural_GauntletIceT3"
+  },
+  {
+   "name": "manopla_roll",
+   "recipe": "Procedural_GauntletIceT3",
+   "craft": true,
+   "t": 3.0
+  }
+ ]
+}
