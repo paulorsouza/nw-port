@@ -11,7 +11,7 @@ Machine: 32 GB RAM (64 recommended), GPU with 8 GB VRAM, about 150 GB free on th
 Check: `setup_status.py` shows `git`, `python`, `numpy`, `Pillow`, `wine` without MISSING.
 
 ```bash
-sudo apt install git build-essential cmake python3 python3-numpy python3-pil wine curl
+sudo apt install git build-essential cmake python3 python3-numpy python3-pil wine curl unzip vorbis-tools
 ```
 
 Ask the person to run it (needs their password) or to allow you to.
@@ -37,24 +37,21 @@ Stop here on the `import-zips` path and go to "Import zips".
 
 Check: status `tools` line without MISSING.
 
-Already in `bin/` (Linux x86-64): `nwbt`, `dbgwater`, `libooz.so`, `texconv.exe` (runs through wine), `vgmstream-cli`,
-`oggenc`. To fetch:
+Go and Blender first, then the rest into `bin/` (not tracked):
 
 ```bash
-# Go (1.24 or newer) (tools/make_terrain.py runs "go run" for the heightmap)
+# Go (1.24 or newer): builds nwbt, and tools/make_terrain.py runs "go run" for the heightmap
 curl -L https://go.dev/dl/go1.27.2.linux-amd64.tar.gz | tar -xz -C ~/.local
 # Blender 5.2.2 (glb → fbx conversions)
 mkdir -p ~/.local/opt && curl -L https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz | tar -xJ -C ~/.local/opt
 # wwiser (reads the Wwise sound banks)
 git clone https://github.com/bnnm/wwiser vendor/wwiser && git -C vendor/wwiser checkout 08e937b
-# nw-buddy: the extraction reads nwbt's type tables (RTTI) from it
-git clone https://github.com/paulorsouza/nw-buddy.git vendor/nw-buddy
+# texconv.exe and vgmstream-cli (official releases); nwbt, dbgwater (clones nw-buddy) and libooz.so (clones ooz), compiled
+tools/linux/get_tools.sh
 ```
 
 `tools/linux/env.sh` puts `bin/`, Go and Blender on the PATH for manual commands; the scripts find them without it.
-
-`nwbt_patch` MISSING: `bin/nwbt` is not from this checkout's `patches/nwbt.patch`. Rebuild it:
-`tools/linux/build_nwbt.sh --test` (`patches/README.md`). `libooz.so` missing: `tools/linux/build_ooz.sh`.
+`nwbt_patch` MISSING after pulling a new `patches/nwbt.patch`: `tools/linux/get_tools.sh` rebuilds it.
 
 Full check, including a test conversion from the game's paks (~20 s):
 

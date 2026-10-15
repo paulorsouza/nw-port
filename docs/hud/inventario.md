@@ -1,6 +1,6 @@
 # Inventário, equipamento e armazém (spec da tela)
 
-Fontes: scripts de interface do jogo (`extract/lua/lyshineui/`, decompilados) e canvases (`extract/ui/lyshineui/inventory/newinventory`,
+Fontes: scripts de interface do jogo (`extract/lua/lyshineui/`) e canvases (`extract/ui/lyshineui/inventory/newinventory`,
 `equipment/equipmentv3`, `container/catcontainer`, achatados com `tools/ui_canvas.py`). Prova: **C** = código Lua, **R** = canvas,
 **H** = hipótese. Coordenadas em 1080p; o `ui_canvas.py` desenha os contêineres de tela destas telas 490 px acima, já
 somados aqui. Prints do original: `inspiracao/02`–`10`.

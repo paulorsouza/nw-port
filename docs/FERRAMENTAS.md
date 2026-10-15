@@ -10,12 +10,12 @@ vai para `vendor/` (fora do git, muito grande).
 
 | Ferramenta | Para quê | Origem e versão | Binário | Recompilar |
 |---|---|---|---|---|
-| nwbt (nw-buddy) | abrir os `.pak`, tabelas, textos, telas, modelos e animações → glTF, cenário da região | `paulorsouza/nw-buddy` (privado), branch `nw-port`, sobre giniedp/nw-buddy `81b2302`. Licença MIT | `bin/nwbt`, `bin/dbgwater` (Windows: `.exe`) | `tools/linux/build_nwbt.sh --test` ou `tools/windows/build_nwbt.ps1 -Test`: commit base do fork + `patches/nwbt.patch` (`patches/README.md`) |
-| ooz (Kraken) | descompressão Oodle no Linux (o jogo não traz a DLL) | powzix/ooz `0503806`; fonte em `tools/ooz-linux` | `bin/libooz.so` (Windows: `bin/ooz.dll`) | `tools/linux/build_ooz.sh` ou `tools/windows/build_ooz.ps1` |
-| texconv (DirectXTex) | DDS → PNG (texturas) | microsoft/DirectXTex, release mais recente | `bin/texconv.exe`, no Linux chamado por `tools/linux/texconv` via wine (`bin/texconv`) | baixar o `.exe` das releases |
+| nwbt (nw-buddy) | abrir os `.pak`, tabelas, textos, telas, modelos e animações → glTF, cenário da região | `paulorsouza/nw-buddy`, branch `nw-port`, sobre giniedp/nw-buddy `81b2302`. Licença MIT | `bin/nwbt`, `bin/dbgwater` (Windows: `.exe`) | `tools/linux/build_nwbt.sh --test` ou `tools/windows/build_nwbt.ps1 -Test`: commit base do fork + `patches/nwbt.patch` (`patches/README.md`) |
+| ooz (Kraken) | descompressão Oodle no Linux (o jogo não traz a DLL) | powzix/ooz `0503806` + `patches/ooz.patch` (`tools/build_ooz.py`). Licença GPL-3.0 | `bin/libooz.so` (Windows: `bin/ooz.dll`) | `tools/linux/build_ooz.sh` ou `tools/windows/build_ooz.ps1` |
+| texconv (DirectXTex) | DDS → PNG (texturas) | microsoft/DirectXTex `may2026`. Licença MIT | `bin/texconv.exe`, no Linux chamado por `tools/linux/texconv` via wine (`bin/texconv`) | `tools/linux/get_tools.sh` (Windows: baixar o `.exe` da release) |
 | wwiser | lê os bancos Wwise e gera `.txtp` por evento de som | bnnm/wwiser `08e937b` (Python puro) | — | `git clone https://github.com/bnnm/wwiser vendor/wwiser && git -C vendor/wwiser checkout 08e937b` |
-| vgmstream-cli | toca `.txtp`/`.wem` (decodifica o áudio) | vgmstream/vgmstream `7c520e8` | `bin/vgmstream-cli` | `docs/ASSETS.md`, seção Áudio |
-| oggenc (vorbis-tools 1.4.3) | grava `.ogg` | tarball da xiph | `bin/oggenc` | `docs/ASSETS.md`, seção Áudio |
+| vgmstream-cli | toca `.txtp`/`.wem` (decodifica o áudio) | vgmstream/vgmstream `r2117` (release oficial) | `bin/vgmstream-cli` | `tools/linux/get_tools.sh`; compilar: `docs/ASSETS.md`, seção Áudio |
+| oggenc (vorbis-tools 1.4.3) | grava `.ogg` | apt `vorbis-tools` | `oggenc` no PATH (ou `bin/oggenc`) | — |
 | Blender 5.2.2 | monta personagem + animações e exporta FBX (`tools/export_ue.py`, `build_set.py`) | blender.org | `~/.local/opt/blender-5.2.2-linux-x64` | — |
 | wine | roda o texconv | apt | — | — |
 | Go 1.24+ | compilar o nwbt | go.dev | `~/.local/go` | — |

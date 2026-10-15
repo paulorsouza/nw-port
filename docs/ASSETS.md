@@ -7,8 +7,8 @@ Detalhe técnico das ferramentas e formatos. Para montar tudo, use `docs/SETUP.m
 | Ferramenta | Onde | Para quê |
 |---|---|---|
 | nwbt (nw-buddy, MIT) | `vendor/nw-buddy/tools/nwbt` → `bin/nwbt` | abrir `.pak`, datasheets, modelos/animações → glTF |
-| ooz (Kraken) | `tools/ooz-linux` → `bin/libooz.so` | descompressão Oodle no Linux |
-| texconv (DirectXTex) | `bin/texconv.exe` via `tools/texconv` (wine) | DDS → PNG |
+| ooz (Kraken) | powzix/ooz + `patches/ooz.patch` → `bin/libooz.so` | descompressão Oodle no Linux |
+| texconv (DirectXTex) | `bin/texconv.exe` via `tools/linux/texconv` (wine) | DDS → PNG |
 | Blender | `~/.local/opt/blender-*` | conferir modelos e animações, render headless |
 | Cryengine-Converter | `vendor/Cryengine-Converter` | reserva, se o nwbt não cobrir algum formato |
 
@@ -17,11 +17,10 @@ Detalhe técnico das ferramentas e formatos. Para montar tudo, use `docs/SETUP.m
 O passo a passo atual está em `docs/SETUP.md`; abaixo, o detalhe de cada ferramenta.
 
 ```bash
-cd tools/ooz-linux && g++ -O2 -fPIC -shared -w -o ../../bin/libooz.so kraken.cpp bitknit.cpp lzna.cpp
-cd vendor/nw-buddy/tools/nwbt && go build -o ../../../../bin/nwbt .
+tools/linux/get_tools.sh     # texconv.exe e vgmstream-cli baixados; nwbt, dbgwater e libooz.so compilados
 ```
 
-Mudanças no nw-buddy (repositório privado paulorsouza/nw-buddy, branch `nw-port`; diff em `patches/nwbt-nwport.patch`):
+Mudanças no nw-buddy (paulorsouza/nw-buddy, branch `nw-port`; diff em `patches/nwbt-nwport.patch`):
 
 - `utils/oodle_linux.go`: carrega `libooz.so` (o original só carrega a DLL no Windows).
 - `formats/cgf/chunk_controller.go`: corrige `smallTree64BitQuat` (21+21+20 bits; o contador nunca avançava e a máscara de 21 bits tinha 20). Afetava as camadas de arma (`rswrd_idle`, `rswrd_run`...).

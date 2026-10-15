@@ -12,13 +12,11 @@ inspiracao/*
 !inspiracao/README.md
 .nwbt/
 *.nwbt/
-# Código de terceiros clonado (versões e build em docs/FERRAMENTAS.md); os binários prontos ficam em bin/.
+# Código de terceiros clonado (versões e build em docs/FERRAMENTAS.md).
 vendor/
 __pycache__/
-# Ferramentas Windows geradas pelos scripts de build (fontes e patch no Git).
-bin/ooz.dll
-bin/nwbt.exe
-bin/dbgwater.exe
+# Ferramentas baixadas ou compiladas pelo setup (tools/linux/get_tools.sh, tools/windows/build_*.ps1).
+bin/
 
 # Unreal: binários, caches e todo o Content (gerado pelos imports a partir dos assets do jogo).
 unreal/NWPort/Binaries/

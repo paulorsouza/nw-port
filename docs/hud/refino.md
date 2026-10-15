@@ -1,6 +1,6 @@
 # Tela de fabricação no modo refino
 
-Como `craftingscreenv4` aparece numa estação de refino (Fundição, Tanoaria etc.). Fontes: Lua decompilado em
+Como `craftingscreenv4` aparece numa estação de refino (Fundição, Tanoaria etc.). Fontes: scripts de interface do jogo em
 `extract/lua/lyshineui/crafting/` e `_common/`, canvas `extract/ui/lyshineui/crafting/craftingscreenv4.dynamicuicanvas.json`
 convertido por `tools/ui_canvas.py`. As coordenadas são do layout convertido (1920×1080).
 
@@ -243,7 +243,7 @@ Fontes: `lyshineui/fonts/pica_regular.font`, `pica_italic.font`, `nimbus_medium.
 
 ## Pendências
 
-- A cor exata do texto da receita quando falta só nível de ofício: o decompilado tem aninhamento ambíguo; o print confirma vermelho.
+- A cor exata do texto da receita quando falta só nível de ofício: o script tem aninhamento ambíguo; o print confirma vermelho.
 - `ItemName` do recurso: depende de `UsesRarity()` do item; se falso, `#cccccc` sem `ItemRarity`.
 - Feito em 2026-10-13: `caseoverride` no `tools/ui_canvas.py`; `heroframe2023` e `blue_loop/*` extraídos pelas
   `extra_textures` do spec. Acertos que faltam na tela: `docs/hud/README.md`, "Anotado para a próxima sessão".

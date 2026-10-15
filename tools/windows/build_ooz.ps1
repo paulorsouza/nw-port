@@ -9,15 +9,19 @@ if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) {
 if ($env:VSCMD_ARG_TGT_ARCH -ne 'x64') {
     throw 'A DLL precisa de um ambiente de compilacao x64.'
 }
+$python = if ($env:NW_PYTHON) { $env:NW_PYTHON } else { 'python' }
+$sourceDir = (& $python (Join-Path $repoRoot 'tools/build_ooz.py') | Select-Object -Last 1)
+if ($LASTEXITCODE -ne 0) { throw "tools/build_ooz.py falhou: $LASTEXITCODE" }
 $buildDir = Join-Path $repoRoot 'vendor/build/ooz-windows'
 New-Item -ItemType Directory -Force $buildDir | Out-Null
 Push-Location $buildDir
 try {
     $sources = 'kraken.cpp', 'bitknit.cpp', 'lzna.cpp' | ForEach-Object {
-        Join-Path $repoRoot "tools/ooz-linux/$_"
+        Join-Path $sourceDir $_
     }
     & cl.exe /nologo /O2 /EHsc /LD /MT @sources /link /OUT:ooz.dll
     if ($LASTEXITCODE -ne 0) { throw "Build ooz falhou: $LASTEXITCODE" }
+    New-Item -ItemType Directory -Force (Join-Path $repoRoot 'bin') | Out-Null
     Copy-Item -LiteralPath 'ooz.dll' -Destination (Join-Path $repoRoot 'bin/ooz.dll')
 } finally {
     Pop-Location

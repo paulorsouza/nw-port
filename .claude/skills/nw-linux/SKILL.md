@@ -28,7 +28,8 @@ pipeline é um só, em `tools/`, e roda igual no Windows. Rode da raiz do reposi
   `tools/build_nwbt.py`, o mesmo do Windows). Mudar o nwbt: `patches/README.md`.
 - `tools/linux/check.sh` acusa `bin/nwbt` de outro patch e testa a conversão por `@lista`; `python3
   tools/build_nwbt.py --conferir` só confere a versão. `build_set.py` e `convert_npcs.py` recusam nwbt desatualizado.
-- `bin/libooz.so`: `tools/linux/build_ooz.sh` (fontes em `tools/ooz-linux`, as mesmas da `ooz.dll`).
+- `bin/libooz.so`: `tools/linux/build_ooz.sh` (powzix/ooz + `patches/ooz.patch`, as mesmas fontes da `ooz.dll`).
+- Tudo de `bin/` de uma vez (fora do git): `tools/linux/get_tools.sh`.
 - texconv: `bin/texconv` → `tools/linux/texconv` (wine com `bin/texconv.exe`).
 
 ## Cuidados

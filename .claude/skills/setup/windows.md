@@ -36,19 +36,20 @@ Stop here on the `import-zips` path and go to "Import zips".
 
 Check: status `tools` line without MISSING.
 
-`texconv.exe` is in `bin/`. Build `ooz.dll`, `nwbt.exe` and `dbgwater.exe` in the **Developer PowerShell for VS
-(x64)**:
+Build `ooz.dll`, `nwbt.exe` and `dbgwater.exe` in the **Developer PowerShell for VS (x64)**, and download
+`texconv.exe`:
 
 ```powershell
 git clone https://github.com/paulorsouza/nw-buddy.git vendor\nw-buddy
 .\tools\windows\build_ooz.ps1
 .\tools\windows\build_nwbt.ps1 -Test
+Invoke-WebRequest https://github.com/microsoft/DirectXTex/releases/download/may2026/texconv.exe -OutFile bin\texconv.exe
 git clone https://github.com/bnnm/wwiser vendor\wwiser
 git -C vendor\wwiser checkout 08e937b
 winget install BlenderFoundation.Blender   # 5.2.x; check the version it installs
 ```
 
-Audio: download vgmstream (https://github.com/vgmstream/vgmstream/releases, `vgmstream-win64.zip`) and oggenc2
+Audio: download vgmstream (https://github.com/vgmstream/vgmstream/releases/tag/r2117, `vgmstream-win64.zip`) and oggenc2
 (https://www.rarewares.org/ogg-oggenc.php) into `C:\tools\` keeping their DLLs next to the executables, and add to
 `local.env`:
 

@@ -67,9 +67,10 @@ step() {  # step NN "descrição" função [args]
 
 s00() {  # ferramentas
     local miss=0
-    for b in bin/nwbt bin/libooz.so bin/texconv.exe bin/vgmstream-cli bin/oggenc; do
-        [ -e "$b" ] || { echo "falta $b (docs/SETUP.md, ferramentas)"; miss=1; }
+    for b in bin/nwbt bin/libooz.so bin/texconv.exe bin/vgmstream-cli; do
+        [ -e "$b" ] || { echo "falta $b (tools/linux/get_tools.sh)"; miss=1; }
     done
+    [ -x bin/oggenc ] || command -v oggenc >/dev/null || { echo "falta oggenc (sudo apt install vorbis-tools)"; miss=1; }
     for c in blender wine python3; do command -v "$c" >/dev/null || { echo "falta $c no PATH"; miss=1; }; done
     python3 -c "import numpy, PIL" 2>/dev/null || { echo "falta python3-numpy / python3-pil"; miss=1; }
     [ -d "$GAME/assets" ] || { echo "não achei o jogo em $GAME (defina NW_GAME)"; miss=1; }
