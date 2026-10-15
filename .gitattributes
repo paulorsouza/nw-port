@@ -1,0 +1,3 @@
+# Patches applied by the build scripts: keep LF on every OS (a CRLF checkout breaks git apply).
+patches/ooz.patch text eol=lf
+patches/nwbt.patch text eol=lf

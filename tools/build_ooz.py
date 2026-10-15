@@ -38,7 +38,10 @@ def prepare():
                               capture_output=True).stdout
         (out / name).write_bytes(data.replace(b"\r\n", b"\n"))
     # Run from the root: inside the nw-port checkout, git apply resolves the paths from it.
-    git("apply", f"--directory={out.relative_to(ROOT).as_posix()}", "patches/ooz.patch", cwd=ROOT)
+    # LF copy of the patch: a Windows checkout without .gitattributes support may have it in CRLF.
+    patch = out.parent / "ooz.patch"
+    patch.write_bytes((ROOT / "patches/ooz.patch").read_bytes().replace(b"\r\n", b"\n"))
+    git("apply", f"--directory={out.relative_to(ROOT).as_posix()}", str(patch), cwd=ROOT)
     return out
 
 
