@@ -1,4 +1,5 @@
 #include "NWCombatComponent.h"
+#include "NWManaComponent.h"
 #include "NWEvents.h"
 #include "NWRules.h"
 #include "GameFramework/RootMotionSource.h"
@@ -28,6 +29,7 @@
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimSequenceBase.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
@@ -99,6 +101,29 @@ float UNWCombatComponent::GetCurve(FName Curve) const
 {
 	const UAnimInstance* Anim = GetAnim();
 	return Anim ? Anim->GetCurveValue(Curve) : 0.f;
+}
+
+float UNWCombatComponent::GetActionCurve(FName Curve) const
+{
+	const UAnimInstance* Anim = GetAnim();
+	const FAnimMontageInstance* Inst = Anim && CurrentMontage ? Anim->GetActiveInstanceForMontage(CurrentMontage) : nullptr;
+	if (!Inst)
+	{
+		return GetCurve(Curve);
+	}
+	const float Pos = Inst->GetPosition();
+	for (const FSlotAnimationTrack& Track : CurrentMontage->SlotAnimTracks)
+	{
+		for (const FAnimSegment& Seg : Track.AnimTrack.AnimSegments)
+		{
+			const UAnimSequenceBase* Seq = Seg.GetAnimReference();
+			if (Seq && Seg.IsInRange(Pos))
+			{
+				return Seq->EvaluateCurveData(Curve, FAnimExtractContext(double(Seg.ConvertTrackPosToAnimPos(Pos))));
+			}
+		}
+	}
+	return 0.f;
 }
 
 bool UNWCombatComponent::IsInvulnerable() const
@@ -393,6 +418,10 @@ void UNWCombatComponent::ServerAttackInput_Implementation(bool bPressed, uint16 
 	{
 		bStarted = false;
 	}
+	else if (bPressed && State == ENWCombatState::Attacking && !CurrentRow.AttackAction.IsNone())
+	{
+		bStarted = TryStartAction(CurrentRow.AttackAction);
+	}
 	else if (bPressed)
 	{
 		// Fora da janela (meio de um golpe), a carga começa no Tick quando ela abrir, se o botão continuar apertado.
@@ -550,9 +579,9 @@ const FNWActionRow* UNWCombatComponent::CheckAction(FName& Action) const
 	{
 		// Mesmas janelas do jogo: esquiva/bloqueio cancelam o ataque; ataque só encadeia em CanTransition.
 		// Janela própria da ação (a do jogo) ou a genérica de encadear.
-		const bool bOpen = bDodge ? GetCurve(NWCurves::CanDodgeCancel) > 0.5f
-			: bBlock ? GetCurve(NWCurves::CanBlockCancel) > 0.5f && GetCurve(NWCurves::BlockDisabled) < 0.5f
-			: (!Row->TransitionCurve.IsNone() && GetCurve(Row->TransitionCurve) > 0.5f) || GetCurve(NWCurves::CanTransition) > 0.5f;
+		const bool bOpen = bDodge ? GetActionCurve(NWCurves::CanDodgeCancel) > 0.5f
+			: bBlock ? GetActionCurve(NWCurves::CanBlockCancel) > 0.5f && GetActionCurve(NWCurves::BlockDisabled) < 0.5f
+			: (!Row->TransitionCurve.IsNone() && GetActionCurve(Row->TransitionCurve) > 0.5f) || GetActionCurve(NWCurves::CanTransition) > 0.5f;
 		if (!bOpen)
 		{
 			return nullptr;
@@ -570,7 +599,7 @@ const FNWActionRow* UNWCombatComponent::CheckAction(FName& Action) const
 	}
 	else if (State == ENWCombatState::Dodging)
 	{
-		if (GetCurve(NWCurves::CanTransition) < 0.5f && GetCurve(NWCurves::CanDodgeCancel) < 0.5f)
+		if (GetActionCurve(NWCurves::CanTransition) < 0.5f && GetActionCurve(NWCurves::CanDodgeCancel) < 0.5f)
 		{
 			return nullptr;
 		}
@@ -584,7 +613,35 @@ const FNWActionRow* UNWCombatComponent::CheckAction(FName& Action) const
 	{
 		return nullptr;
 	}
+	// IfManaCost GreaterThanOrEqual (armas mágicas, docs/armas/manopla-gelo.md §2).
+	const UNWManaComponent* Mana = Row->ManaCost > 0.f ? GetOwner()->FindComponentByClass<UNWManaComponent>() : nullptr;
+	if (Mana && !Mana->CanPay(Row->ManaCost))
+	{
+		return nullptr;
+	}
 	return Row;
+}
+
+bool UNWCombatComponent::ForceAction(FName Action)
+{
+	const FNWActionRow* Row = GetOwner()->HasAuthority() && ActionTable && State != ENWCombatState::Dead
+		? ActionTable->FindRow<FNWActionRow>(Action, TEXT("force"), false) : nullptr;
+	if (!Row)
+	{
+		return false;
+	}
+	StartAction(Action, *Row);
+	return CurrentAction == Action;
+}
+
+void UNWCombatComponent::StartCooldown(FName Key, float Seconds)
+{
+	if (!GetOwner()->HasAuthority() || bNoCooldowns || Seconds <= 0.f)
+	{
+		return;
+	}
+	Cooldowns.RemoveAll([Key](const FNWCooldown& C) { return C.Action == Key; });
+	Cooldowns.Add({Key, ServerNow() + Seconds, Seconds});
 }
 
 bool UNWCombatComponent::TryStartAction(FName Action)
@@ -605,6 +662,18 @@ void UNWCombatComponent::StartAction(FName Action, const FNWActionRow& Row)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("NW: montagem ausente para %s"), *Action.ToString());
 		return;
+	}
+	if (Row.ManaCost > 0.f)
+	{
+		UNWManaComponent* Mana = GetOwner()->FindComponentByClass<UNWManaComponent>();
+		if (Mana && !Mana->CanPay(Row.ManaCost))
+		{
+			return;
+		}
+		if (Mana)
+		{
+			Mana->Pay(Row.ManaCost);
+		}
 	}
 	SpendStamina(Row.StaminaCost);
 	if (Row.BuffSeconds > 0.f && Row.BuffDamageReduction > 0.f)
@@ -670,6 +739,13 @@ void UNWCombatComponent::StartAction(FName Action, const FNWActionRow& Row)
 	State = Name.StartsWith(TEXT("Dodge")) ? ENWCombatState::Dodging
 		: Name.StartsWith(TEXT("Block")) ? ENWCombatState::Blocking
 		: ENWCombatState::Attacking;
+	// Ação que encadeia nela mesma (canalizações da manopla: vento, tumba): a montagem gira sozinha até outra ação
+	// entrar. Recomeçar a mesma montagem interromperia a anterior, e a interrupção encerra a ação.
+	if (Row.NextAction == Action)
+	{
+		MulticastPlayLoop(Montage);
+		return;
+	}
 	MulticastPlayMontage(Montage, 1.f, ServerRequestId, Row.StartAt);
 }
 
@@ -1135,6 +1211,7 @@ void UNWCombatComponent::SpawnProjectile(FName DamageID)
 		Params.StatusTick = CurrentRow.StatusTick;
 		Params.StatusDamage = WeaponBaseDamage * CurrentRow.StatusDamage;
 		Params.Range = Range;
+		Params.FxPath = CurrentRow.ProjectileFx;
 		// Arco: a malha é a flecha (o arco fica na mão); arremesso: a própria arma.
 		UStaticMesh* Mesh = bAimWeapon ? LoadObject<UStaticMesh>(nullptr, TEXT("/Game/NW/sword_shield/Mesh/SM_arrow.SM_arrow"))
 			: (Weapon ? Weapon->GetStaticMesh().Get() : nullptr);

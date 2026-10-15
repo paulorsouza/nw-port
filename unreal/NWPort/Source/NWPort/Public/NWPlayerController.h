@@ -68,6 +68,8 @@ class NWPORT_API ANWPlayerController : public APlayerController
 public:
 	ANWPlayerController();
 	virtual void BeginPlay() override;
+	// Desenvolvimento (fora do Shipping): reaplica as opções do F10 salvas (NWDevPrefs) no personagem possuído.
+	virtual void OnPossess(APawn* InPawn) override;
 	/** Esc: fecha o menu aberto; sem menu, abre o menu do jogo (Continuar, Configurações, Sair). */
 	void OnEscape();
 

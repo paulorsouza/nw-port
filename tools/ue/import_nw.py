@@ -103,6 +103,25 @@ else:
         sui.static_mesh_import_data.set_editor_property("combine_meshes", True)
         run_import(fbx, P_MESH, sui, f"SM_{key}")
 
+    # Armas com pele (luva da manopla): malha esqueletal no esqueleto do jogador; o personagem a anima pela pose do corpo.
+    skinned_meshes = []
+    for key, fbx in m["fbx"].get("skinned_weapons", {}).items():
+        kui = unreal.FbxImportUI()
+        kui.import_mesh = True
+        kui.import_as_skeletal = True
+        kui.mesh_type_to_import = unreal.FBXImportType.FBXIT_SKELETAL_MESH
+        kui.import_animations = False
+        kui.import_materials = True
+        kui.import_textures = True
+        kui.create_physics_asset = False
+        kui.skeleton = skeleton
+        kui.skeletal_mesh_import_data.set_editor_property("import_morph_targets", False)
+        kui.skeletal_mesh_import_data.set_editor_property("use_t0_as_ref_pose", False)
+        for p in run_import(fbx, P_MESH, kui, f"SK_{key}"):
+            if isinstance(load(p), unreal.SkeletalMesh):
+                skinned_meshes.append(load(p))
+                log(f"SK_{key}: {p}")
+
     # ---------- materiais: specular/gloss do jogo -> metallic/roughness ----------
     mel = unreal.MaterialEditingLibrary
 
@@ -218,6 +237,8 @@ else:
 
 
     assign_materials(sk)
+    for km in skinned_meshes:
+        assign_materials(km)
 
 # ---------- animações ----------
 anim_ui = unreal.FbxImportUI()

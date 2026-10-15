@@ -40,6 +40,7 @@ static float ShakeScale()
 #include "NWGatherComponent.h"
 #include "NWInteractable.h"
 #include "NWProgressionComponent.h"
+#include "NWManaComponent.h"
 #include "NWInventoryComponent.h"
 #include "NWMountComponent.h"
 #include "NWOptions.h"
@@ -86,6 +87,8 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	USkeletalMeshComponent* Body = GetMesh();
 	// Malha exportada do Blender olhando para -Y; no Unreal o ator olha para +X. Ajustar aqui se vier girada.
 	Body->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -86.f), FRotator(0.f, -90.f, 0.f));
+	// Personagens não recebem decalques do chão (áreas de efeito das armas, como no jogo).
+	Body->SetReceivesDecals(false);
 	// O servidor precisa da pose (curvas das janelas, root motion e posição da lâmina) só com montagem tocando (golpe,
 	// esquiva, reação); parado ou andando, ninguém vê a pose no servidor (docs/arquitetura-servidor.md, medições:
 	// animação era ~80 µs por personagem). No cliente vale para quem está fora da tela.
@@ -119,6 +122,7 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Inventory = CreateDefaultSubobject<UNWInventoryComponent>(TEXT("Inventory"));
 	Gather = CreateDefaultSubobject<UNWGatherComponent>(TEXT("Gather"));
 	Progression = CreateDefaultSubobject<UNWProgressionComponent>(TEXT("Progression"));
+	Mana = CreateDefaultSubobject<UNWManaComponent>(TEXT("Mana"));
 	Mount = CreateDefaultSubobject<UNWMountComponent>(TEXT("Mount"));
 	Interactor = CreateDefaultSubobject<UNWInteractorComponent>(TEXT("Interactor"));
 	Brain = CreateDefaultSubobject<UNWBrainComponent>(TEXT("Brain"));

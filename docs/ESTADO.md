@@ -17,7 +17,7 @@ plano paralelo do dono (agora no repo cliente original (fora deste repositório)
 
 | Área | Onde |
 |---|---|
-| Combate de espada e escudo, machadinha, arco e rapieira (leve, pesado carregado, bloqueio, esquiva, mira e flechas, habilidades Q/R/F, maestria), com as regras do jogo (crítico e costas, reação por PowerLevel, stagger, empurrão com decaimento, tremidas, stamina, status com tique) | `NWCombatComponent`, `NWCharacter`, `NWProjectile`; `docs/combate-armas.md` (como portar outra arma), `docs/combate-regras-jogo.md`, `docs/armas/` |
+| Combate de espada e escudo, machadinha, arco e rapieira; manopla de gelo v1 (sub-esteira 1a: mana, leve/pesado, 6 habilidades, efeitos do jogo em Niagara; bugs conhecidos em `docs/armas/manopla-gelo.md`) (leve, pesado carregado, bloqueio, esquiva, mira e flechas, habilidades Q/R/F, maestria), com as regras do jogo (crítico e costas, reação por PowerLevel, stagger, empurrão com decaimento, tremidas, stamina, status com tique) | `NWCombatComponent`, `NWCharacter`, `NWProjectile`; `docs/combate-armas.md` (como portar outra arma), `docs/combate-regras-jogo.md`, `docs/armas/` |
 | IA das criaturas pelas árvores de comportamento do jogo (lobo, javali), com visão, aggro de grupo e navegação do slice | `NWBehaviorTreeComponent`, `tools/make_ai.py`, `docs/ia-criaturas.md` |
 | IA do port para os humanos (duelista, arqueiro) e arena de testes `L_Arena` com peças do jogo e ondas (F10 > Arena) | `NWBrainComponent`, `tools/ue/make_test_map.py` |
 | Lost (inimigo) com IA simples e saque | `NWLost`, `ANWGameMode::GrantLoot` |

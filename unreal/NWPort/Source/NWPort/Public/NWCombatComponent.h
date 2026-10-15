@@ -144,9 +144,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "NW") bool IsInvulnerable() const;
 	UFUNCTION(BlueprintPure, Category = "NW") bool IsBusy() const { return State != ENWCombatState::Idle && State != ENWCombatState::Blocking; }
 	UFUNCTION(BlueprintPure, Category = "NW") float GetCurve(FName Curve) const;
+	// Curva só da montagem da ação atual (janela CAGE-Named do fragmento em curso). GetCurve mistura as montagens que
+	// ainda estão saindo: a janela aberta do golpe interrompido vazava por ~0,1 s e liberava o próximo clique.
+	float GetActionCurve(FName Curve) const;
 
 	UPROPERTY(EditAnywhere, Category = "NW|Dados") FName LightComboStart = TEXT("Light1");
 	FName GetCurrentAction() const { return CurrentAction; }
+	// Servidor: começa a ação sem checar janela (fases com tempo das habilidades, NWArmaManopla.cpp).
+	bool ForceAction(FName Action);
+	// Servidor: recarga que começa fora do início da ação (Torre de Gelo ao morrer, Sepultado ao sair).
+	void StartCooldown(FName Key, float Seconds);
 	// Conta as ações começadas no servidor (a IA percebe "golpe novo" do alvo por aqui).
 	int32 GetActionSerial() const { return ActionSerial; }
 

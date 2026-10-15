@@ -36,6 +36,8 @@ struct FNWWeaponSet
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere) FName Id;                     // "Sword", "Hatchet" (chave do loadout e do abilities.json)
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<UStaticMesh> Mesh;
+	// Malha com pele no esqueleto do jogador (luva da manopla de gelo; NWArmaManopla.cpp).
+	UPROPERTY(EditAnywhere) TSoftObjectPtr<USkeletalMesh> SkinMesh;
 	UPROPERTY(EditAnywhere) bool bUsesShield = false;
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<UDataTable> Actions;
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<UBlendSpace> Locomotion;
@@ -92,6 +94,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWInventoryComponent> Inventory;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWGatherComponent> Gather;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWProgressionComponent> Progression;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWManaComponent> Mana;
 	// Montaria (esteira 3, NWMountComponent).
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWMountComponent> Mount;
 	/** Foco e tecla de interagir com NPC, estação, armazém (esteira 4, NWInteractable.h). */

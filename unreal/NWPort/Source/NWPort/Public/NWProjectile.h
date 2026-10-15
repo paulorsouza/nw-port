@@ -26,6 +26,7 @@ struct FNWProjectileParams
 	float StatusSeconds = 0.f;
 	float StatusTick = 1.f;
 	float StatusDamage = 0.f;   // absoluto por tique
+	FString FxPath;             // sistema Niagara do projétil (troca a malha e o rastro)
 };
 
 /**
@@ -73,6 +74,7 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_Mesh) TObjectPtr<UStaticMesh> ReplicatedMesh;
 	// Flecha: aponta para onde voa e não gira (replicado para os clientes desenharem igual).
 	UPROPERTY(Replicated) bool bArrow = false;
+	UPROPERTY(Replicated) FString FxPath;
 	bool bDone = false;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

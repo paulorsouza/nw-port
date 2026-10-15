@@ -1,4 +1,6 @@
 #include "NWPlayerController.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/ConfigCacheIni.h"
 #include "NWDevRegistry.h"
 #include "NWCreature.h"
 #include "NWBrainComponent.h"
@@ -56,12 +58,60 @@ ANWPlayerController::ANWPlayerController()
 	Ambience = CreateDefaultSubobject<UNWAmbienceComponent>(TEXT("Ambience"));
 }
 
+// Opções do F10 lembradas entre sessões em desenvolvimento (GameUserSettings.ini, [NW.Dev]); no Shipping não grava nem lê.
+namespace NWDevPrefs
+{
+	static const TCHAR* Section = TEXT("NW.Dev");
+	static const TCHAR* CVars[] = {TEXT("nw.DebugHits"), TEXT("nw.DebugTraversal"), TEXT("nw.HudDebug")};
+	static void Set(const TCHAR* Key, bool bValue)
+	{
+#if !UE_BUILD_SHIPPING
+		GConfig->SetBool(Section, Key, bValue, GGameUserSettingsIni);
+		GConfig->Flush(false, GGameUserSettingsIni);
+#endif
+	}
+	static bool Get(const TCHAR* Key)
+	{
+		bool b = false;
+#if !UE_BUILD_SHIPPING
+		GConfig->GetBool(Section, Key, b, GGameUserSettingsIni);
+#endif
+		return b;
+	}
+}
+
+void ANWPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+#if !UE_BUILD_SHIPPING
+	if (ANWCharacter* Me = Cast<ANWCharacter>(InPawn))
+	{
+		Me->Combat->bGodMode = NWDevPrefs::Get(TEXT("GodMode"));
+		Me->Combat->bNoCooldowns = NWDevPrefs::Get(TEXT("NoCooldowns"));
+		Me->Combat->bInfiniteStamina = NWDevPrefs::Get(TEXT("InfiniteStamina"));
+		Me->DevSpeedMultiplier = NWDevPrefs::Get(TEXT("FastRun")) ? 4.f : 1.f;
+	}
+#endif
+}
+
 void ANWPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	if (IsLocalController())
 	{
 		FNWOptions::Get().Apply(GetWorld());
+#if !UE_BUILD_SHIPPING
+		for (const TCHAR* Name : NWDevPrefs::CVars)
+		{
+			if (NWDevPrefs::Get(Name))
+			{
+				if (IConsoleVariable* V = IConsoleManager::Get().FindConsoleVariable(Name))
+				{
+					V->Set(1, ECVF_SetByConsole);
+				}
+			}
+		}
+#endif
 	}
 	if (HasAuthority())
 	{
@@ -763,13 +813,14 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		}
 		break;
 	case ENWDevCommand::ToggleNoCooldowns:
-		if (Me) { Me->Combat->bNoCooldowns = !Me->Combat->bNoCooldowns; if (Me->Combat->bNoCooldowns) Me->Combat->ClearCooldowns(); }
+		if (Me) { Me->Combat->bNoCooldowns = !Me->Combat->bNoCooldowns; if (Me->Combat->bNoCooldowns) Me->Combat->ClearCooldowns();
+			NWDevPrefs::Set(TEXT("NoCooldowns"), Me->Combat->bNoCooldowns); }
 		break;
 	case ENWDevCommand::ToggleGodMode:
-		if (Me) Me->Combat->bGodMode = !Me->Combat->bGodMode;
+		if (Me) { Me->Combat->bGodMode = !Me->Combat->bGodMode; NWDevPrefs::Set(TEXT("GodMode"), Me->Combat->bGodMode); }
 		break;
 	case ENWDevCommand::ToggleInfiniteStamina:
-		if (Me) Me->Combat->bInfiniteStamina = !Me->Combat->bInfiniteStamina;
+		if (Me) { Me->Combat->bInfiniteStamina = !Me->Combat->bInfiniteStamina; NWDevPrefs::Set(TEXT("InfiniteStamina"), Me->Combat->bInfiniteStamina); }
 		break;
 	case ENWDevCommand::HealSelf:
 		if (Me) Me->Combat->HealFull();
@@ -821,7 +872,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		break;
 	case ENWDevCommand::ToggleFastRun:
 		// Atravessar o mapa: todas as velocidades × 4 (de novo volta ao normal).
-		if (Me) Me->DevSpeedMultiplier = Me->DevSpeedMultiplier > 1.f ? 1.f : 4.f;
+		if (Me) { Me->DevSpeedMultiplier = Me->DevSpeedMultiplier > 1.f ? 1.f : 4.f; NWDevPrefs::Set(TEXT("FastRun"), Me->DevSpeedMultiplier > 1.f); }
 		break;
 	case ENWDevCommand::ToggleFly:
 		if (Me)

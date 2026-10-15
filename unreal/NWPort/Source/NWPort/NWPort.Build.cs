@@ -14,5 +14,11 @@ public class NWPort : ModuleRules
 		PrivateDependencyModuleNames.Add("UMG");
 		// Dados fora de Content (catálogo, telas, textos, fontes): entram no pacote (servidor e cliente).
 		RuntimeDependencies.Add("$(ProjectDir)/Data/...", StagedFileType.UFS);
+		// Efeitos do jogo em Niagara (docs/particulas-estudo.md); a montagem dos sistemas é só no editor.
+		PublicDependencyModuleNames.Add("Niagara");
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(new[] { "UnrealEd", "NiagaraEditor" });
+		}
 	}
 }

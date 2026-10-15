@@ -84,10 +84,13 @@ Em `tools/make_datatables.py`:
 - `<ARMA>_ABILITY_IDS` (recarga do jogo) e `<ARMA>_EFFECTS` (atordoar alvo, buffs).
 - `SETS["sword_shield"]`: acrescente `("DT_<Arma>Actions", ...)`.
 
-Gerar os CSV (depois do `build_set.py`, que grava o manifest):
+Gerar os CSV (depois do `build_set.py`, que grava o manifest). A `DT_NWDamage` é uma só para todos os conjuntos e o
+import do `lost_sword` roda depois do jogador: gere os CSV dos dois manifests, senão linhas de dano novas somem
+(aconteceu com a manopla de gelo em 2026-10-15):
 
 ```bash
 python3 tools/make_datatables.py extract/ue/sword_shield/manifest.json
+python3 tools/make_datatables.py extract/ue/lost_sword/manifest.json
 python3 tools/make_sound_map.py extract/ue/sword_shield/manifest.json
 ```
 
@@ -190,6 +193,7 @@ Diferença achada: anote em `docs/armas/<arma>.md` (seção "Diferenças conheci
 | Espada e escudo | completas | 6 | — |
 | Machadinha | completas | 6 | — |
 | Arco | tiro sem mira, mira, puxada (normal/carregado), recarga automática, esquiva, reações | Tiro Rápido, Tiro Evasivo, Tiro Penetrante, Disparo Venenoso, Flecha Explosiva, Chuva de Flechas | nuvem de veneno, indicador da Chuva, aim offset, corda animada, tremor da carga cheia; `docs/armas/arco.md` |
+| Manopla de gelo (1a) | leve e pesado (projéteis), carga, bloqueio, esquiva, sacar/guardar; mana; efeitos Niagara do jogo | Estacas, Vento Arrepiante, Tempestade, Chuva, Torre, Sepultado | v1 com bugs conhecidos no básico e em habilidades; passivas, regeneração de mana, sons; `docs/armas/manopla-gelo.md` |
 | Rapieira | combo de 3 (Light2 com 2 acertos), carga até 0,667 s, golpe de corrida, passo curto, bloqueio | Tondo, Rajada, Brandir e Terminar, Ripostar, Fleche, Evadir | caixa do Tondo, colisão desligada no Fleche, passivas da maestria, Interrupção (Wake); `docs/armas/rapieira.md` |
 
 Diferenças conhecidas comuns: gear score e mitigação do jogador sem fórmula do jogo; a escala de dano do port é a

@@ -27,6 +27,7 @@
 #include "NWBrainComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "NWCombatComponent.h"
+#include "NWArmaManopla.h"
 #include "NWTraversalComponent.h"
 #include "NWGatherComponent.h"
 #include "NWProgressionComponent.h"
@@ -90,7 +91,8 @@ void ANWCharacter::AddPlayerWeaponSets()
 	Rapier.StaggerDamage = 28.f; Rapier.BlockStaminaDamage = 28.f; Rapier.BlockStability = 17.f;
 	Rapier.HeavyMinHold = 0.667f; Rapier.HeavyFullCharge = 0.667f;
 	WeaponSets.Add(Rapier);
-	
+	// Manopla de gelo (sub-esteira 1a).
+	NWArmaManopla::AddWeaponSet(WeaponSets);
 }
 
 void ANWCharacter::UseBrain(uint8 Style, const TArray<FNWBrainAttack>& Attacks)
@@ -112,8 +114,10 @@ void ANWCharacter::AttackPressed()
 	{
 		return;
 	}
-	// Correndo: golpe de corrida no clique (Attack_Sprint); parado ou andando: começa a carga do pesado.
-	if (bSprinting && GetVelocity().Size2D() > RunSpeed)
+	// Correndo: golpe de corrida no clique (Attack_Sprint); parado ou andando: começa a carga do pesado. Arma sem
+	// golpe de corrida (manopla de gelo) segue o clique normal.
+	if (bSprinting && GetVelocity().Size2D() > RunSpeed && Combat->ActionTable
+		&& Combat->ActionTable->FindRow<FNWActionRow>(TEXT("SprintAttack"), TEXT("sprint"), false))
 	{
 		Combat->RequestAction(TEXT("SprintAttack"));
 		bAttackFromSprint = true;
@@ -304,6 +308,7 @@ void ANWCharacter::ApplyWeapon()
 	Sword->AttachToComponent(Body, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Set.Socket);
 	Sword->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));
 	Combat->SetMainWeapon(Sword);
+	NWArmaManopla::ApplySkin(this, Set);
 
 	// Escudo: na mão com a espada; nas costas com a machadinha.
 	if (Set.bUsesShield)

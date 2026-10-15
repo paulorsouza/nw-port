@@ -91,6 +91,10 @@ def main():
         spaces = []
         for bspace in layers:
             p = idx.get((bspace.lower(), ".bspace"))
+            if not p and spaces and idx.get((bspace.lower(), ".caf")):
+                # Clipe como camada fixa em todas as amostras (Strafe da manopla: blend space + ice_gnt_idle_rhand).
+                spaces.append({"dimensions": [], "samples": [{"params": [], "clip": bspace.lower()}], "source": bspace})
+                continue
             if not p:
                 sys.exit(f"blend space não encontrado: {bspace}")
             spaces.append(read_bspace(p))
@@ -167,20 +171,27 @@ def main():
     print(f"janelas: {sum(len(w['windows']) for v in manifest['windows'].values() for w in v)} em {len(manifest['windows'])} montagens")
 
     glb_dir = os.path.join(out, "glb")
-    weapon_files = [w["file"] for w in spec["weapons"].values()]
+    # skinned_weapons: arma com pele presa ao esqueleto do jogador (luva da manopla), exportada como malha esqueletal
+    # própria (SK_<chave>) no mesmo esqueleto.
+    weapon_files = [w["file"] for w in spec["weapons"].values()] + [w["file"] for w in spec.get("skinned_weapons", {}).values()]
     # Os .caf vao na mesma chamada do .cdf; a lista em arquivo evita o limite de 32 KiB do Windows.
     os.makedirs(out, exist_ok=True)
     arglist = os.path.join(out, "nwbt_files.txt")
     with open(arglist, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join([spec["character"], *([spec["armor"]] if spec.get("armor") else []), *files, *weapon_files]) + "\n")
+    # "@lista" só existe no nwbt com o patch do Windows; o bin/nwbt do Linux trata "@..." como padrão, não acha nada
+    # e sai com 0. No Linux os arquivos vão direto na linha de comando.
+    file_args = ["@" + arglist] if nwplatform.WINDOWS else [
+        spec["character"], *([spec["armor"]] if spec.get("armor") else []), *files, *weapon_files]
     subprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed", "--ior", "1.5", *nwplatform.nwbt_workers(),
-                    "@" + arglist],
+                    *file_args],
                    check=True, capture_output=True)
 
     manifest["glb"] = {
         "character": os.path.join(glb_dir, spec["character"] + ".glb"),
         "armor": os.path.join(glb_dir, spec["armor"] + ".glb") if spec.get("armor") else None,
         "weapons": {k: os.path.join(glb_dir, w["file"] + ".glb") for k, w in spec["weapons"].items()},
+        "skinned_weapons": {k: os.path.join(glb_dir, w["file"] + ".glb") for k, w in spec.get("skinned_weapons", {}).items()},
     }
     mpath = os.path.join(out, "manifest.json")
     json.dump(manifest, open(mpath, "w"), indent=1)

@@ -1,4 +1,6 @@
 #include "NWProjectile.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SphereComponent.h"
@@ -48,6 +50,7 @@ void ANWProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ANWProjectile, ReplicatedMesh);
 	DOREPLIFETIME(ANWProjectile, bArrow);
+	DOREPLIFETIME(ANWProjectile, FxPath);
 }
 
 void ANWProjectile::Setup(UNWCombatComponent* InOwnerCombat, FName InDamageID, UStaticMesh* Mesh, const FNWProjectileParams& Params)
@@ -57,6 +60,7 @@ void ANWProjectile::Setup(UNWCombatComponent* InOwnerCombat, FName InDamageID, U
 	P = Params;
 	ReplicatedMesh = Mesh;
 	Visual->SetStaticMesh(Mesh);
+	FxPath = Params.FxPath;
 	bArrow = Params.Speed > 0.f;
 	if (bArrow)
 	{
@@ -95,11 +99,19 @@ void ANWProjectile::OnRep_Mesh()
 void ANWProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+	// Efeito do jogo (rastro e cristal) no lugar da malha e do rastro simples; colisão e movimento seguem iguais.
+	UNiagaraSystem* Niagara = !FxPath.IsEmpty() && GetNetMode() != NM_DedicatedServer ? LoadObject<UNiagaraSystem>(nullptr, *FxPath) : nullptr;
+	if (Niagara)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAttached(Niagara, RootComponent, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
+			EAttachLocation::SnapToTarget, true);
+		Visual->SetVisibility(false);
+	}
 	if (ReplicatedMesh)
 	{
 		Visual->SetStaticMesh(ReplicatedMesh);
 	}
-	if (bArrow && GetNetMode() != NM_DedicatedServer)
+	if (bArrow && !Niagara && GetNetMode() != NM_DedicatedServer)
 	{
 		// Rastro: cilindro fino e luminoso de 2,5 m atrás da flecha (eixo do cilindro = Z; deitado para trás).
 		Trail->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder")));

@@ -59,6 +59,14 @@ WEAPONS = {
         "default": ["Tondo", "Riposte", "Evade"],
         "hud_icon": "lyshineui/images/icons/items/drawing/1hrapier.dds",
     },
+    # Manopla de gelo (sub-esteira 1a): tabela javelindata_ability_icemagic; ações das habilidades na parte 2.
+    "icegauntlet": {
+        "table": "icemagic", "name_key": "ui_icemagic_mastery", "trees": ["ui_icemagic_tree1", "ui_icemagic_tree2"],
+        "actions": {"IceMagic_Spikes": "Spikes", "IceMagic_IceStorm": "IceStorm", "IceMagic_WindChill": "WindChill",
+                    "IceMagic_IcePylon": "IcePylon", "IceMagic_IceShower": "IceShower", "IceMagic_Entombed": "Entombed"},
+        "default": ["IceStorm", "WindChill", "Spikes"],
+        "hud_icon": "lyshineui/images/icons/items/drawing/icegauntlet.dds",
+    },
 }
 # Fundo do ícone pela categoria (AbilitiesCommon.backgroundPathByCategory do jogo).
 BACKGROUND = {"Attack": "abilities_bg2.dds", "Defense": "abilities_bg3.dds"}
@@ -106,7 +114,7 @@ def build(language):
     out = {}
     for weapon, cfg in WEAPONS.items():
         entries = []
-        for r in rows(f"javelindata_ability_{weapon}"):
+        for r in rows(f"javelindata_ability_{cfg.get('table', weapon)}"):
             aid = r["AbilityID"]
             if aid not in cfg["actions"]:
                 continue
@@ -122,7 +130,7 @@ def build(language):
             })
         # Árvore inteira para a tela de maestria: ativas, melhorias, passivas e ultimate, com linha/coluna do jogo.
         nodes = []
-        all_rows = rows(f"javelindata_ability_{weapon}")
+        all_rows = rows(f"javelindata_ability_{cfg.get('table', weapon)}")
         for r in all_rows:
             cat = r.get("UICategory") or ""
             if cat in ("", "None") or r.get("TreeRowPosition") in (None, ""):

@@ -94,6 +94,12 @@ struct FNWActionRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftObjectPtr<UAnimMontage> Montage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName DamageID;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StaminaCost = 0.f;
+	// Mana (javelindata_manacosts_player pelo CostID da ação; armas mágicas): só entra com mana ≥ custo.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ManaCost = 0.f;
+	// Ataque básico durante esta ação vira esta ação (quebrar a tumba, Estaca Poderosa antecipada), se a janela dela abrir.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName AttackAction;
+	// Sistema Niagara do projétil (efeito do jogo convertido, docs/particulas-estudo.md); substitui a malha e o rastro.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString ProjectileFx;
 	// Próxima ação do combo (Light1 -> Light2 -> Light3).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName ComboNext;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) ENWHitShape HitShape = ENWHitShape::Blade;

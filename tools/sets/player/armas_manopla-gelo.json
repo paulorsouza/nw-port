@@ -1,0 +1,298 @@
+{
+ "_comment": "Sub-esteira 1a (manopla de gelo, docs/armas/manopla-gelo.md): montagens AM_Ig_*, luva com pele (SK_icegauntlet) e cristal da palma (SM_icegauntlet_core). Fragmentos com tags MagicGauntlet+Ice de player_magicgauntlet_ice.adb. ice_gnt_pose_add (pose aditiva) fica de fora: o compositor substitui curvas.",
+ "weapons": {
+  "icegauntlet_core": {
+   "file": "objects/weapons/magic/gauntletcore/1h/icegauntlett5/wep_mag_gauntcore_1h_icegauntlett5.cdf",
+   "socket": "right_hand_attach"
+  },
+  "icespike": {
+   "file": "objects/vfx/misc/icecrystal/vfx_ice_spike_1.cgf",
+   "socket": "right_hand_attach"
+  },
+  "icespike_end": {
+   "file": "objects/vfx/misc/icecrystal/vfx_ice_spike_cluster_1.cgf",
+   "socket": "right_hand_attach"
+  },
+  "icetomb": {
+   "file": "objects/vfx/misc/icetomb/ice_tomb_mesh.cgf",
+   "socket": "right_hand_attach"
+  },
+  "icepylon": {
+   "file": "objects/vfx/misc/icepylon/icepylon_main.cdf",
+   "socket": "right_hand_attach"
+  }
+ },
+ "skinned_weapons": {
+  "icegauntlet": {
+   "file": "objects/weapons/magic/gauntlets/1h/icegauntlett5/wep_mag_gaunt_1h_icegauntlett5.cdf"
+  }
+ },
+ "blendspaces": {
+  "BS_Ig_Strafe": [
+   "melee1h_cmbt_nav_strafe_blend",
+   "rswrd_ststrafe_blend",
+   "ice_gnt_idle_rhand"
+  ]
+ },
+ "montages": {
+  "AM_Ig_Draw": [
+   [
+    "ice_gnt_idle_draw_ub"
+   ]
+  ],
+  "AM_Ig_Sheath": [
+   [
+    "elm_fire_gnt_idle_sheath_ub"
+   ]
+  ],
+  "AM_Ig_HeavyCharge": [
+   [
+    "ice_gnt_windchill_charge_ub"
+   ]
+  ],
+  "AM_Ig_Primary": [
+   [
+    "ice_gnt_lt_atk_up"
+   ]
+  ],
+  "AM_Ig_Heavy": [
+   [
+    "ice_gnt_lt_atk_up"
+   ]
+  ],
+  "AM_Ig_BlockStart": [
+   [
+    "ice_gnt_shield_idle_ub"
+   ]
+  ],
+  "AM_Ig_BlockIdle": [
+   [
+    "ice_gnt_shield_idle_ub"
+   ]
+  ],
+  "AM_Ig_BlockEnd": [
+   [
+    "unarmed_block_outro_ub"
+   ]
+  ],
+  "AM_Ig_Dodge_F": [
+   [
+    "cmbt_1h_quickstep_f"
+   ]
+  ],
+  "AM_Ig_Dodge_B": [
+   [
+    "cmbt_1h_quickstep_b"
+   ]
+  ],
+  "AM_Ig_Dodge_L": [
+   [
+    "cmbt_1h_quickstep_l"
+   ]
+  ],
+  "AM_Ig_Dodge_R": [
+   [
+    "cmbt_1h_quickstep_r"
+   ]
+  ],
+  "AM_Ig_Spikes": [
+   [
+    "ice_gnt_spikes_intro"
+   ]
+  ],
+  "AM_Ig_SpikesOut": [
+   [
+    "ice_gnt_spikes_outro"
+   ]
+  ],
+  "AM_Ig_WindIntro": [
+   [
+    "ice_gnt_windchill_intro_ub"
+   ]
+  ],
+  "AM_Ig_WindAim": [
+   [
+    "ice_gnt_windchill_loop_ub"
+   ]
+  ],
+  "AM_Ig_WindOutro": [
+   [
+    "ice_gnt_windchill_outro_ub"
+   ]
+  ],
+  "AM_Ig_StormCast": [
+   [
+    "ice_gnt_blizzard_cast_ub"
+   ]
+  ],
+  "AM_Ig_Shower": [
+   [
+    "ice_gnt_shower_ub"
+   ]
+  ],
+  "AM_Ig_Pylon": [
+   [
+    "ice_gnt_pylon"
+   ]
+  ],
+  "AM_Ig_TombIntro": [
+   [
+    "ice_gnt_entombed_into"
+   ]
+  ],
+  "AM_Ig_TombLoop": [
+   [
+    "ice_gnt_entombed_loop"
+   ]
+  ],
+  "AM_Ig_TombOutro": [
+   [
+    "ice_gnt_entombed_outro"
+   ]
+  ],
+  "AM_Ig_TombBreak": [
+   [
+    "ice_gnt_entombed_breaker"
+   ]
+  ]
+ },
+ "fragments": {
+  "AM_Ig_Draw": [
+   "Unsheathe_UpperBody"
+  ],
+  "AM_Ig_Sheath": [
+   "Sheathe_UpperBody"
+  ],
+  "AM_Ig_HeavyCharge": [
+   "Attack_Start_Charge_UpperBody"
+  ],
+  "AM_Ig_Primary": [
+   "Ability_IceMagic_Primary"
+  ],
+  "AM_Ig_Heavy": [
+   "Ability_IceMagic_Heavy"
+  ],
+  "AM_Ig_BlockStart": [
+   "Block_UpperBody_Raise"
+  ],
+  "AM_Ig_BlockIdle": [
+   "Block_UpperBody"
+  ],
+  "AM_Ig_BlockEnd": [
+   "Block_UpperBody_Lower"
+  ],
+  "AM_Ig_Dodge_F": [
+   "Dodge_Roll"
+  ],
+  "AM_Ig_Dodge_B": [
+   "Dodge_Roll"
+  ],
+  "AM_Ig_Dodge_L": [
+   "Dodge_Roll"
+  ],
+  "AM_Ig_Dodge_R": [
+   "Dodge_Roll"
+  ],
+  "AM_Ig_Spikes": [
+   "Ability_IceMagic_Spikes"
+  ],
+  "AM_Ig_SpikesOut": [
+   "Ability_IceMagic_Spikes_Out1"
+  ],
+  "AM_Ig_WindIntro": [
+   "Ability_IceMagic_WindChill_Intro"
+  ],
+  "AM_Ig_WindAim": [
+   "Ability_IceMagic_WindChill_Aim"
+  ],
+  "AM_Ig_WindOutro": [
+   "Ability_IceMagic_WindChill_Outro"
+  ],
+  "AM_Ig_StormCast": [
+   "Ability_IceMagic_IceStorm_Cast"
+  ],
+  "AM_Ig_Shower": [
+   "Ability_IceMagic_Shower"
+  ],
+  "AM_Ig_Pylon": [
+   "Ability_IceMagic_Pylon"
+  ],
+  "AM_Ig_TombIntro": [
+   "Ability_IceMagic_Entombed_Intro"
+  ],
+  "AM_Ig_TombLoop": [
+   "Ability_IceMagic_Entombed_Loop"
+  ],
+  "AM_Ig_TombOutro": [
+   "Ability_IceMagic_Entombed_Outro"
+  ],
+  "AM_Ig_TombBreak": [
+   "Ability_IceMagic_Entombed_Break"
+  ]
+ },
+ "hold_montages": [
+  "AM_Ig_HeavyCharge"
+ ],
+ "upper_montages": [
+  "AM_Ig_Draw",
+  "AM_Ig_Sheath",
+  "AM_Ig_HeavyCharge",
+  "AM_Ig_Primary",
+  "AM_Ig_Heavy",
+  "AM_Ig_BlockStart",
+  "AM_Ig_BlockIdle",
+  "AM_Ig_BlockEnd",
+  "AM_Ig_WindIntro",
+  "AM_Ig_WindAim",
+  "AM_Ig_WindOutro",
+  "AM_Ig_StormCast",
+  "AM_Ig_Shower"
+ ],
+ "window_overrides": {
+  "AM_Ig_": {
+   "adbs": [
+    "player/player_magicgauntlet_ice.adb",
+    "player/player_magicgauntlet.adb",
+    "player/player.adb"
+   ],
+   "tags": "MagicGauntlet,Ice",
+   "attach_adbs": []
+  },
+  "AM_Ig_Sheath": {
+   "adbs": [
+    "player/player_magicgauntlet_ice.adb",
+    "player/player_magicgauntlet.adb",
+    "player/player.adb"
+   ],
+   "tags": "MagicGauntlet,From_MagicGauntlet,Ice",
+   "attach_adbs": []
+  },
+  "AM_Ig_Dodge_B": {
+   "adbs": [
+    "player/player_magicgauntlet_ice.adb",
+    "player/player_magicgauntlet.adb",
+    "player/player.adb"
+   ],
+   "tags": "MagicGauntlet,Ice,BackNav",
+   "attach_adbs": []
+  },
+  "AM_Ig_Dodge_L": {
+   "adbs": [
+    "player/player_magicgauntlet_ice.adb",
+    "player/player_magicgauntlet.adb",
+    "player/player.adb"
+   ],
+   "tags": "MagicGauntlet,Ice,LeftNav",
+   "attach_adbs": []
+  },
+  "AM_Ig_Dodge_R": {
+   "adbs": [
+    "player/player_magicgauntlet_ice.adb",
+    "player/player_magicgauntlet.adb",
+    "player/player.adb"
+   ],
+   "tags": "MagicGauntlet,Ice,RightNav",
+   "attach_adbs": []
+  }
+ }
+}

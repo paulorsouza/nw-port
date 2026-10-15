@@ -1,4 +1,5 @@
 #include "NWHUD.h"
+#include "NWManaComponent.h"
 #include "NWShop.h"
 #include "SNWCity.h"
 #include "SNWMarket.h"
@@ -164,6 +165,10 @@ void ANWHUD::UpdateVitals(const UNWCombatComponent* C, float DeltaSeconds)
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("StaminaMeter/MultiFillMeter/UnderFill"))) E->Fill = StaminaLag;
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("StaminaMeter/ValueText"))) E->Visible = false;
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/ValueText"))) E->Visible = false;
+	// Mana (UNWManaComponent, sub-esteira 1a): barra cheia sem atraso por enquanto.
+	const UNWManaComponent* Mana = C->GetOwner()->FindComponentByClass<UNWManaComponent>();
+	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/MultiFillMeter/MainFill"))) E->Fill = Mana ? Mana->GetRatio() : 1.f;
+	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/MultiFillMeter/UnderFill"))) E->Fill = Mana ? Mana->GetRatio() : 1.f;
 }
 
 void ANWHUD::UpdateAbilities(const ANWCharacter* Me, float DeltaSeconds)

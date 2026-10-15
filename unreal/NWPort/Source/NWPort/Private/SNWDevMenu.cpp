@@ -8,6 +8,7 @@
 #include "NWCharacter.h"
 #include "NWCombatComponent.h"
 #include "NWDevRegistry.h"
+#include "Misc/ConfigCacheIni.h"
 #include "NWUILayout.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
@@ -77,7 +78,13 @@ void SNWDevMenu::Construct(const FArguments& Args)
 			IConsoleVariable* V = IConsoleManager::Get().FindConsoleVariable(Name);
 			if (V && PC.IsValid())
 			{
-				PC->LocalConsole(FString::Printf(TEXT("%s %d"), Name, V->GetInt() ? 0 : 1));
+				const bool bOn = V->GetInt() == 0;
+				PC->LocalConsole(FString::Printf(TEXT("%s %d"), Name, bOn ? 1 : 0));
+#if !UE_BUILD_SHIPPING
+				// Lembrado entre sessões em desenvolvimento (ANWPlayerController::BeginPlay reaplica).
+				GConfig->SetBool(TEXT("NW.Dev"), Name, bOn, GGameUserSettingsIni);
+				GConfig->Flush(false, GGameUserSettingsIni);
+#endif
 			}
 		};
 	};
@@ -97,6 +104,13 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.no_cooldowns")), Flag(&UNWCombatComponent::bNoCooldowns), Dev(ENWDevCommand::ToggleNoCooldowns)));
 	Add(Button(NWText::Get(TEXT("nw.dev.god")), Flag(&UNWCombatComponent::bGodMode), Dev(ENWDevCommand::ToggleGodMode)));
 	Add(Button(NWText::Get(TEXT("nw.dev.infinite_stamina")), Flag(&UNWCombatComponent::bInfiniteStamina), Dev(ENWDevCommand::ToggleInfiniteStamina)));
+	// Mana infinita (NWManaComponent.cpp) junto da stamina; sai da lista de extras.
+	static const FName ManaInfinite(TEXT("armas.mana_infinite"));
+	if (const FNWDevEntry* M = FNWDevRegistry::Find(ManaInfinite))
+	{
+		Add(Button(NWText::Get(M->LabelKey), [PC, F = M->State]() { return F(PC.Get()); },
+			[PC]() { if (PC.IsValid()) PC->ServerDevNamed(ManaInfinite); }));
+	}
 	Add(Button(NWText::Get(TEXT("nw.dev.heal")), nullptr, Dev(ENWDevCommand::HealSelf)));
 	Add(Button(NWText::Get(TEXT("nw.dev.die")), nullptr, Dev(ENWDevCommand::KillSelf)));
 	Add(Button(NWText::Get(TEXT("nw.dev.clear_cooldowns")), nullptr, Dev(ENWDevCommand::ClearCooldowns)));
@@ -158,6 +172,10 @@ void SNWDevMenu::Construct(const FArguments& Args)
 				State = [PC, F = E.State]() { return F(PC.Get()); };
 			}
 			const FName Id = E.Id;
+			if (Id == TEXT("armas.mana_infinite"))
+			{
+				continue;
+			}
 			Add(Button(NWText::Get(E.LabelKey), State, [PC, Id]() { if (PC.IsValid()) PC->ServerDevNamed(Id); }));
 		}
 	}

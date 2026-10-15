@@ -10,6 +10,10 @@ import json
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from armas_manopla import (ICEGAUNTLET_ABILITY_IDS, ICEGAUNTLET_ACTIONS, ICEGAUNTLET_EFFECTS,  # noqa: E402
+                           ICEGAUNTLET_SHAPES, ICEGAUNTLET_TRANSITIONS, ICEGAUNTLET_DAMAGE_OVERRIDES)
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DT = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites", "datatables")
 
@@ -270,7 +274,8 @@ ACTIONS.update(MELEE_REACTIONS)
 HATCHET_ACTIONS.update(MELEE_REACTIONS)
 BOW_ACTIONS.update(BOW_REACTIONS)
 RAPIER_ACTIONS.update(MELEE_REACTIONS)
-for fx in (EFFECTS, HATCHET_EFFECTS, BOW_EFFECTS, RAPIER_EFFECTS):
+ICEGAUNTLET_ACTIONS.update(MELEE_REACTIONS)
+for fx in (EFFECTS, HATCHET_EFFECTS, BOW_EFFECTS, RAPIER_EFFECTS, ICEGAUNTLET_EFFECTS):
     fx.update(REACTION_NEXT)
 
 # Janela do jogo que libera cada ação no meio de outra (nomes das CAGE-TransitionInstant/Buffered do .adb; as
@@ -286,11 +291,13 @@ TRANSITIONS = {
     "DT_RapierActions": {"HeavyCharge": "CanAttack_Heavy", "Tondo": "CanAttack_Slash", "Flurry": "CanAttack_Flurry",
                          "Flourish": "CanAttack_Flourish", "Finish": "CanAttack_Finish", "Riposte": "CanAttack_Riposte",
                          "Fleche": "CanAttack_Aerial_Lunge", **{f"Evade_{d}": "CanAttack_Evasion" for d in "FBLR"}},
+    "DT_IceGauntletActions": ICEGAUNTLET_TRANSITIONS,
 }
 SETS = {"sword_shield": [("DT_NWActions", ACTIONS, HIT_SHAPES, ABILITY_IDS, None),
                          ("DT_HatchetActions", HATCHET_ACTIONS, HATCHET_SHAPES, HATCHET_ABILITY_IDS, HATCHET_EFFECTS),
                          ("DT_BowActions", BOW_ACTIONS, BOW_SHAPES, BOW_ABILITY_IDS, BOW_EFFECTS),
-                         ("DT_RapierActions", RAPIER_ACTIONS, RAPIER_SHAPES, RAPIER_ABILITY_IDS, RAPIER_EFFECTS)],
+                         ("DT_RapierActions", RAPIER_ACTIONS, RAPIER_SHAPES, RAPIER_ABILITY_IDS, RAPIER_EFFECTS),
+                         ("DT_IceGauntletActions", ICEGAUNTLET_ACTIONS, ICEGAUNTLET_SHAPES, ICEGAUNTLET_ABILITY_IDS, ICEGAUNTLET_EFFECTS)],
         "lost_sword": [("DT_LostActions", LOST_ACTIONS, HIT_SHAPES, {}, {})],
         "boar": [("DT_BoarActions", BOAR_ACTIONS, CREATURE_SHAPES, {}, {})],
         "wolf": [("DT_WolfActions", WOLF_ACTIONS, CREATURE_SHAPES, {}, {})]}
@@ -352,15 +359,18 @@ def main():
         if os.path.exists(os.path.join(DT, table + ".datasheet.json")):
             damage.update({prefix + r["DamageID"]: r for r in rows(table)})
     stamina = {r["CostID"]: r["StaminaCost"] for r in rows("javelindata_staminacosts_player")}
+    mana = {r["CostID"]: r["ManaCost"] for r in rows("javelindata_manacosts_player")}
 
     tables = SETS[manifest["name"]]
     # Tabela de dano única para todos os conjuntos: linhas das armas do jogador e das criaturas. Colunas e regras:
     # docs/combate-regras-jogo.md (empurrão X/Y e decaimento, colunas _AI, crítico, cabeça, stagger, tremidas).
-    used = sorted(d for d in damage if d.startswith(("1H_Sword", "OH_Shield", "Hatchet_", "1H_Rapier", "Bow", *(p for _, p in CREATURE_DAMAGE)))
+    used = sorted(d for d in damage if d.startswith(("1H_Sword", "OH_Shield", "Hatchet_", "1H_Rapier", "Bow", "IceMagic_", *(p for _, p in CREATURE_DAMAGE)))
                   or damage[d].get("WeaponCategory") in ("Bow", "Bow_Heavy", "Rapier"))
     cols, source = DAMAGE_COLS, DAMAGE_SOURCE
 
     def cell(r, c):
+        if c in ICEGAUNTLET_DAMAGE_OVERRIDES.get(r.get("DamageID"), {}):
+            return ICEGAUNTLET_DAMAGE_OVERRIDES[r["DamageID"]][c]
         v = r.get(source.get(c, c))
         if c in ("Unblockable", "NoBackstab", "NoHeadshot"):
             return str(bool(v))
@@ -396,9 +406,9 @@ def main():
                        "FireTimes", "FireDamageIDs", "ProjectileSpeed", "ProjectileRadius", "GravityDelay", "bPierce",
                        "ExplodeRadius", "ExplodeDamageID", "GroundRadius", "GroundRange", "GroundDelay", "NextAction",
                        "StartAt", "CooldownGroup", "bCancelsAny", "CounterSeconds", "CounterAction", "bStunBreaksOnDamage",
-                       "TransitionCurve", "CloudRadius", "CloudSeconds", "HitStunStart"]
+                       "TransitionCurve", "CloudRadius", "CloudSeconds", "HitStunStart", "ManaCost", "AttackAction", "ProjectileFx"]
             text_cols = {"StatusID", "ConsumeStatusID", "FireTimes", "FireDamageIDs", "ExplodeDamageID", "NextAction",
-                         "CooldownGroup", "CounterAction", "TransitionCurve"}
+                         "CooldownGroup", "CounterAction", "TransitionCurve", "AttackAction", "ProjectileFx"}
 
             def default(c):
                 return "" if c in text_cols else "False" if c.startswith("b") else 1 if c in ("StatusTick", "StatusMaxStacks") else 0
@@ -413,6 +423,7 @@ def main():
                 # Montagem que começa no meio do clipe (montage_starts do conjunto).
                 fx.setdefault("StartAt", manifest.get("montage_starts", {}).get(montage, 0))
                 fx.setdefault("TransitionCurve", TRANSITIONS.get(table_name, {}).get(action, ""))
+                fx.setdefault("ManaCost", mana.get(cost_id, 0))
                 if action.startswith(("Hit", "Down_")):
                     fx.setdefault("HitStunStart", hitstun_start(manifest, montage, set_start))
                 fx = {k: (str(v) if isinstance(v, bool) else v) for k, v in fx.items()}

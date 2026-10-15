@@ -46,8 +46,10 @@ if manifest["glb"].get("armor"):
     _, covered = nwchar.attach_armor(arm, manifest["glb"]["armor"])
     for o in [o for o in scene.objects if o.type == "MESH" and nwchar.base(o.name) in covered]:
         bpy.data.objects.remove(o)
-meshes = [o for o in scene.objects if o.type == "MESH" and o.parent == arm]
-nwchar.to_centimeters(arm, meshes)
+skinned = {k: nwchar.attach_armor(arm, glb)[0] for k, glb in manifest["glb"].get("skinned_weapons", {}).items()}
+skinned_objs = {o for objs in skinned.values() for o in objs}
+meshes = [o for o in scene.objects if o.type == "MESH" and o.parent == arm and o not in skinned_objs]
+nwchar.to_centimeters(arm, meshes + list(skinned_objs))
 clips = {a.name.lower(): a for a in bpy.data.actions}
 missing = [c for c in manifest["clips"] if c not in clips]
 if missing:
@@ -131,6 +133,13 @@ sk = os.path.join(out, f"{manifest.get('mesh_name', 'SK_player_male')}.fbx")
 select_only([arm] + meshes)
 bpy.ops.export_scene.fbx(filepath=sk, object_types={"ARMATURE", "MESH"}, bake_anim=False,
                          path_mode="COPY", embed_textures=True, **FBX_COMMON)
+# Armas com pele (luva da manopla): uma malha esqueletal por arma, no mesmo esqueleto (SK_<chave>).
+skinned_fbx = {}
+for key, objs in skinned.items():
+    skinned_fbx[key] = os.path.join(out, f"SK_{key}.fbx")
+    select_only([arm] + objs)
+    bpy.ops.export_scene.fbx(filepath=skinned_fbx[key], object_types={"ARMATURE", "MESH"}, bake_anim=False,
+                             path_mode="COPY", embed_textures=True, **FBX_COMMON)
 
 anims = {}
 for key, comp in manifest["composites"].items():
@@ -270,6 +279,7 @@ for key, glb in manifest["glb"]["weapons"].items():
     weapons[key] = path
 
 manifest["materials"] = materials
-manifest["fbx"] = {"skeletal_mesh": sk, "anims": anims, "weapons": weapons, "root_bone": ROOT_BONE}
+manifest["fbx"] = {"skeletal_mesh": sk, "anims": anims, "weapons": weapons, "skinned_weapons": skinned_fbx,
+                   "root_bone": ROOT_BONE}
 json.dump(manifest, open(mpath, "w"), indent=1)
 print(f"export_ue: SK + {len(anims)} animações + {len(weapons)} armas")

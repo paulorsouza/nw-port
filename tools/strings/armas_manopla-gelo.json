@@ -1,0 +1,22 @@
+{
+  "_comment": "Sub-esteira 1a (manopla de gelo).",
+  "textos": {
+    "nw.weapon.icegauntlet": {
+      "pt-br": "Manopla de Gelo",
+      "en-us": "Ice Gauntlet"
+    },
+    "nw.dev.mana_refill": {
+      "pt-br": "Encher mana",
+      "en-us": "Refill mana"
+    },
+    "nw.dev.mana_infinite": {
+      "pt-br": "Mana infinita",
+      "en-us": "Infinite mana"
+    },
+    "nw.dev.icegauntlet_loadout": {
+      "pt-br": "Manopla de gelo + espada",
+      "en-us": "Ice gauntlet + sword"
+    }
+  },
+  "chaves_do_jogo": []
+}

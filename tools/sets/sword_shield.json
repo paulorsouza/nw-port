@@ -3,6 +3,7 @@
   "_comment": "Camadas da base para cima, como o Mannequin toca: corpo inteiro (tags 1H_Melee+Sword) e por cima o braço do escudo (Shield_OH).",
   "parts": [
     "player/armas.json",
+    "player/armas_manopla-gelo.json",
     "player/coleta.json",
     "player/montaria.json"
   ],
