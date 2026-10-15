@@ -1,4 +1,4 @@
-"""Contrato dos comandos nativos com fixtures sinteticas, sem assets do jogo."""
+"""Contract of the native commands with synthetic fixtures, without game assets."""
 import contextlib
 import hashlib
 import io

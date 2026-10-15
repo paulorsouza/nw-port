@@ -185,7 +185,7 @@ No migration.
   client never has the nw-core secret.
 - F10 (test commands): the server accepts them only from an admin account in nw-core (`nw-core admin <conta>`,
   `tools/linux/rede.sh admin`). Without nw-core, or in the editor's Play, they are allowed. A client without
-  permission does not open the menu. Each use goes to the server log (`F10: conta/personagem usou X`, refusals as
+  permission does not open the menu. Each use goes to the server log (`F10: <account/character> used <action>`, refusals as
   Warning) and to `item_log` with the reason `dev:<comando>`.
 - Open (weapons area): weapon mastery (`ServerSetMastery`) and abilities on the bar (`ServerSetWeaponAbilities`)
   accept what the client sends without checking points or whether the ability belongs to the weapon. General RPC rate

@@ -4,19 +4,19 @@
 #include "NWCharacter.h"
 #include "NWCreature.generated.h"
 
-/** Criatura do jogo (javelindata_vitals + conjunto convertido), de Data/World/<região>_spawns.json (tools/make_spawns.py). */
+/** Game creature (javelindata_vitals + converted set), from Data/World/<region>_spawns.json (tools/make_spawns.py). */
 struct FNWCreatureDef
 {
-	FName Id;                 // VitalsID do jogo (Boar_StarterBeach)
-	FString NameKey;          // texto do jogo
-	FName Set;                // conjunto (boar, wolf); vazio = ainda não convertido
+	FName Id;                 // the game's VitalsID (Boar_StarterBeach)
+	FString NameKey;          // game text
+	FName Set;                // set (boar, wolf); empty = not converted yet
 	int32 Level = 1;
-	float Health = 500.f;     // escala do port (make_spawns.py)
+	float Health = 500.f;     // port scale (make_spawns.py)
 	float Damage = 100.f;
 	float Mitigation = 0.f;
 	float Scale = 1.f;
 	bool bHostile = true;
-	// Carcaça (esfolar): saque, tempo, ofício, XP de ofício, nome.
+	// Carcass (skinning): loot, time, trade skill, trade skill XP, name.
 	FName SkinLoot;
 	float SkinTime = 0.f;
 	FName SkinTradeskill;
@@ -29,7 +29,7 @@ class NWPORT_API FNWCreatureCatalog
 public:
 	static FNWCreatureCatalog& Get();
 	const FNWCreatureDef* Find(FName Id) const { return Defs.Find(Id); }
-	/** Lê os "creatures" do arquivo de spawns (uma vez por arquivo). */
+	/** Reads the "creatures" from the spawns file (once per file). */
 	void Load(const FString& File);
 
 private:
@@ -38,10 +38,10 @@ private:
 };
 
 /**
- * Criatura (G3): personagem com a malha, as animações e a tabela de ações do conjunto, vida e dano do jogo.
- * O id é replicado: os clientes montam os assets pelo mesmo catálogo. Sem alvo, segue os waypoints do spawner
- * (tarefas do jogo: pastar, patrulhar) andando; hostil, persegue e ataca quem chegar perto (ANWCharacter::TickDummy)
- * e volta para casa se for longe demais. Morta, a carcaça fica para esfolar (faca) até sumir.
+ * Creature (G3): character with the set's mesh, animations and action table, and health and damage from the game.
+ * The id is replicated: clients build the assets from the same catalog. Without a target, follows the spawner's waypoints
+ * (game tasks: graze, patrol) walking; when hostile, chases and attacks whoever comes close (ANWCharacter::TickDummy)
+ * and goes back home if it gets too far. When dead, the carcass stays to be skinned (knife) until it disappears.
  */
 UCLASS()
 class NWPORT_API ANWCreature : public ANWCharacter
@@ -51,21 +51,21 @@ class NWPORT_API ANWCreature : public ANWCharacter
 public:
 	ANWCreature(const FObjectInitializer& ObjectInitializer);
 
-	/** Servidor, antes de FinishSpawning. */
+	/** Server, before FinishSpawning. */
 	void Setup(const FNWCreatureDef& Def, const TArray<FVector>& InPath, const TArray<float>& InWaits);
-	/** Definição pelo id (o catálogo carrega o arquivo da região na primeira vez, também no cliente). */
+	/** Definition by id (the catalog loads the region file the first time, also on the client). */
 	const FNWCreatureDef* Def() const;
-	/** Definição de qualquer criatura do catálogo (vale em qualquer mapa, ex.: a arena). */
+	/** Definition of any creature in the catalog (valid on any map, e.g. the arena). */
 	static const FNWCreatureDef* FindDef(FName Id);
 
 	UPROPERTY(ReplicatedUsing = OnRep_Creature) FName CreatureId;
-	/** Carcaça já esfolada (não dá para esfolar de novo). */
+	/** Carcass already skinned (cannot be skinned again). */
 	UPROPERTY(Replicated) bool bSkinned = false;
-	/** Quem está esfolando (servidor). */
+	/** Who is skinning (server). */
 	TWeakObjectPtr<AActor> SkinnedBy;
 
 	virtual void Tick(float DeltaSeconds) override;
-	// IA do jogo (árvore de comportamento do conjunto, Data/AI); sem árvore, usa o UNWBrainComponent.
+	// The game's AI (the set's behavior tree, Data/AI); without a tree, uses UNWBrainComponent.
 	UPROPERTY(VisibleAnywhere) TObjectPtr<class UNWBehaviorTreeComponent> Behavior;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

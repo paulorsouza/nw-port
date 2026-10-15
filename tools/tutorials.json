@@ -1,5 +1,5 @@
 {
- "_comment": "Tutoriais de nível (decisão do dono 2026-10-12, docs/game/city.md): já liberados no personagem, o jogador escolhe a ordem. tipo abate (alvo = Id do conjunto de arma ativo), coleta (alvo = ofício de coleta, conta cada ganho de XP), refino (alvo = tipo da estação). niveis = níveis inteiros dados ao concluir. Arma nova (esteira 1), montaria (esteira 3), mesas de ofício e facções entram aqui. apos_tutoriais.abate_fracao_nivel: depois de todos, cada abate dá esta fração do XP do nível atual até o 60. bonecos: campo de treino por cidade (posição do pé no mapa, achada por varredura de cápsula no editor), olhando para a praça.",
+ "_comment": "Level tutorials (maintainer decision 2026-10-12, docs/game/city.md): already unlocked on the character, the player picks the order. tipo abate (alvo = Id of the active weapon set), coleta (alvo = gathering trade skill, counts each XP gain), refino (alvo = station type). niveis = whole levels granted on completion. New weapon (area 1), mount (area 3), trade skill stations and factions go here. apos_tutoriais.abate_fracao_nivel: after all of them, each kill gives this fraction of the current level's XP up to 60. bonecos: training dummies per city (foot position on the map, found by a capsule sweep in the editor), facing the square.",
  "missoes": [
   {
    "id": "arma_Sword",

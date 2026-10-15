@@ -1,4 +1,4 @@
-"""Fila de trabalho nativa: python tools/pesado.py <comando> [argumentos]."""
+"""Native heavy-job queue: python tools/pesado.py <command> [arguments]."""
 import os
 import subprocess
 import sys
@@ -12,12 +12,12 @@ def main():
     if not command:
         print(__doc__, file=sys.stderr)
         return 2
-    # "python3"/"python" viram o Python que rodou a fila: o mesmo comando vale no Linux e no Windows.
+    # "python3"/"python" become the Python that ran the queue: the same command works on Linux and Windows.
     if command[0] in ("python", "python3"):
         command[0] = sys.executable
     try:
         with nwprocess.heavy_lock():
-            # Mesmo diretorio e codigo de saida de quem chamou, como o tools/linux/pesado.sh.
+            # Same directory and exit code as the caller, like tools/linux/pesado.sh.
             nwprocess.run(command, cwd=os.getcwd())
     except nwprocess.ResourceError as exc:
         print(exc, file=sys.stderr)

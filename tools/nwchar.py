@@ -1,10 +1,10 @@
-# Funções comuns aos scripts do Blender que montam o personagem do jogo.
+# Functions shared by the Blender scripts that assemble the game character.
 import re
 import bpy
 from bpy_extras import anim_utils
 
 SUFFIX = re.compile(r"\.\d{3}$")
-# Malhas do cdf base que não fazem parte do visual: proxy de sombra, esfera solta e a variante sem manga.
+# Base cdf meshes that are not part of the visual: shadow proxy, stray sphere and the sleeveless variant.
 DROP_MESHES = {"xray", "Icosphere", "shirt2"}
 
 
@@ -22,11 +22,11 @@ def bone_of(fc):
 
 
 def import_character(glb, name="player_male", drop=None):
-    """Importa o glb do nwbt e deixa um esqueleto só.
+    """Imports the nwbt glb and leaves a single skeleton.
 
-    drop: malhas a remover pelo nome (padrão DROP_MESHES, do jogador; os NPCs usam shirt2 como roupa).
-    O glb traz uma cópia do esqueleto por malha (sufixos .001, .002...). Fica a cópia
-    que as animações animam; vertex groups e curvas passam a usar os nomes sem sufixo.
+    drop: meshes to remove by name (default DROP_MESHES, for the player; NPCs use shirt2 as clothing).
+    The glb carries one skeleton copy per mesh (suffixes .001, .002...). The copy the animations
+    animate is kept; vertex groups and curves switch to the names without suffix.
     """
     scene = bpy.context.scene
     bpy.ops.import_scene.gltf(filepath=glb)
@@ -84,8 +84,8 @@ def import_character(glb, name="player_male", drop=None):
 
 
 def reset_pose(arm):
-    """Volta todos os ossos ao repouso. Osso sem curva na ação guarda o último valor avaliado
-    (de outra animação): sem isso, o export grava a pose da ação anterior nesses ossos."""
+    """Returns every bone to rest. A bone without a curve in the action keeps the last evaluated value
+    (from another animation): without this, the export writes the previous action's pose on those bones."""
     for pb in arm.pose.bones:
         pb.location = (0.0, 0.0, 0.0)
         pb.rotation_quaternion = (1.0, 0.0, 0.0, 0.0)
@@ -102,7 +102,7 @@ def set_action(arm, action):
 
 
 def _source_image(socket):
-    """Primeira imagem a montante de uma entrada do shader (busca em profundidade por mix/math/normal map)."""
+    """First image upstream of a shader input (search through mix/math/normal map nodes)."""
     if not socket.is_linked:
         return None
     stack, seen = [socket.links[0].from_node], set()
@@ -118,8 +118,8 @@ def _source_image(socket):
 
 
 def flatten_materials(tex_dir):
-    """Deixa cada material no formato que o FBX carrega (imagem direto na cor base, normal e alfa)
-    e grava as imagens empacotadas como PNG em tex_dir. Devolve material -> {canal: png}."""
+    """Puts each material in the form FBX carries (image straight into base color, normal and alpha)
+    and writes the packed images as PNG in tex_dir. Returns material -> {channel: png}."""
     import os
     os.makedirs(tex_dir, exist_ok=True)
     saved, table = {}, {}
@@ -155,7 +155,7 @@ def flatten_materials(tex_dir):
             for l in list(bsdf.inputs["Alpha"].links):
                 nt.links.remove(l)
             nt.links.new(alpha.outputs["Alpha"], bsdf.inputs["Alpha"])
-        # O _emis do jogo vem com intensidade ~30 (Emittance do .mtl) e estoura a cor em branco.
+        # The game's _emis comes with intensity ~30 (.mtl Emittance) and blows the color out to white.
         for l in list(bsdf.inputs["Emission Color"].links):
             nt.links.remove(l)
         bsdf.inputs["Emission Strength"].default_value = 0.0
@@ -163,19 +163,19 @@ def flatten_materials(tex_dir):
     return table
 
 
-# Sufixo da peça de armadura -> malha do corpo nu que ela cobre.
+# Armor piece suffix -> bare body mesh it covers.
 SLOT_OF = {"_chest": "shirt1", "_thighs": "pants1", "_calves": "boots1", "_forearms": "gloves1"}
 
 
 def attach_armor(arm, glb):
-    """Importa as peças de uma armadura (glb do nwbt) no esqueleto do personagem.
-    Devolve (peças, malhas do corpo cobertas)."""
+    """Imports the pieces of an armor (nwbt glb) onto the character skeleton.
+    Returns (pieces, covered body meshes)."""
     scene = bpy.context.scene
     before = set(scene.objects)
     bpy.ops.import_scene.gltf(filepath=glb)
     new = set(scene.objects) - before
     pieces = [o for o in new if o.type == "MESH" and base(o.name) != "Icosphere"]
-    # O glb repete capa e saia em dois nós com a mesma malha: fica um objeto por malha.
+    # The glb repeats cape and skirt in two nodes with the same mesh: one object per mesh is kept.
     seen = set()
     for o in sorted(pieces, key=lambda o: o.name):
         if o.data.name in seen:
@@ -197,16 +197,16 @@ def attach_armor(arm, glb):
 
 
 def to_centimeters(arm, meshes):
-    """Leva malha, esqueleto e animações para centímetros (unidade do Unreal), sem escala em objeto ou osso.
+    """Takes mesh, skeleton and animations to centimeters (Unreal's unit), with no scale on object or bone.
 
-    Exportar em metros deixa o fator 100 no objeto "Armature", que o Unreal descarta: a pose de referência
-    fica com o osso raiz em escala 100 e as animações (sem bind pose) chegam com raiz em escala 1.
+    Exporting in meters leaves the factor 100 on the "Armature" object, which Unreal drops: the reference pose
+    gets the root bone at scale 100 and the animations (without bind pose) arrive with the root at scale 1.
     """
     from mathutils import Matrix
     k = 100.0
     scale = Matrix.Scale(k, 4)
     arm.data.transform(scale)
-    # Uma vez por malha: objetos que dividem a malha a escalariam de novo (capa a 100x, as "formas no céu").
+    # Once per mesh: objects sharing the mesh would scale it again (cape at 100x, the "shapes in the sky").
     for data in {o.data for o in meshes}:
         data.transform(scale)
     for act in bpy.data.actions:

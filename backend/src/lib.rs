@@ -1,5 +1,5 @@
-//! nw-core: backend do servidor do clã. Contas por convite, sessões, personagens e o passe de entrada que o
-//! servidor de jogo (Unreal dedicado) resgata para carregar o personagem.
+//! nw-core: backend for the clan server. Invite-only accounts, sessions, characters and the entry ticket that the
+//! game server (Unreal dedicated) redeems to load the character.
 
 pub mod auth;
 pub mod error;
@@ -15,7 +15,7 @@ pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
 #[derive(Clone)]
 pub struct AppState {
     pub db: PgPool,
-    /// Segredo compartilhado com os servidores de jogo (cabeçalho `X-NW-Server-Secret`).
+    /// Secret shared with the game servers (`X-NW-Server-Secret` header).
     pub server_secret: Arc<str>,
 }
 

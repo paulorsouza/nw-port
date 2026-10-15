@@ -4,7 +4,7 @@
   "anim_root": "animations/gameplay/character/npc/natural/predator/boar/",
   "character": "objects/characters/npc/natural/boar_wild/boar.cdf",
   "weapons": {},
-  "_comment": "Javali (slices/characters/boar: boar.cdf, npc_boar_anims.adb, javelindata_damagetable_boar). G3. A investida do jogo é início + laço + fim; o port usa o laço (onde está a janela de dano) como AM_Heavy.",
+  "_comment": "Boar (slices/characters/boar: boar.cdf, npc_boar_anims.adb, javelindata_damagetable_boar). G3. The game's charge is start + loop + end; the port uses the loop (where the damage window is) as AM_Heavy.",
   "blendspaces": {
     "BS_Walk": [
       "boar_movement_blend"

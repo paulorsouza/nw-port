@@ -1,9 +1,9 @@
-"""Xrefs no NewWorld.exe sem análise do Ghidra: referências RIP-relative (disp32) no .text e ponteiros absolutos
-de 64 bits em .rdata/.data, com a função dona tirada da tabela .pdata.
+"""Xrefs in NewWorld.exe without Ghidra analysis: RIP-relative references (disp32) in .text and absolute 64-bit
+pointers in .rdata/.data, with the owning function taken from the .pdata table.
 
-    python3 -I tools/re/xref.py str  "UtilitySelector" ...    # strings exatas (terminadas em \\0)
-    python3 -I tools/re/xref.py va   0x1480xxxxx ...          # endereços
-    python3 -I tools/re/xref.py func 0x1400xxxxx ...          # limites da função que contém o endereço
+    python3 -I tools/re/xref.py str  "UtilitySelector" ...    # exact strings (\\0-terminated)
+    python3 -I tools/re/xref.py va   0x1480xxxxx ...          # addresses
+    python3 -I tools/re/xref.py func 0x1400xxxxx ...          # bounds of the function containing the address
 """
 import json, mmap, os, struct, sys, bisect
 import numpy as np
@@ -15,7 +15,7 @@ EXE = os.path.join(nwplatform.game_directory(), "Bin64", "NewWorld.exe")
 
 
 def local_addresses():
-    """Endereços da build atual achados pelo agente nw-re (re-local/enderecos.json, fora do git); {} se não houver."""
+    """Addresses for the current build found by the nw-re agent (re-local/enderecos.json, outside git); {} if absent."""
     path = nwplatform.ROOT / "re-local" / "enderecos.json"
     return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
@@ -48,7 +48,7 @@ def pdata():
         _pd = a
     return _pd
 def func_of(v, primary=True):
-    """(início, fim) do trecho da .pdata que contém v; com primary, segue UNW_FLAG_CHAININFO até a função dona."""
+    """(start, end) of the .pdata entry containing v; with primary, follows UNW_FLAG_CHAININFO to the owning function."""
     a = pdata(); r = v - BASE
     i = np.searchsorted(a[:, 0], r, side="right") - 1
     if not (i >= 0 and a[i, 0] <= r < a[i, 1]): return None
@@ -61,7 +61,7 @@ def func_of(v, primary=True):
     return BASE + b, BASE + e
 
 def func_range(start, span=0x40000):
-    """(início, fim) cobrindo todos os pedaços da .pdata encadeados à função que começa em start."""
+    """(start, end) covering all .pdata chunks chained to the function that starts at start."""
     a = pdata(); r0 = start - BASE
     i = np.searchsorted(a[:, 0], r0); end = start
     while i < len(a) and a[i, 0] < r0 + span:
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         print(f"{names[t]!r:40} {hex(t)} <- {hex(at)} {kind}" + (f"  fn {hex(fn[0])}-{hex(fn[1])}" if fn else ""))
 
 def vtable(v):
-    """Volta enquanto os qwords apontam para .text; devolve (início, [slots])."""
+    """Walks back while the qwords point into .text; returns (start, [slots])."""
     tva, tvsz = SECS[".text"][0], SECS[".text"][1]
     isc = lambda q: tva <= q < tva + tvsz
     o = va2off(v)
@@ -130,7 +130,7 @@ def cstr(v, n=200):
     return mm[o:e if e >= 0 else o + n].decode("latin1")
 
 def rtti_vtables(name_substr):
-    """Vtables cujo RTTI (TypeDescriptor) tem o nome com name_substr: [(nome, vtable_va, [slots])]."""
+    """Vtables whose RTTI (TypeDescriptor) name contains name_substr: [(name, vtable_va, [slots])]."""
     out = []; pat = name_substr.encode(); i = mm.find(pat)
     rva = lambda v: (v - BASE).to_bytes(4, "little")
     while i >= 0:
@@ -151,8 +151,8 @@ def rtti_vtables(name_substr):
     return out
 
 def lambda_invokers(name_substr):
-    """AZStd::function de uma lambda pelo nome do RTTI: [(nome, manager, invoker)]. O manager faz lea do
-    TypeDescriptor (typeid); na .rdata o par {manager, invoker} fica lado a lado."""
+    """AZStd::function of a lambda by RTTI name: [(name, manager, invoker)]. The manager does a lea of the
+    TypeDescriptor (typeid); in .rdata the {manager, invoker} pair sits side by side."""
     out = []; pat = name_substr.encode(); i = mm.find(pat)
     while i >= 0:
         s = mm.rfind(b"\0", 0, i) + 1; e = mm.find(b"\0", i)
@@ -168,9 +168,9 @@ def lambda_invokers(name_substr):
     return out
 
 def reflect_fields(fn_start):
-    """Campos de uma função de reflexão AZ: (nome, offset, tamanho). Dois padrões: (a) SerializeContext::Field —
-    lea rdx,<nome> ... mov qword [reg+0x28],<offset> ... mov qword [reg+0x20],<tamanho>; (b) registro por chamada —
-    mov r8d,<offset> ... lea rdx,<nome> ... call (tamanho 0 = desconhecido)."""
+    """Fields of an AZ reflection function: (name, offset, size). Two patterns: (a) SerializeContext::Field —
+    lea rdx,<name> ... mov qword [reg+0x28],<offset> ... mov qword [reg+0x20],<size>; (b) registration by call —
+    mov r8d,<offset> ... lea rdx,<name> ... call (size 0 = unknown)."""
     import subprocess, re
     b, e = func_range(fn_start)
     out = subprocess.run(["objdump", "-d", "-M", "intel", "--no-show-raw-insn", f"--start-address={hex(b)}",
@@ -195,8 +195,8 @@ def reflect_fields(fn_start):
     return res
 
 def datasheet_columns(fn_start):
-    """Parser de linha de datasheet (lê coluna por nome e grava numa struct local): [(coluna, destino, bit)].
-    Padrão: lea r8,<coluna> ... call <ler célula> ... call <converter> ... grava em [rbp±X] (ou bts/btr num campo de flags)."""
+    """Datasheet row parser (reads a column by name and writes into a local struct): [(column, destination, bit)].
+    Pattern: lea r8,<column> ... call <read cell> ... call <convert> ... writes to [rbp±X] (or bts/btr on a flags field)."""
     import subprocess, re
     b, e = func_range(fn_start)
     out = subprocess.run(["objdump", "-d", "-M", "intel", "--no-show-raw-insn", f"--start-address={hex(b)}",

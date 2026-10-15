@@ -1,10 +1,10 @@
-"""Resumo de um script de interface descompilado pelo unluac (extract/lua/**.lua).
+"""Summary of an interface script decompiled by unluac (extract/lua/**.lua).
 
-Para cada método do script (`function Lk_1(...) ... end` seguido de `Ln_1.Nome = Lk_1`): chamadas de barramento
-(`XBus.Event.Metodo` / `XBus.Broadcast.Metodo`, montadas em 3 linhas pelo unluac), chamadas de método do próprio
-script (`A0_2.Metodo`), strings e números.
+For each method of the script (`function Lk_1(...) ... end` followed by `Ln_1.Name = Lk_1`): bus calls
+(`XBus.Event.Method` / `XBus.Broadcast.Method`, spread over 3 lines by unluac), calls to the script's own methods
+(`A0_2.Method`), strings and numbers.
 
-    python3 -I tools/re/lua_summary.py extract/lua/lyshineui/inventory/newinventory.lua [filtro]
+    python3 -I tools/re/lua_summary.py extract/lua/lyshineui/inventory/newinventory.lua [filter]
 """
 import re, sys
 
@@ -56,12 +56,12 @@ for idx, (s, e, loc) in enumerate(funcs):
     selfcalls = sorted(set(re.findall(r"= A0_\d\.([A-Z][A-Za-z0-9_]*)\b", text)))
     strings = sorted(set(re.findall(r'"([^"\n]{1,80})"', text)))
     nums = sorted(set(x for x in re.findall(r"(?<![\w.])(-?\d+\.\d+|-?\d{2,})(?![\w.])", text)), key=lambda x: float(x))
-    print(f"== {name}  (linhas {s + 1}-{e + 1})")
+    print(f"== {name}  (lines {s + 1}-{e + 1})")
     if calls:
-        print("   barramento:", ", ".join(dict.fromkeys(calls)))
+        print("   bus:", ", ".join(dict.fromkeys(calls)))
     if selfcalls:
         print("   self:", ", ".join(selfcalls[:30]))
     if strings:
         print("   strings:", " | ".join(strings[:25]))
     if nums:
-        print("   números:", " ".join(nums[:25]))
+        print("   numbers:", " ".join(nums[:25]))

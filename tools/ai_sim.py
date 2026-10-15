@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Simula o planejamento da árvore de uma criatura (Data/AI/<conjunto>.json) para um blackboard dado: mostra o que ela
-escolheria fazer. Mesma lógica do UNWBehaviorTreeComponent::Evaluate (C++), para conferir a leitura das árvores sem
-abrir a Unreal.
+"""Simulates the planning of a creature's tree (Data/AI/<set>.json) for a given blackboard: shows what it would
+choose to do. Same logic as UNWBehaviorTreeComponent::Evaluate (C++), to check how the trees are read without
+opening Unreal.
 
     python3 tools/ai_sim.py wolf Target_Dist=5 Has_Target=1
     python3 tools/ai_sim.py boar Has_Target=0 --cooldown CloseAttack
-    python3 tools/ai_sim.py wolf Target_Dist=10 --vezes 20      # sorteios do UtilitySelector
+    python3 tools/ai_sim.py wolf Target_Dist=10 --vezes 20      # UtilitySelector random draws
 """
 import argparse
 import collections
@@ -19,11 +19,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("set")
-    ap.add_argument("bb", nargs="*", help="Chave=valor (números)")
-    ap.add_argument("--cooldown", action="append", default=[], help="recarga ativa")
+    ap.add_argument("bb", nargs="*", help="Key=value (numbers)")
+    ap.add_argument("--cooldown", action="append", default=[], help="active cooldown")
     ap.add_argument("--vezes", type=int, default=1)
-    ap.add_argument("--tag", action="append", default=[], help="tag do Mannequin ativa (ex.: Alerted)")
-    ap.add_argument("--trace", action="store_true", help="mostra o caminho de nós até cada tarefa")
+    ap.add_argument("--tag", action="append", default=[], help="active Mannequin tag (e.g. Alerted)")
+    ap.add_argument("--trace", action="store_true", help="show the node path to each task")
     a = ap.parse_args()
     d = json.load(open(os.path.join(ROOT, "unreal", "NWPort", "Data", "AI", a.set + ".json")))
     tasks = d["tasks"]
@@ -59,7 +59,7 @@ def main():
         if not G:
             return True
         def left(c):
-            # "posição == True": a chave existe.
+            # "position == True": the key exists.
             if isinstance(c[2].get("v"), bool) and "k" in c[0]:
                 v = bb.get(c[0]["k"])
                 return 1 if v not in (None, 0, False) else 0
@@ -83,7 +83,7 @@ def main():
             STACK.pop()
 
     def ev_(n):
-        """(plano em lista de folhas, utilidade) ou None."""
+        """(plan as a list of leaves, utility) or None."""
         t, kids, u = n["t"], n.get("c", []), n.get("u", 0)
         p = n.get("p", {})
         if t in ("Selector", "FallbackSelector"):
@@ -143,19 +143,19 @@ def main():
             m = tasks.get(task, {})
             if "action" in m and not bb.get("Has_Target"):
                 return None
-            return [f"CAGE {task} -> {m or 'espera curta'}" + (f"  [{' > '.join(STACK[-6:])}]" if a.trace else "")], u
+            return [f"CAGE {task} -> {m or 'short wait'}" + (f"  [{' > '.join(STACK[-6:])}]" if a.trace else "")], u
         if t == "NavigationAction":
             o = p.get("selectpositionparams.origin.positiontype", 1)
             if o in (1, 2, 12) and not bb.get("Has_Target"):
                 return None
-            return [f"NAV {n['n']} ({p.get('navconfigtype')}, origem {o}, {p.get('selectpositionparams.rangemin', '')}-"
+            return [f"NAV {n['n']} ({p.get('navconfigtype')}, origin {o}, {p.get('selectpositionparams.rangemin', '')}-"
                     f"{p.get('selectpositionparams.rangemax', '')} m)"], u
         return [f"{t} {n['n']} {p.get('cooldownname', '') or p.get('factname', '')}"], u
 
     counts = collections.Counter()
     for _ in range(a.vezes):
         r = ev(d["tree"])
-        counts[" | ".join(r[0]) if r else "(nada avalia)"] += 1
+        counts[" | ".join(r[0]) if r else "(nothing evaluates)"] += 1
     for plan, c in counts.most_common():
         print(f"{c}x  {plan}")
 

@@ -22,7 +22,7 @@ void UNWAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		TurnRate = FMath::DegreesToRadians(FMath::FindDeltaAngleDegrees(LastYaw, Yaw)) / DeltaSeconds;
 	}
 	LastYaw = Yaw;
-	// Override de locomoção (montaria, coleta) pode tirar o sprint: ANWCharacter::SetLocomotionOverride.
+	// Locomotion override (mount, gathering) can remove the sprint: ANWCharacter::SetLocomotionOverride.
 	bSprinting = Char->bSprinting && Speed > 450.f && !Char->LocomotionBlocksSprint();
 	bInAir = Char->GetCharacterMovement()->IsFalling();
 	bBlocking = Char->Combat && Char->Combat->State == ENWCombatState::Blocking;

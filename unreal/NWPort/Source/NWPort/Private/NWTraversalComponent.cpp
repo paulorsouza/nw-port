@@ -12,7 +12,7 @@
 #include "Net/UnrealNetwork.h"
 
 static TAutoConsoleVariable<int32> CVarDebugTraversal(TEXT("nw.DebugTraversal"), 0,
-	TEXT("Desenha os raios de detecção de degrau/vault/mantle."));
+	TEXT("Draws the step/vault/mantle detection rays."));
 
 static const TCHAR* AnimDir = TEXT("/Game/NW/sword_shield/Anims/");
 
@@ -22,7 +22,7 @@ static UAnimMontage* LoadMontage(const FString& Name)
 	UAnimMontage* M = LoadObject<UAnimMontage>(nullptr, *Path);
 	if (!M)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NW: montagem ausente %s"), *Path);
+		UE_LOG(LogTemp, Warning, TEXT("NW: missing montage %s"), *Path);
 	}
 	return M;
 }
@@ -74,11 +74,11 @@ void UNWTraversalComponent::LoadMontages()
 			continue;
 		}
 		TraversalMontages.Add(Kind, M);
-		// Deslocamento total do osso raiz no espaço da malha: a malha olha para +Y do componente.
+		// Total root bone displacement in mesh space: the mesh faces the component's +Y.
 		const FVector T = M->ExtractRootMotionFromTrackRange(0.f, M->GetPlayLength(), FAnimExtractContext()).GetTranslation();
 		NaturalMotion.Add(Kind, FVector2D(T.Y, T.Z));
 		const FString Label(Name);
-		UE_LOG(LogTemp, Log, TEXT("NW: %s root motion frente %.0f cima %.0f cm (lado %.0f)"), *Label, T.Y, T.Z, T.X);
+		UE_LOG(LogTemp, Log, TEXT("NW: %s root motion forward %.0f up %.0f cm (side %.0f)"), *Label, T.Y, T.Z, T.X);
 	}
 	JumpStand = LoadMontage(TEXT("AM_JumpStand"));
 	for (const TCHAR* D : {TEXT("F"), TEXT("FR"), TEXT("R"), TEXT("BR"), TEXT("B"), TEXT("BL"), TEXT("L"), TEXT("FL")})
@@ -98,7 +98,7 @@ UAnimMontage* UNWTraversalComponent::MontageFor(ENWTraversal Kind) const
 	return M ? M->Get() : nullptr;
 }
 
-// ---------------------------------------------------------------- detecção
+// ---------------------------------------------------------------- detection
 
 bool UNWTraversalComponent::CapsuleFits(const FVector& Feet) const
 {
@@ -129,7 +129,7 @@ FNWTraversalPlan UNWTraversalComponent::Detect() const
 	const FVector Loc = C->GetActorLocation();
 	const FVector Feet = Loc - FVector(0.f, 0.f, C->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 
-	// Direção: para onde o jogador está empurrando; parado, para a frente do personagem.
+	// Direction: where the player is pushing; when standing still, the character's forward.
 	FVector Dir = Move->GetCurrentAcceleration().GetSafeNormal2D();
 	if (Dir.IsNearlyZero())
 	{
@@ -161,7 +161,7 @@ FNWTraversalPlan UNWTraversalComponent::Detect() const
 		return bHit;
 	};
 
-	// 1) Parede: o raio mais baixo que bate numa superfície quase vertical.
+	// 1) Wall: the lowest ray that hits an almost vertical surface.
 	FHitResult Wall;
 	float WallH = -1.f;
 	for (float H = StepUpMinHeight * 0.6f; H <= MantleMaxHeight; H += 15.f)
@@ -179,7 +179,7 @@ FNWTraversalPlan UNWTraversalComponent::Detect() const
 	const FVector N = FVector(Wall.ImpactNormal.X, Wall.ImpactNormal.Y, 0.f).GetSafeNormal();
 	const float WallDist = FVector::DotProduct(Wall.ImpactPoint - Loc, Dir) - Radius;
 
-	// 2) Fim da parede: subindo, o primeiro raio que passa livre (ou bate bem mais longe) marca o topo.
+	// 2) End of the wall: going up, the first ray that passes free (or hits much farther) marks the top.
 	float ClearH = -1.f;
 	for (float H = WallH + 10.f; H <= MantleMaxHeight + 30.f; H += 10.f)
 	{
@@ -195,7 +195,7 @@ FNWTraversalPlan UNWTraversalComponent::Detect() const
 		return Plan;
 	}
 
-	// 3) Topo: raio para baixo logo depois da borda.
+	// 3) Top: a downward ray just past the edge.
 	FHitResult Top;
 	const FVector Edge = Wall.ImpactPoint - N * 15.f;
 	if (!Down(Edge, Feet.Z + ClearH + 20.f, Feet.Z + WallH - 20.f, Top) || Top.ImpactNormal.Z < MinFloorNormalZ)
@@ -206,7 +206,7 @@ FNWTraversalPlan UNWTraversalComponent::Detect() const
 	Plan.Height = Height;
 	Plan.Yaw = (-N).Rotation().Yaw;
 
-	// 4) Espessura e pouso do outro lado (vault).
+	// 4) Thickness and landing on the other side (vault).
 	float Thickness = -1.f;
 	for (float D = 15.f; D <= VaultMaxThickness + 15.f; D += 15.f)
 	{
@@ -231,7 +231,7 @@ FNWTraversalPlan UNWTraversalComponent::Detect() const
 		}
 	}
 
-	// 5) Lugar para ficar em pé em cima (degrau/mantle).
+	// 5) Room to stand on top (step/mantle).
 	FVector TopEnd = FVector::ZeroVector;
 	bool bFitsOnTop = false;
 	{
@@ -244,7 +244,7 @@ FNWTraversalPlan UNWTraversalComponent::Detect() const
 		}
 	}
 
-	// Entre duas variantes, a que tem o deslocamento natural mais perto da altura pedida.
+	// Between two variants, the one whose natural displacement is closest to the requested height.
 	auto Closest = [&](ENWTraversal A, ENWTraversal B)
 	{
 		const FVector2D* NA = NaturalMotion.Find(A);
@@ -275,13 +275,13 @@ FNWTraversalPlan UNWTraversalComponent::Detect() const
 	}
 	if (bDebug)
 	{
-		UE_LOG(LogTemp, Log, TEXT("NW travessia: altura %.0f dist %.0f espessura %.0f vault %d topo %d -> %d"),
+		UE_LOG(LogTemp, Log, TEXT("NW traversal: height %.0f dist %.0f thickness %.0f vault %d top %d -> %d"),
 			Height, WallDist, Thickness, bCanVault, bFitsOnTop, (int32)Plan.Kind);
 	}
 	return Plan;
 }
 
-// ---------------------------------------------------------------- execução
+// ---------------------------------------------------------------- execution
 
 void UNWTraversalComponent::JumpPressed()
 {
@@ -295,7 +295,7 @@ void UNWTraversalComponent::JumpPressed()
 		ServerTraverse();
 		return;
 	}
-	C->Jump();   // no ar não faz nada (um pulo só)
+	C->Jump();   // does nothing in the air (single jump)
 }
 
 void UNWTraversalComponent::ServerTraverse_Implementation()
@@ -330,8 +330,8 @@ void UNWTraversalComponent::MulticastStartTraversal_Implementation(ENWTraversal 
 	TravPlan = Plan;
 	TravMontage = M;
 
-	// Ajuste do root motion: multiplica quando o clipe tem deslocamento suficiente naquele eixo,
-	// senão soma a diferença ao longo da montagem.
+	// Root motion adjustment: multiplies when the clip has enough displacement on that axis,
+	// otherwise adds the difference along the montage.
 	const FVector2D Natural = NaturalMotion.FindRef(Kind);
 	const FVector Facing = FRotator(0.f, Plan.Yaw, 0.f).Vector();
 	const FVector2D Target(FVector::DotProduct(Plan.End - Start, Facing), Plan.End.Z - Start.Z);
@@ -347,7 +347,7 @@ void UNWTraversalComponent::MulticastStartTraversal_Implementation(ENWTraversal 
 	UCharacterMovementComponent* Move = C->GetCharacterMovement();
 	Move->StopMovementImmediately();
 	Move->SetMovementMode(MOVE_Flying);
-	// Sem colisão com o cenário durante o movimento (o caminho do clipe corta a quina); no fim encaixa no ponto final.
+	// No collision with the scenery during the move (the clip's path cuts the corner); at the end snaps to the end point.
 	UCapsuleComponent* Cap = C->GetCapsuleComponent();
 	SavedStaticResponse = Cap->GetCollisionResponseToChannel(ECC_WorldStatic);
 	SavedDynamicResponse = Cap->GetCollisionResponseToChannel(ECC_WorldDynamic);
@@ -359,7 +359,7 @@ void UNWTraversalComponent::MulticastStartTraversal_Implementation(ENWTraversal 
 	FOnMontageEnded End;
 	End.BindWeakLambda(this, [this](UAnimMontage* Ended, bool) { if (Ended == TravMontage) FinishTraversal(); });
 	Anim->Montage_SetEndDelegate(End, M);
-	UE_LOG(LogTemp, Log, TEXT("NW travessia %d: alvo frente %.0f cima %.0f, natural %.0f/%.0f, escala %.2f/%.2f"),
+	UE_LOG(LogTemp, Log, TEXT("NW traversal %d: target forward %.0f up %.0f, natural %.0f/%.0f, scale %.2f/%.2f"),
 		(int32)Kind, Target.X, Target.Y, Natural.X, Natural.Y, WarpScale.X, WarpScale.Y);
 }
 
@@ -369,7 +369,7 @@ FTransform UNWTraversalComponent::WarpRootMotion(const FTransform& Delta, UChara
 	{
 		return Delta;
 	}
-	// Espaço da malha: frente = +Y, cima = +Z.
+	// Mesh space: forward = +Y, up = +Z.
 	FVector T = Delta.GetTranslation();
 	T.Y = T.Y * WarpScale.X + WarpAdd.X * DeltaSeconds;
 	T.Z = T.Z * WarpScale.Y + WarpAdd.Y * DeltaSeconds;
@@ -390,24 +390,24 @@ void UNWTraversalComponent::FinishTraversal()
 	Cap->SetCollisionResponseToChannel(ECC_WorldDynamic, SavedDynamicResponse);
 	if (GetOwner()->HasAuthority())
 	{
-		// Encaixa no ponto calculado (o clipe ajustado chega perto; isto corrige o resto).
+		// Snaps to the computed point (the adjusted clip gets close; this corrects the rest).
 		const FVector Target = TravPlan.End + FVector(0.f, 0.f, Cap->GetScaledCapsuleHalfHeight() + 1.f);
 		C->SetActorLocation(Target, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 	C->GetCharacterMovement()->SetMovementMode(MOVE_Falling);
 	Active = ENWTraversal::None;
 	TravMontage = nullptr;
-	bWasFalling = true;   // o "pouso" seguinte não toca animação de queda
+	bWasFalling = true;   // the next "landing" does not play a fall animation
 	AirTime = 0.f;
 }
 
-// ---------------------------------------------------------------- pulo, queda e pouso (local)
+// ---------------------------------------------------------------- jump, fall and landing (local)
 
 UAnimMontage* UNWTraversalComponent::Directional(const TArray<TObjectPtr<UAnimMontage>>& Set) const
 {
 	const ACharacter* C = GetCharacter();
 	const FVector Local = C->GetActorTransform().InverseTransformVectorNoScale(C->GetVelocity().GetSafeNormal2D());
-	const float Angle = FMath::RadiansToDegrees(FMath::Atan2(Local.Y, Local.X)); // 0 = frente, 90 = direita
+	const float Angle = FMath::RadiansToDegrees(FMath::Atan2(Local.Y, Local.X)); // 0 = forward, 90 = right
 	const int32 Index = ((FMath::RoundToInt(Angle / 45.f) % 8) + 8) % 8;
 	return Set.IsValidIndex(Index) ? Set[Index].Get() : nullptr;
 }
@@ -417,7 +417,7 @@ void UNWTraversalComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	TickAirAnimation(DeltaTime);
 
-	// No ar com Espaço segurado: agarra a borda que aparecer à frente (só mantle), como no jogo.
+	// In the air with Space held: grabs the ledge that shows up ahead (mantle only), as in the game.
 	ACharacter* C = GetCharacter();
 	if (C && C->IsLocallyControlled() && !IsTraversing() && C->bPressedJump && C->GetCharacterMovement()->IsFalling())
 	{
@@ -444,7 +444,7 @@ void UNWTraversalComponent::TickAirAnimation(float DeltaTime)
 	}
 	const UCharacterMovementComponent* Move = C->GetCharacterMovement();
 	const bool bFalling = Move->IsFalling();
-	// Montagem de outro sistema (ataque, esquiva, reação) tem prioridade.
+	// A montage from another system (attack, dodge, reaction) has priority.
 	UAnimMontage* Current = Anim->GetCurrentActiveMontage();
 	const bool bOurs = Current == nullptr || Current == AirMontage || Current == Land || Current == LandHard
 		|| LandMoveDir.Contains(Current);
@@ -493,7 +493,7 @@ void UNWTraversalComponent::TickAirAnimation(float DeltaTime)
 	{
 		if (AirTime > 0.15f)
 		{
-			// Chegando em movimento, pouso curto que já emenda na corrida; parado, pouso normal ou pesado.
+			// Arriving while moving, a short landing that blends straight into the run; standing still, normal or heavy landing.
 			const bool bMoving = C->GetVelocity().Size2D() > 100.f || !Move->GetCurrentAcceleration().IsNearlyZero();
 			UAnimMontage* L = bMoving ? Directional(LandMoveDir) : AirTime > HardLandAirTime ? LandHard.Get() : Land.Get();
 			if (AirMontage && Anim->Montage_IsPlaying(AirMontage))
@@ -511,7 +511,7 @@ void UNWTraversalComponent::TickAirAnimation(float DeltaTime)
 	else if ((Current == Land || Current == LandHard) && !Move->GetCurrentAcceleration().IsNearlyZero()
 		&& Anim->Montage_GetPosition(Current) > 0.15f)
 	{
-		// Pouso parado interrompido por input: devolve as pernas para a locomoção (senão o corpo desliza).
+		// Standing landing interrupted by input: hands the legs back to locomotion (otherwise the body slides).
 		Anim->Montage_Stop(0.2f, Current);
 	}
 	bWasFalling = bFalling;

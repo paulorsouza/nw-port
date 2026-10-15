@@ -4,7 +4,7 @@
 #include "GameFramework/PlayerState.h"
 #include "NWPlayerState.generated.h"
 
-/** Estado do jogador visível a todos: grupo (0 = sem grupo) e liderança. Grupos são do servidor (ANWGameMode). */
+/** Player state visible to everyone: group (0 = no group) and leadership. Groups belong to the server (ANWGameMode). */
 UCLASS()
 class NWPORT_API ANWPlayerState : public APlayerState
 {

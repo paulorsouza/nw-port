@@ -31,7 +31,7 @@ namespace
 UNWInteractableComponent::UNWInteractableComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	bAutoActivate = true;   // SetActive(false) tira do foco (ex. NPC ambiente)
+	bAutoActivate = true;   // SetActive(false) removes it from focus (e.g. ambient NPC)
 }
 
 void UNWInteractableComponent::OnRegister()
@@ -91,7 +91,7 @@ namespace
 
 void UNWInteractorComponent::LoadClaims()
 {
-	// Servidor: o que o personagem já pegou nesta semana (nw-core). Sem backend (PIE), começa vazio e fica na memória.
+	// Server: what the character already picked up this week (nw-core). No backend (PIE): starts empty, kept in memory.
 	const FString Period = FNWNpcRewards::Get().Period();
 	if (bClaimsLoading || (bClaimsLoaded && ClaimsPeriod == Period))
 	{
@@ -133,7 +133,7 @@ void UNWInteractorComponent::ServerLootTake_Implementation(ANWLootBag* Bag)
 	if (!Me || !Bag || Bag->GetOwner() != Me->GetController()
 		|| FVector::Dist(Bag->GetActorLocation(), Me->GetActorLocation()) > Bag->Interact->Radius + 200.f)
 	{
-		return;   // só o dono, de perto (folga de 2 m pela altura do personagem)
+		return;   // owner only, from up close (2 m margin for the character's height)
 	}
 	Bag->TakeAll(Me);
 }
@@ -155,7 +155,7 @@ void UNWInteractorComponent::ServerNpcInteract_Implementation(const FString& Var
 	TWeakObjectPtr<UNWInteractorComponent> WeakSelf(this);
 	if (NWOps::Defer(Me, [WeakSelf, Variant]() { if (WeakSelf.IsValid()) { WeakSelf->ServerNpcInteract_Implementation(Variant); } }))
 	{
-		return;   // o brinde grava a bolsa: espera a operação em curso
+		return;   // the gift writes the bag: waits for the operation in progress
 	}
 	LoadClaims();
 	if (!Me || !bClaimsLoaded || bClaimBusy)
@@ -171,7 +171,7 @@ void UNWInteractorComponent::ServerNpcInteract_Implementation(const FString& Var
 			break;
 		}
 	}
-	// Distância conferida no servidor (o cliente só pede).
+	// Distance checked on the server (the client only asks).
 	if (!Npc || FVector::Dist2D(Npc->GetActorLocation(), Me->GetActorLocation()) > 400.f)
 	{
 		return;
@@ -199,9 +199,9 @@ void UNWInteractorComponent::ServerNpcInteract_Implementation(const FString& Var
 		R.Weekly(Npc->Type, Items, &Coins);
 	}
 	const FString ClaimKey = FNWNpcRewards::Key(Kind, NpcKey, Period);
-	UE_LOG(LogTemp, Log, TEXT("Brinde %s de %s: %d itens"), *ClaimKey, *Variant, Items.Num());
-	// Operação gravada: o brinde e a bolsa com ele numa transação (npc-rewards); 409 = já pego em outra sessão, nada
-	// entra. Sem nw-core, entra na hora.
+	UE_LOG(LogTemp, Log, TEXT("Gift %s from %s: %d items"), *ClaimKey, *Variant, Items.Num());
+	// Written operation: the gift and the bag with it in one transaction (npc-rewards); 409 = already taken in another
+	// session, nothing goes in. Without nw-core, it goes in right away.
 	bClaimBusy = true;
 	NWOps::Run(Me, TEXT("npc_reward:") + ClaimKey,
 		[WeakSelf, Me, Items, Coins]()
@@ -221,7 +221,7 @@ void UNWInteractorComponent::ServerNpcInteract_Implementation(const FString& Var
 			{
 				if (!bOk)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Brinde %s: nw-core respondeu %d"), *ClaimKey, Status);
+					UE_LOG(LogTemp, Warning, TEXT("Gift %s: nw-core answered %d"), *ClaimKey, Status);
 				}
 				Fin(bOk ? NWOps::EResult::Ok : NWOps::EResult::Failed);
 			});
@@ -245,14 +245,14 @@ void UNWInteractorComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	const APawn* Me = Cast<APawn>(GetOwner());
 	if (Me && GetOwnerRole() == ROLE_Authority && Me->IsPlayerControlled())
 	{
-		LoadClaims();   // servidor: carrega (e renova na terça) o que já foi pego, para o ícone dos NPCs
+		LoadClaims();   // server: loads (and renews on Tuesday) what was already picked up, for the NPC icon
 	}
 	if (!Me || !Me->IsLocallyControlled() || !Me->IsPlayerControlled())
 	{
 		Focus = nullptr;
 		return;
 	}
-	// O mais perto dentro do alcance, à frente da câmera (até ~70° para o lado).
+	// The closest within range, in front of the camera (up to ~70° to the side).
 	const FVector From = Me->GetActorLocation();
 	const FVector Fwd = Me->GetControlRotation().Vector().GetSafeNormal2D();
 	UNWInteractableComponent* Best = nullptr;
@@ -296,11 +296,11 @@ bool UNWInteractorComponent::InteractPressed()
 
 void UNWInteractorComponent::ServerRefine_Implementation(const FString& StationType, FName Recipe, int32 Count)
 {
-	// Operação gravada (NWOps): material sai e refinado entra só depois do nw-core gravar.
+	// Written operation (NWOps): material goes out and refined item goes in only after nw-core writes.
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	const FString Reason = FString::Printf(TEXT("refine:%s:%d"), *Recipe.ToString(), Count);
 	TWeakObjectPtr<UNWInteractorComponent> Self(this);
-	TSharedRef<FNWCityTaxNote> Tax = MakeShared<FNWCityTaxNote>();   // imposto da cidade da mesa, vai junto na gravação
+	TSharedRef<FNWCityTaxNote> Tax = MakeShared<FNWCityTaxNote>();   // station city's tax, goes along in the write
 	NWOps::Run(Me, Reason,
 		[Self, Me, StationType, Recipe, Count, Tax]()
 		{
@@ -318,7 +318,7 @@ void UNWInteractorComponent::ServerRefine_Implementation(const FString& StationT
 		NWOps::CommitState(Me, Reason, [Tax]() { return Tax->Json(); }));
 }
 
-// ---------------------------------------------------------------- fabricar (docs/game/crafting.md)
+// ---------------------------------------------------------------- crafting (docs/game/crafting.md)
 
 void UNWInteractorComponent::ServerCraft_Implementation(const FString& StationType, FName Recipe)
 {
@@ -326,8 +326,8 @@ void UNWInteractorComponent::ServerCraft_Implementation(const FString& StationTy
 	ANWPlayerController* PC = ControllerOf(this);
 	UNWBackend* B = BackendOf(this);
 	TWeakObjectPtr<UNWInteractorComponent> Self(this);
-	// Item assinado leva número de série do nw-core. O sorteio é dentro da operação (síncrona): para arma, escudo e
-	// ferramenta o número é pedido antes (se não sair assinado, o número fica sem uso).
+	// A signed item carries a nw-core serial number. The roll is inside the operation (synchronous): for weapon, shield
+	// and tool the number is requested first (if the item does not come out signed, the number goes unused).
 	auto Start = [Self, StationType, Recipe](const FString& Serial)
 	{
 		UNWInteractorComponent* C = Self.Get();
@@ -341,7 +341,7 @@ void UNWInteractorComponent::ServerCraft_Implementation(const FString& StationTy
 		NWOps::Run(Who, Reason,
 			[Self, Who, StationType, Recipe, Serial, Tax]()
 			{
-				FNWItem Signed;   // o item sorteado (vazio no treino); assinado só com Signer
+				FNWItem Signed;   // the rolled item (empty in training); signed only with Signer
 				const FString Error = FNWCrafting::Get().Craft(Who, StationType, Recipe, &Signed, &Tax.Get());
 				if (!Error.IsEmpty())
 				{
@@ -358,7 +358,7 @@ void UNWInteractorComponent::ServerCraft_Implementation(const FString& StationTy
 						Signed.Serial = Serial;
 						if (Signed.Serial.IsEmpty())
 						{
-							UE_LOG(LogTemp, Warning, TEXT("Fabricar: sem número de série do nw-core; item sai sem assinatura"));
+							UE_LOG(LogTemp, Warning, TEXT("Craft: no serial number from nw-core; item comes out unsigned"));
 							Signed.Signer.Reset();
 						}
 					}
@@ -419,7 +419,7 @@ void UNWInteractorComponent::ClientCraftResult_Implementation(const FNWItem& Bef
 	++CraftResult.Seq;
 }
 
-// ---------------------------------------------------------------- armazém
+// ---------------------------------------------------------------- storage
 
 float UNWInteractorComponent::StorageWeight() const
 {
@@ -437,7 +437,7 @@ float UNWInteractorComponent::StorageWeight() const
 void UNWInteractorComponent::ServerShopBuy_Implementation(const FString& ShopId, FName Item, int32 Quantity)
 {
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
-	// Operação gravada (NWOps): a mesma função roda dentro dela; item, moedas e limite valem depois de gravar.
+	// Written operation (NWOps): the same function runs inside it; item, coins and limit apply after the write.
 	TWeakObjectPtr<UNWInteractorComponent> Self(this);
 	if (Me && !NWOps::IsApplying(Me) && NWOps::Persists(Me))
 	{
@@ -505,14 +505,14 @@ void UNWInteractorComponent::ServerShopBuy_Implementation(const FString& ShopId,
 		}
 		return;
 	}
-	// Só paga o que entrou na bolsa (espaços cheios).
+	// Only pays for what went into the bag (full slots).
 	Me->Inventory->AddCoins(-Offer->Price * Added);
 	Me->Progression->AddShopBought(Item, Added, Period);
 	New.Quantity = Added;
 	TWeakObjectPtr<UNWInventoryComponent> Inv(Me->Inventory);
 	NWOps::Hold(Me, [Inv, New]() { if (Inv.IsValid()) { Inv->ClientLoot({New}, 0); } });
-	UE_LOG(LogTemp, Log, TEXT("Loja %s: %s x%d por %lld"), *ShopId, *Item.ToString(), Added, Offer->Price * Added);
-	// Bolsa, moedas e o limite da semana: gravados pela operação (acima).
+	UE_LOG(LogTemp, Log, TEXT("Shop %s: %s x%d for %lld"), *ShopId, *Item.ToString(), Added, Offer->Price * Added);
+	// Bag, coins and the week's limit: written by the operation (above).
 }
 
 void UNWInteractorComponent::StorageAdd(TArray<FNWItem>& Items, const FNWItem& Item)
@@ -560,7 +560,7 @@ namespace
 
 float UNWInteractorComponent::StorageCapacityNow() const
 {
-	// docs/game/city.md "Armazém": sem base; cada cidade conhecida soma armazem_por_cidade.
+	// docs/game/city.md "Storage": no base; each known city adds armazem_por_cidade.
 	const ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	const int32 Cities = Me && Me->Progression ? Me->Progression->Cities.Num() : 0;
 	return FNWItemRules::Get().StoragePerCity * float(Cities);
@@ -582,7 +582,7 @@ void UNWInteractorComponent::ServerStorageOpen_Implementation(const FString& Cit
 	{
 		return;
 	}
-	// Quem chegou na despensa está na cidade: passa a conhecê-la (a área da cidade também marca, ANWNpcField).
+	// Whoever reached the pantry is in the city: now knows it (the city area also marks it, ANWNpcField).
 	if (Me->Progression && Me->Progression->DiscoverCity(Near->City.IsEmpty() ? City : Near->City))
 	{
 		if (ANWPlayerController* PC = ControllerOf(this))
@@ -629,8 +629,8 @@ void UNWInteractorComponent::ServerStorageClose_Implementation()
 
 NWOps::FCommit UNWInteractorComponent::StorageCommit()
 {
-	// Armazém e bolsa numa transação, com a versão lida. 409 (o mercado entregou nesse meio-tempo): relê e a operação é
-	// refeita em cima do novo; 208 (já gravado, a resposta se perdeu): só a versão.
+	// Storage and bag in one transaction, with the version read. 409 (market delivered in the meantime): rereads and
+	// the operation is redone on top of the new one; 208 (already written, the response was lost): only the version.
 	TWeakObjectPtr<UNWInteractorComponent> Self(this);
 	return [Self](const FNWCharacterRecord& After, const FNWOpState& S1, TFunction<void(NWOps::EResult)> Fin)
 	{
@@ -658,7 +658,7 @@ NWOps::FCommit UNWInteractorComponent::StorageCommit()
 			ANWPlayerController* PC2 = ControllerOf(Self.Get());
 			if ((Status != 208 && Status != 409) || !B2 || !PC2 || !PC2->Record)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Armazém: nw-core respondeu %d"), Status);
+				UE_LOG(LogTemp, Warning, TEXT("Storage: nw-core answered %d"), Status);
 				Fin(NWOps::EResult::Failed);
 				return;
 			}
@@ -696,7 +696,7 @@ void UNWInteractorComponent::RunStorageOp(TFunction<bool(UNWInteractorComponent&
 		StorageCommit(),
 		[Self](bool bOk)
 		{
-			// Sem nw-core (Play sem backend): o armazém fica na memória do servidor.
+			// Without nw-core (Play without backend): the storage stays in the server memory.
 			if (bOk && Self.IsValid() && !BackendOf(Self.Get()))
 			{
 				Self->MemStorage = Self->StorageItems;
@@ -726,7 +726,7 @@ void UNWInteractorComponent::ServerStorageMoveMany_Implementation(bool bDeposit,
 		{
 			const bool bOne = C.StorageApply(bDeposit, Slot, MAX_int32, !bWarned, Tab).Quantity > 0;
 			bMoved |= bOne;
-			bWarned |= !bOne;   // um aviso só (armazém ou bolsa cheia)
+			bWarned |= !bOne;   // a single warning (storage or bag full)
 		}
 		return bMoved;
 	});
@@ -790,7 +790,7 @@ FNWItem UNWInteractorComponent::StorageApply(bool bDeposit, int32 Slot, int32 Qu
 		{
 			return Moved;
 		}
-		// Cabe no armazém só o que o peso deixa; acima da capacidade (o mercado entrega mesmo cheio) não guarda nada.
+		// Storage takes only what the weight allows; over capacity (the market delivers even when full) stores nothing.
 		const float Unit = D ? D->Weight : 0.f;
 		const int32 Want = FMath::Min(Quantity, In->Quantity);
 		const int32 Fits = Unit > 0.f ? FMath::FloorToInt((StorageCapacity - StorageWeight()) / Unit) : Want;
@@ -820,7 +820,7 @@ FNWItem UNWInteractorComponent::StorageApply(bool bDeposit, int32 Slot, int32 Qu
 	Moved.Quantity = FMath::Min(Quantity, In->Quantity);
 	FNWItem ToBag = Moved;
 	ToBag.Tab = 0;
-	const int32 Left = Me->Inventory->AddItem(ToBag);   // o que não coube na bolsa fica no armazém
+	const int32 Left = Me->Inventory->AddItem(ToBag);   // what did not fit in the bag stays in the storage
 	Moved.Quantity -= Left;
 	if (Moved.Quantity > 0)
 	{

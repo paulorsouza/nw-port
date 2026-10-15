@@ -1,5 +1,5 @@
 {
- "_comment": "Gemas e vidro rúnico (docs/game/items.md 'Slot'): tooltip do item com gema, da gema solta e popups de acoplar e retirar. tools/linux/ui_shot.sh tools/ui_shots/gemas.json",
+ "_comment": "Gems and runeglass (docs/game/items.md 'Slot and gems'): tooltip of an item with a gem, of a loose gem, and the attach and remove popups. tools/linux/ui_shot.sh tools/ui_shots/gemas.json",
  "screen": "inventory",
  "coins": 500000,
  "storage_title": "Despensa",

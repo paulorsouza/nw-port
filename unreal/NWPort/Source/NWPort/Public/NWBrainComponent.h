@@ -6,23 +6,23 @@
 
 class ANWCharacter;
 
-/** Jeito de lutar. Os números de cada um ficam nos campos do componente (presets em UNWBrainComponent::ApplyStyle). */
+/** Fighting style. The numbers of each one live in the component fields (presets in UNWBrainComponent::ApplyStyle). */
 UENUM(BlueprintType)
 enum class ENWBrainStyle : uint8
 {
-	// Persegue e ataca no intervalo (o comportamento antigo do boneco atacante).
+	// Chases and attacks at the interval (the old behavior of the attacking dummy).
 	Brawler,
-	// Mantém distância, rodeia, entra com uma sequência de golpes e recua; bloqueia e esquiva quando pode.
+	// Keeps distance, circles, comes in with a sequence of hits and backs off; blocks and dodges when it can.
 	Duelist,
-	// Matilha: no máximo AttackersPerTarget atacam juntos; os outros cercam pelos flancos esperando a vez.
+	// Pack: at most AttackersPerTarget attack together; the others surround from the flanks waiting for their turn.
 	Pack,
-	// Investida de longe (ataque de aproximação) e golpe curto de perto; depois da investida fica exposto.
+	// Charge from afar (approach attack) and short hit up close; after the charge it is exposed.
 	Charger,
-	// Fica na faixa de distância preferida, recua se o alvo chega perto e atira.
+	// Stays in the preferred distance band, backs off if the target comes close, and shoots.
 	Archer,
 };
 
-/** Um ataque que o cérebro pode escolher: linha da tabela de ações, faixa de distância (cm), peso e recarga. */
+/** An attack the brain can choose: action table row, distance band (cm), weight and cooldown. */
 USTRUCT(BlueprintType)
 struct FNWBrainAttack
 {
@@ -32,20 +32,20 @@ struct FNWBrainAttack
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float MaxRange = 250.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float Weight = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float Cooldown = 0.f;
-	// Ataque que avança (investida, salto): continua empurrando para a frente enquanto a montagem toca.
+	// Attack that moves forward (charge, leap): keeps pushing forward while the montage plays.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bGapCloser = false;
-	// Golpes em sequência (combo leve): quantos pedidos do mesmo ataque, encaixados pelo buffer do combate.
+	// Hits in sequence (light combo): how many requests of the same attack, slotted by the combat buffer.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Chain = 1;
-	// Ações seguintes, cada uma quando a anterior termina (ex.: preparar investida → investida → frear).
+	// Next actions, each one when the previous ends (e.g. prepare charge → charge → brake).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) TArray<FName> FollowUps;
 };
 
 /**
- * IA de combate dos inimigos (só no servidor). Escolhe alvo (jogador mais perto dentro de AggroRange do dono),
- * anda, rodeia, ataca e se defende pedindo as mesmas ações que o jogador pede ao UNWCombatComponent: nada de
- * atalho, a IA obedece janelas, recargas e stamina.
+ * Enemy combat AI (server only). Picks a target (closest player within the owner's AggroRange),
+ * walks, circles, attacks and defends by requesting the same actions the player requests from UNWCombatComponent: no
+ * shortcuts, the AI obeys windows, cooldowns and stamina.
  *
- * Com o componente ativo, o ANWCharacter não roda o TickDummy antigo.
+ * With the component active, ANWCharacter does not run the old TickDummy.
  */
 UCLASS(ClassGroup = (NW), meta = (BlueprintSpawnableComponent))
 class NWPORT_API UNWBrainComponent : public UActorComponent
@@ -57,21 +57,21 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Cérebro") ENWBrainStyle Style = ENWBrainStyle::Brawler;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Cérebro") TArray<FNWBrainAttack> Attacks;
-	// Pausa entre investidas (s, sorteada entre os dois).
+	// Pause between charges (s, drawn between the two).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Cérebro") FVector2D AttackPause = FVector2D(1.2f, 2.4f);
-	// Distância de espera: duelista e matilha rodeiam nela; arqueiro atira a partir dela.
+	// Waiting distance: duelist and pack circle at it; archer shoots from it.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Cérebro") float HoldDistance = 380.f;
-	// Chance de levantar a guarda / esquivar quando o alvo ataca de perto (precisa das linhas BlockStart/Dodge_*).
+	// Chance to raise the guard / dodge when the target attacks up close (needs the BlockStart/Dodge_* rows).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Cérebro", meta = (ClampMin = 0, ClampMax = 1)) float BlockChance = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Cérebro", meta = (ClampMin = 0, ClampMax = 1)) float DodgeChance = 0.f;
-	// Tempo até reagir a um golpe do alvo (s).
+	// Time to react to a hit from the target (s).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Cérebro") float ReactionTime = 0.18f;
-	// Quantos deste estilo podem atacar o mesmo alvo ao mesmo tempo (matilha e duelistas).
+	// How many of this style can attack the same target at the same time (pack and duelists).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Cérebro") int32 AttackersPerTarget = 1;
-	// Quadrúpede: anda virado para onde vai (rodeia em arco) e só encara o alvo para atacar.
+	// Quadruped: walks facing where it goes (circles in an arc) and only faces the target to attack.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Cérebro") bool bFaceMovement = false;
 
-	/** Aplica os números padrão de um estilo (pode ajustar os campos depois). */
+	/** Applies the default numbers of a style (the fields can be tuned afterwards). */
 	void ApplyStyle(ENWBrainStyle NewStyle);
 
 	ANWCharacter* GetTarget() const { return Target.Get(); }
@@ -105,7 +105,7 @@ private:
 	int32 FollowIndex = 0;
 	float ChainTimer = 0.f;
 	TMap<FName, float> ReadyAt;
-	// Defesa: último golpe do alvo já avaliado (número da ação) e quando reagir.
+	// Defense: last target hit already evaluated (action number) and when to react.
 	int32 SeenTargetAction = -1;
 	float ReactAt = -1.f;
 	bool bWillBlock = false;

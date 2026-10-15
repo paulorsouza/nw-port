@@ -4,7 +4,7 @@
 #include "NWPlayerController.h"
 #include "Widgets/SCompoundWidget.h"
 
-// Menu de dev (F10): opções de teste executadas no servidor e depuração local.
+// Dev menu (F10): test options run on the server and local debugging.
 class SNWDevMenu : public SCompoundWidget
 {
 public:

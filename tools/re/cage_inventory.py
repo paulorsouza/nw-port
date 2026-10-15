@@ -1,8 +1,8 @@
-"""Inventário dos tipos CAGE usados nas actionlists: quantas vezes cada atividade e condição aparece, se é usada por
-NPC e/ou jogador e se o nome existe como string no NewWorld.exe (atividade pelo nome; condição como
-ActionCondition<nome>).
+"""Inventory of the CAGE types used in the actionlists: how many times each activity and condition appears, whether it
+is used by NPCs and/or the player, and whether the name exists as a string in NewWorld.exe (activity by name;
+condition as ActionCondition<name>).
 
-    python3 -I tools/re/cage_inventory.py [raiz]   # raiz padrão: extract/serverpak/client
+    python3 -I tools/re/cage_inventory.py [root]   # default root: extract/serverpak/client
 """
 import collections, glob, os, sys
 import xml.etree.ElementTree as ET
@@ -32,10 +32,10 @@ for f in glob.glob(os.path.join(root, "**/*.actionlist"), recursive=True):
 def present(name, prefix=""):
     if name.startswith(prefix):
         prefix = ""
-    return "sim" if mm.find(b"\0" + (prefix + name).encode() + b"\0") >= 0 else "-"
+    return "yes" if mm.find(b"\0" + (prefix + name).encode() + b"\0") >= 0 else "-"
 
 for n, c in acts.most_common():
     print(c, n, ",".join(sorted(who[n])), present(n))
-print("== CONDICOES")
+print("== CONDITIONS")
 for n, c in conds.most_common():
     print(c, n, ",".join(sorted(who[n])), present(n, "ActionCondition"))

@@ -39,18 +39,18 @@ UNWBackend* ANWGameMode::Backend() const
 void ANWGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	// Coletáveis da região (F4): o campo replica para os clientes, que leem o mesmo arquivo.
+	// Region gatherables (F4): the field replicates to the clients, which read the same file.
 	if (!ANWGatherField::DataFileFor(GetWorld()).IsEmpty() && !ANWGatherField::Get(GetWorld()))
 	{
 		GetWorld()->SpawnActor<ANWGatherField>();
 	}
-	// Criaturas da região (G3): só o servidor; as criaturas replicam.
+	// Region creatures (G3): server only; the creatures replicate.
 	if (!ANWSpawnField::DataFileFor(GetWorld()).IsEmpty())
 	{
 		GetWorld()->SpawnActor<ANWSpawnField>();
 	}
-	// Play do editor sozinho: nw-core local de teste com a conta do editor (docs/tech/backend-testing.md). O jogador local já
-	// entrou (PostLogin vem antes do BeginPlay no Play).
+	// Editor Play alone: local test nw-core with the editor account (docs/tech/backend-testing.md). The local player has
+	// already joined (PostLogin comes before BeginPlay in Play).
 	UNWBackend* PieBackend = Backend();
 	if (GetWorld()->WorldType == EWorldType::PIE && GetNetMode() == NM_Standalone && PieBackend && PieBackend->EnablePie())
 	{
@@ -62,7 +62,7 @@ void ANWGameMode::BeginPlay()
 	if (UNWBackend* B = Backend(); B && B->IsServerEnabled())
 	{
 		GetWorldTimerManager().SetTimer(SaveTimer, this, &ANWGameMode::SavePeriodic, SaveInterval, true);
-		// Salvar antes de os atores saírem (no fim do Play o pawn pode sumir antes do EndPlay do GameMode).
+		// Save before the actors leave (at the end of Play the pawn may vanish before the GameMode's EndPlay).
 		TearDownHandle = FWorldDelegates::OnWorldBeginTearDown.AddUObject(this, &ANWGameMode::HandleTearDown);
 	}
 }
@@ -92,8 +92,8 @@ void ANWGameMode::PieEnter(ANWPlayerController* PC)
 		}
 		if (!Record)
 		{
-			// nw-core fora do ar: segue sem backend (kit inicial do PostLogin), com aviso.
-			UE_LOG(LogNWGameMode, Warning, TEXT("Play sem backend: %s"), *Error);
+			// nw-core down: continue without backend (PostLogin starting kit), with a warning.
+			UE_LOG(LogNWGameMode, Warning, TEXT("Playing without backend: %s"), *Error);
 			if (UNWBackend* B = Self->Backend())
 			{
 				B->DisablePie();
@@ -102,7 +102,7 @@ void ANWGameMode::PieEnter(ANWPlayerController* PC)
 			P->Warning(NWText::Key(TEXT("nw.pie.offline"), {Error}));
 			return;
 		}
-		UE_LOG(LogNWGameMode, Display, TEXT("Play com backend: %s (%s)"), *Record->Name, *Record->AccountName);
+		UE_LOG(LogNWGameMode, Display, TEXT("Playing with backend: %s (%s)"), *Record->Name, *Record->AccountName);
 		if (APlayerState* PS = P->GetPlayerState<APlayerState>())
 		{
 			PS->SetPlayerName(Record->Name);
@@ -110,7 +110,7 @@ void ANWGameMode::PieEnter(ANWPlayerController* PC)
 		P->Record = MoveTemp(*Record);
 		P->bPlacedFromRecord = true;
 		P->UpdateDevAllowed();
-		ANWLootBag::RestoreFor(P);   // sacos no chão ainda vivos voltam
+		ANWLootBag::RestoreFor(P);   // bags on the ground still alive come back
 		if (ANWCharacter* Ch = Cast<ANWCharacter>(P->GetPawn()))
 		{
 			const FNWCharacterRecord& R = *P->Record;
@@ -176,7 +176,7 @@ void ANWGameMode::PreLoginAsync(const FString& Options, const FString& Address, 
 		}
 		if (!Record)
 		{
-			UE_LOG(LogNWGameMode, Warning, TEXT("entrada recusada (%s): %s"), *Address, *Err);
+			UE_LOG(LogNWGameMode, Warning, TEXT("join refused (%s): %s"), *Address, *Err);
 			OnComplete.ExecuteIfBound(Err);
 			return;
 		}
@@ -185,7 +185,7 @@ void ANWGameMode::PreLoginAsync(const FString& Options, const FString& Address, 
 			OnComplete.ExecuteIfBound(NWText::Key(TEXT("nw.err.already_online")));
 			return;
 		}
-		UE_LOG(LogNWGameMode, Display, TEXT("entrada: %s (%s) de %s"), *Record->Name, *Record->AccountName, *Address);
+		UE_LOG(LogNWGameMode, Display, TEXT("join: %s (%s) from %s"), *Record->Name, *Record->AccountName, *Address);
 		Self->Pending.Add(Ticket, MoveTemp(*Record));
 		OnComplete.ExecuteIfBound(FString());
 	});
@@ -212,7 +212,7 @@ FString ANWGameMode::InitNewPlayer(APlayerController* NewPlayerController, const
 		}
 		PC->Record = MoveTemp(Record);
 		PC->UpdateDevAllowed();
-		ANWLootBag::RestoreFor(PC);   // sacos no chão ainda vivos voltam
+		ANWLootBag::RestoreFor(PC);   // bags on the ground still alive come back
 	}
 	return Error;
 }
@@ -220,7 +220,7 @@ FString ANWGameMode::InitNewPlayer(APlayerController* NewPlayerController, const
 void ANWGameMode::RestartPlayer(AController* NewPlayer)
 {
 	ANWPlayerController* PC = Cast<ANWPlayerController>(NewPlayer);
-	// Só a primeira vez: depois de morrer, nasce no início do mapa.
+	// Only the first time: after dying, spawns at the map start.
 	if (PC && PC->Record && !PC->bPlacedFromRecord)
 	{
 		PC->bPlacedFromRecord = true;
@@ -232,7 +232,7 @@ void ANWGameMode::RestartPlayer(AController* NewPlayer)
 			{
 				return;
 			}
-			UE_LOG(LogNWGameMode, Warning, TEXT("%s não coube na posição salva; vai para o início"), *R.Name);
+			UE_LOG(LogNWGameMode, Warning, TEXT("%s did not fit at the saved position; going to the start"), *R.Name);
 		}
 	}
 	Super::RestartPlayer(NewPlayer);
@@ -242,10 +242,10 @@ void ANWGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 	ANWPlayerController* PC = Cast<ANWPlayerController>(NewPlayer);
-	PieEnter(PC);   // Play do editor com backend (só depois do BeginPlay; antes, o BeginPlay chama)
+	PieEnter(PC);   // Editor Play with backend (only after BeginPlay; before that, BeginPlay calls it)
 	if (PC && !PC->Record)
 	{
-		// Sem backend (Play no editor, teste local): kit inicial com as ferramentas de coleta, para dar para testar.
+		// No backend (editor Play, local test): starting kit with the gathering tools, so there is something to test.
 		if (ANWCharacter* Ch = Cast<ANWCharacter>(PC->GetPawn()); Ch && Ch->Inventory && Ch->Inventory->Items.Num() == 0)
 		{
 			Ch->Inventory->GiveStarterKit();
@@ -259,7 +259,7 @@ void ANWGameMode::PostLogin(APlayerController* NewPlayer)
 	if (ANWCharacter* Ch = Cast<ANWCharacter>(PC->GetPawn()))
 	{
 		Ch->RestoreFrom(*PC->Record);
-		Ch->CaptureTo(*PC->Record);  // habilidades efetivas (padrão quando o registro vem vazio)
+		Ch->CaptureTo(*PC->Record);  // effective abilities (default when the record comes empty)
 	}
 	PC->PublishProgress();
 }
@@ -270,10 +270,10 @@ void ANWGameMode::Logout(AController* Exiting)
 	{
 		GroupLeave(PC);
 		SavePlayer(PC, TEXT("logout"));
-		ANWLootBag::RemoveFor(PC);   // continuam no nw-core até vencer
+		ANWLootBag::RemoveFor(PC);   // stay in nw-core until they expire
 		if (PC->Record)
 		{
-			UE_LOG(LogNWGameMode, Display, TEXT("saída: %s"), *PC->Record->Name);
+			UE_LOG(LogNWGameMode, Display, TEXT("leave: %s"), *PC->Record->Name);
 		}
 	}
 	Super::Logout(Exiting);
@@ -286,7 +286,7 @@ void ANWGameMode::SavePlayer(ANWPlayerController* PC, const FString& Reason)
 	{
 		return;
 	}
-	// Operação gravando (NWOps): salvar agora gravaria o estado de antes dela; salva depois.
+	// Operation being written (NWOps): saving now would write the state from before it; save afterwards.
 	if (ANWCharacter* Busy = Cast<ANWCharacter>(PC->GetPawn()); Busy && NWOps::IsBusy(Busy))
 	{
 		TWeakObjectPtr<ANWGameMode> Self(this);
@@ -311,7 +311,7 @@ void ANWGameMode::SaveAll(const TCHAR* Reason)
 	}
 }
 
-// ---------------------------------------------------------------- grupos
+// ---------------------------------------------------------------- groups
 
 TArray<ANWPlayerState*> ANWGameMode::GroupMembers(int32 GroupId) const
 {
@@ -426,7 +426,7 @@ void ANWGameMode::GroupAccept(ANWPlayerController* PC)
 	Me->GroupId = Leader->GroupId;
 	Me->bGroupLeader = false;
 	Me->ForceNetUpdate();
-	UE_LOG(LogNWGameMode, Display, TEXT("grupo %d: %s entrou (líder %s)"), Me->GroupId, *Me->GetPlayerName(), *Leader->GetPlayerName());
+	UE_LOG(LogNWGameMode, Display, TEXT("group %d: %s joined (leader %s)"), Me->GroupId, *Me->GetPlayerName(), *Leader->GetPlayerName());
 	GroupSystem(Me->GroupId, NWText::Key(TEXT("nw.group.joined"), {Me->GetPlayerName()}));
 }
 
@@ -459,7 +459,7 @@ void ANWGameMode::GroupLeave(ANWPlayerController* PC)
 	TArray<ANWPlayerState*> Rest = GroupMembers(Id);
 	if (Rest.Num() <= 1)
 	{
-		// Sobrou um: o grupo acaba.
+		// One left: the group ends.
 		for (ANWPlayerState* M : Rest)
 		{
 			M->GroupId = 0;
@@ -498,7 +498,7 @@ void ANWGameMode::GroupChat(ANWPlayerController* From, const FString& Text)
 	}
 }
 
-// ---------------------------------------------------------------- saque
+// ---------------------------------------------------------------- loot
 
 void ANWGameMode::GrantLoot(APawn* Killer, const AActor* Victim, FName Table)
 {

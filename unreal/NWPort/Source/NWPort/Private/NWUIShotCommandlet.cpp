@@ -50,7 +50,7 @@ UNWUIShotCommandlet::UNWUIShotCommandlet()
 
 namespace
 {
-	// XP mínimo para o nível do ofício (as tabelas ficam no componente; busca pelo próprio TradeLevel).
+	// Minimum XP for the trade skill level (the tables live in the component; looks it up through TradeLevel itself).
 	void SetTradeLevel(UNWProgressionComponent* P, int32 Skill, int32 Level)
 	{
 		int32 Lo = 0, Hi = 1;
@@ -69,18 +69,18 @@ namespace
 		P->TradeXp[Skill] = Lo;
 	}
 
-	// Texturas da UI chegam ao render target só depois de compiladas e com todos os mips.
+	// UI textures reach the render target only after they are compiled and with all mips.
 	void SettleTextures()
 	{
 #if WITH_EDITOR
-		FTextureCompilingManager::Get().FinishAllCompilation();   // só existe no editor (o servidor compila o arquivo também)
+		FTextureCompilingManager::Get().FinishAllCompilation();   // exists only in the editor (the server compiles the file too)
 #endif
 		for (TObjectIterator<UTexture2D> It; It; ++It)
 		{
 			It->SetForceMipLevelsToBeResident(30.f);
 		}
 		IStreamingManager::Get().StreamAllResources(5.f);
-		// Glifos das fontes de runtime: o atlas sobe para a GPU no tick do motor, que o commandlet não tem.
+		// Runtime font glyphs: the atlas goes up to the GPU on the engine tick, which the commandlet does not have.
 		if (FEngineFontServices::IsInitialized())
 		{
 			FEngineFontServices::Get().UpdateCache();
@@ -101,17 +101,17 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 	TSharedPtr<FJsonObject> S;
 	if (!FFileHelper::LoadFileToString(Text, *File) || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), S) || !S)
 	{
-		UE_LOG(LogNWUIShot, Error, TEXT("cenário inválido: %s"), *File);
+		UE_LOG(LogNWUIShot, Error, TEXT("invalid scenario: %s"), *File);
 		return 1;
 	}
 	const FString Screen = S->GetStringField(TEXT("screen"));
 	if (Screen != TEXT("refining") && Screen != TEXT("shop") && Screen != TEXT("inventory") && Screen != TEXT("market") && Screen != TEXT("city"))
 	{
-		UE_LOG(LogNWUIShot, Error, TEXT("tela sem captura: %s"), *Screen);
+		UE_LOG(LogNWUIShot, Error, TEXT("screen without capture: %s"), *Screen);
 		return 1;
 	}
 
-	// Fontes de runtime medem e desenham pelo cache da Slate, que o commandlet sobe sem renderizador.
+	// Runtime fonts measure and draw through the Slate cache, which the commandlet brings up without a renderer.
 	if (!FSlateApplication::IsInitialized())
 	{
 		FSlateApplication::Create();
@@ -133,14 +133,14 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 	Ctx.SetCurrentWorld(World);
 	World->AddToRoot();
 
-	// Sem construção (malha, anim): a tela só lê bolsa, níveis e o componente de interação.
+	// No construction (mesh, anim): the screen only reads the bag, the levels and the interaction component.
 	FActorSpawnParameters Deferred;
 	Deferred.bDeferConstruction = true;
 	ANWCharacter* Me = World->SpawnActor<ANWCharacter>(FVector::ZeroVector, FRotator::ZeroRotator, Deferred);
 	ANWStation* St = World->SpawnActor<ANWStation>(FVector::ZeroVector, FRotator::ZeroRotator);
 	if (!Me || !St)
 	{
-		UE_LOG(LogNWUIShot, Error, TEXT("não criou personagem/estação"));
+		UE_LOG(LogNWUIShot, Error, TEXT("did not create the character/station"));
 		return 1;
 	}
 	if (S->HasField(TEXT("station")))
@@ -168,11 +168,11 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		I.Rarity = A.Num() > 3 ? uint8(A[3]->AsNumber()) : 0;
 		if (A.Num() > 4 && A[4]->Type == EJson::Object)
 		{
-			NWItemProps::Read(I, A[4]->AsObject());   // props do item fabricado (qualidade, perks, gema...)
+			NWItemProps::Read(I, A[4]->AsObject());   // props of the crafted item (quality, perks, gem...)
 		}
 		Items.Add(I);
 	}
-	// Inventário: equipamento [[item, espaço, gs, raridade]] e armazém [[item, qtd, gs, raridade]].
+	// Inventory: equipment [[item, slot, gs, rarity]] and storage [[item, qty, gs, rarity]].
 	const TArray<TSharedPtr<FJsonValue>>* Equip = nullptr;
 	if (S->TryGetArrayField(TEXT("equip"), Equip))
 	{
@@ -206,7 +206,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			I.Slot = Stored.Num();
 			I.GearScore = A.Num() > 2 ? int32(A[2]->AsNumber()) : 0;
 			I.Rarity = A.Num() > 3 ? uint8(A[3]->AsNumber()) : 0;
-			I.Tab = A.Num() > 4 ? uint8(A[4]->AsNumber()) : 0;   // aba do armazém
+			I.Tab = A.Num() > 4 ? uint8(A[4]->AsNumber()) : 0;   // storage tab
 			Stored.Add(I);
 		}
 	}
@@ -219,7 +219,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		}
 	}
 	Me->Inventory->Load(Items, int64(S->GetNumberField(TEXT("coins"))));
-	// Entreposto: pedidos [{"item", "qty", "gs", "rarity", "props", "price", "seller", "mine", "hours"}].
+	// Trading Post: orders [{"item", "qty", "gs", "rarity", "props", "price", "seller", "mine", "hours"}].
 	const TArray<TSharedPtr<FJsonValue>>* Orders = nullptr;
 	if (Me->Interactor && S->TryGetArrayField(TEXT("orders"), Orders))
 	{
@@ -245,7 +245,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			Me->Interactor->MarketRows.Add(Row);
 		}
 	}
-	// Cidade: {"city": <resposta do GET /internal/regions/1/city>, "city_mine": true}.
+	// City: {"city": <response of GET /internal/regions/1/city>, "city_mine": true}.
 	const TSharedPtr<FJsonObject>* CityJson = nullptr;
 	if (Me->Interactor && S->TryGetObjectField(TEXT("city"), CityJson))
 	{
@@ -255,8 +255,8 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		(*CityJson)->TryGetStringField(TEXT("owner_id"), Owner);
 		NWCity::Parse(*CityJson, bMineCity ? Owner : FString(), Me->Interactor->CityState);
 	}
-	Me->Progression->bFromBackend = true;   // exige o nível do ofício, como no jogo com backend
-	// Loja: compras da semana já feitas (limite semanal), {"FluxT5": 100}.
+	Me->Progression->bFromBackend = true;   // requires the trade skill level, as in the game with a backend
+	// Shop: purchases already made this week (weekly limit), {"FluxT5": 100}.
 	const TSharedPtr<FJsonObject>* Bought = nullptr;
 	if (S->TryGetObjectField(TEXT("bought"), Bought))
 	{
@@ -299,12 +299,12 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 
 		UTextureRenderTarget2D* RT = NewObject<UTextureRenderTarget2D>();
 		RT->RenderTargetFormat = RTF_RGBA8_SRGB;
-		RT->ClearColor = FLinearColor(FColor(0x1E, 0x1C, 0x19));   // fundo neutro escuro (no jogo, o mundo atrás)
+		RT->ClearColor = FLinearColor(FColor(0x1E, 0x1C, 0x19));   // dark neutral background (in the game, the world behind)
 		RT->InitAutoFormat(W, H);
 		RT->UpdateResourceImmediate(true);
 		FTextureRenderTargetResource* Res = RT->GameThread_GetRenderTargetResource();
 
-		Me->Inventory->Load(Items, int64(S->GetNumberField(TEXT("coins"))));   // bolsa do cenário a cada captura (o roll refina de verdade)
+		Me->Inventory->Load(Items, int64(S->GetNumberField(TEXT("coins"))));   // the scenario's bag on every capture (the roll really refines)
 		FNWRefiningMenu Menu;
 		FNWShopMenu Shop;
 		FNWInventoryMenu Inventory;
@@ -322,7 +322,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			Shot->TryGetBoolField(TEXT("loot"), bLootShot);
 			if (bLootShot)
 			{
-				// Bolsa no chão com os itens de "storage" (tela da bolsa de saque).
+				// Bag on the ground with the "storage" items (loot bag screen).
 				ANWLootBag* Bag = World->SpawnActor<ANWLootBag>(FVector::ZeroVector, FRotator::ZeroRotator);
 				if (Bag)
 				{
@@ -347,7 +347,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 					Me->Interactor->StorageTabNames.Add(TabName->AsString());
 				}
 			}
-			// Ordenação: {"sort": 1..4} na lista do inventário, {"storage_sort": 1..4} na do armazém.
+			// Sorting: {"sort": 1..4} on the inventory list, {"storage_sort": 1..4} on the storage list.
 			if (Shot->HasField(TEXT("sort")))
 			{
 				Inventory.ShotSort(0, int32(Shot->GetNumberField(TEXT("sort"))));
@@ -356,7 +356,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			{
 				Inventory.ShotSort(1, int32(Shot->GetNumberField(TEXT("storage_sort"))));
 			}
-			// Busca: {"search": texto} na bolsa, {"storage_search": texto} no armazém.
+			// Search: {"search": text} in the bag, {"storage_search": text} in storage.
 			FString Query;
 			if (Shot->TryGetStringField(TEXT("search"), Query))
 			{
@@ -367,7 +367,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 				Inventory.ShotSearch(1, Query);
 			}
 			// Popup: {"popup": {"kind": "split|destroy|socket|unsocket", "from": "bag|equip|storage", "item": Id, "qty": n,
-			// "gem": Id (socket: gema na bolsa)}}.
+			// "gem": Id (socket: gem in the bag)}}.
 			const TSharedPtr<FJsonObject>* Pop = nullptr;
 			if (Shot->TryGetObjectField(TEXT("popup"), Pop))
 			{
@@ -390,7 +390,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 					Inventory.ShotPopup(K, Src, Found->Slot, Qty);
 				}
 			}
-			// Arrasto simulado: {"from": "bag|equip|storage", "item": Id}.
+			// Simulated drag: {"from": "bag|equip|storage", "item": Id}.
 			const TSharedPtr<FJsonObject>* Drag = nullptr;
 			if (Shot->TryGetObjectField(TEXT("drag"), Drag))
 			{
@@ -423,7 +423,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 		}
 		else if (bMarket)
 		{
-			// Tela em Slate: {"tab": 0..2, "search": texto, "perk": Id, "select": índice da linha}.
+			// Slate screen: {"tab": 0..2, "search": text, "perk": Id, "select": row index}.
 			Market = SNew(SNWMarket).Character(Me).Title(S->GetStringField(TEXT("title"))).bShot(true);
 			Market->ShotTab(Shot->HasField(TEXT("tab")) ? int32(Shot->GetNumberField(TEXT("tab"))) : 0);
 			FString Query, Perk;
@@ -458,7 +458,7 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 				Menu.Select(FName(Recipe), Count);
 			}
 			const TSharedPtr<FJsonObject>* Improve = nullptr;
-			if (Shot->TryGetObjectField(TEXT("improve"), Improve))   // aba "Melhorar itens": {"slot": espaço da bolsa, "mat": material}
+			if (Shot->TryGetObjectField(TEXT("improve"), Improve))   // "Improve items" tab: {"slot": bag slot, "mat": material}
 			{
 				Menu.ShowImprove((*Improve)->HasField(TEXT("slot")) ? int32((*Improve)->GetNumberField(TEXT("slot"))) : INDEX_NONE,
 					(*Improve)->HasField(TEXT("mat")) ? uint8((*Improve)->GetNumberField(TEXT("mat"))) : 0);
@@ -470,10 +470,10 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			TSharedPtr<SWidget> SlateScreen = Market.IsValid() ? StaticCastSharedPtr<SWidget>(Market) : StaticCastSharedPtr<SWidget>(CityMenu);
 			if (SlateScreen.IsValid())
 			{
-				// Duas passadas: a primeira mede o layout (textos, listas), a segunda desenha com ele.
-				// Um renderizador vivo até o fim do processo: a limpeza do buffer de desenho dele roda numa tarefa depois do
-				// DrawWidget, e destruir antes derruba o processo.
-				static FWidgetRenderer* Renderer = new FWidgetRenderer(false, false);   // o render target já é sRGB
+				// Two passes: the first measures the layout (texts, lists), the second draws with it.
+				// One renderer alive until the end of the process: the cleanup of its draw buffer runs in a task after
+				// DrawWidget, and destroying it earlier crashes the process.
+				static FWidgetRenderer* Renderer = new FWidgetRenderer(false, false);   // the render target is already sRGB
 				Renderer->DrawWidget(RT, SlateScreen.ToSharedRef(), FVector2D(W, H), 0.f);
 				FlushRenderingCommands();
 				Renderer->DrawWidget(RT, SlateScreen.ToSharedRef(), FVector2D(W, H), 0.f);
@@ -489,14 +489,14 @@ int32 UNWUIShotCommandlet::Main(const FString& Params)
 			Canvas.Flush_GameThread(true);
 			FlushRenderingCommands();
 		};
-		// Primeiro quadro carrega as texturas e mede as linhas; o segundo é o que vale.
+		// The first frame loads the textures and measures the rows; the second is the one that counts.
 		Frame();
 		SettleTextures();
 		Frame();
 		if (!bShop && !bInventory && Shot->HasField(TEXT("craft")) && Shot->GetBoolField(TEXT("craft")))
 		{
 			Menu.ClickCraft();
-			Frame();   // o item do equipamento chega aqui (t0 do roll); t conta a partir dele
+			Frame();   // the gear item arrives here (t0 of the roll); t counts from it
 			Menu.FixedNow += Shot->HasField(TEXT("t")) ? Shot->GetNumberField(TEXT("t")) : 1.0;
 			Frame();
 			SettleTextures();

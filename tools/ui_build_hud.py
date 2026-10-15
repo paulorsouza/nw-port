@@ -1,10 +1,10 @@
-"""Monta o layout da HUD de combate (telas hud2024 do jogo) para o Unreal.
+"""Builds the combat HUD layout (the game's hud2024 screens) for Unreal.
 
     python3 tools/ui_build_hud.py
 
-Lê extract/ui/lyshineui/hud2024/*.dynamicuicanvas.json (nwbt --x-objects json), gera
-unreal/NWPort/Data/UI/hud_layout.json (lido pelo ANWHUD em jogo) e a lista de texturas a importar
-(extract/ui/hud_textures.txt), incluindo os ícones que o Lua do jogo põe em tempo de execução.
+Reads extract/ui/lyshineui/hud2024/*.dynamicuicanvas.json (nwbt --x-objects json), writes
+unreal/NWPort/Data/UI/hud_layout.json (read by ANWHUD in game) and the list of textures to import
+(extract/ui/hud_textures.txt), including the icons the game's Lua sets at run time.
 """
 import json
 import os
@@ -14,12 +14,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UI = os.path.join(ROOT, "extract", "ui")
 CANVASES = ["vitals/vitals2024", "weaponquickslots/weaponquickslots", "consumablequickslots/consumablequickslots",
             "reticles/reticlescanvas", "xp/xp"]
-# Alças do modo de edição e elementos que o Lua só liga em situações específicas.
+# Edit-mode handles and elements the Lua only turns on in specific situations.
 EXCLUDE = ["HudLayoutElementDraggable", "MountStaminaMeterLayoutElement", "ForceDismountTimerLayoutElement",
            "AbilityChannelLayoutElement", "HeartgemLayoutElement", "ComboPointsLayoutElement",
-           # Barra de XP: XP descansado, multiplicador de bônus e o brilho de ganho (o port não tem).
+           # XP bar: rested XP, bonus multiplier and the gain glow (the port does not have them).
            "MeterRestedFill", "MultiplierBg", "IncreaseDelta"]
-# Imagens que o jogo troca por script (ícones de habilidade e de arma).
+# Images the game swaps by script (ability and weapon icons).
 EXTRA = ["lyshineui/images/icons/abilities/sword_ability02.dds", "lyshineui/images/icons/abilities/sword_ability04.dds",
          "lyshineui/images/icons/abilities/sword_ability05.dds", "lyshineui/images/icons/abilities/sword_ability06.dds",
          "lyshineui/images/icons/abilities/sword_ability07.dds", "lyshineui/images/icons/abilities/sword_ability03.dds",
@@ -33,7 +33,7 @@ EXTRA = ["lyshineui/images/icons/abilities/sword_ability02.dds", "lyshineui/imag
 def main():
     canvases = []
     textures = set(EXTRA)
-    # Ícones de habilidade e de arma de todas as armas de tools/make_abilities.py (roda antes, em make_data.sh).
+    # Ability and weapon icons of every weapon from tools/make_abilities.py (runs earlier, in make_data.sh).
     abil = os.path.join(ROOT, "unreal", "NWPort", "Data", "UI", "abilities.pt-br.json")
     if os.path.exists(abil):
         data = json.load(open(abil))
@@ -53,18 +53,18 @@ def main():
         lay = json.load(open(tmp))
         canvases.append({"name": os.path.basename(c), "size": lay["size"], "elements": lay["elements"]})
         textures |= {e["image"]["texture"].lower() for e in lay["elements"] if e.get("image") and e["image"]["texture"]}
-    out = os.path.join(ROOT, "unreal", "NWPort", "Data", "UI")  # fora de Content (o editor importaria)
+    out = os.path.join(ROOT, "unreal", "NWPort", "Data", "UI")  # outside Content (the editor would import it)
     os.makedirs(out, exist_ok=True)
     json.dump({"canvases": canvases}, open(os.path.join(out, "hud_layout.json"), "w"), separators=(",", ":"))
     open(os.path.join(UI, "hud_textures.txt"), "w").write("\n".join(sorted(textures)))
     import shutil
     fonts = os.path.join(out, "Fonts")
     os.makedirs(fonts, exist_ok=True)
-    # Pica (pica_regular.font = IM Fell, títulos do jogo) e Caslon: estilos 3, 4 e 5 do FNWUILayout::GameFont.
+    # Pica (pica_regular.font = IM Fell, game titles) and Caslon: styles 3, 4 and 5 of FNWUILayout::GameFont.
     for f in ("nimbussannov-reg.otf", "nimbussannov-sembol.otf", "nimbussannov-bol.otf", "imfepirm28p.ttf", "imfepiit28p.ttf",
               "caslonant.otf", "nimbussannov-regita.otf", "nimbussannov-med.otf"):
         shutil.copy(os.path.join(UI, "tex", "lyshineui", "fonts", f), fonts)
-    print(f"{sum(len(c['elements']) for c in canvases)} elementos em {len(canvases)} telas; {len(textures)} texturas")
+    print(f"{sum(len(c['elements']) for c in canvases)} elements in {len(canvases)} screens; {len(textures)} textures")
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
   "anim_root": "animations/gameplay/character/npc/natural/predator/wolf/",
   "character": "objects/characters/npc/natural/predator/wolf/timberwolf.cdf",
   "weapons": {},
-  "_comment": "Lobo (slices/characters/wolf e wolf_grey: timberwolf.cdf, npc_wolf_anims.adb, javelindata_damagetable_wolf). G3.",
+  "_comment": "Wolf (slices/characters/wolf and wolf_grey: timberwolf.cdf, npc_wolf_anims.adb, javelindata_damagetable_wolf). G3.",
   "blendspaces": {
     "BS_Walk": ["wolf_combat_movement_blend"]
   },

@@ -1,4 +1,4 @@
-"""Regenera Data/ com Python nativo; --dry-run mostra as etapas sem escrever."""
+"""Regenerates Data/ with native Python; --dry-run shows the steps without writing."""
 import argparse
 from pathlib import Path
 import shlex
@@ -15,17 +15,17 @@ def steps(root):
     if (root / "extract/serverpak/json/sharedassets/ai").is_dir():
         yield ["tools/make_ai.py"]
     else:
-        print("== sem extract/serverpak: Data/AI fica como esta", flush=True)
+        print("== no extract/serverpak: Data/AI stays as is", flush=True)
     slice_path = (root / "extract/slicejson/slices/structures/settlements/v2_settlements/"
                   "settlement_northwindsward_complete.dynamicslice.json")
     if slice_path.is_file():
         yield ["tools/make_crafting.py"]
     else:
-        print("== sem o slice de Queda Eterna: Data/Crafting fica como esta", flush=True)
+        print("== no Everfall slice: Data/Crafting stays as is", flush=True)
     if (root / "extract/audio/sfx_index.csv").is_file():
         yield ["tools/make_ui_sounds.py"]
     else:
-        print("== sem extract/audio: Data/Audio fica como esta", flush=True)
+        print("== no extract/audio: Data/Audio stays as is", flush=True)
     for name in (
         "make_items", "make_itens", "make_abilities", "make_progression", "make_worldmap", "build_strings",
         "ui_build_hud", "ui_build_mastery", "ui_build_tradeskills", "ui_build_attributes",
@@ -51,16 +51,16 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if not args.dry_run:
-        # Data/ e ignorado pelo Git; num checkout novo os scripts de UI gravam em Data/UI sem cria-la.
+        # Data/ is ignored by Git; in a fresh checkout the UI scripts write to Data/UI without creating it.
         (nwplatform.ROOT / "unreal/NWPort/Data/UI").mkdir(parents=True, exist_ok=True)
     try:
         run_steps(steps(nwplatform.ROOT), nwplatform.ROOT, args.dry_run)
     except (OSError, subprocess.CalledProcessError) as exc:
-        print(f"Data/ interrompido: {exc}", file=sys.stderr)
+        print(f"Data/ interrupted: {exc}", file=sys.stderr)
         return 1
     if not args.dry_run:
         count = sum(p.is_file() for p in (nwplatform.ROOT / "unreal/NWPort/Data").rglob("*"))
-        print(f"Data/ pronto: {count} arquivos")
+        print(f"Data/ ready: {count} files")
     return 0
 
 

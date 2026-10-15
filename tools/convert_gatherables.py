@@ -1,4 +1,4 @@
-"""Converte malhas em lotes no Windows/Linux, com fila e protecao de memoria."""
+"""Converts meshes in batches on Windows/Linux, with a queue and memory protection."""
 import argparse
 from pathlib import Path, PurePosixPath
 import subprocess
@@ -18,10 +18,10 @@ def mesh_paths(path):
             continue
         value = PurePosixPath(mesh)
         if value.is_absolute() or ".." in value.parts or ":" in mesh or "\\" in mesh or value.suffix.lower() != ".cgf":
-            raise ValueError(f"caminho de malha invalido: {mesh}")
+            raise ValueError(f"invalid mesh path: {mesh}")
         short = value.stem.casefold()
         if short in names and names[short] != mesh:
-            raise ValueError(f"malhas com mesmo nome de saida: {names[short]} e {mesh}")
+            raise ValueError(f"meshes with the same output name: {names[short]} and {mesh}")
         names[short] = mesh
         if mesh not in meshes:
             meshes.append(mesh)
@@ -32,11 +32,11 @@ def convert(list_path, output, game, dry_run=False):
     meshes = mesh_paths(list_path)
     raw, clean = output / "glb", output / "limpa"
     todo = [mesh for mesh in meshes if not complete_glb(raw / (mesh + ".glb"))]
-    print(f"malhas: {len(meshes)}, a converter: {len(todo)}", flush=True)
+    print(f"meshes: {len(meshes)}, to convert: {len(todo)}", flush=True)
     if not dry_run:
         raw.mkdir(parents=True, exist_ok=True)
         clean.mkdir(parents=True, exist_ok=True)
-        # --skip do nwbt usa existencia; retire arquivos truncados do caminho final.
+        # nwbt --skip checks existence; move truncated files out of the final path.
         for mesh in todo:
             incomplete = raw / (mesh + ".glb")
             if incomplete.is_file():
@@ -64,10 +64,10 @@ def convert(list_path, output, game, dry_run=False):
         nwprocess.run([sys.executable, "tools/glb_strip_nodraw.py", src, temporary, "--sem-atributos"],
                       log=output / "strip.log")
         if not complete_glb(temporary):
-            raise RuntimeError(f"strip nao gerou {temporary}")
+            raise RuntimeError(f"strip did not produce {temporary}")
         temporary.replace(dst)
     if missing:
-        raise RuntimeError(f"nwbt nao gerou {len(missing)} malhas: {missing}")
+        raise RuntimeError(f"nwbt did not produce {len(missing)} meshes: {missing}")
 
 
 def main():

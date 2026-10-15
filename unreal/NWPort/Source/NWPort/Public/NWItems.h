@@ -5,7 +5,7 @@
 
 class FJsonObject;
 
-/** Onde o item está: bolsa ou equipado. */
+/** Where the item is: bag or equipped. */
 UENUM()
 enum class ENWItemContainer : uint8
 {
@@ -13,7 +13,7 @@ enum class ENWItemContainer : uint8
 	Equip,
 };
 
-/** Espaços de equipamento: armas (espada, machadinha, escudo), ferramentas de coleta (F4), armadura e joias. */
+/** Equipment slots: weapons (sword, Hatchet, shield), gathering tools (F4), armor and jewelry. */
 namespace NWEquip
 {
 	constexpr int32 Sword = 0;
@@ -23,7 +23,7 @@ namespace NWEquip
 	constexpr int32 Sickle = 4;
 	constexpr int32 LoggingAxe = 5;
 	constexpr int32 SkinningKnife = 6;
-	// Armadura e joias (docs/game/items.md); o nw-core aceita espaços 0..15.
+	// Armor and jewelry (docs/game/items.md); nw-core accepts slots 0..15.
 	constexpr int32 Head = 7;
 	constexpr int32 Chest = 8;
 	constexpr int32 Hands = 9;
@@ -38,11 +38,11 @@ namespace NWEquip
 	constexpr int32 FirstArmor = Head;
 	inline bool IsTool(int32 Slot) { return Slot >= FirstTool && Slot <= LastTool; }
 
-	/** Espaço do conjunto do catálogo (Sword, Hatchet, Shield, Pick, ...) ou INDEX_NONE. */
+	/** Slot of the catalog set (Sword, Hatchet, Shield, Pick, ...) or INDEX_NONE. */
 	NWPORT_API int32 SlotForSet(FName Set);
 }
 
-/** Item do personagem (replicado para o dono e salvo no nw-core). */
+/** Character item (replicated to the owner and saved in nw-core). */
 USTRUCT()
 struct FNWItem
 {
@@ -53,23 +53,23 @@ struct FNWItem
 	UPROPERTY() ENWItemContainer Container = ENWItemContainer::Bag;
 	UPROPERTY() int32 Slot = 0;
 	UPROPERTY() int32 GearScore = 0;
-	UPROPERTY() uint8 Rarity = 0;   // 0 comum, 1 incomum, 2 raro, 3 épico, 4 lendário
-	// Item fabricado (docs/game/items.md), gravado em `props` no nw-core: atributo (índice de FNWItemRules::Attributes; 255 =
-	// sem), qualidade 0..100 (< 0 = sem), perks, gema, vínculo (0 sem, 1 vincula ao equipar, 2 vinculado) e artesão
-	// que assinou (qualidade >= assinatura_qualidade).
+	UPROPERTY() uint8 Rarity = 0;   // 0 common, 1 uncommon, 2 rare, 3 epic, 4 legendary
+	// Crafted item (docs/game/items.md), stored in `props` in nw-core: attribute (index into FNWItemRules::Attributes; 255 =
+	// none), quality 0..100 (< 0 = none), perks, gem, binding (0 none, 1 binds on equip, 2 bound) and the crafter
+	// who signed it (quality >= assinatura_qualidade).
 	UPROPERTY() uint8 Attr = 255;
 	UPROPERTY() float Quality = -1.f;
 	UPROPERTY() TArray<FName> Perks;
 	UPROPERTY() FName Gem;
 	UPROPERTY() uint8 Bind = 0;
 	UPROPERTY() FString Signer;
-	/** Número de série do item assinado (emitido pelo nw-core; o banco recusa o mesmo número em dois lugares). */
+	/** Serial number of the signed item (issued by nw-core; the database refuses the same number in two places). */
 	UPROPERTY() FString Serial;
-	/** Aba do armazém compartilhado (0..4); fora do armazém, 0. Não entra no SameKind. */
+	/** Shared Storage tab (0..4); outside Storage, 0. Not part of SameKind. */
 	UPROPERTY() uint8 Tab = 0;
 
 	bool HasProps() const { return Attr != 255 || Quality >= 0.f || Perks.Num() > 0 || !Gem.IsNone() || Bind != 0 || !Signer.IsEmpty() || !Serial.IsEmpty(); }
-	/** Mesmo item para empilhar ou achar no armazém: id, GS, raridade e props iguais. */
+	/** Same item for stacking or finding in Storage: same id, GS, rarity and props. */
 	bool SameKind(const FNWItem& O) const
 	{
 		return ItemId == O.ItemId && GearScore == O.GearScore && Rarity == O.Rarity && Attr == O.Attr && Quality == O.Quality
@@ -77,22 +77,22 @@ struct FNWItem
 	}
 };
 
-/** `props` do item no nw-core (objeto JSON; vazio = item sem props). */
+/** The item's `props` in nw-core (JSON object; empty = item without props). */
 namespace NWItemProps
 {
 	NWPORT_API TSharedRef<FJsonObject> Write(const FNWItem& Item);
 	NWPORT_API void Read(FNWItem& Item, const TSharedPtr<FJsonObject>& Props);
-	/** Item inteiro (id, quantidade, GS, raridade e props). */
+	/** Whole item (id, quantity, GS, rarity and props). */
 	NWPORT_API TSharedRef<FJsonObject> WriteItem(const FNWItem& Item);
 	NWPORT_API FNWItem ReadItem(const TSharedPtr<FJsonObject>& Json);
 }
 
-/** Definição do catálogo (tools/make_items.py). */
+/** Catalog definition (tools/make_items.py). */
 struct FNWItemDef
 {
 	FName Id;
 	FString Type;       // weapon, consumable, resource
-	FName Set;          // Sword, Hatchet, Shield, Pick, Sickle, LoggingAxe, SkinningKnife ou vazio
+	FName Set;          // Sword, Hatchet, Shield, Pick, Sickle, LoggingAxe, SkinningKnife or empty
 	int32 Tier = 0;
 	int32 Stack = 1;
 	FString Icon;       // lyshineui/images/icons/items/...dds
@@ -102,18 +102,18 @@ struct FNWItemDef
 	float Heal = 0.f;
 	float HealPercent = 0.f;
 	float Cooldown = 0.f;
-	FName Gather;       // ferramenta: Mining, Cutting, Chopping, Dressing
-	FName Armor;        // armadura: Heavy, Medium, Light (joias: vazio)
+	FName Gather;       // tool: Mining, Cutting, Chopping, Dressing
+	FName Armor;        // armor: Heavy, Medium, Light (jewelry: empty)
 	float Efficiency = 1.f;
-	float Weight = 0.f;  // kg (o jogo guarda em décimos)
+	float Weight = 0.f;  // kg (the game stores tenths)
 	FString Name;
 	FString Description;
-	FString TypeName;   // ItemTypeDisplayName do jogo ("Recurso", "Espada")
-	FName UiClass;      // seção do inventário (UiItemClass sem "UI_": Weapon, Tools, Smelting...)
-	bool bRound = false; // peça redonda (recurso, lore, tintura, item de casa)
+	FString TypeName;   // The game's ItemTypeDisplayName ("Recurso", "Espada")
+	FName UiClass;      // inventory section (UiItemClass without "UI_": Weapon, Tools, Smelting...)
+	bool bRound = false; // round piece (resource, lore, dye, house item)
 };
 
-/** Catálogo de itens e tabela de saque, carregados uma vez (Data/Items). */
+/** Item catalog and loot table, loaded once (Data/Items). */
 class NWPORT_API FNWItemCatalog
 {
 public:
@@ -134,15 +134,15 @@ public:
 	};
 	const FLootTable* Loot(FName Table) const { return LootTables.Find(Table); }
 	/**
-	 * Sorteia uma tabela do jogo (Data/Items/loottables.json): dado 0..max; "and" dá todo item com limiar <= dado,
-	 * "or" sorteia um entre eles. Entradas com tabela rolam a subtabela (quantidade = número de rolagens).
+	 * Rolls one of the game's tables (Data/Items/loottables.json): die 0..max; "and" gives every item with threshold <= die,
+	 * "or" picks one among them. Entries with a table roll the subtable (quantity = number of rolls).
 	 */
 	void RollGame(FName Table, TArray<FNWItem>& OutItems, int32 RollBonus = 0) const;
-	/** Sorteia uma tabela: itens (com gear score e raridade) e moedas. */
+	/** Rolls a table: items (with gear score and rarity) and coins. */
 	void RollLoot(FName Table, TArray<FNWItem>& OutItems, int64& OutCoins) const;
-	/** Gear score e raridade de um item novo (sorteados na faixa do catálogo). */
+	/** Gear score and rarity of a new item (rolled within the catalog range). */
 	void RollStats(FNWItem& Item) const;
-	/** Recarrega os nomes no idioma atual (NWText::Lang). */
+	/** Reloads the names in the current language (NWText::Lang). */
 	void Reload();
 
 private:
@@ -159,7 +159,7 @@ private:
 	{
 		bool bAnd = true;
 		int32 MaxRoll = 0;
-		uint8 BonusMode = 0;   // RollBonusSetting: 0 ignora, 1 AddToRoll, 2 ClampMax
+		uint8 BonusMode = 0;   // RollBonusSetting: 0 ignores, 1 AddToRoll, 2 ClampMax
 		TArray<FGameEntry> Entries;
 	};
 	TMap<FName, FGameTable> GameTables;
@@ -167,5 +167,5 @@ private:
 	bool bLoaded = false;
 };
 
-/** Cor da raridade (a mesma escala de cores do jogo). */
+/** Rarity color (the same color scale as the game). */
 NWPORT_API FLinearColor NWRarityColor(uint8 Rarity);

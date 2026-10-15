@@ -1,11 +1,11 @@
-"""Coloca a água da região (glb do tools/make_water.py) no L_SouthWindsward, com material de água.
+"""Places the region's water (glb from tools/make_water.py) in L_SouthWindsward, with a water material.
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_water.py <agua.glb>"
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_water.py <water.glb>"
 
-- Malhas em /Game/NW/Region/Water; atores na pasta "Regiao/Agua" (juntados num ator, removidos e recriados a cada
-  vez). Sem colisão, sem Nanite (água não é opaca).
-- M_NW_Agua: shading model Single Layer Water (o da Unreal para água, com Lumen); cor de vértice R (degraus =
-  cachoeiras) clareia e deixa mais áspero, como espuma.
+- Meshes in /Game/NW/Region/Water; actors in the "Regiao/Agua" folder (merged into one actor, removed and recreated
+  each time). No collision, no Nanite (water is not opaque).
+- M_NW_Agua: Single Layer Water shading model (Unreal's water model, with Lumen); vertex color R (steps =
+  waterfalls) brightens and roughens it, like foam.
 """
 import sys
 import time
@@ -26,8 +26,8 @@ t0 = time.time()
 
 
 def add_water_output(m):
-    """Single Layer Water exige o nó de saída próprio (sem ele não compila no SM6): espalhamento e absorção de água
-    de rio esverdeada (absorve mais o vermelho), fase levemente para a frente."""
+    """Single Layer Water needs its own output node (without it, it does not compile on SM6): scattering and
+    absorption of greenish river water (absorbs more red), phase slightly forward."""
     mel = unreal.MaterialEditingLibrary
     out = mel.create_material_expression(m, unreal.MaterialExpressionSingleLayerWaterMaterialOutput, 0, 650)
     for name, value, y in (("ScatteringCoefficients", (0.02, 0.05, 0.05), 600), ("AbsorptionCoefficients", (0.35, 0.09, 0.07), 700)):
@@ -101,5 +101,5 @@ for p in eal.list_assets(CONTENT, recursive=True):
     eal.save_asset(p, only_if_is_dirty=True)
 eas.destroy_actors([a for a in new if type(a) is unreal.Actor])
 if not les.save_current_level():
-    raise RuntimeError("não consegui salvar o mapa")
-unreal.log_warning(f"AGUA {len(new)} atores em {time.time() - t0:.0f}s")
+    raise RuntimeError("could not save the map")
+unreal.log_warning(f"WATER {len(new)} actors in {time.time() - t0:.0f}s")

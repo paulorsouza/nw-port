@@ -1,11 +1,11 @@
-"""Move o PlayerStart de uma cidade para o ponto livre mais perto de onde ele está.
+"""Moves a city's PlayerStart to the free spot closest to where it is.
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/fix_spawn.py <Nome>"
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/fix_spawn.py <Name>"
 
-O ponto do terreno (rua mais perto do centro) caía dentro da estátua da praça da South Windsward: o personagem
-nascia dentro dela e a câmera mostrava a estátua por dentro. Busca em espiral um ponto em que nenhuma malha da
-cidade ocupe a altura do corpo (do joelho à cabeça) num raio de 1,2 m. Usa as caixas das malhas: raios de
-colisão não acertam nada no commandlet.
+The terrain point (street closest to the center) fell inside the statue in the South Windsward plaza: the character
+spawned inside it and the camera showed the statue from the inside. Searches in a spiral for a spot where no city mesh
+occupies the body height (knee to head) within a 1.2 m radius. Uses the mesh bounding boxes: collision traces
+hit nothing in the commandlet.
 """
 import math
 import sys
@@ -14,8 +14,8 @@ import unreal
 
 NAME = sys.argv[1]
 MAP = f"/Game/NW/Maps/L_{NAME}"
-RADIUS = 120.0       # cm, folga em volta do corpo
-BODY = (40.0, 190.0)  # cm acima do chão: do joelho à cabeça
+RADIUS = 120.0       # cm, clearance around the body
+BODY = (40.0, 190.0)  # cm above the ground: knee to head
 STEP = 100.0
 MAX_DIST = 4000.0
 
@@ -26,7 +26,7 @@ les.load_level(MAP)
 actors = eas.get_all_level_actors()
 start = next(a for a in actors if isinstance(a, unreal.PlayerStart))
 origin = start.get_actor_location()
-ground = origin.z - 150.0  # o ponto do terreno fica 1,5 m acima do chão
+ground = origin.z - 150.0  # the terrain point sits 1.5 m above the ground
 
 boxes = []
 for a in actors:
@@ -37,7 +37,7 @@ for a in actors:
         continue
     c, e = a.get_actor_bounds(False)
     if e.x > 3000 or e.y > 3000:
-        continue  # peças enormes (chão/muralha inteira) não servem de obstáculo local
+        continue  # huge pieces (whole floor/wall) are no use as local obstacles
     boxes.append((c.x - e.x, c.x + e.x, c.y - e.y, c.y + e.y, c.z - e.z, c.z + e.z, label))
 
 
@@ -54,7 +54,7 @@ def blocked(x, y):
 
 
 hit = blocked(origin.x, origin.y)
-unreal.log(f"SPAWN atual {origin} -> {'bloqueado por ' + hit if hit else 'livre'}")
+unreal.log(f"SPAWN current {origin} -> {'blocked by ' + hit if hit else 'free'}")
 best = None
 r = 0.0
 while best is None and r <= MAX_DIST:
@@ -69,9 +69,9 @@ while best is None and r <= MAX_DIST:
 if hit and best:
     start.set_actor_location(unreal.Vector(best[0], best[1], origin.z), False, False)
     if not les.save_current_level():
-        raise RuntimeError("não consegui salvar o mapa")
-    unreal.log(f"SPAWN movido para ({best[0]:.0f}, {best[1]:.0f}, {origin.z:.0f}), {r:.0f} cm do original")
+        raise RuntimeError("could not save the map")
+    unreal.log(f"SPAWN moved to ({best[0]:.0f}, {best[1]:.0f}, {origin.z:.0f}), {r:.0f} cm from the original")
 elif not hit:
-    unreal.log("SPAWN já estava livre")
+    unreal.log("SPAWN was already free")
 else:
-    unreal.log("SPAWN sem ponto livre no raio")
+    unreal.log("SPAWN no free spot within the radius")

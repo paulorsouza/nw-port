@@ -31,7 +31,7 @@ void UNWAmbienceComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	const APlayerController* PC = Cast<APlayerController>(GetOwner());
-	// Só no jogador local, e só em mapa de região (o mesmo critério dos coletáveis).
+	// Only for the local player, and only on a region map (same criterion as the gatherables).
 	if (!PC || !PC->IsLocalController() || IsRunningDedicatedServer() || ANWGatherField::DataFileFor(GetWorld()).IsEmpty())
 	{
 		SetComponentTickEnabled(false);
@@ -80,7 +80,7 @@ void UNWAmbienceComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 	const int32 Now = Pawn->GetActorLocation().Size2D() < SettlementRadius ? 1 : 0;
 	if (Now == Zone)
 	{
-		// Volume mudado nas configurações vale na hora.
+		// Volume changed in the settings applies right away.
 		const FNWOptions& O = FNWOptions::Get();
 		if (Music)
 		{

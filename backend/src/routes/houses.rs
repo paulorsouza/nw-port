@@ -1,5 +1,5 @@
-//! Casas: compra. Os baús da casa somam capacidade ao armazém compartilhado (migration 0010; o servidor de jogo soma). Custo e standing mínimo vêm de
-//! `javelindata_housetypes`, conferidos pelo servidor de jogo. Decoração e interior ficam para depois.
+//! Houses: purchase. House chests add capacity to the shared Storage (migration 0010; the game server sums it). Cost and minimum standing come from
+//! `javelindata_housetypes`, checked by the game server. Decoration and interior are left for later.
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -30,7 +30,7 @@ pub struct BuyHouse {
     pub address: String,
     pub house_type: String,
     pub price: i64,
-    /// Bolsa e moedas depois de pagar.
+    /// Bag and coins after paying.
     #[serde(flatten)]
     pub snapshot: Snapshot,
 }

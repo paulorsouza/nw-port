@@ -8,15 +8,15 @@
 #include "Widgets/Text/STextBlock.h"
 
 /**
- * Estilo das telas próprias do port (as que não copiam o jogo; dono 2026-10-14: telas novas seguem o estilo do
- * entreposto). Cores e fontes do jogo, botões, tabela, rolagem e campos em Slate; ícone de moeda e botão de sair.
+ * Style of the port's own screens (those that do not copy the game; maintainer 2026-10-14: new screens follow the
+ * Trading Post style). The game's colors and fonts, buttons, table, scrolling and fields in Slate; coin icon and close button.
  */
 namespace NWSlate
 {
 	NWPORT_API extern const FLinearColor Tan, Gray, Dim, Gold, Line, Red, Wood, Bronze;
 
 	NWPORT_API FLinearColor WithA(FLinearColor C, float A);
-	/** Fonte do jogo (FNWUILayout::GameFont: 0 regular, 1 semibold, 2 bold, 3 Pica, 6 itálico). */
+	/** The game's font (FNWUILayout::GameFont: 0 regular, 1 semibold, 2 bold, 3 Pica, 6 italic). */
 	NWPORT_API FSlateFontInfo Font(int32 Style, int32 Size);
 	NWPORT_API FSlateRoundedBoxBrush Round(const FLinearColor& Fill, const FLinearColor& Outline = FLinearColor::Transparent, float W = 0.f, float R = 4.f);
 
@@ -40,15 +40,15 @@ namespace NWSlate
 	};
 	NWPORT_API const FStyle& St();
 
-	/** Pincel de textura do jogo (lyshineui/...dds); nulo se a textura não foi importada. */
+	/** The game's texture brush (lyshineui/...dds); null if the texture was not imported. */
 	NWPORT_API const FSlateBrush* Tex(const FString& Path, float Size);
 	NWPORT_API TSharedRef<STextBlock> Txt(const FText& T, int32 Style, int32 Size, const FLinearColor& C);
 	NWPORT_API TSharedRef<STextBlock> Txt(const FString& S, int32 Style, int32 Size, const FLinearColor& C);
-	/** Moedas com o ícone do jogo à esquerda (centavos; "12.345,00"). */
+	/** Coins with the game's icon on the left (cents; "12.345,00"). */
 	NWPORT_API TSharedRef<SWidget> Coins(TAttribute<int64> Cents, int32 Style, int32 Size, TAttribute<FSlateColor> Color);
-	/** Balancete da cidade: moeda de ouro grande do jogo, cor âmbar (diferente das moedas do jogador). */
+	/** City balance sheet: the game's large gold coin, amber color (different from the player's coins). */
 	NWPORT_API extern const FLinearColor Amber;
 	NWPORT_API TSharedRef<SWidget> Treasury(TAttribute<int64> Cents, int32 Style, int32 Size);
-	/** Botão de sair (X) do canto da tela. */
+	/** Close button (X) in the screen corner. */
 	NWPORT_API TSharedRef<SWidget> CloseButton(TFunction<void()> OnClose);
 }

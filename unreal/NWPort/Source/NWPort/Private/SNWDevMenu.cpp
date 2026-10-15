@@ -81,7 +81,7 @@ void SNWDevMenu::Construct(const FArguments& Args)
 				const bool bOn = V->GetInt() == 0;
 				PC->LocalConsole(FString::Printf(TEXT("%s %d"), Name, bOn ? 1 : 0));
 #if !UE_BUILD_SHIPPING
-				// Lembrado entre sessões em desenvolvimento (ANWPlayerController::BeginPlay reaplica).
+				// Remembered between sessions in development (ANWPlayerController::BeginPlay reapplies it).
 				GConfig->SetBool(TEXT("NW.Dev"), Name, bOn, GGameUserSettingsIni);
 				GConfig->Flush(false, GGameUserSettingsIni);
 #endif
@@ -94,8 +94,8 @@ void SNWDevMenu::Construct(const FArguments& Args)
 		return FText::FromString(W && UGameplayStatics::GetGlobalTimeDilation(W) < 0.99f ? NWText::Get(TEXT("nw.dev.on")) : NWText::Get(TEXT("nw.dev.off")));
 	};
 
-	// Duas colunas (personagem, inimigos e arena | mundo, extras e depuração): numa só, o menu passava da altura da tela
-	// e os botões do fim ficavam cortados.
+	// Two columns (character, enemies and arena | world, extras and debug): in a single one, the menu went past the screen
+	// height and the buttons at the end were cut off.
 	TSharedRef<SVerticalBox> Left = SNew(SVerticalBox);
 	TSharedRef<SVerticalBox> Right = SNew(SVerticalBox);
 	TSharedRef<SVerticalBox>* List = &Left;
@@ -104,7 +104,7 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.no_cooldowns")), Flag(&UNWCombatComponent::bNoCooldowns), Dev(ENWDevCommand::ToggleNoCooldowns)));
 	Add(Button(NWText::Get(TEXT("nw.dev.god")), Flag(&UNWCombatComponent::bGodMode), Dev(ENWDevCommand::ToggleGodMode)));
 	Add(Button(NWText::Get(TEXT("nw.dev.infinite_stamina")), Flag(&UNWCombatComponent::bInfiniteStamina), Dev(ENWDevCommand::ToggleInfiniteStamina)));
-	// Mana infinita (NWManaComponent.cpp) junto da stamina; sai da lista de extras.
+	// Infinite mana (NWManaComponent.cpp) next to stamina; leaves the extras list.
 	static const FName ManaInfinite(TEXT("armas.mana_infinite"));
 	if (const FNWDevEntry* M = FNWDevRegistry::Find(ManaInfinite))
 	{
@@ -160,7 +160,7 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.slow_motion")), SlowMo, Dev(ENWDevCommand::ToggleSlowMotion)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_arena")), nullptr, Dev(ENWDevCommand::TravelArena)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_city")), nullptr, Dev(ENWDevCommand::TravelCity)));
-	// Botões das esteiras (NW_REGISTER_DEV, NWDevRegistry.h).
+	// Area buttons (NW_REGISTER_DEV, NWDevRegistry.h).
 	if (FNWDevRegistry::All().Num() > 0)
 	{
 		Add(Header(NWText::Get(TEXT("nw.dev.extras"))), 12.f);
@@ -183,7 +183,7 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.show_hits")), CVar(TEXT("nw.DebugHits")), ToggleCVar(TEXT("nw.DebugHits"))));
 	Add(Button(NWText::Get(TEXT("nw.dev.show_traversal")), CVar(TEXT("nw.DebugTraversal")), ToggleCVar(TEXT("nw.DebugTraversal"))));
 	Add(Button(NWText::Get(TEXT("nw.dev.hud_diagnostics")), CVar(TEXT("nw.HudDebug")), ToggleCVar(TEXT("nw.HudDebug"))));
-	// Idioma: troca, recarrega as telas e fecha o menu (reabrir mostra no idioma novo).
+	// Language: switches, reloads the screens and closes the menu (reopening shows it in the new language).
 	Add(Button(NWText::Get(TEXT("nw.dev.language")), nullptr, [PC]()
 	{
 		NWText::SetLang(NWText::Lang() == TEXT("pt-br") ? TEXT("en") : TEXT("pt"));
@@ -197,7 +197,7 @@ void SNWDevMenu::Construct(const FArguments& Args)
 		}
 	}), 12.f);
 
-	// Altura limitada à tela (margem de 40) e rolagem se ainda assim não couber.
+	// Height limited to the screen (margin of 40) and scrolling if it still does not fit.
 	ChildSlot
 	.HAlign(HAlign_Left)
 	.VAlign(VAlign_Center)

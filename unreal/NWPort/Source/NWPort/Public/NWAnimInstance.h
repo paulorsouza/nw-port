@@ -6,9 +6,9 @@
 #include "NWAnimInstance.generated.h"
 
 /**
- * Base do ABP_NW. Calcula as variáveis que o grafo usa:
- *   locomoção: BS_Strafe (Direção, Velocidade) ou BS_Sprint (Direção, Giro) quando bSprinting;
- *   bBlocking toca o loop de bloqueio; montagens entram no slot DefaultSlot.
+ * Base of ABP_NW. Computes the variables the graph uses:
+ *   locomotion: BS_Strafe (Direction, Speed) or BS_Sprint (Direction, Turn) when bSprinting;
+ *   bBlocking plays the block loop; montages go into the DefaultSlot slot.
  */
 UCLASS()
 class NWPORT_API UNWAnimInstance : public UAnimInstance
@@ -16,14 +16,14 @@ class NWPORT_API UNWAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(BlueprintReadOnly, Category = "NW") float Speed = 0.f;      // cm/s no plano
-	UPROPERTY(BlueprintReadOnly, Category = "NW") float Direction = 0.f;  // graus, -180..180, relativo ao corpo
-	UPROPERTY(BlueprintReadOnly, Category = "NW") float TurnRate = 0.f;   // rad/s (eixo do BS_Sprint)
+	UPROPERTY(BlueprintReadOnly, Category = "NW") float Speed = 0.f;      // cm/s on the plane
+	UPROPERTY(BlueprintReadOnly, Category = "NW") float Direction = 0.f;  // degrees, -180..180, relative to the body
+	UPROPERTY(BlueprintReadOnly, Category = "NW") float TurnRate = 0.f;   // rad/s (BS_Sprint axis)
 	UPROPERTY(BlueprintReadOnly, Category = "NW") bool bSprinting = false;
 	UPROPERTY(BlueprintReadOnly, Category = "NW") bool bBlocking = false;
 	UPROPERTY(BlueprintReadOnly, Category = "NW") bool bInAir = false;
 	UPROPERTY(BlueprintReadOnly, Category = "NW") bool bDead = false;
-	// Blend space de locomoção da arma ativa (o nó de blend space do ABP lê este pino).
+	// Locomotion blend space of the active weapon (the ABP blend space node reads this pin).
 	UPROPERTY(BlueprintReadOnly, Category = "NW") TObjectPtr<class UBlendSpace> Locomotion;
 
 protected:

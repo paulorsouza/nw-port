@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Chama o texconv.exe (DirectXTex) pelo wine, convertendo caminhos absolutos para Z:\.
+# Calls texconv.exe (DirectXTex) through wine, converting absolute paths to Z:\.
 here="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 exe="${TEXCONV_EXE:-$here/../../bin/texconv.exe}"
 args=()

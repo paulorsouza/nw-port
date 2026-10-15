@@ -1,4 +1,4 @@
-// Mana do jogador (sub-esteira 1a): docs/game/weapons/ice-gauntlet.md §2.
+// Player mana (sub-area 1a): docs/game/weapons/ice-gauntlet.md §2.
 #include "NWManaComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "NWDevRegistry.h"
@@ -7,7 +7,7 @@
 #include "GameFramework/Pawn.h"
 #include "Misc/ConfigCacheIni.h"
 
-// Mana infinita fica ligada entre sessões de teste (GameUserSettings.ini, [NW.Dev]).
+// Infinite mana stays on between test sessions (GameUserSettings.ini, [NW.Dev]).
 static const TCHAR* DevSection = TEXT("NW.Dev");
 
 UNWManaComponent::UNWManaComponent()
@@ -19,7 +19,7 @@ UNWManaComponent::UNWManaComponent()
 void UNWManaComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	// Na BeginPlay o jogador ainda não foi possuído: vale para todo personagem (bonecos e mobs não usam mana).
+	// In BeginPlay the player is not possessed yet: applies to every character (dummies and mobs do not use mana).
 	if (GetOwner()->HasAuthority())
 	{
 		GConfig->GetBool(DevSection, TEXT("InfiniteMana"), bInfiniteMana, GGameUserSettingsIni);

@@ -1,11 +1,11 @@
-"""Cria ABP_NW e ABP_Lost (classe pai NWAnimInstance, esqueleto de cada conjunto). O grafo é montado à mão no editor.
+"""Creates ABP_NW and ABP_Lost (parent class NWAnimInstance, each set's skeleton). The graph is built by hand in the editor.
 
-    py "<repo>/tools/ue/make_abp.py"            ABP_NW e ABP_Lost (apaga e recria)
-    py "<repo>/tools/ue/make_abp.py" creature   só o ABP_NW_Creature, se ainda não existir
+    py "<repo>/tools/ue/make_abp.py"            ABP_NW and ABP_Lost (deletes and recreates)
+    py "<repo>/tools/ue/make_abp.py" creature   only ABP_NW_Creature, if it does not exist yet
 
-ABP_NW_Creature é um ABP de modelo (template, sem esqueleto): serve para qualquer criatura (javali, lobo...). Grafo,
-uma vez no editor: Blend Space Player com o pino Blend Space exposto e ligado à variável Locomotion (o C++ põe o
-BS_Walk do conjunto), Speed/Direction nos eixos; depois Slot 'DefaultSlot' e Output Pose.
+ABP_NW_Creature is a template ABP (no skeleton): it works for any creature (boar, wolf...). Graph, once in the
+editor: Blend Space Player with the Blend Space pin exposed and bound to the Locomotion variable (the C++ sets the
+set's BS_Walk), Speed/Direction on the axes; then Slot 'DefaultSlot' and Output Pose.
 """
 import sys
 
@@ -14,14 +14,14 @@ import unreal
 if len(sys.argv) > 1 and sys.argv[1] == "creature":
     path = "/Game/NW/Creatures/ABP_NW_Creature"
     if unreal.EditorAssetLibrary.does_asset_exist(path):
-        unreal.log("ABP_NW_Creature: já existe (grafo feito à mão; não recria)")
+        unreal.log("ABP_NW_Creature: already exists (graph made by hand; not recreated)")
     else:
         f = unreal.AnimBlueprintFactory()
         f.set_editor_property("parent_class", unreal.load_class(None, "/Script/NWPort.NWAnimInstance"))
         f.set_editor_property("template", True)
         abp = unreal.AssetToolsHelpers.get_asset_tools().create_asset("ABP_NW_Creature", "/Game/NW/Creatures", unreal.AnimBlueprint, f)
         unreal.EditorAssetLibrary.save_loaded_asset(abp)
-        unreal.log("ABP_NW_Creature: criado (montar o grafo no editor)")
+        unreal.log("ABP_NW_Creature: created (build the graph in the editor)")
 else:
 
     tools = unreal.AssetToolsHelpers.get_asset_tools()
@@ -35,11 +35,11 @@ else:
         if eal.does_asset_exist(f"{folder}/{name}"):
             eal.delete_asset(f"{folder}/{name}")
         if not eal.does_asset_exist(skeleton):
-            unreal.log_error(f"{name}: esqueleto {skeleton} não existe; rode o import_nw.py antes")
+            unreal.log_error(f"{name}: skeleton {skeleton} does not exist; run import_nw.py first")
             continue
         factory = unreal.AnimBlueprintFactory()
         factory.set_editor_property("target_skeleton", eal.load_asset(skeleton))
         factory.set_editor_property("parent_class", parent)
         abp = tools.create_asset(name, folder, unreal.AnimBlueprint, factory)
         eal.save_loaded_asset(abp)
-        unreal.log(f"{name}: criado")
+        unreal.log(f"{name}: created")

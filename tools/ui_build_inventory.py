@@ -1,11 +1,11 @@
-"""Janela do inventário do jogo (lyshineui/inventory/newinventory.dynamicuicanvas, Inventory/Content).
+"""The game's inventory window (lyshineui/inventory/newinventory.dynamicuicanvas, Inventory/Content).
 
-    python3 tools/ui_build_inventory.py [--preview prévia.png]
+    python3 tools/ui_build_inventory.py [--preview preview.png]
 
-Fica a janela (moldura, cabeçalho, ícone, título e moedas); a grade de itens e o equipamento o C++ desenha com as
-texturas de espaço do jogo (itembgsquare<raridade>) e os ícones dos itens. Gera
-unreal/NWPort/Data/UI/inventory_layout.<idioma>.json e extract/ui/inventory_textures.txt (inclui os ícones do
-catálogo, Data/Items).
+Kept: the window (frame, header, icon, title and coins); the item grid and the equipment are drawn by the C++ with the
+game's slot textures (itembgsquare<rarity>) and the item icons. Writes
+unreal/NWPort/Data/UI/inventory_layout.<language>.json and extract/ui/inventory_textures.txt (includes the catalog
+icons, Data/Items).
 """
 import argparse
 import json
@@ -18,9 +18,9 @@ from ui_build_mastery import LANGS, load_loc  # noqa: E402
 
 C = "_root/Inventory/Content"
 KEEP = [f"{C}/FrameMultiBg", f"{C}/FrameHeader", f"{C}/InventoryIcon", f"{C}/InventoryTitle", f"{C}/CurrencyText"]
-# Efeitos do ganho de moedas (o Lua só liga na animação) e o azoth, que o port não tem.
+# Coin gain effects (the Lua only enables them in the animation) and azoth, which the port does not have.
 EXCLUDE = ["FrameHeaderSecondary", "WhooshAnim1", "WhooshAnim2", "BurstParticle", "RepairPartsGlow", "Flash", "CurrencyText2"]
-# Peças que o C++ desenha (FNWInventoryMenu): item retangular e quadrado do jogo, painel, abas e espaços do equipamento.
+# Pieces the C++ draws (FNWInventoryMenu): the game's rectangular and square item, panel, tabs and equipment slots.
 IL = "lyshineui/images/slices/itemlayout/"
 EQ = "lyshineui/images/equipment/"
 SLOT_TEXTURES = ([f"{IL}{k}{shape}{r}.dds" for k in ("itembg", "itemraritybg") for shape in ("large", "square") for r in range(5)]
@@ -29,9 +29,9 @@ SLOT_TEXTURES = ([f"{IL}{k}{shape}{r}.dds" for k in ("itembg", "itemraritybg") f
                                              "tabtoolsselected", "tabtoolsunselected", "iconweapon", "iconshield", "iconpickaxe",
                                              "iconsickle", "iconlogging", "iconskinning", "equipmentstatsbackdrop2023")]
                  + [f"lyshineui/images/inventory/{n}.dds" for n in ("contentbg", "headerbg", "iconweight", "icon_inventory")]
-                 # Armazém dentro do inventário (catcontainer.lua STORAGE_ICON_PATH).
+                 # Storage inside the inventory (catcontainer.lua STORAGE_ICON_PATH).
                  + ["lyshineui/images/catcontainer/icon_storage_shed.dds", "lyshineui/images/catcontainer/icon_dropped_items.dds"]
-                 # Tela no estilo do jogo (docs/game/ui/inventory.md): peças redondas, equipamento, ordenação, arrasto.
+                 # Game-style screen (docs/game/ui/inventory.md): round tiles, equipment, sorting, drag.
                  + [f"{IL}{k}circle{r}.dds" for k in ("itembg", "itemraritybg") for r in range(5)]
                  + [f"{IL}itemhighlightcircle.dds"]
                  + [f"{EQ}{n}.dds" for n in ("iconhead", "iconchest", "iconhand", "iconlegs", "iconfeet", "iconrune", "iconamulet",
@@ -73,7 +73,7 @@ def main():
     textures = sorted({e["image"]["texture"].lower() for e in lay["elements"] if e.get("image") and e["image"]["texture"]}
                       | set(SLOT_TEXTURES) | {i["icon"] for i in items if i.get("icon")})
     open(os.path.join(UI, "inventory_textures.txt"), "w").write("\n".join(textures))
-    print(f"{len(lay['elements'])} elementos, {len(textures)} texturas")
+    print(f"{len(lay['elements'])} elements, {len(textures)} textures")
     if a.preview:
         import ui_canvas
         relayout(lay["elements"], lay["size"])

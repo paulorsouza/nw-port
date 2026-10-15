@@ -19,7 +19,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogNWCity, Log, All);
 
-// ---------------------------------------------------------------- estado
+// ---------------------------------------------------------------- state
 
 const FNWCityStation* FNWCityState::StationOf(const FString& Station) const
 {
@@ -61,7 +61,7 @@ namespace
 		const FString File = FPaths::ProjectDir() / TEXT("Data/World") / Name;
 		if (!FFileHelper::LoadFileToString(Text, *File) || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Root) || !Root)
 		{
-			UE_LOG(LogNWCity, Warning, TEXT("governança: não leu %s"), *File);
+			UE_LOG(LogNWCity, Warning, TEXT("governance: could not read %s"), *File);
 			return nullptr;
 		}
 		return Root;
@@ -387,7 +387,7 @@ namespace NWCity
 	}
 }
 
-// ---------------------------------------------------------------- servidor: RPCs da cidade
+// ---------------------------------------------------------------- server: city RPCs
 
 namespace
 {
@@ -412,7 +412,7 @@ namespace
 		}
 	}
 
-	/** Gravação de uma operação da cidade: 2xx vale; 400/409 o nw-core recusou (aviso com o motivo); resto falhou. */
+	/** Write of a city operation: 2xx ok; 400/409 nw-core refused (warning with the reason); anything else failed. */
 	NWOps::FCommit CityCommit(TWeakObjectPtr<UNWInteractorComponent> Self, TSharedRef<TSharedPtr<FJsonObject>> Result,
 		TFunction<void(UNWBackend*, const FNWCharacterRecord&, UNWBackend::FCityDone)> Call)
 	{
@@ -531,7 +531,7 @@ void UNWInteractorComponent::ServerCityOpen_Implementation()
 	bCityOpen = !CityRegion.IsEmpty();
 	if (bCityOpen)
 	{
-		MarketClaimCredits();   // prêmio do governador e venda da cidade chegam como crédito
+		MarketClaimCredits();   // governor prize and city sale arrive as credit
 		CitySend();
 	}
 	else
@@ -623,7 +623,7 @@ void UNWInteractorComponent::ServerCityBuyItem_Implementation(int32 Req, FName I
 
 void UNWInteractorComponent::ServerCityBid_Implementation(int32 Req, int64 Amount)
 {
-	// Lance no leilão da cidade: sai das moedas agora e volta em crédito se alguém cobrir.
+	// Bid in the city auction: leaves the coins now and comes back as credit if someone outbids it.
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	if (!Me || !bCityOpen || !NearCityBoard() || Amount <= 0 || !CityBackend(this))
 	{
@@ -682,7 +682,7 @@ void UNWInteractorComponent::ServerCityBuy_Implementation(int32 Req, int64 Price
 
 void UNWInteractorComponent::CityGovernor(int32 Req, const FString& Verb, const FString& Sub, TSharedRef<FJsonObject> Body)
 {
-	// Ação do governador sem bolsa nem moedas: o nw-core confere se é o dono.
+	// Governor action without bag or coins: nw-core checks that it is the owner.
 	UNWBackend* B = CityBackend(this);
 	ANWPlayerController* PC = CityPC(this);
 	if (!B || !PC || !PC->Record)
@@ -769,7 +769,7 @@ void UNWInteractorComponent::ServerCityProject_Implementation(int32 Req, const F
 	Body->SetStringField(TEXT("kind"), Kind);
 	if (!Station.IsEmpty())
 	{
-		// Arma: o nome vai no campo "weapon"; mesa e buff, em "station".
+		// Weapon: the name goes in the "weapon" field; station and buff in "station".
 		Body->SetStringField(Kind == TEXT("weapon") ? TEXT("weapon") : TEXT("station"), Station);
 	}
 	if (!Buff.IsEmpty())

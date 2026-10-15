@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Monta o projeto Unreal a partir de extract/ (depois de tools/linux/build_all.sh). Com o editor FECHADO.
+# Builds the Unreal project from extract/ (after tools/linux/build_all.sh). With the editor CLOSED.
 #
-#     tools/linux/ue_import_all.sh          # todas as etapas que faltam
-#     tools/linux/ue_import_all.sh 05       # só a etapa 05
+#     tools/linux/ue_import_all.sh          # all missing steps
+#     tools/linux/ue_import_all.sh 05       # only step 05
 #
-# Cada etapa grava extract/.etapas/ue_<NN>.ok. Tempo na primeira vez: ~1 h 30 (as 435 malhas dos coletáveis levam
-# ~25 min, o cenário da região ~3 min por arquivo). Os commandlets devolvem código de erro por avisos de material do
-# glTF: por isso cada etapa confere a própria linha de resultado no log em vez do código de saída.
+# Each step writes extract/.etapas/ue_<NN>.ok. Time on the first run: ~1 h 30 (the 435 gatherable meshes take
+# ~25 min, the region scenery ~3 min per file). The commandlets return an error code for glTF material
+# warnings: so each step checks its own result line in the log instead of the exit code.
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# Fila de trabalho pesado (várias sessões na mesma máquina; docs/workflow.md).
+# Heavy-job queue (several sessions on the same machine; docs/workflow.md).
 [ -n "${NW_PESADO:-}" ] || exec "$ROOT/tools/linux/pesado.sh" "$ROOT/tools/linux/$(basename "$0")" "$@"
 cd "$ROOT"
 UE_DIR="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}"
@@ -22,25 +22,25 @@ DONE=extract/.etapas
 mkdir -p "$LOGS" "$DONE"
 ONLY="${1:-}"
 
-py() {  # py <log> <script e argumentos>
+py() {  # py <log> <script and arguments>
     local log="$LOGS/$1.log"; shift
     nice "$UE" "$P" -run=pythonscript -script="$*" -unattended -nosplash -nullrhi > "$log" 2>&1
     grep -aE "LogPython: Error|Traceback" "$log" | head -5
-    grep -aq "Python script executed successfully" "$log" || { echo "falhou, ver $log" >&2; exit 1; }
+    grep -aq "Python script executed successfully" "$log" || { echo "failed, see $log" >&2; exit 1; }
 }
 
 step() {
     local n="$1" what="$2"; shift 2
     if [ -n "$ONLY" ] && [ "$ONLY" != "$n" ]; then return; fi
-    if [ -z "$ONLY" ] && [ -f "$DONE/ue_$n.ok" ]; then echo "[ue $n] $what: já feito"; return; fi
+    if [ -z "$ONLY" ] && [ -f "$DONE/ue_$n.ok" ]; then echo "[ue $n] $what: already done"; return; fi
     if pgrep -f "Binaries/Linux/UnrealEditor .*NWPort.uproject" >/dev/null; then
-        echo "O editor está aberto: feche antes." >&2; exit 3
+        echo "The editor is open: close it first." >&2; exit 3
     fi
     echo "[ue $n] $what ($(date +%T))"
     local t0=$SECONDS
     "$@"
     touch "$DONE/ue_$n.ok"
-    echo "[ue $n] ok em $(( (SECONDS - t0) / 60 )) min"
+    echo "[ue $n] ok in $(( (SECONDS - t0) / 60 )) min"
 }
 
 build() {
@@ -50,21 +50,21 @@ build() {
 sets() {
     py import_sword "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/sword_shield/manifest.json"
     py import_lost "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/lost_sword/manifest.json"
-    # Material de efeitos (rastro da flecha, explosão, nuvem) e transições curtas das montagens do arco.
+    # Effects material (arrow trail, explosion, cloud) and short transitions for the Bow montages.
     py fx "$ROOT/tools/ue/make_fx.py"
 }
 arena() {
-    # Peças do jogo (tools/arena/meshes.txt, convertidas por tools/linux/convert_gatherables.sh) e o mapa.
+    # Game pieces (tools/arena/meshes.txt, converted by tools/linux/convert_gatherables.sh) and the map.
     if [ -d "$ROOT/extract/ue/arena/limpa" ]; then
         py arena_meshes "$ROOT/tools/ue/import_gatherables.py" "$ROOT/extract/ue/arena/limpa" /Game/NW/Arena
         py arena_materials "$ROOT/tools/ue/fix_nanite_materials.py" /Game/NW/Arena
     else
-        echo "sem extract/ue/arena/limpa: a arena sai sem as peças do jogo (tools/linux/convert_gatherables.sh tools/arena/meshes.txt extract/ue/arena)"
+        echo "no extract/ue/arena/limpa: the arena comes out without the game pieces (tools/linux/convert_gatherables.sh tools/arena/meshes.txt extract/ue/arena)"
     fi
     py test_map "$ROOT/tools/ue/make_test_map.py"
 }
 creatures() {
-    # G3: javali e lobo (tools/sets/*.json) e o ABP de modelo das criaturas (o grafo é montado à mão uma vez).
+    # G3: boar and wolf (tools/sets/*.json) and the creatures' template ABP (the graph is built by hand once).
     py import_boar "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/boar/manifest.json"
     py import_wolf "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/wolf/manifest.json"
     py creature_abp "$ROOT/tools/ue/make_abp.py" creature
@@ -82,10 +82,10 @@ terrain() {
     py water "$ROOT/tools/ue/import_water.py" "$ROOT/extract/cities/guardaventos_water.glb"
 }
 scenery() {
-    # Camada já importada (pasta em Content/NW/Region) não é refeita; para refazer, apague a pasta.
+    # A layer already imported (folder in Content/NW/Region) is not redone; to redo it, delete the folder.
     [ -d "$ROOT/unreal/NWPort/Content/NW/Region/Capitals" ] \
         || py region_capitals "$ROOT/tools/ue/import_region_scene.py" "$ROOT/extract/cities/chunks/windsward_capitals.glb" Capitals
-    # Uma camada por vez (arquivos menores; o pacote único esgotava a memória do import).
+    # One layer at a time (smaller files; the single package exhausted the import's memory).
     local f name
     for f in "$ROOT"/extract/cities/chunks/windsward_*.glb; do
         name=$(basename "$f" .glb); name=${name#windsward_}
@@ -95,22 +95,22 @@ scenery() {
     done
 }
 
-step 01 "compilar o C++ do editor" build
-step 02 "personagens, armas e animações" sets
-step 03 "arena de testes (L_Arena)" arena
-step 04 "cidade de Guardaventos" city
-step 05 "terreno e água da região" terrain
-step 06 "malhas dos coletáveis" py gatherables "$ROOT/tools/ue/import_gatherables.py" "$ROOT/extract/ue/gatherables/limpa"
-step 07 "cenário da região" scenery
-step 08 "materiais (Nanite e instâncias)" py materials "$ROOT/tools/ue/fix_nanite_materials.py" \
+step 01 "compile the editor C++" build
+step 02 "characters, weapons and animations" sets
+step 03 "test arena (L_Arena)" arena
+step 04 "Windsward city" city
+step 05 "region terrain and water" terrain
+step 06 "gatherable meshes" py gatherables "$ROOT/tools/ue/import_gatherables.py" "$ROOT/extract/ue/gatherables/limpa"
+step 07 "region scenery" scenery
+step 08 "materials (Nanite and instances)" py materials "$ROOT/tools/ue/fix_nanite_materials.py" \
     /Game/NW/Cities /Game/NW/Gatherables /Game/NW/Region /Game/NW/Materials /Game/NW/Terrain
-step 11 "otimização do mapa (distâncias, sombras, luzes)" py optimize "$ROOT/tools/ue/optimize_region.py"
-step 09 "texturas da interface" py ui "$ROOT/tools/ue/import_ui.py"
-step 10 "sons de fundo" py audio "$ROOT/tools/ue/import_audio.py"
-step 12 "criaturas (javali, lobo) e ABP de criatura" creatures
-# Etapas das esteiras (docs/workflow.md): tools/etapas/<esteira>.ue.sh chama `step <esteira>-NN "descrição" comando`.
+step 11 "map optimization (distances, shadows, lights)" py optimize "$ROOT/tools/ue/optimize_region.py"
+step 09 "interface textures" py ui "$ROOT/tools/ue/import_ui.py"
+step 10 "background sounds" py audio "$ROOT/tools/ue/import_audio.py"
+step 12 "creatures (boar, wolf) and creature ABP" creatures
+# Area steps (docs/workflow.md): tools/etapas/<area>.ue.sh calls `step <area>-NN "description" command`.
 for f in "$ROOT"/tools/etapas/*.ue.sh; do
     # shellcheck disable=SC1090
     [ -e "$f" ] && source "$f"
 done
-echo "Pronto. Abra o editor: $UE_DIR/Engine/Binaries/Linux/UnrealEditor $P /Game/NW/Maps/L_SouthWindsward"
+echo "Done. Open the editor: $UE_DIR/Engine/Binaries/Linux/UnrealEditor $P /Game/NW/Maps/L_SouthWindsward"

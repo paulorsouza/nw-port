@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Gera os assets de um conjunto (personagem + clipes + armas) prontos para o Unreal.
+"""Generates the assets of a set (character + clips + weapons) ready for Unreal.
 
-uso: build_set.py tools/sets/sword_shield.json [--paths extract/manifest/paths.txt]
+usage: build_set.py tools/sets/sword_shield.json [--paths extract/manifest/paths.txt]
 
-Saída em extract/ue/<nome>/:
-  glb/            saída bruta do nwbt
+Output in extract/ue/<name>/:
+  glb/            raw nwbt output
   fbx/            SK_*.fbx, SM_*.fbx, anim/A_*.fbx
-  manifest.json   blend spaces, montagens, loops e sockets para o script do Unreal
-nwbt (do patches/nwbt.patch) e Blender achados por tools/nwplatform.py; jogo em NW_GAME. Rode pela fila:
+  manifest.json   blend spaces, montages, loops and sockets for the Unreal script
+nwbt (from patches/nwbt.patch) and Blender found by tools/nwplatform.py; game in NW_GAME. Run through the queue:
     python3 tools/pesado.py python3 tools/build_set.py tools/sets/sword_shield.json
 """
 import argparse
@@ -47,14 +47,14 @@ def nwbt_cat(path):
 
 
 def read_bspace(path):
-    """Dimensões e exemplos de um .bspace. Exemplos sem um parâmetro herdam 0 (como no jogo)."""
+    """Dimensions and examples of a .bspace. Examples missing a parameter inherit 0 (as in the game)."""
     root = ET.fromstring(nwbt_cat(path))
     dims = [{"name": p.get("Name"), "min": float(p.get("Min")), "max": float(p.get("Max"))}
             for p in root.find("Dimensions")]
     samples = []
     for ex in root.find("ExampleList"):
         vals = [float(ex.get(f"SetPara{i}", 0)) for i in range(len(dims))]
-        # Parâmetro ausente: o motor do jogo calcula a partir do próprio clipe (ex.: MoveSpeed = velocidade do clipe).
+        # Missing parameter: the game engine computes it from the clip itself (e.g. MoveSpeed = clip speed).
         explicit = [ex.get(f"SetPara{i}") is not None for i in range(len(dims))]
         rate = float(ex.get("PlaybackScale", 1))
         samples.append({"clip": ex.get("AName").lower(), "params": vals, "explicit": explicit, "rate": rate})
@@ -94,13 +94,13 @@ def main():
         for bspace in layers:
             p = idx.get((bspace.lower(), ".bspace"))
             if not p:
-                sys.exit(f"blend space não encontrado: {bspace}")
+                sys.exit(f"blend space not found: {bspace}")
             spaces.append(read_bspace(p))
         base_bs = spaces[0]
         spans = [max(d["max"] - d["min"], 1e-6) for d in base_bs["dimensions"]]
 
         def nearest(bs, params):
-            # Casa a amostra da camada pela distância normalizada nos parâmetros da base.
+            # Matches the layer's sample by normalized distance in the base parameters.
             n = min(len(params), len(bs["dimensions"]))
             return min(bs["samples"], key=lambda s: sum(((s["params"][i] - params[i]) / spans[i]) ** 2 for i in range(n)))["clip"]
 
@@ -112,7 +112,7 @@ def main():
         manifest["blendspaces"][bs_name] = {"dimensions": base_bs["dimensions"], "sources": [b["source"] for b in spaces],
                                             "samples": samples}
 
-    # Nome de asset curto (ações do Blender têm limite de 63 caracteres): A_<camada base>[_n].
+    # Short asset name (Blender actions are limited to 63 characters): A_<base layer>[_n].
     used = {}
     for key in sorted(composites):
         b = composites[key]["layers"][0]
@@ -125,18 +125,18 @@ def main():
         p = idx.get((c, ".caf"))
         (files.append(p) if p else missing.append(c))
     if missing:
-        sys.exit(f"clipes sem .caf: {missing}")
+        sys.exit(f"clips without .caf: {missing}")
     manifest["clips"] = clips
-    print(f"{len(files)} clipes, {len(composites)} animações compostas, {len(manifest['blendspaces'])} blend spaces, "
-          f"{len(manifest['montages'])} montagens")
+    print(f"{len(files)} clips, {len(composites)} composite animations, {len(manifest['blendspaces'])} blend spaces, "
+          f"{len(manifest['montages'])} montages")
 
-    # Janelas de combate (ProcLayer do Mannequin) por seção de montagem.
+    # Combat windows (Mannequin ProcLayer) per montage section.
     adb_dir = os.path.join(ROOT, "extract", "models", "animations", "mannequin", "adb")
     adbs = [os.path.join(adb_dir, f) for f in spec.get("window_adbs", ["player/player_sword.adb", "player/player_1h_melee.adb", "player/player.adb"])]
     wtags = set(spec.get("window_tags", "").split(","))
     manifest["windows"] = {}
-    # Velocidade do clipe no fragmento (Animation speed="1.1"): a montagem toca nessa taxa e as janelas, que estão em
-    # tempo real, vão para o tempo da sequência (× velocidade) no import.
+    # Clip speed in the fragment (Animation speed="1.1"): the montage plays at that rate and the windows, which are in
+    # real time, are converted to sequence time (× speed) on import.
     manifest["montage_rates"] = {}
     overrides = spec.get("window_overrides", {})
     for montage, frags in spec.get("fragments", {}).items():
@@ -152,7 +152,7 @@ def main():
         for frag_name in frags:
             frag = adb_windows.best_fragment(m_adbs, m_tags, frag_name)
             wins = adb_windows.windows(frag) if frag is not None else []
-            # Escopo da arma (attach_adbs): fragmentos só com janelas; na rapieira o dano dos ataques básicos mora lá.
+            # Weapon scope (attach_adbs): fragments with windows only; for the Rapier the basic attacks' damage lives there.
             for att in m_attach:
                 af = adb_windows.best_fragment([att], m_tags, frag_name, need_anims=False)
                 if af is not None:
@@ -166,22 +166,22 @@ def main():
         manifest["windows"][montage] = secs
         if any(sc["rate"] != 1.0 for sc in secs):
             manifest["montage_rates"][montage] = [sc["rate"] for sc in secs]
-    print(f"janelas: {sum(len(w['windows']) for v in manifest['windows'].values() for w in v)} em {len(manifest['windows'])} montagens")
+    print(f"windows: {sum(len(w['windows']) for v in manifest['windows'].values() for w in v)} in {len(manifest['windows'])} montages")
 
     glb_dir = os.path.join(out, "glb")
     weapon_files = [w["file"] for w in spec["weapons"].values()]
-    # Os .caf vao na mesma chamada do .cdf; a lista em arquivo evita o limite de 32 KiB do Windows.
+    # The .caf files go in the same call as the .cdf; the list in a file avoids the 32 KiB Windows limit.
     os.makedirs(out, exist_ok=True)
     arglist = os.path.join(out, "nwbt_files.txt")
     with open(arglist, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join([spec["character"], *([spec["armor"]] if spec.get("armor") else []), *files, *weapon_files]) + "\n")
-    # "@lista" exige o nwbt do patches/nwbt.patch (tools/build_nwbt.py); um nwbt sem o patch saía 0 sem converter nada.
+    # "@lista" needs the nwbt from patches/nwbt.patch (tools/build_nwbt.py); an nwbt without the patch exited 0 converting nothing.
     saidas.require_nwbt()
     since = saidas.now()
     r = subprocess.run([nwplatform.executable("nwbt"), "models", "files", "-g", GAME, "-o", glb_dir, "--binary", "--embed", "--ior", "1.5", *nwplatform.nwbt_workers(),
                         "@" + arglist], capture_output=True, text=True)
     if r.returncode != 0:
-        sys.exit(f"nwbt saiu com {r.returncode}:\n{(r.stderr or r.stdout)[-2000:]}")
+        sys.exit(f"nwbt exited with {r.returncode}:\n{(r.stderr or r.stdout)[-2000:]}")
 
     manifest["glb"] = {
         "character": os.path.join(glb_dir, spec["character"] + ".glb"),
@@ -197,7 +197,7 @@ def main():
     subprocess.run(saidas.blender(os.path.join(ROOT, "tools", "export_ue.py"), mpath), check=True)
     fbx = json.load(open(mpath)).get("fbx")
     if not fbx:
-        sys.exit("Blender (export_ue.py) não gravou a seção fbx do manifesto")
+        sys.exit("Blender (export_ue.py) did not write the manifest's fbx section")
     saidas.require([fbx["skeletal_mesh"], *fbx["anims"].values(), *fbx["weapons"].values(),
                     *fbx.get("skinned_weapons", {}).values()], since, "Blender (export_ue.py)")
     print(f"ok: {out}")

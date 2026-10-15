@@ -1,5 +1,5 @@
 {
-  "_comment": "Esteira 2 (coleta): ferramentas e animações de coleta. Junta-se ao sword_shield.json (tools/setspec.py).",
+  "_comment": "Area 2 (gathering): gathering tools and animations. Merged with sword_shield.json (tools/setspec.py).",
   "weapons": {
     "pick": {
       "file": "objects/weapons/tools/2h/pickaxet1/wep_tl2h_pickaxet1_lookbase.cdf",

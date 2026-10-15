@@ -1,4 +1,4 @@
-"""Conferencia estrutural leve para nao reutilizar GLBs truncados."""
+"""Light structural check so truncated GLBs are not reused."""
 import struct
 
 

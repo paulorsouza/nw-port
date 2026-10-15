@@ -18,7 +18,7 @@ namespace
 {
 	const FLinearColor MapTan(FColor(0xEB, 0xE3, 0xD6));
 	const FLinearColor MapGold(FColor(0xED, 0xC6, 0x3E));
-	// Zoom: de 0,25 m por pixel (tiles do nível 2 ampliados) até 6 m por pixel (região inteira e arredores).
+	// Zoom: from 0.25 m per pixel (level 2 tiles enlarged) to 6 m per pixel (whole region and surroundings).
 	constexpr double MinMpp = 0.25, MaxMpp = 6.0;
 	const TCHAR* Img = TEXT("lyshineui/images/");
 }
@@ -62,7 +62,7 @@ bool FNWWorldMap::Load()
 
 FVector2D FNWWorldMap::ToWorld(const FVector& L) const
 {
-	// UE = (-lx, ly) · 100; mundo = origem + giro(ângulo) · local.
+	// UE = (-lx, ly) · 100; world = origin + rotation(angle) · local.
 	const double Lx = -L.X / 100.0, Ly = L.Y / 100.0;
 	const double C = FMath::Cos(Angle), S = FMath::Sin(Angle);
 	return Origin + FVector2D(C * Lx - S * Ly, S * Lx + C * Ly);
@@ -78,7 +78,7 @@ FVector2D FNWWorldMap::ToUnreal(const FVector2D& W) const
 
 FVector2D FNWWorldMap::WorldToScreen(const FVector2D& W) const
 {
-	// Norte (y do mundo) para cima.
+	// North (world y) up.
 	return ScreenSize * 0.5 + FVector2D(W.X - Center.X, Center.Y - W.Y) / MetersPerPixel;
 }
 
@@ -136,7 +136,7 @@ void FNWWorldMap::DrawText(UCanvas* Canvas, const FString& Text, float X, float 
 
 void FNWWorldMap::DrawButton(UCanvas* Canvas, const FBox2f& R, const FString& Label, const FVector2D& Mouse) const
 {
-	// Botão quadrado do magicmap: buttonbg escuro, moldura heroframe e foco ao passar o mouse.
+	// magicmap square button: dark buttonbg, heroframe border and focus on mouse hover.
 	const FVector2D P(R.Min), Sz(R.GetSize());
 	DrawTexture(Canvas, FString(Img) + TEXT("slices/button/buttonbg.dds"), P, Sz, FLinearColor(0.17f, 0.15f, 0.11f));
 	if (R.IsInside(FVector2f(Mouse)))
@@ -157,7 +157,7 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 	UIScale = Canvas->ClipY / 1080.f;
 	const float S = UIScale;
 
-	// Arrastar move o mapa (começa fora dos botões).
+	// Dragging moves the map (starts outside the buttons).
 	if (bMouseDown)
 	{
 		const bool bOnButton = Buttons[0].IsInside(FVector2f(Mouse)) || Buttons[1].IsInside(FVector2f(Mouse)) || Buttons[2].IsInside(FVector2f(Mouse));
@@ -181,14 +181,14 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 		Center = ToWorld(Player->GetActorLocation());
 		bCenterOnPlayer = false;
 	}
-	// Não deixa sair de perto da região.
+	// Does not let it leave the vicinity of the region.
 	Center.X = FMath::Clamp(Center.X, Region.Min.X - 256.0, Region.Max.X + 256.0);
 	Center.Y = FMath::Clamp(Center.Y, Region.Min.Y - 256.0, Region.Max.Y + 256.0);
 
 	FCanvasTileItem Bg(FVector2D::ZeroVector, ScreenSize, FLinearColor(0.02f, 0.02f, 0.02f, 1.f));
 	Canvas->DrawItem(Bg);
 
-	// Nível 2 (2 px/m) de perto, nível 3 (1 px/m) de longe.
+	// Level 2 (2 px/m) up close, level 3 (1 px/m) from afar.
 	const FLevel& L = Levels[MetersPerPixel > 1.0 && Levels.Num() > 1 ? 1 : 0];
 	for (const FTile& T : L.Tiles)
 	{
@@ -200,14 +200,14 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 		}
 		if (UTexture2D* Tex = FNWUILayout::GameTexture(T.Texture))
 		{
-			// +1 px para não abrir fresta entre tiles.
+			// +1 px so no gap opens between tiles.
 			FCanvasTileItem Tile(TopLeft, Tex->GetResource(), Size + FVector2D(1.0), FLinearColor::White);
 			Tile.BlendMode = SE_BLEND_Opaque;
 			Canvas->DrawItem(Tile);
 		}
 	}
 
-	// Borda da região do port (o que existe no mapa da Unreal).
+	// Edge of the port's region (what exists in the Unreal map).
 	{
 		const FVector2D A = WorldToScreen(FVector2D(Region.Min.X, Region.Max.Y)), B = WorldToScreen(FVector2D(Region.Max.X, Region.Min.Y));
 		const FLinearColor Edge = MapGold.CopyWithNewOpacity(0.5f);
@@ -221,7 +221,7 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 		}
 	}
 
-	// POIs: ícone do jogo; o nome aparece de perto ou com o mouse em cima.
+	// POIs: the game's icon; the name shows up close or on mouse hover.
 	{
 		const float Sz = 40.f * S;
 		const FPoi* Hover = nullptr;
@@ -249,7 +249,7 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 		}
 	}
 
-	// Marcador, último local de morte e membros do grupo (ícones do jogo).
+	// Marker, last death location and group members (the game's icons).
 	{
 		const float Sz = 34.f * S;
 		if (LastDeath)
@@ -278,26 +278,26 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 		}
 	}
 
-	// Jogador: ícone do jogo virado para onde o personagem olha.
+	// Player: the game's icon turned to where the character looks.
 	if (Player)
 	{
 		const FVector Loc = Player->GetActorLocation();
 		const FVector2D P = WorldToScreen(ToWorld(Loc));
 		const FVector Fwd = Player->GetActorForwardVector();
 		const FVector2D Ahead = WorldToScreen(ToWorld(Loc + Fwd * 100.f));
-		const float Heading = FMath::RadiansToDegrees(FMath::Atan2(Ahead.Y - P.Y, Ahead.X - P.X)) + 90.f;   // ícone aponta para cima
+		const float Heading = FMath::RadiansToDegrees(FMath::Atan2(Ahead.Y - P.Y, Ahead.X - P.X)) + 90.f;   // icon points up
 		const float Sz = 44.f * S;
 		DrawTexture(Canvas, FString(Img) + TEXT("map/icon/player.dds"), P - FVector2D(Sz * 0.5f), FVector2D(Sz), FLinearColor::White, Heading);
 	}
 
-	// Degradê das bordas (map_gradient em cima e embaixo, map_gradientside dos lados).
+	// Edge gradient (map_gradient top and bottom, map_gradientside on the sides).
 	const float GH = 220.f * S, GW = 300.f * S;
 	DrawTexture(Canvas, FString(Img) + TEXT("map/map_gradient.dds"), FVector2D::ZeroVector, FVector2D(ScreenSize.X, GH));
 	DrawTexture(Canvas, FString(Img) + TEXT("map/map_gradient.dds"), FVector2D(0.0, ScreenSize.Y - GH), FVector2D(ScreenSize.X, GH), FLinearColor::White, 0.f, true);
 	DrawTexture(Canvas, FString(Img) + TEXT("map/map_gradientside.dds"), FVector2D::ZeroVector, FVector2D(GW, ScreenSize.Y));
 	DrawTexture(Canvas, FString(Img) + TEXT("map/map_gradientside.dds"), FVector2D(ScreenSize.X - GW, 0.0), FVector2D(GW, ScreenSize.Y), FLinearColor::White, 0.f, false, true);
 
-	// Régua de escala (ScaleKey): distância redonda que caiba em ~140 px.
+	// Scale ruler (ScaleKey): round distance that fits in ~140 px.
 	{
 		const double Target = 140.0 * S * MetersPerPixel;
 		const double Nice[] = {10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000};
@@ -313,14 +313,14 @@ void FNWWorldMap::Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown,
 			ScreenSize.X * 0.5f, Y + 32.f * S, 22.f, MapTan, 0, true);
 	}
 
-	// Coordenadas do jogo do jogador (como o /coordenadas do jogo), embaixo à esquerda.
+	// The player's game coordinates (like the game's /coordenadas), bottom left.
 	if (Player)
 	{
 		const FVector2D W = ToWorld(Player->GetActorLocation());
 		DrawText(Canvas, FString::Printf(TEXT("[%.0f, %.0f]"), W.X, W.Y), 60.f * S, ScreenSize.Y - 80.f * S, 20.f, MapTan);
 	}
 
-	// Botões à direita: centralizar no jogador, aproximar, afastar.
+	// Buttons on the right: center on the player, zoom in, zoom out.
 	const float B = 50.f * S, BX = ScreenSize.X - 80.f * S, BY = ScreenSize.Y * 0.5f - 85.f * S;
 	static const TCHAR* Labels[] = {TEXT("o"), TEXT("+"), TEXT("-")};
 	for (int32 i = 0; i < 3; ++i)
@@ -335,7 +335,7 @@ void FNWWorldMap::Click(const FVector2D& Mouse)
 	if (Buttons[0].IsInside(FVector2f(Mouse)))
 	{
 		bDragging = false;
-		bCenterOnPlayer = true;   // no próximo desenho, que tem o jogador
+		bCenterOnPlayer = true;   // on the next draw, which has the player
 		return;
 	}
 	if (Buttons[1].IsInside(FVector2f(Mouse)) || Buttons[2].IsInside(FVector2f(Mouse)))
@@ -356,7 +356,7 @@ void FNWWorldMap::RightClick(const FVector2D& Mouse)
 
 void FNWWorldMap::Wheel(float Delta, const FVector2D& Mouse)
 {
-	// Aproxima no cursor: o ponto sob o mouse fica parado.
+	// Zooms at the cursor: the point under the mouse stays still.
 	const FVector2D Before = ScreenToWorld(Mouse);
 	MetersPerPixel = FMath::Clamp(MetersPerPixel * (Delta > 0.f ? 0.8 : 1.25), MinMpp, MaxMpp);
 	const FVector2D After = ScreenToWorld(Mouse);

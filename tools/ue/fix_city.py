@@ -1,11 +1,11 @@
-"""Ajustes no mapa de uma cidade importada por import_city.py.
+"""Fixes on the map of a city imported by import_city.py.
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/fix_city.py <Nome>"
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/fix_city.py <Name>"
 
-- Nanite desligado nas malhas (sem SM6 no Vulkan/Linux elas não aparecem). Com SM6 ligado, rodar tools/ue/nanite_on.py depois.
-- Colisão por triângulo (complex as simple).
-- Sol e céu móveis (iluminação dinâmica: sem "precisa reconstruir a iluminação").
-- Chão de segurança invisível embaixo de tudo e ponto de partida a 35 m sobre o centro.
+- Nanite off on the meshes (without SM6 on Vulkan/Linux they do not show). With SM6 on, run tools/ue/nanite_on.py afterwards.
+- Per-triangle collision (complex as simple).
+- Movable sun and sky (dynamic lighting: no "lighting needs to be rebuilt").
+- Invisible safety floor under everything and the start point 35 m above the center.
 """
 import sys
 
@@ -27,14 +27,14 @@ for p in paths:
     ns = m.get_editor_property("nanite_settings")
     if ns.enabled:
         ns.enabled = False
-        m.set_editor_property("nanite_settings", ns)  # dispara o rebuild da malha
+        m.set_editor_property("nanite_settings", ns)  # triggers the mesh rebuild
         off += 1
     bs = m.get_editor_property("body_setup")
     if bs:
         bs.set_editor_property("collision_trace_flag", unreal.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
-    # A mudança por set_editor_property não marca o pacote como modificado: salvar sem depender disso.
+    # A change through set_editor_property does not mark the package dirty: save without relying on that.
     eal.save_loaded_asset(m, only_if_is_dirty=False)
-unreal.log(f"CIDADE nanite desligado em {off}/{len(paths)} malhas")
+unreal.log(f"CITY nanite off on {off}/{len(paths)} meshes")
 
 les.load_level(MAP)
 actors = eas.get_all_level_actors()
@@ -45,7 +45,7 @@ for a in actors:
     if isinstance(a, unreal.PlayerStart):
         a.set_actor_location(unreal.Vector(0, 0, 3500), False, False)
 
-# Rede de segurança: plano grande e invisível 5 m abaixo da peça mais baixa.
+# Safety net: large invisible plane 5 m below the lowest piece.
 floor = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(0, 0, min(zs) - 500), unreal.Rotator())
 floor.set_actor_label("ChaoSeguranca")
 floor.static_mesh_component.set_static_mesh(eal.load_asset("/Engine/BasicShapes/Plane"))
@@ -53,5 +53,5 @@ floor.set_actor_scale3d(unreal.Vector(600, 600, 1))
 floor.static_mesh_component.set_visibility(False)
 
 if not les.save_current_level():
-    raise RuntimeError("não consegui salvar o mapa")
-unreal.log(f"CIDADE ajustada: {MAP}")
+    raise RuntimeError("could not save the map")
+unreal.log(f"CITY fixed: {MAP}")

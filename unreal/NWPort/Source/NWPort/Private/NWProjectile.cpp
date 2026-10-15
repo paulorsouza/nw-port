@@ -64,7 +64,7 @@ void ANWProjectile::Setup(UNWCombatComponent* InOwnerCombat, FName InDamageID, U
 	bArrow = Params.Speed > 0.f;
 	if (bArrow)
 	{
-		// Flecha: velocidade da linha, sem gravidade até GravityDelay, raio da linha, aponta para onde voa.
+		// Arrow: row speed, no gravity until GravityDelay, row radius, points where it flies.
 		Speed = Params.Speed;
 		Movement->InitialSpeed = Speed;
 		Movement->MaxSpeed = Speed;
@@ -74,14 +74,14 @@ void ANWProjectile::Setup(UNWCombatComponent* InOwnerCombat, FName InDamageID, U
 		SpinDegreesPerSecond = 0.f;
 		if (Mesh)
 		{
-			// Eixo mais comprido da malha (o corpo da flecha) para a frente (X).
+			// Longest axis of the mesh (the arrow body) forward (X).
 			const FVector E = Mesh->GetBoundingBox().GetExtent();
 			Visual->SetRelativeRotation(E.Z >= E.X && E.Z >= E.Y ? FRotator(-90.f, 0.f, 0.f) : E.Y >= E.X ? FRotator(0.f, -90.f, 0.f) : FRotator::ZeroRotator);
 		}
 	}
 	else
 	{
-		// Lâmina para a frente: a malha da arma tem o cabo em -Y e a ponta em +Z (mesma correção da mão).
+		// Blade forward: the weapon mesh has the handle at -Y and the tip at +Z (same correction as the hand).
 		Visual->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));
 	}
 	SetLifeSpan(FMath::Max(Params.Range, 500.f) / Speed + 0.5f);
@@ -99,7 +99,7 @@ void ANWProjectile::OnRep_Mesh()
 void ANWProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-	// Efeito do jogo (rastro e cristal) no lugar da malha e do rastro simples; colisão e movimento seguem iguais.
+	// Game effect (trail and crystal) in place of the mesh and the simple trail; collision and movement stay the same.
 	UNiagaraSystem* Niagara = !FxPath.IsEmpty() && GetNetMode() != NM_DedicatedServer ? LoadObject<UNiagaraSystem>(nullptr, *FxPath) : nullptr;
 	if (Niagara)
 	{
@@ -113,7 +113,7 @@ void ANWProjectile::BeginPlay()
 	}
 	if (bArrow && !Niagara && GetNetMode() != NM_DedicatedServer)
 	{
-		// Rastro: cilindro fino e luminoso de 2,5 m atrás da flecha (eixo do cilindro = Z; deitado para trás).
+		// Trail: thin glowing 2.5 m cylinder behind the arrow (cylinder axis = Z; laid backwards).
 		Trail->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder")));
 		if (UMaterialInterface* Fx = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/NW/Materials/M_NW_FX.M_NW_FX")))
 		{
@@ -123,7 +123,7 @@ void ANWProjectile::BeginPlay()
 		Trail->SetRelativeLocation(FVector(-125.f, 0.f, 0.f));
 		Trail->SetRelativeScale3D(FVector(0.012f, 0.012f, 2.5f));
 		Trail->SetVisibility(true);
-		// Flecha maior que a malha do jogo, para ser vista em voo (o jogo tem o rastro de partícula).
+		// Arrow bigger than the game's mesh, to be seen in flight (the game has the particle trail).
 		Visual->SetRelativeScale3D(FVector(1.3f));
 	}
 	StartLocation = PrevLocation = GetActorLocation();
@@ -139,10 +139,10 @@ void ANWProjectile::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if (!bArrow)
 	{
-		// Gira em torno do eixo lateral, como uma machadinha arremessada.
+		// Spins around the lateral axis, like a thrown Hatchet.
 		Visual->AddLocalRotation(FRotator(0.f, 0.f, SpinDegreesPerSecond * DeltaSeconds));
 	}
-	// Flecha: reta até GravityDelay, depois gravidade cheia.
+	// Arrow: straight until GravityDelay, then full gravity.
 	if (bArrow && P.GravityDelay > 0.f && Movement->ProjectileGravityScale == 0.f
 		&& FVector::Dist(StartLocation, GetActorLocation()) >= P.GravityDelay)
 	{
@@ -153,8 +153,8 @@ void ANWProjectile::Tick(float DeltaSeconds)
 
 bool ANWProjectile::IsHeadHit(const AActor* Target) const
 {
-	// Volume da cabeça do jogo: esfera de 0,12 m no osso "hat". Mede a distância do osso ao trecho voado neste
-	// quadro (a sobreposição acontece na borda da cápsula, longe do centro da cabeça).
+	// The game's head volume: 0.12 m sphere on the "hat" bone. Measures the distance from the bone to the segment flown this
+	// frame (the overlap happens at the capsule's edge, far from the head center).
 	const ACharacter* Char = Cast<ACharacter>(Target);
 	const USkeletalMeshComponent* Mesh = Char ? Char->GetMesh() : nullptr;
 	if (!Mesh)
@@ -193,7 +193,7 @@ void ANWProjectile::OnOverlap(UPrimitiveComponent* Comp, AActor* Other, UPrimiti
 
 void ANWProjectile::OnStop(const FHitResult& Hit)
 {
-	// Bateu no cenário: explode / solta a nuvem e fica cravada um pouco.
+	// Hit the scenery: explodes / releases the cloud and stays stuck for a bit.
 	if (!bDone)
 	{
 		Impact(Hit.ImpactPoint);
@@ -210,7 +210,7 @@ void ANWProjectile::Impact(const FVector& At)
 	{
 		From->ExplodeAt(At, P.ExplodeRadius, P.ExplodeDamageID, nullptr);
 		ANWFxActor::Spawn(GetWorld(), ENWFx::Explosion, At, P.ExplodeRadius, 0.35f);
-		P.ExplodeRadius = 0.f;   // explode uma vez
+		P.ExplodeRadius = 0.f;   // explodes once
 	}
 	if (P.CloudRadius > 0.f)
 	{

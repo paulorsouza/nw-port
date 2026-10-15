@@ -23,7 +23,7 @@ FNWOptions& FNWOptions::Get()
 
 const TArray<FNWKeyAction>& FNWOptions::KeyActions()
 {
-	// Ordem e teclas do jogo (defaultprofile.xml: moveforward w, autorun equals, walk lctrl, dodge lshift,
+	// Order and keys from the game (defaultprofile.xml: moveforward w, autorun equals, walk lctrl, dodge lshift,
 	// ability1-3 q/r/f, quickslot-weapon1/2 1/2, quickslot-consumable-1 3, toggleInventoryWindow tab).
 	static TArray<FNWKeyAction> Actions = {
 		{TEXT("MoveForward"), TEXT("ui_movefoward"), EKeys::W},
@@ -47,7 +47,7 @@ const TArray<FNWKeyAction>& FNWOptions::KeyActions()
 		{TEXT("Map"), TEXT("ui_map"), EKeys::M},
 		{TEXT("Mastery"), TEXT("ui_mastery"), EKeys::K},
 	};
-	// Teclas das esteiras (NW_REGISTER_INPUT), depois das do jogo; montado na primeira chamada, já em execução.
+	// Area keys (NW_REGISTER_INPUT), after the game's; built on the first call, already at runtime.
 	static bool bRegistered = false;
 	if (!bRegistered)
 	{
@@ -81,7 +81,7 @@ void FNWOptions::SetKey(FName Id, const FKey& Key)
 		}
 	}
 	Keys.Add(Id, Key);
-	// Tecla igual à padrão não precisa ficar salva.
+	// A key equal to the default does not need to be saved.
 	for (const FNWKeyAction& A : KeyActions())
 	{
 		if (const FKey* K = Keys.Find(A.Id); K && *K == A.Default)
@@ -160,7 +160,7 @@ void FNWOptions::Save() const
 
 void FNWOptions::Apply(UWorld* World) const
 {
-	// Qualidade de vídeo = preset de escalabilidade da Unreal (sombras, texturas, efeitos, pós...).
+	// Video quality = Unreal scalability preset (shadows, textures, effects, post...).
 	Scalability::FQualityLevels Levels = Scalability::GetQualityLevels();
 	Levels.SetFromSingleQualityLevel(Quality);
 	Scalability::SetQualityLevels(Levels);
@@ -173,7 +173,7 @@ void FNWOptions::Apply(UWorld* World) const
 	};
 	SetCVar(TEXT("t.MaxFPS"), MaxFps);
 	SetCVar(TEXT("r.VSync"), bVSync ? 1 : 0);
-	// Brilho: gama do tonemapper de 1,8 a 2,8; no meio (0,5) fica 0 = curva sRGB padrão da Unreal.
+	// Brightness: tonemapper gamma from 1.8 to 2.8; in the middle (0.5) it is 0 = Unreal's default sRGB curve.
 	if (IConsoleVariable* Gamma = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TonemapperGamma")))
 	{
 		Gamma->Set(FMath::IsNearlyEqual(Brightness, 0.5f, 0.01f) ? 0.f : 1.8f + Brightness * 1.f, ECVF_SetByGameSetting);

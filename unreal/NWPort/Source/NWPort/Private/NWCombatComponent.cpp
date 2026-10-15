@@ -42,10 +42,10 @@
 #include "TimerManager.h"
 #include "HAL/IConsoleManager.h"
 
-// nw.DebugHits 1: desenha a varredura da lâmina (verde) e os acertos (vermelho/ciano) para ajustar a hitbox.
-// O jogo não treme a câmera em golpe normal de espada (só crítico); o tranco curto é um extra do port.
-static TAutoConsoleVariable<int32> CVarNWHitKick(TEXT("nw.HitKick"), 1, TEXT("Tranco extra na câmera ao acertar/apanhar (0 = só as tremidas do jogo)"));
-static TAutoConsoleVariable<int32> CVarNWDebugHits(TEXT("nw.DebugHits"), 0, TEXT("Desenha a hitbox da lâmina e os acertos"));
+// nw.DebugHits 1: draws the blade sweep (green) and the hits (red/cyan) to tune the hitbox.
+// The game does not shake the camera on a normal sword hit (only on crits); the short kick is a port extra.
+static TAutoConsoleVariable<int32> CVarNWHitKick(TEXT("nw.HitKick"), 1, TEXT("Extra camera kick when hitting/getting hit (0 = only the game's shakes)"));
+static TAutoConsoleVariable<int32> CVarNWDebugHits(TEXT("nw.DebugHits"), 0, TEXT("Draws the blade hitbox and the hits"));
 
 UNWCombatComponent::UNWCombatComponent()
 {
@@ -138,7 +138,7 @@ void UNWCombatComponent::SetMainWeapon(UPrimitiveComponent* Weapon)
 	{
 		return;
 	}
-	// Lâmina = maior eixo da caixa local da malha; a base fica na ponta mais perto da origem (a pega).
+	// Blade = longest axis of the mesh's local box; the base is the end closest to the origin (the grip).
 	const FBoxSphereBounds Local = Weapon->CalcBounds(FTransform::Identity);
 	const FVector Ext = Local.BoxExtent;
 	FVector Axis = FVector::XAxisVector;
@@ -163,9 +163,9 @@ bool UNWCombatComponent::BladeEnds(FVector& OutBase, FVector& OutTip) const
 	return true;
 }
 
-// ---------------------------------------------------------------- pedidos
+// ---------------------------------------------------------------- requests
 
-static TAutoConsoleVariable<int32> CVarDebugPrediction(TEXT("nw.DebugPrediction"), 0, TEXT("Registra ações previstas, confirmadas e recusadas."));
+static TAutoConsoleVariable<int32> CVarDebugPrediction(TEXT("nw.DebugPrediction"), 0, TEXT("Logs predicted, confirmed and rejected actions."));
 
 bool UNWCombatComponent::IsLocalOwner() const
 {
@@ -193,7 +193,7 @@ uint16 UNWCombatComponent::PredictAction(FName Action)
 	}
 	StateBeforePrediction = State;
 	ActionBeforePrediction = CurrentAction;
-	// Estado local igual ao que o servidor vai replicar; se ele recusar, ClientRejectPrediction desfaz.
+	// Local state equal to what the server will replicate; if it rejects, ClientRejectPrediction undoes it.
 	const FString Name = Action.ToString();
 	State = Name.StartsWith(TEXT("Dodge")) ? ENWCombatState::Dodging : Name.StartsWith(TEXT("Block")) ? ENWCombatState::Blocking : ENWCombatState::Attacking;
 	CurrentAction = Action;
@@ -203,7 +203,7 @@ uint16 UNWCombatComponent::PredictAction(FName Action)
 	PredictedAt = FPlatformTime::Seconds();
 	if (CVarDebugPrediction.GetValueOnGameThread())
 	{
-		UE_LOG(LogTemp, Display, TEXT("NW predição %u: %s"), Id, *Action.ToString());
+		UE_LOG(LogTemp, Display, TEXT("NW prediction %u: %s"), Id, *Action.ToString());
 	}
 	return Id;
 }
@@ -223,7 +223,7 @@ void UNWCombatComponent::ClientRejectPrediction_Implementation(uint16 Prediction
 	CurrentAction = ActionBeforePrediction;
 	if (CVarDebugPrediction.GetValueOnGameThread())
 	{
-		UE_LOG(LogTemp, Display, TEXT("NW predição %u recusada após %.0f ms"), PredictionId, (FPlatformTime::Seconds() - PredictedAt) * 1000.0);
+		UE_LOG(LogTemp, Display, TEXT("NW prediction %u rejected after %.0f ms"), PredictionId, (FPlatformTime::Seconds() - PredictedAt) * 1000.0);
 	}
 }
 
@@ -250,7 +250,7 @@ void UNWCombatComponent::AttackPressed()
 void UNWCombatComponent::AttackReleased()
 {
 	uint16 Id = 0;
-	// Soltou durante a carga prevista: prevê leve/pesado pelo tempo segurado (abaixo do carregado automático).
+	// Released during the predicted charge: predicts light/heavy from the hold time (below the automatic charged one).
 	if (!GetOwner()->HasAuthority() && IsLocalOwner() && !bAimWeapon && CurrentAction == ChargeAction && LocalChargeStart > 0.0)
 	{
 		const float Held = float(FPlatformTime::Seconds() - LocalChargeStart);
@@ -267,12 +267,12 @@ void UNWCombatComponent::AttackReleased()
 					Action = From->ComboNext;
 				}
 			}
-			// Da carga para o golpe não há janela a checar: só a linha e o vigor.
+			// From charge to strike there is no window to check: only the row and the stamina.
 			const FNWActionRow* Row = ActionTable ? ActionTable->FindRow<FNWActionRow>(Action, TEXT("release")) : nullptr;
 			if (Row && (Row->StaminaCost <= 0.f || Stamina > 0.f))
 			{
 				const ENWCombatState Saved = State;
-				State = ENWCombatState::Idle;   // CheckAction de dentro da carga recusaria
+				State = ENWCombatState::Idle;   // CheckAction from inside the charge would reject it
 				Id = PredictAction(Action);
 				if (!Id)
 				{
@@ -336,7 +336,7 @@ void UNWCombatComponent::ServerRequestAim_Implementation(bool bAim)
 	bAimClickBuffered = false;
 	if (bAim)
 	{
-		// Levanta o arco (ReadyWeapon, 0,433 s) e fica no loop de mira.
+		// Raises the bow (ReadyWeapon, 0.433 s) and stays in the aim loop.
 		if (State == ENWCombatState::Idle)
 		{
 			if (const FNWActionRow* Row = ActionTable ? ActionTable->FindRow<FNWActionRow>(TEXT("AimStart"), TEXT("aim"), false) : nullptr)
@@ -346,7 +346,7 @@ void UNWCombatComponent::ServerRequestAim_Implementation(bool bAim)
 		}
 		return;
 	}
-	// Soltou a mira: abaixa o arco (do tiro ou da mira) se nada mais estiver tocando.
+	// Aim released: lowers the bow (from the shot or the aim) if nothing else is playing.
 	if (IsCharging())
 	{
 		State = ENWCombatState::Idle;
@@ -383,7 +383,7 @@ void UNWCombatComponent::ServerRequestAction_Implementation(FName Action, uint16
 	{
 		if (State == ENWCombatState::Attacking)
 		{
-			// Fora da janela: guarda para quando CanTransition (ou CanDodgeCancel, na esquiva) ligar.
+			// Outside the window: buffered until CanTransition (or CanDodgeCancel, for the dodge) turns on.
 			BufferedAction = Action;
 		}
 		if (PredictionId)
@@ -400,7 +400,7 @@ void UNWCombatComponent::ServerAttackInput_Implementation(bool bPressed, uint16 
 	bool bStarted = false;
 	if (bAimWeapon && bPressed && !bAiming)
 	{
-		// Arco sem mira: tiro rápido no clique (BowAttack_Hipshot).
+		// Bow without aim: quick shot on click (BowAttack_Hipshot).
 		bStarted = TryStartAction(LightComboStart);
 		if (!bStarted && State == ENWCombatState::Attacking)
 		{
@@ -409,8 +409,8 @@ void UNWCombatComponent::ServerAttackInput_Implementation(bool bPressed, uint16 
 	}
 	else if (bAimWeapon && bPressed && bAiming)
 	{
-		// Mirando: segurar puxa (Charge_Bow); se ainda não pode (recarga, levantando o arco), o clique fica guardado e
-		// vira tiro sem carga quando Shoot_NoCharge_Bow abrir (Tick).
+		// Aiming: holding draws (Charge_Bow); if it cannot yet (reload, raising the bow), the click is buffered and
+		// becomes an uncharged shot when Shoot_NoCharge_Bow opens (Tick).
 		bStarted = TryStartCharge();
 		bAimClickBuffered = !bStarted;
 	}
@@ -424,7 +424,7 @@ void UNWCombatComponent::ServerAttackInput_Implementation(bool bPressed, uint16 
 	}
 	else if (bPressed)
 	{
-		// Fora da janela (meio de um golpe), a carga começa no Tick quando ela abrir, se o botão continuar apertado.
+		// Outside the window (mid-strike), the charge starts in Tick when it opens, if the button is still held.
 		bStarted = TryStartCharge();
 	}
 	else if (IsCharging())
@@ -450,7 +450,7 @@ void UNWCombatComponent::ServerAttackInput_Implementation(bool bPressed, uint16 
 
 bool UNWCombatComponent::TryStartCharge()
 {
-	// Soltar cedo continua a sequência da ação em curso (combo leve, Evadir → ataque, Brandir → Terminar).
+	// Releasing early continues the sequence of the current action (light combo, Evade → attack, Flourish → Finish).
 	const FName From = State == ENWCombatState::Attacking && !CurrentRow.ComboNext.IsNone() ? CurrentAction : NAME_None;
 	if (!TryStartAction(ChargeAction))
 	{
@@ -466,7 +466,7 @@ void UNWCombatComponent::ReleaseCharge()
 	const float Held = ServerNow() - ChargeStartedAt;
 	if (bAimWeapon)
 	{
-		// Arco: tiro normal antes da puxada cheia (0,5 s), carregado depois.
+		// Bow: normal shot before the full draw (0.5 s), charged after.
 		const FName Shot = Held < AimFullCharge ? FName(TEXT("AimShot")) : FName(TEXT("ChargedShot"));
 		if (const FNWActionRow* Row = ActionTable ? ActionTable->FindRow<FNWActionRow>(Shot, TEXT("release"), false) : nullptr)
 		{
@@ -477,7 +477,7 @@ void UNWCombatComponent::ReleaseCharge()
 	FName Action = TEXT("Heavy");
 	if (Held < HeavyMinHold)
 	{
-		// Toque: ataque leve, seguindo o combo que estava em curso.
+		// Tap: light attack, following the combo in progress.
 		Action = LightComboStart;
 		if (!ChargeComboFrom.IsNone())
 		{
@@ -563,7 +563,7 @@ const FNWActionRow* UNWCombatComponent::CheckAction(FName& Action) const
 	{
 		return nullptr;
 	}
-	// Evadir (rapieira): sai de qualquer ação, inclusive habilidades e a guarda.
+	// Evade (Rapier): leaves any action, including abilities and the guard.
 	if (Row->bCancelsAny && State != ENWCombatState::Stunned)
 	{
 		return Row;
@@ -577,8 +577,8 @@ const FNWActionRow* UNWCombatComponent::CheckAction(FName& Action) const
 	}
 	if (State == ENWCombatState::Attacking)
 	{
-		// Mesmas janelas do jogo: esquiva/bloqueio cancelam o ataque; ataque só encadeia em CanTransition.
-		// Janela própria da ação (a do jogo) ou a genérica de encadear.
+		// Same windows as the game: dodge/block cancel the attack; attack only chains on CanTransition.
+		// The action's own window (the game's) or the generic chaining one.
 		const bool bOpen = bDodge ? GetActionCurve(NWCurves::CanDodgeCancel) > 0.5f
 			: bBlock ? GetActionCurve(NWCurves::CanBlockCancel) > 0.5f && GetActionCurve(NWCurves::BlockDisabled) < 0.5f
 			: (!Row->TransitionCurve.IsNone() && GetActionCurve(Row->TransitionCurve) > 0.5f) || GetActionCurve(NWCurves::CanTransition) > 0.5f;
@@ -586,7 +586,7 @@ const FNWActionRow* UNWCombatComponent::CheckAction(FName& Action) const
 		{
 			return nullptr;
 		}
-		// Ataque leve repetido segue o combo.
+		// Repeated light attack follows the combo.
 		if (Action == LightComboStart && CurrentAction.ToString().StartsWith(TEXT("Light")))
 		{
 			const FNWActionRow* Cur = ActionTable->FindRow<FNWActionRow>(CurrentAction, TEXT("combo"));
@@ -606,14 +606,14 @@ const FNWActionRow* UNWCombatComponent::CheckAction(FName& Action) const
 	}
 	else if (State == ENWCombatState::Blocking && !bDodge)
 	{
-		// Do bloqueio só sai por esquiva ou soltando o botão.
+		// Blocking is only left by dodging or releasing the button.
 		return nullptr;
 	}
 	if (!Row || (Row->StaminaCost > 0.f && Stamina <= 0.f))
 	{
 		return nullptr;
 	}
-	// IfManaCost GreaterThanOrEqual (armas mágicas, docs/game/weapons/ice-gauntlet.md §2).
+	// IfManaCost GreaterThanOrEqual (magic weapons, docs/game/weapons/ice-gauntlet.md §2).
 	const UNWManaComponent* Mana = Row->ManaCost > 0.f ? GetOwner()->FindComponentByClass<UNWManaComponent>() : nullptr;
 	if (Mana && !Mana->CanPay(Row->ManaCost))
 	{
@@ -660,7 +660,7 @@ void UNWCombatComponent::StartAction(FName Action, const FNWActionRow& Row)
 	UAnimMontage* Montage = Row.Montage.LoadSynchronous();
 	if (!Montage)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NW: montagem ausente para %s"), *Action.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("NW: missing montage for %s"), *Action.ToString());
 		return;
 	}
 	if (Row.ManaCost > 0.f)
@@ -695,7 +695,7 @@ void UNWCombatComponent::StartAction(FName Action, const FNWActionRow& Row)
 	bGroundFired = false;
 	CounterUntil = Row.CounterSeconds > 0.f ? GetWorld()->GetTimeSeconds() + Row.CounterSeconds : CounterUntil;
 	ActionStartedAt = ServerNow();
-	// Chuva de Flechas: o ponto mirado é fixado no começo (raio da câmera até GroundRange, no chão).
+	// Rain of Arrows: the aimed point is fixed at the start (camera ray up to GroundRange, on the ground).
 	if (Row.GroundRadius > 0.f)
 	{
 		FVector ViewLoc;
@@ -718,7 +718,7 @@ void UNWCombatComponent::StartAction(FName Action, const FNWActionRow& Row)
 		{
 			GroundTarget = Hit.Location;
 		}
-		// Flechas caindo na área, chegando no momento do acerto.
+		// Arrows falling on the area, arriving at the moment of the hit.
 		ANWFxActor::Spawn(GetWorld(), ENWFx::ArrowRain, GroundTarget, Row.GroundRadius, FMath::Max(Row.GroundDelay, 0.3f));
 	}
 	if (Row.Cooldown > 0.f && !bNoCooldowns)
@@ -739,8 +739,8 @@ void UNWCombatComponent::StartAction(FName Action, const FNWActionRow& Row)
 	State = Name.StartsWith(TEXT("Dodge")) ? ENWCombatState::Dodging
 		: Name.StartsWith(TEXT("Block")) ? ENWCombatState::Blocking
 		: ENWCombatState::Attacking;
-	// Ação que encadeia nela mesma (canalizações da manopla: vento, tumba): a montagem gira sozinha até outra ação
-	// entrar. Recomeçar a mesma montagem interromperia a anterior, e a interrupção encerra a ação.
+	// Action that chains into itself (gauntlet channels: wind, tomb): the montage loops on its own until another action
+	// comes in. Restarting the same montage would interrupt the previous one, and the interruption ends the action.
 	if (Row.NextAction == Action)
 	{
 		MulticastPlayLoop(Montage);
@@ -756,14 +756,14 @@ void UNWCombatComponent::MulticastPlayMontage_Implementation(UAnimMontage* Monta
 	{
 		return;
 	}
-	// O dono já está tocando esta ação desde o clique: não recomeça.
+	// The owner has been playing this action since the click: do not restart.
 	if (PredictionId != 0 && PredictionId == PendingPrediction && IsLocalOwner() && !GetOwner()->HasAuthority())
 	{
 		PendingPrediction = 0;
 		if (CVarDebugPrediction.GetValueOnGameThread())
 		{
-			UE_LOG(LogTemp, Display, TEXT("NW predição %u confirmada após %.0f ms%s"), PredictionId, (FPlatformTime::Seconds() - PredictedAt) * 1000.0,
-				Anim->Montage_IsPlaying(Montage) ? TEXT("") : TEXT(" (servidor escolheu outra ação: corrigindo)"));
+			UE_LOG(LogTemp, Display, TEXT("NW prediction %u confirmed after %.0f ms%s"), PredictionId, (FPlatformTime::Seconds() - PredictedAt) * 1000.0,
+				Anim->Montage_IsPlaying(Montage) ? TEXT("") : TEXT(" (server chose another action: correcting)"));
 		}
 		if (Anim->Montage_IsPlaying(Montage))
 		{
@@ -803,15 +803,15 @@ void UNWCombatComponent::MulticastStopMontages_Implementation(float BlendOut)
 
 void UNWCombatComponent::HandleMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
 {
-	// Guarda levantada: o loop entra quando o "levantar" (ou a reação) começa a sair, em vez de depois
-	// que ele terminou de voltar para a pose base (o escudo descia e subia de novo).
+	// Guard up: the loop starts when the "raise" (or the reaction) starts blending out, instead of after
+	// it finished returning to the base pose (the shield went down and up again).
 	if (GetOwner()->HasAuthority() && !bInterrupted && Montage == CurrentMontage && State == ENWCombatState::Blocking)
 	{
 		PlayBlockIdle();
 		return;
 	}
-	// Encadeamentos começam quando a montagem começa a sair (não depois que ela terminou de voltar à pose base):
-	// tiro → recarga → mira, cair → levantar, postura → saída. Sem isso o arco baixava um instante entre eles.
+	// Chains start when the montage starts blending out (not after it finished returning to the base pose):
+	// shot → reload → aim, fall → get up, stance → exit. Without this the bow dropped for an instant between them.
 	if (!GetOwner()->HasAuthority() || bInterrupted || Montage != CurrentMontage)
 	{
 		return;
@@ -834,7 +834,7 @@ void UNWCombatComponent::HandleMontageEnded(UAnimMontage* Montage, bool bInterru
 	{
 		return;
 	}
-	// Guarda levantada: terminou o "levantar" ou a reação ao bloqueio e o botão continua pressionado.
+	// Guard up: the "raise" or the block reaction ended and the button is still held.
 	if (State == ENWCombatState::Blocking && !bInterrupted)
 	{
 		PlayBlockIdle();
@@ -844,7 +844,7 @@ void UNWCombatComponent::HandleMontageEnded(UAnimMontage* Montage, bool bInterru
 	{
 		return;
 	}
-	// Reação encadeada (cair → levantar).
+	// Chained reaction (fall → get up).
 	if (State == ENWCombatState::Stunned && !ReactionNext.IsNone())
 	{
 		const FName Next = ReactionNext;
@@ -863,7 +863,7 @@ void UNWCombatComponent::HandleMontageEnded(UAnimMontage* Montage, bool bInterru
 	}
 	if (State == ENWCombatState::Attacking || State == ENWCombatState::Dodging)
 	{
-		// Encadeamento da linha (tiro → recarga; postura do Ripostar → saída).
+		// Row chaining (shot → reload; Riposte stance → exit).
 		const FName Next = CurrentRow.NextAction;
 		State = ENWCombatState::Idle;
 		CurrentAction = NAME_None;
@@ -903,12 +903,12 @@ void UNWCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 		}
 		State = ENWCombatState::Idle;
 	}
-	// Regenera depois do atraso (gasto ou guarda solta); com a guarda levantada, na taxa de bloqueio.
+	// Regenerates after the delay (spend or guard released); with the guard up, at the blocking rate.
 	if (State != ENWCombatState::Dead && Now - FMath::Max(LastStaminaSpend, LastBlockRelease) > StaminaRegenDelay)
 	{
 		const float Rate = State == ENWCombatState::Blocking ? StaminaRegenBlocking : StaminaRegenPerSecond;
 		Stamina = FMath::Min(MaxStamina, Stamina + Rate * DeltaTime);
-		// Exausto até a barra encher (ação Exhausted do jogo).
+		// Exhausted until the bar fills (the game's Exhausted action).
 		if (bExhausted && Stamina >= MaxStamina)
 		{
 			bExhausted = false;
@@ -917,7 +917,7 @@ void UNWCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	TickStatuses(Now);
 	if (IsCharging() && !bAimWeapon && Now - ChargeStartedAt >= HeavyFullCharge)
 	{
-		// Carga cheia: o golpe sai sem esperar soltar (Test_AlwaysTrue no jogo).
+		// Full charge: the strike goes off without waiting for the release (Test_AlwaysTrue in the game).
 		if (const FNWActionRow* Row = ActionTable->FindRow<FNWActionRow>(TEXT("HeavyCharged"), TEXT("charged")))
 		{
 			StartAction(TEXT("HeavyCharged"), *Row);
@@ -925,8 +925,8 @@ void UNWCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	}
 	else if (bAimWeapon && bAiming && !IsCharging() && (bAttackHeld || bAimClickBuffered) && BufferedAction.IsNone())
 	{
-		// Arco mirando (Bow_AimChargeShoot do jogo): botão segurado puxa quando Charge_Bow abre (ou parado na mira);
-		// clique guardado atira sem carga quando Shoot_NoCharge_Bow abre.
+		// Bow aiming (the game's Bow_AimChargeShoot): a held button draws when Charge_Bow opens (or standing in aim);
+		// a buffered click shoots uncharged when Shoot_NoCharge_Bow opens.
 		const bool bIdle = State == ENWCombatState::Idle;
 		if (bAttackHeld && (bIdle || GetCurve(TEXT("Charge_Bow")) > 0.5f) && TryStartCharge())
 		{
@@ -943,7 +943,7 @@ void UNWCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	}
 	else if (bAimWeapon && !bAiming && bAttackHeld && BufferedAction.IsNone())
 	{
-		// Arco sem mira com o botão segurado: tiros rápidos seguidos (CanAttack_Bow_HipFire do jogo, em 1,0 s).
+		// Bow without aim with the button held: rapid consecutive shots (the game's CanAttack_Bow_HipFire, at 1.0 s).
 		TryStartAction(LightComboStart);
 	}
 	else if (bAttackHeld && !IsCharging() && State == ENWCombatState::Attacking && BufferedAction.IsNone())
@@ -960,7 +960,7 @@ void UNWCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	}
 	if (State == ENWCombatState::Attacking)
 	{
-		// Cada janela de dano que abre libera um novo acerto (ex.: o giratório tem duas).
+		// Each damage window that opens allows a new hit (e.g. the spin has two).
 		const bool bOpen = GetCurve(NWCurves::DamageWindow) > 0.5f || GetCurve(NWCurves::WeaponTrail) > 0.5f;
 		if (bOpen && !bDamageWindowWasOpen)
 		{
@@ -970,8 +970,8 @@ void UNWCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 		bDamageWindowWasOpen = bOpen;
 		if (CurrentRow.HitShape == ENWHitShape::Projectile)
 		{
-			// Disparos nos tempos da linha (FireTimes: arco, Tiro Rápido com 3); sem tempos, quando a janela de dano
-			// abre (ou, sem curva, logo no começo do golpe).
+			// Shots at the row's times (FireTimes: bow, Rapid Shot with 3); without times, when the damage window
+			// opens (or, without a curve, right at the start of the strike).
 			TArray<FString> Times, Ids;
 			CurrentRow.FireTimes.ParseIntoArray(Times, TEXT(";"));
 			CurrentRow.FireDamageIDs.ParseIntoArray(Ids, TEXT(";"));
@@ -995,7 +995,7 @@ void UNWCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 		}
 		else if (CurrentRow.GroundRadius > 0.f)
 		{
-			// Chuva de Flechas: um acerto na área do chão depois do atraso.
+			// Rain of Arrows: one hit in the ground area after the delay.
 			if (!bGroundFired && ServerNow() - ActionStartedAt >= CurrentRow.GroundDelay)
 			{
 				bGroundFired = true;
@@ -1035,7 +1035,7 @@ void UNWCombatComponent::SweepWeapon()
 		DrawDebugLine(GetWorld(), PrevTip, Tip, FColor::Green, false, 1.5f, 0, 1.f);
 		DrawDebugLine(GetWorld(), Base, Tip, FColor(80, 255, 80), false, 1.5f, 0, 2.f);
 	}
-	// Pontos ao longo da lâmina, cada um varrido da posição do quadro anterior até a atual.
+	// Points along the blade, each swept from its position in the previous frame to the current one.
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(NWBlade), false, GetOwner());
 	const int32 Samples = 5;
 	for (int32 i = 0; i < Samples; ++i)
@@ -1105,12 +1105,12 @@ void UNWCombatComponent::AreaHit()
 	}
 }
 
-// ---------------------------------------------------------------- dano
+// ---------------------------------------------------------------- damage
 
 void UNWCombatComponent::ResolveHit(UNWCombatComponent* Target, const FVector& ImpactPoint)
 {
 	const FNWActionRow* Action = ActionTable ? ActionTable->FindRow<FNWActionRow>(CurrentAction, TEXT("hit")) : nullptr;
-	// Golpe corpo a corpo com várias janelas e linhas diferentes (FireDamageIDs na ordem das janelas).
+	// Melee strike with several windows and different rows (FireDamageIDs in window order).
 	FName DamageID = Action ? Action->DamageID : NAME_None;
 	if (Action && !Action->FireDamageIDs.IsEmpty() && Action->HitShape != ENWHitShape::Projectile)
 	{
@@ -1139,10 +1139,10 @@ void UNWCombatComponent::ResolveHit(UNWCombatComponent* Target, const FVector& I
 	}
 	if (Result == ENWHitResult::Hit && Action && Target->State != ENWCombatState::Dead)
 	{
-		// Consumir antes de aplicar (Floreio e Finalização: consome o sangramento e não aplica de novo).
+		// Consume before applying (Flourish and Finish: consumes the bleed and does not apply it again).
 		if (!Action->ConsumeStatusID.IsNone())
 		{
-			// Terminar: consome as hemorragias e causa 110% do dano que elas ainda fariam.
+			// Finish: consumes the bleeds and deals 110% of the damage they would still deal.
 			const float Left = Target->ConsumeStatus(Action->ConsumeStatusID) * (1.f - Target->ArmorMitigation);
 			if (Left > 0.f && Action->ConsumeDamage > 0.f)
 			{
@@ -1171,7 +1171,7 @@ void UNWCombatComponent::SpawnProjectile(FName DamageID)
 	{
 		return;
 	}
-	// Jogador: mira pelo centro da câmera (ponto que o raio da câmera acerta, até o alcance); IA: frente do corpo.
+	// Player: aims through the camera center (point the camera ray hits, up to the range); AI: front of the body.
 	const float Range = CurrentRow.HitRange > 0.f ? CurrentRow.HitRange : 10000.f;
 	FVector Start = Pawn->GetActorLocation() + FVector(0.f, 0.f, 60.f) + Pawn->GetActorForwardVector() * 60.f;
 	FRotator Aim = Pawn->GetActorRotation();
@@ -1189,7 +1189,7 @@ void UNWCombatComponent::SpawnProjectile(FName DamageID)
 	}
 	else if (const ANWCharacter* Me = Cast<ANWCharacter>(Pawn); Me && Me->Brain && Me->Brain->GetTarget())
 	{
-		// IA: mira no peito do alvo.
+		// AI: aims at the target's chest.
 		Aim = (Me->Brain->GetTarget()->GetActorLocation() + FVector(0.f, 0.f, 40.f) - Start).Rotation();
 	}
 	const FTransform Where(Aim, Start);
@@ -1212,7 +1212,7 @@ void UNWCombatComponent::SpawnProjectile(FName DamageID)
 		Params.StatusDamage = WeaponBaseDamage * CurrentRow.StatusDamage;
 		Params.Range = Range;
 		Params.FxPath = CurrentRow.ProjectileFx;
-		// Arco: a malha é a flecha (o arco fica na mão); arremesso: a própria arma.
+		// Bow: the mesh is the arrow (the bow stays in hand); throw: the weapon itself.
 		UStaticMesh* Mesh = bAimWeapon ? LoadObject<UStaticMesh>(nullptr, TEXT("/Game/NW/sword_shield/Mesh/SM_arrow.SM_arrow"))
 			: (Weapon ? Weapon->GetStaticMesh().Get() : nullptr);
 		P->Setup(this, DamageID, Mesh, Params);
@@ -1247,7 +1247,7 @@ void UNWCombatComponent::ExplodeAt(const FVector& Point, float Radius, FName Dam
 
 void UNWCombatComponent::FireGround()
 {
-	// Área no chão (cilindro de GroundRadius): um acerto por alvo.
+	// Ground area (cylinder of GroundRadius): one hit per target.
 	TArray<FOverlapResult> Overlaps;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(NWGroundHit), false, GetOwner());
 	const float R = CurrentRow.GroundRadius;
@@ -1280,7 +1280,7 @@ void UNWCombatComponent::ProjectileHit(UNWCombatComponent* Target, FName DamageI
 	}
 	const FNWDamageRow* Damage = DamageTable ? DamageTable->FindRow<FNWDamageRow>(DamageID, TEXT("projectile")) : nullptr;
 	FNWDamageRow Fallback;
-	// Falloff: multiplicador de dano vindo do projétil (queda com a distância; hoje 1).
+	// Falloff: damage multiplier coming from the projectile (drop-off with distance; currently 1).
 	FNWDamageRow Scaled = Damage ? *Damage : Fallback;
 	Scaled.DmgCoef *= Falloff;
 	Damage = &Scaled;
@@ -1299,7 +1299,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 	{
 		return ENWHitResult::Ignored;
 	}
-	// Membros do mesmo grupo não se ferem.
+	// Members of the same group do not hurt each other.
 	const APawn* MePawn = Cast<APawn>(GetOwner());
 	const APawn* ByPawn = Attacker ? Cast<APawn>(Attacker->GetOwner()) : nullptr;
 	const ANWPlayerState* MePS = MePawn ? MePawn->GetPlayerState<ANWPlayerState>() : nullptr;
@@ -1315,7 +1315,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		OnHitTaken.Broadcast(0.f, ENWHitResult::Dodged, By);
 		return ENWHitResult::Dodged;
 	}
-	// Ripostar: na postura (Rapier_Riposte_Timer) não toma dano nem reage; contra-ataca quem bateu.
+	// Riposte: in the stance (Rapier_Riposte_Timer) takes no damage and does not react; counterattacks the attacker.
 	if (State == ENWCombatState::Attacking && GetWorld()->GetTimeSeconds() < CounterUntil && !CurrentRow.CounterAction.IsNone())
 	{
 		const FName Counter = CurrentRow.CounterAction;
@@ -1328,7 +1328,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		MulticastShowHit(0.f, ENWHitResult::Blocked, By->GetActorLocation(), bByCreature, false, By, NAME_None, NAME_None);
 		return ENWHitResult::Blocked;
 	}
-	// Atordoamento do Ripostar acaba no primeiro dano.
+	// Riposte stun ends on the first damage.
 	if (State == ENWCombatState::Stunned && bStunBreaksOnDamage)
 	{
 		StunUntil = 0.f;
@@ -1343,7 +1343,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 
 	if (State == ENWCombatState::Blocking && bInArc && !Damage.Unblockable)
 	{
-		// Perda = BlockStaminaDamage (arma de quem bate) × BlockStaminaDmgMod (golpe) × (1 − estabilidade), mínimo 10%.
+		// Loss = BlockStaminaDamage (attacker's weapon) × BlockStaminaDmgMod (strike) × (1 − stability), minimum 10%.
 		const float Mod = Damage.BlockStaminaDmgMod > 0.f ? Damage.BlockStaminaDmgMod : 1.f;
 		SpendStamina(Attacker->BlockStaminaDamage * Mod * FMath::Max(1.f - BlockStability / 100.f, 0.1f));
 		if (Stamina <= 0.f)
@@ -1355,7 +1355,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		}
 		if (const FNWActionRow* Row = ActionTable ? ActionTable->FindRow<FNWActionRow>(TEXT("BlockReact"), TEXT("block")) : nullptr)
 		{
-			// Vira a montagem corrente: quando acabar, HandleMontageEnded volta para a guarda em loop.
+			// Becomes the current montage: when it ends, HandleMontageEnded returns to the looping guard.
 			CurrentMontage = Row->Montage.LoadSynchronous();
 			MulticastPlayMontage(CurrentMontage, 1.f, 0, 0.f);
 		}
@@ -1364,7 +1364,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		return ENWHitResult::Blocked;
 	}
 
-	// Crítico: sorteio pela chance da arma ou golpe pelas costas (atacante a 135° ou mais da frente do alvo).
+	// Crit: roll on the weapon's chance, or backstab (attacker at 135° or more from the target's front).
 	const bool bBackstab = !Damage.NoBackstab && FrontDot <= FMath::Cos(FMath::DegreesToRadians(135.f));
 	const bool bCrit = bBackstab || (Attacker->CritChance > 0.f && FMath::FRand() < Attacker->CritChance);
 	float Coef = Damage.DmgCoef;
@@ -1377,7 +1377,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		Coef *= Damage.DmgCoefCrit > 0.f ? Damage.DmgCoefCrit : Attacker->CritDamageMultiplier;
 	}
 	OutDamage = Attacker->WeaponBaseDamage * Coef * (1.f - ArmorMitigation) * (1.f + Attacker->GetDamageBonus());
-	// Arma equipada: gear score escala o dano (ANWCharacter com inventário; NPCs ficam em 1).
+	// Equipped weapon: gear score scales the damage (ANWCharacter with inventory; NPCs stay at 1).
 	if (const ANWCharacter* ByChar = Cast<ANWCharacter>(By); ByChar && ByChar->Inventory && ByChar->WeaponSets.IsValidIndex(ByChar->ActiveWeapon))
 	{
 		OutDamage *= ByChar->Inventory->DamageMultiplier(ByChar->WeaponSets[ByChar->ActiveWeapon].Id);
@@ -1401,7 +1401,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 		return ENWHitResult::Hit;
 	}
 
-	// Reação (§4): PowerLevel é a categoria da reação, não força contra poise.
+	// Reaction (§4): PowerLevel is the reaction category, not force against poise.
 	auto Pick = [bCrit, bTargetAI](float Normal, float AI, float Crit) { return bCrit && Crit > 0.f ? Crit : bTargetAI && AI > 0.f ? AI : Normal; };
 	const float PL = Pick(Damage.PowerLevel, Damage.PowerLevel_AI, Damage.CritPowerLevel);
 	const float Stun = Pick(Damage.HitStun, Damage.HitStun_AI, Damage.CritHitStun);
@@ -1409,13 +1409,13 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 	bool bReact = GetCurve(NWCurves::Grit) < 0.5f;
 	if (bReact && !bTargetAI)
 	{
-		// Jogador: PL 0 só estremece; 1 a 3 interrompe; 4 ou mais derruba.
+		// Player: PL 0 only flinches; 1 to 3 interrupts; 4 or more knocks down.
 		bReact = PL >= 1.f;
 	}
 	else if (bReact)
 	{
-		// IA: reage a tudo, salvo stagger resistido (dano de stagger < resistência do corpo, que no meio de um ataque
-		// vale × StaggerResistModifier da linha dele) e o limitador de 2 s depois de uma reação (golpes leves).
+		// AI: reacts to everything, except resisted stagger (stagger damage < body resistance, which mid-attack
+		// is × the StaggerResistModifier of its row) and the 2 s limiter after a reaction (light strikes).
 		const float StaggerDmg = Attacker->BaseStaggerDamage * (Damage.StaggerDmgModifier > 0.f ? Damage.StaggerDmgModifier : 1.f) * (bCrit ? 1.5f : 1.f);
 		float Resist = StaggerResistRating;
 		if (State == ENWCombatState::Attacking && DamageTable && !CurrentRow.DamageID.IsNone())
@@ -1431,8 +1431,8 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 	float ReactionSeconds = 0.f;
 	if (bReact)
 	{
-		// Animação pela categoria (tabela de reação do jogo): R1 leve, R2, R3 forte, R4 cai e levanta. Quem não tem a
-		// animação daquela categoria (Lost, bichos) usa a R2.
+		// Animation by category (the game's reaction table): R1 light, R2, R3 heavy, R4 falls and gets up. Whoever lacks the
+		// animation for that category (Lost, beasts) uses R2.
 		const TCHAR* Prefix = PL >= 4.f ? TEXT("Down_") : PL >= 3.f ? TEXT("Hit3_") : PL >= 2.f ? TEXT("Hit_") : TEXT("Hit1_");
 		FName Reaction = DirectionalAction(Prefix, ToAttacker);
 		if (!ActionTable || !ActionTable->FindRow<FNWActionRow>(Reaction, TEXT("reaction"), false))
@@ -1445,8 +1445,8 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 			ReactionLimiterUntil = Now + 2.f;
 		}
 	}
-	// Empurrão (§2): para trás (Y) e para o lado de quem bate (X); com reação segue a curva do jogo até o fim da
-	// reação, sem reação é o "Pushable" do jogo (velocidade constante por 0,4 s).
+	// Push (§2): backwards (Y) and to the attacker's side (X); with a reaction it follows the game's curve until the end of
+	// the reaction, without a reaction it is the game's "Pushable" (constant speed for 0.4 s).
 	const float Back = Pick(Damage.ImpactDistance, Damage.ImpactDistance_AI, Damage.CritImpactDistance);
 	const FVector Dir = Away * Back + Right * Damage.ImpactDistanceX;
 	if (!Dir.IsNearlyZero())
@@ -1458,7 +1458,7 @@ ENWHitResult UNWCombatComponent::ReceiveHit(UNWCombatComponent* Attacker, const 
 
 namespace
 {
-	// Força do empurrão no tempo normalizado (0..1) do root motion: e^(−K·x·T) = r^(30·t).
+	// Push strength over the normalized time (0..1) of the root motion: e^(−K·x·T) = r^(30·t).
 	UCurveFloat* DecayCurve(float K, float Seconds)
 	{
 		static TMap<FIntPoint, TObjectPtr<UCurveFloat>> Cache;
@@ -1488,7 +1488,7 @@ void UNWCombatComponent::Push(const FVector& Dir, float Meters, float DecayRate,
 	{
 		return;
 	}
-	// Root motion colado ao chão (LaunchCharacter punha o alvo "caindo", sem atrito: em descida ele voava longe).
+	// Root motion glued to the ground (LaunchCharacter left the target "falling", without friction: on slopes it flew far).
 	const float Fps = float(FNWRules::Num(TEXT("combate.quadros_por_s"), 30.0));
 	TSharedPtr<FRootMotionSource_ConstantForce> P = MakeShared<FRootMotionSource_ConstantForce>();
 	P->InstanceName = TEXT("NWKnockback");
@@ -1504,13 +1504,13 @@ void UNWCombatComponent::Push(const FVector& Dir, float Meters, float DecayRate,
 	}
 	else if (R <= 0.001f || R >= 0.999f || ReactionSeconds <= 0.f)
 	{
-		// combate.empurrao_curva: r ≈ 0, r ≈ 1 ou sem duração, o empurrão inteiro num quadro.
+		// combate.empurrao_curva: r ≈ 0, r ≈ 1 or no duration, the whole push in one frame.
 		P->Duration = 1.f / Fps;
 		P->Force = Dir * (Meters * 100.f * Fps);
 	}
 	else
 	{
-		// combate.empurrao_curva: s(t) = D·(1 − r^(30t)) até o fim da reação; v(t) = D·K·e^(−K·t), K = −30·ln r.
+		// combate.empurrao_curva: s(t) = D·(1 − r^(30t)) until the end of the reaction; v(t) = D·K·e^(−K·t), K = −30·ln r.
 		const float K = -FMath::Loge(R) * Fps;
 		P->Duration = ReactionSeconds;
 		P->Force = Dir * (Meters * 100.f * K);
@@ -1564,11 +1564,11 @@ void UNWCombatComponent::PlayReaction(FName Action, float StunSeconds)
 	{
 		CurrentMontage = Row->Montage.LoadSynchronous();
 		MulticastPlayMontage(CurrentMontage, 1.f, 0, 0.f);
-		// Queda (R4): fica no chão até o levantar terminar.
+		// Knockdown (R4): stays on the ground until the get-up ends.
 		ReactionNext = Row->NextAction;
 		if (!ReactionNext.IsNone() && CurrentMontage)
 		{
-			// +0,3 s: o fim da montagem (que chama o levantar) chega antes de o atordoamento acabar.
+			// +0.3 s: the end of the montage (which calls the get-up) arrives before the stun ends.
 			StunUntil = FMath::Max(StunUntil, GetWorld()->GetTimeSeconds() + CurrentMontage->GetPlayLength() / FMath::Max(CurrentMontage->RateScale, 0.01f) + 0.3f);
 		}
 	}
@@ -1576,8 +1576,8 @@ void UNWCombatComponent::PlayReaction(FName Action, float StunSeconds)
 
 float UNWCombatComponent::PlayHitReaction(FName Action, float HitStun, float ExtraSeconds)
 {
-	// combate.reacao_duracao: a reação dura o início do procclip HitStun (HitStunStart, do .adb) + HitStun/30; o resto
-	// da montagem toca no ritmo que termina junto, se a montagem não tiver velocidade própria.
+	// combate.reacao_duracao: the reaction lasts the start of the HitStun procclip (HitStunStart, from the .adb) + HitStun/30;
+	// the rest of the montage plays at the rate that makes it end together, if the montage has no speed of its own.
 	const FNWActionRow* Row = ActionTable ? ActionTable->FindRow<FNWActionRow>(Action, TEXT("reaction"), false) : nullptr;
 	const float Start = Row ? Row->HitStunStart : 0.f;
 	const float Fps = float(FNWRules::Num(TEXT("combate.quadros_por_s"), 30.0));
@@ -1612,7 +1612,7 @@ void UNWCombatComponent::MulticastSetMontageRate_Implementation(UAnimMontage* Mo
 
 FName UNWCombatComponent::DirectionalAction(const TCHAR* Prefix, const FVector& WorldDir) const
 {
-	// WorldDir aponta do personagem para a origem do golpe.
+	// WorldDir points from the character to the origin of the strike.
 	const FVector Local = GetOwner()->GetActorTransform().InverseTransformVectorNoScale(WorldDir);
 	const TCHAR* Side = FMath::Abs(Local.X) >= FMath::Abs(Local.Y) ? (Local.X >= 0 ? TEXT("F") : TEXT("B")) : (Local.Y >= 0 ? TEXT("R") : TEXT("L"));
 	return FName(FString(Prefix) + Side);
@@ -1622,7 +1622,7 @@ void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitRes
 	bool bCrit, AActor* By, FName ByShake, FName TargetShake)
 {
 	bLastHitByCreature = bByCreature;
-	// Tremidas da tabela de dano, cada uma na câmera de quem é local.
+	// Shakes from the damage table, each on the camera of whoever is local.
 	if (ANWCharacter* Me = Cast<ANWCharacter>(GetOwner()); Me && Me->IsLocallyControlled() && !TargetShake.IsNone())
 	{
 		Me->PlayCameraShake(TargetShake);
@@ -1631,7 +1631,7 @@ void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitRes
 	{
 		Hitter->PlayCameraShake(ByShake);
 	}
-	// Número de dano na HUD do jogador local (como o damagenumbers do jogo); servidor dedicado não desenha.
+	// Damage number on the local player's HUD (like the game's damagenumbers); a dedicated server does not draw.
 	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
 	ANWHUD* HUD = PC ? Cast<ANWHUD>(PC->GetHUD()) : nullptr;
 	if (!HUD)
@@ -1639,12 +1639,12 @@ void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitRes
 		return;
 	}
 	const FVector At = GetOwner()->GetActorLocation() + FVector(0, 0, 110);
-	// Dano em mim: vermelho; dano que eu ou outros causam: claro; bloqueio e esquiva: texto do port.
+	// Damage to me: red; damage I or others deal: light; block and dodge: port text.
 	const bool bMe = GetOwner() == PC->GetPawn();
 	if (bMe && (Result == ENWHitResult::Hit || Result == ENWHitResult::BlockBroken))
 	{
 		HUD->AddHitIndicator(From, MaxHealth > 0.f ? Damage / MaxHealth : 0.f);
-		// Extra do port (nw.HitKick 0 desliga): tranco na câmera proporcional ao dano (10% da vida = 1).
+		// Port extra (nw.HitKick 0 disables it): camera kick proportional to the damage (10% of health = 1).
 		if (ANWCharacter* Me = Cast<ANWCharacter>(GetOwner()); Me && CVarNWHitKick.GetValueOnGameThread() != 0)
 		{
 			Me->AddCameraKick(FMath::Clamp(0.5f + (MaxHealth > 0.f ? 5.f * Damage / MaxHealth : 0.f), 0.5f, 1.5f));
@@ -1653,7 +1653,7 @@ void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitRes
 	switch (Result)
 	{
 	case ENWHitResult::Hit:
-		// Crítico: dourado e grande.
+		// Crit: gold and large.
 		HUD->AddDamageNumber(At, FString::Printf(TEXT("%.0f"), Damage), bMe ? FLinearColor(FColor(0xFF, 0x5A, 0x4A))
 			: bCrit ? FLinearColor(FColor(0xED, 0xC6, 0x3E)) : FLinearColor(FColor(0xF2, 0xEC, 0xDF)), bCrit || Damage >= 150.f);
 		break;
@@ -1667,12 +1667,12 @@ void UNWCombatComponent::MulticastShowHit_Implementation(float Damage, ENWHitRes
 void UNWCombatComponent::MulticastHitStop_Implementation(AActor* Other, float Seconds)
 {
 	AActor* Self = GetOwner();
-	// Extra do port (nw.HitKick): quem acertou sente o golpe também, tranco leve na câmera do jogador local.
+	// Port extra (nw.HitKick): the attacker feels the hit too, a light kick on the local player's camera.
 	if (ANWCharacter* Me = Cast<ANWCharacter>(Self); Me && Me->IsLocallyControlled() && CVarNWHitKick.GetValueOnGameThread() != 0)
 	{
 		Me->AddCameraKick(0.35f);
 	}
-	// combate.hit_stop_s: 0 no jogo, sem pausa.
+	// combate.hit_stop_s: 0 in the game, no pause.
 	if (Seconds <= 0.f)
 	{
 		return;
@@ -1682,7 +1682,7 @@ void UNWCombatComponent::MulticastHitStop_Implementation(AActor* Other, float Se
 	{
 		Other->CustomTimeDilation = HitStopDilation;
 	}
-	// O timer usa o tempo do mundo, que não é afetado pela dilatação do ator.
+	// The timer uses world time, which is not affected by the actor's dilation.
 	TWeakObjectPtr<AActor> WeakSelf(Self), WeakOther(Other);
 	GetWorld()->GetTimerManager().SetTimer(HitStopTimer, [WeakSelf, WeakOther]()
 	{
@@ -1706,7 +1706,7 @@ void UNWCombatComponent::ApplyStatus(FName Id, float Seconds, float Tick, float 
 		S->Stacks = 0;
 		S->NextTick = Now + Tick;
 	}
-	// Reaplicar renova a duração e soma um acúmulo até o máximo.
+	// Reapplying renews the duration and adds a stack, up to the maximum.
 	S->Stacks = FMath::Clamp(S->Stacks + 1, 1, FMath::Max(1, MaxStacks));
 	S->EndTime = Now + Seconds;
 	S->Tick = Tick;
@@ -1723,7 +1723,7 @@ int32 UNWCombatComponent::GetStatusStacks(FName Id) const
 
 float UNWCombatComponent::ConsumeStatus(FName Id)
 {
-	// Dano que o status ainda causaria: acúmulos × dano por tique × tiques restantes.
+	// Damage the status would still deal: stacks × damage per tick × remaining ticks.
 	float Remaining = 0.f;
 	if (const FNWStatus* S = Statuses.FindByPredicate([Id](const FNWStatus& X) { return X.Id == Id; }); S && S->Tick > 0.f)
 	{
@@ -1749,7 +1749,7 @@ void UNWCombatComponent::TickStatuses(float Now)
 	for (int32 i = Statuses.Num() - 1; i >= 0; --i)
 	{
 		FNWStatus& S = Statuses[i];
-		// Dano por tique (sangramento, veneno): sem reação, número na cor do status.
+		// Damage per tick (bleed, poison): no reaction, number in the status color.
 		if (S.Tick > 0.f && S.DamagePerStack > 0.f && Now >= S.NextTick && State != ENWCombatState::Dead)
 		{
 			S.NextTick += S.Tick;
@@ -1795,7 +1795,7 @@ static FString KillerName(const AActor* Killer)
 	}
 	if (const ANWCreature* Creature = Cast<ANWCreature>(Killer); Creature && Creature->Def())
 	{
-		return TEXT("#") + Creature->Def()->NameKey;   // nome do jogo, traduzido no cliente (NWText::Resolve)
+		return TEXT("#") + Creature->Def()->NameKey;   // game name, translated on the client (NWText::Resolve)
 	}
 	if (Killer && Killer->GetClass()->GetName().Contains(TEXT("Lost")))
 	{
@@ -1809,8 +1809,8 @@ void UNWCombatComponent::Die(AActor* Killer)
 	Statuses.Reset();
 	KilledBy = KillerName(Killer);
 	State = ENWCombatState::Dead;
-	FNWEvents::Get().OnKill.Broadcast(Killer, GetOwner());   // tutoriais de nível (esteira 4, NWEvents.h)
-	// Lost morto por jogador: saque para quem matou (e o grupo).
+	FNWEvents::Get().OnKill.Broadcast(Killer, GetOwner());   // level tutorials (area 4, NWEvents.h)
+	// Lost killed by a player: loot for the killer (and the group).
 	if (GetOwner()->GetClass()->GetName().Contains(TEXT("Lost")))
 	{
 		if (ANWGameMode* GM = GetWorld()->GetAuthGameMode<ANWGameMode>())
@@ -1818,7 +1818,7 @@ void UNWCombatComponent::Die(AActor* Killer)
 			GM->GrantLoot(Cast<APawn>(Killer), GetOwner(), TEXT("lost"));
 		}
 	}
-	// Morto não anda (o modo de movimento é replicado: vale no cliente também).
+	// The dead do not walk (the movement mode is replicated: applies on the client too).
 	if (ACharacter* Char = Cast<ACharacter>(GetOwner()))
 	{
 		Char->GetCharacterMovement()->DisableMovement();
@@ -1833,7 +1833,7 @@ void UNWCombatComponent::Die(AActor* Killer)
 	const APawn* Pawn = Cast<APawn>(GetOwner());
 	if (Pawn && Pawn->IsPlayerControlled())
 	{
-		RespawnAt = ServerNow() + RespawnDelay;   // o jogador escolhe quando, pela tela de morte
+		RespawnAt = ServerNow() + RespawnDelay;   // the player chooses when, through the death screen
 		return;
 	}
 	GetWorld()->GetTimerManager().SetTimer(RespawnTimer, this, &UNWCombatComponent::Respawn, RespawnDelay, false);
@@ -1845,7 +1845,7 @@ void UNWCombatComponent::ServerRequestRespawn_Implementation()
 	{
 		return;
 	}
-	// Jogador renasce no ponto de partida do mapa (o assentamento), não onde morreu.
+	// The player respawns at the map's starting point (the settlement), not where they died.
 	APawn* Pawn = Cast<APawn>(GetOwner());
 	AGameModeBase* GM = GetWorld()->GetAuthGameMode();
 	if (const AActor* Start = (Pawn && GM) ? GM->FindPlayerStart(Pawn->GetController()) : nullptr)

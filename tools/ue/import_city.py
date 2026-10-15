@@ -1,8 +1,8 @@
-"""Importa uma cidade (glb do `nwbt models slices`) num mapa próprio, com colisão, luz e ponto de partida.
+"""Imports a city (glb from `nwbt models slices`) into its own map, with collision, light and a start point.
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_city.py <cidade.glb> <Nome>"
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_city.py <city.glb> <Name>"
 
-Cria /Game/NW/Cities/<Nome>/ (malhas, materiais, texturas) e /Game/NW/Maps/L_<Nome>.
+Creates /Game/NW/Cities/<Name>/ (meshes, materials, textures) and /Game/NW/Maps/L_<Name>.
 """
 import sys
 import time
@@ -23,7 +23,7 @@ if eal.does_asset_exist(MAP):
     les.load_level(MAP)
     eas.destroy_actors(eas.get_all_level_actors())
 elif not les.new_level(MAP):
-    raise RuntimeError(f"não consegui criar {MAP}")
+    raise RuntimeError(f"could not create {MAP}")
 
 im = unreal.InterchangeManager.get_interchange_manager_scripted()
 src = unreal.InterchangeManager.create_source_data(GLB)
@@ -32,18 +32,18 @@ params.is_automated = True
 params.replace_existing = True
 ok = im.import_scene(CONTENT, src, params)
 actors = [a for a in eas.get_all_level_actors() if isinstance(a, unreal.StaticMeshActor)]
-unreal.log(f"CIDADE import_scene={ok} atores={len(actors)} em {time.time() - t0:.0f}s")
+unreal.log(f"CITY import_scene={ok} actors={len(actors)} in {time.time() - t0:.0f}s")
 
-# Colisão por triângulo em todas as malhas: dá para andar em ruas, escadas e telhados.
+# Per-triangle collision on all meshes: you can walk on streets, stairs and roofs.
 meshes = [eal.load_asset(p) for p in eal.list_assets(CONTENT, recursive=True)]
 meshes = [m for m in meshes if isinstance(m, unreal.StaticMesh)]
 for m in meshes:
     bs = m.get_editor_property("body_setup")
     if bs:
         bs.set_editor_property("collision_trace_flag", unreal.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
-unreal.log(f"CIDADE colisão em {len(meshes)} malhas")
+unreal.log(f"CITY collision on {len(meshes)} meshes")
 
-# Luz, céu e ponto de partida. Os atores da cidade não vêm com rotação de 180°, mas uso nomes no Rotator.
+# Light, sky and start point. The city actors do not come with a 180° rotation, but I use names in the Rotator.
 def spawn(cls, loc, rot=(0, 0, 0), label=None):
     a = eas.spawn_actor_from_class(cls, unreal.Vector(*loc), unreal.Rotator())
     a.set_actor_rotation(unreal.Rotator(pitch=rot[0], yaw=rot[1], roll=rot[2]), False)
@@ -59,11 +59,11 @@ spawn(unreal.SkyAtmosphere, (0, 0, 0), label="Ceu")
 sky = spawn(unreal.SkyLight, (0, 0, 5000), label="LuzDoCeu")
 sky.light_component.set_editor_property("real_time_capture", True)
 spawn(unreal.ExponentialHeightFog, (0, 0, 0), label="Neblina")
-# Começa acima do centro e cai no que houver embaixo (rua, praça ou telhado).
+# Starts above the center and falls onto whatever is below (street, plaza or roof).
 spawn(unreal.PlayerStart, (0, 0, 8000), label="Inicio")
 
 for p in eal.list_assets(CONTENT, recursive=True):
     eal.save_asset(p, only_if_is_dirty=True)
 if not les.save_current_level():
-    raise RuntimeError("não consegui salvar o mapa")
-unreal.log(f"CIDADE pronta: {MAP} em {time.time() - t0:.0f}s")
+    raise RuntimeError("could not save the map")
+unreal.log(f"CITY ready: {MAP} in {time.time() - t0:.0f}s")

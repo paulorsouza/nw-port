@@ -1,10 +1,10 @@
-"""Colunas que os parsers de datasheet do NewWorld.exe leem → re-local/colunas.json (usado por tools/re_check.py).
+"""Columns that the NewWorld.exe datasheet parsers read → re-local/colunas.json (used by tools/re_check.py).
 
     python3 -I tools/re/colunas.py
 
-Lista as strings que cada parser carrega (lea com rip) e fica com as que parecem nome de coluna. Variantes _AI e
-X/Y/Z não aparecem como string: o parser monta o nome com sufixo (ex.: "ImpactDistance" lê ImpactDistanceX/Y/Z).
-Para outro datasheet, achar o parser pela string de uma coluna (xref.py str "Coluna") e gravar em re-local/enderecos.json ("colunas": {datasheet: endereço}).
+Lists the strings each parser loads (rip-relative lea) and keeps the ones that look like column names. _AI and X/Y/Z
+variants do not appear as strings: the parser builds the name with a suffix (e.g. "ImpactDistance" reads ImpactDistanceX/Y/Z).
+For another datasheet, find the parser by a column's string (xref.py str "Column") and write it to re-local/enderecos.json ("colunas": {datasheet: address}).
 """
 import json
 import os
@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import xref  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# datasheet → início do parser de linha (re-local/enderecos.json, build de tools/jogo.versao).
+# datasheet → start of the row parser (re-local/enderecos.json, build from tools/jogo.versao).
 PARSERS = {k: int(v, 16) for k, v in xref.local_addresses().get("colunas", {}).items()}
 NOT_COLUMNS = {"Default", "none"}
 
@@ -39,7 +39,7 @@ def main():
     os.makedirs(os.path.dirname(path), exist_ok=True)
     json.dump(res, open(path, "w"), indent=1)
     for name, r in res.items():
-        print(f"{name}: {len(r['colunas'])} colunas ({r['parser']})")
+        print(f"{name}: {len(r['colunas'])} columns ({r['parser']})")
 
 
 if __name__ == "__main__":

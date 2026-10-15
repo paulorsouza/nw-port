@@ -29,7 +29,7 @@ int32 FNWRecipe::XpFor(int32 Count, bool bFirst) const
 		Units += I.Qty;
 	}
 	const double Base = double(Xp) * Units * Count;
-	// craftingstatspanel.lua: base + floor(base × (mult − 1)) quando a conquista de primeira confecção não foi obtida.
+	// craftingstatspanel.lua: base + floor(base × (mult − 1)) when the first-craft achievement has not been earned.
 	const bool bBonus = bFirst && bFirstCraft && FNWRules::Num(TEXT("crafting.primeira_confeccao_ativa"), 1.0) > 0.0;
 	const double Mult = bBonus ? FNWRules::Num(TEXT("crafting.primeira_confeccao_xp_mult"), 3.0) : 1.0;
 	return int32(Base + FMath::FloorToDouble(Base * (Mult - 1.0)));
@@ -48,7 +48,7 @@ FNWCrafting::FNWCrafting()
 	const FString File = FPaths::ProjectDir() / TEXT("Data/Crafting/refining.json");
 	if (!FFileHelper::LoadFileToString(Raw, *File) || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Raw), Root) || !Root.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Refino: não li %s"), *File);
+		UE_LOG(LogTemp, Warning, TEXT("Refining: could not read %s"), *File);
 		return;
 	}
 	for (const TSharedPtr<FJsonValue>& V : Root->GetArrayField(TEXT("stations")))
@@ -203,8 +203,8 @@ FName FNWCrafting::ChosenFor(const UNWInventoryComponent* Inv, const FNWRecipe::
 
 float FNWCrafting::BonusChance(const FNWRecipe& R, int32 RollBonus, const TArray<FName>& Chosen) const
 {
-	// crafting.bonus_chance (C): max(0, f + roll * 0,0001). f = BonusItemChance + ajuste de tier dos
-	// reagentes de categoria contra o tier do ingrediente 0 (crafting.bonus_tier_ajuste).
+	// crafting.bonus_chance (C): max(0, f + roll * 0.0001). f = BonusItemChance + tier adjustment of the
+	// category reagents against the tier of ingredient 0 (crafting.bonus_tier_ajuste).
 	float F = R.Bonus;
 	auto TierOf = [](FName Id) { const FNWItemDef* D = FNWItemCatalog::Get().Find(Id); return D ? D->Tier : 0; };
 	if (R.Ingredients.Num() > 0 && Chosen.Num() == R.Ingredients.Num() && R.BonusInc.Num() > 0)
@@ -259,13 +259,13 @@ FString FNWCrafting::Refine(ANWCharacter* Who, const FString& StationType, FName
 	{
 		return TEXT("nw.craft.missing");
 	}
-	// Item extra: chance calculada antes de gastar (os reagentes escolhidos são os que o refino vai usar).
+	// Extra item: chance computed before spending (the chosen reagents are the ones the refining will use).
 	TArray<FName> Chosen;
 	for (const FNWRecipe::FIngredient& I : R->Ingredients)
 	{
 		Chosen.Add(ChosenFor(Who->Inventory, I));
 	}
-	// Cidade da mesa (governança): imposto sobre os ingredientes e buffs da semana (item extra, XP).
+	// Station's city (governance): tax on the ingredients and the week's buffs (extra item, XP).
 	const FString Region = NWCity::RegionOf(Station->City);
 	NWCity::RefreshIfOld(Who->GetWorld(), Region);
 	const FNWCityState* City = Region.IsEmpty() ? nullptr : NWCity::Cached(Region);
@@ -288,7 +288,7 @@ FString FNWCrafting::Refine(ANWCharacter* Who, const FString& StationType, FName
 	int32 Extra = 0;
 	for (int32 i = 0; i < Count; ++i)
 	{
-		// crafting.bonus_extra_qtd (H, servidor): floor(chance) garantidos + 1 com a parte fracionária.
+		// crafting.bonus_extra_qtd (H, server): floor(chance) guaranteed + 1 with the fractional part.
 		Extra += FMath::FloorToInt(Chance) + (FMath::FRand() < FMath::Frac(Chance) ? 1 : 0);
 	}
 	for (const FNWRecipe::FIngredient& I : R->Ingredients)
@@ -299,7 +299,7 @@ FString FNWCrafting::Refine(ANWCharacter* Who, const FString& StationType, FName
 			Who->Inventory->Take(I.Id, Need);
 			continue;
 		}
-		// Categoria: gasta primeiro o item de que se tem mais.
+		// Category: spends first the item the player has most of.
 		TArray<FName> Members = Category(I.Id);
 		Members.Sort([Inv = Who->Inventory.Get()](FName A, FName B) { return Inv->CountOf(A) > Inv->CountOf(B); });
 		for (FName M : Members)
@@ -394,7 +394,7 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 	const FNWItemRules& Rules = FNWItemRules::Get();
 	const int32 Skill = NWTradeskill::Index(R->Skill);
 	const int32 Level = Who->Progression->TradeLevel(Skill);
-	// Cidade da mesa (governança): imposto sobre os ingredientes, nível da mesa (GS e qualidade mínima) e buff de XP.
+	// Station's city (governance): tax on the ingredients, station level (GS and minimum quality) and XP buff.
 	const FString Region = NWCity::RegionOf(Station->City);
 	NWCity::RefreshIfOld(Who->GetWorld(), Region);
 	const FNWCityState* City = Region.IsEmpty() ? nullptr : NWCity::Cached(Region);
@@ -418,7 +418,7 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 		Xp = FMath::RoundToInt(Xp * (1.f + CR.BuffValue.FindRef(TEXT("xp")) / 100.f));
 	}
 	const bool bTraining = Level < Rules.CraftLevel;
-	// Bolsa cheia: o item vai para o chão (UNWInventoryComponent::Grant), não cancela a fabricação.
+	// Full bag: the item goes to the ground (UNWInventoryComponent::Grant), it does not cancel the crafting.
 	Spend(Who, *R, 1);
 	FNWItem Out;
 	if (!bTraining)
@@ -429,12 +429,12 @@ FString FNWCrafting::Craft(ANWCharacter* Who, const FString& StationType, FName 
 		{
 			Crafter = PC->Record->Name;
 		}
-		// Mesa evoluída: um pouco de GS e de qualidade mínima por nível (docs/game/economy.md).
+		// Upgraded station: a little GS and minimum quality per level (docs/game/economy.md).
 		const float QualMin = FMath::Min(100.f, Rules.QualityMin(Level, Who->Progression->TradeMaxLevel(Skill)) + QualUp);
 		Out = Rules.Roll(R->Out, FMath::Min(Range.X + GsUp, Rules.GsMax), FMath::Min(Range.Y + GsUp, Rules.GsMax), QualMin, Crafter);
 	}
-	// Treino (abaixo do nível de fabricar): só XP, sem item. Com OutItem quem chamou põe na bolsa (e pede o número de
-	// série do item assinado ao nw-core).
+	// Training (below the crafting level): XP only, no item. With OutItem the caller puts it in the bag (and requests
+	// the signed item's serial number from nw-core).
 	const bool bHold = !bTraining && OutItem;
 	if (bHold)
 	{
@@ -457,7 +457,7 @@ const FNWRecipe* FNWCrafting::RecipeFor(FName ItemId, const FString& StationType
 
 FIntPoint FNWCrafting::GsRange(const ANWCharacter* Who, const FNWRecipe& R) const
 {
-	// Faixa do item do catálogo mais o bônus do artesão pelo nível (tabela do ofício do jogo), com o teto do port.
+	// Item band from the catalog plus the crafter bonus by level (game's trade skill table), with the port cap.
 	const FNWItemDef* D = FNWItemCatalog::Get().Find(R.Out);
 	const FIntPoint Bonus = Who && Who->Progression ? Who->Progression->TradeGsBonus(NWTradeskill::Index(R.Skill), R.ItemTier) : FIntPoint::ZeroValue;
 	const int32 Cap = FNWItemRules::Get().GsMax;
@@ -506,8 +506,8 @@ FNWRecipe::FIngredient FNWCrafting::ImproveCost(const FNWRecipe& R, const FNWIte
 
 FNWCrafting::FGsOdds FNWCrafting::GsOdds(const ANWCharacter* Who, const FNWRecipe& R, const FNWItem& Item, uint8 Mat) const
 {
-	// Tetos de subida e descida (docs/game/items.md "Gear score"): quanto mais acima do mínimo da faixa, menor o teto de subir;
-	// nunca sai da faixa da fabricação.
+	// Up and down caps (docs/game/items.md "Attribute and gear score"): the further above the band minimum, the lower the up cap;
+	// never leaves the crafting band.
 	const FNWItemRules& Rules = FNWItemRules::Get();
 	const TArray<FNWItemRules::FGsStep>& Steps = Rules.ImproveMaterials.IsValidIndex(Mat) && Rules.ImproveMaterials[Mat].Steps.Num()
 		? Rules.ImproveMaterials[Mat].Steps : Rules.GsSteps;
@@ -531,7 +531,7 @@ FNWCrafting::FGsOdds FNWCrafting::GsOdds(const ANWCharacter* Who, const FNWRecip
 
 namespace
 {
-	/** 1..N com 1 mais provável que 2 e assim por diante (pesos N, N−1, ..., 1); 0 se N = 0. */
+	/** 1..N with 1 more likely than 2 and so on (weights N, N−1, ..., 1); 0 if N = 0. */
 	int32 RollStep(int32 N)
 	{
 		if (N <= 0)
@@ -571,7 +571,7 @@ FString FNWCrafting::Improve(ANWCharacter* Who, const FString& StationType, int3
 		return TEXT("nw.craft.missing");
 	}
 	Who->Inventory->Take(Cost.Id, Cost.Qty);
-	Item = At();   // o Take pode ter mexido no array
+	Item = At();   // the Take may have changed the array
 	if (!Item)
 	{
 		return TEXT("nw.craft.missing");
@@ -585,21 +585,21 @@ FString FNWCrafting::Improve(ANWCharacter* Who, const FString& StationType, int3
 	{
 	case ENWImprove::Attribute:
 	{
-		// Outro atributo, nunca o mesmo. GS, qualidade e perks ficam.
+		// Another attribute, never the same one. GS, quality and perks stay.
 		const int32 Next = FMath::RandRange(0, Rules.Attributes.Num() - 2);
 		Item->Attr = uint8(Next >= Item->Attr ? Next + 1 : Next);
 		break;
 	}
 	case ENWImprove::GearScore:
 	{
-		// Refinar: chance_sucesso_gs de subir, senão desce, de 1 até o teto (GsOdds); com o GS muda o atributo. Qualidade e
-		// perks ficam.
+		// Refine: chance_sucesso_gs to go up, otherwise down, by 1 up to the cap (GsOdds); the attribute follows the GS.
+		// Quality and perks stay.
 		const FGsOdds Odds = GsOdds(Who, *R, *Item, Mat);
 		Item->GearScore += FMath::FRand() * 100.f < Rules.GsSuccess ? RollStep(Odds.UpMax) : -RollStep(Odds.DownMax);
 		break;
 	}
 	case ENWImprove::Unbind:
-		Item->Bind = 1;   // volta a vincular ao equipar
+		Item->Bind = 1;   // binds again on equip
 		break;
 	default:
 		break;
@@ -666,8 +666,8 @@ void ANWStation::Setup(const FNWCrafting::FStation& Data)
 	};
 }
 
-// Testar gemas (docs/game/items.md "Slot"): Joalheria e Cantaria no 200 (vidro rúnico pede 180), as 7 gemas Puras, 2 vidros
-// rúnicos, gema bruta T4 para o custo de retirar, material para lapidar uma T1 e montar um vidro.
+// Test gems (docs/game/items.md "Slot and gems"): Jewelcrafting and Stonecutting at 200 (runeglass needs 180), the
+// 7 Pure gems, 2 runeglasses, a T4 raw gem for the removal cost, material to cut a T1 and make a runeglass.
 NW_REGISTER_DEV(DevGems, TEXT("sistemas.dev_gems"), TEXT("nw.dev.dev_gems"),
 	[](ANWPlayerController* PC)
 	{
@@ -710,8 +710,8 @@ NW_REGISTER_DEV(DevGems, TEXT("sistemas.dev_gems"), TEXT("nw.dev.dev_gems"),
 		C->Inventory->Grant(Gift, 0);
 	});
 
-// Testar armaduras e joias (docs/game/items.md): Armoraria e Joalheria no 200 (receitas T5 pedem 150) e material refinado
-// T2–T5 de placa, couro e tecido, mais os lingotes preciosos das joias (prata, ouro, platina; oricalco é o IngotT5).
+// Test armor and jewelry (docs/game/items.md): Armoring and Jewelcrafting at 200 (T5 recipes need 150) and refined
+// T2–T5 plate, leather and cloth, plus precious ingots for jewelry (silver, gold, platinum; orichalcum is IngotT5).
 NW_REGISTER_DEV(DevArmor, TEXT("sistemas.dev_armor"), TEXT("nw.dev.dev_armor"),
 	[](ANWPlayerController* PC)
 	{

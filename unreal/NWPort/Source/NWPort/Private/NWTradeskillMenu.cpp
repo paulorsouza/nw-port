@@ -45,7 +45,7 @@ void FNWTradeskillMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 		return;
 	}
 	const UNWProgressionComponent* P = Me->Progression;
-	// Escurece o fundo como as outras janelas cheias do jogo.
+	// Darkens the background like the game's other full windows.
 	FCanvasTileItem Dim(FVector2D::ZeroVector, FVector2D(Canvas->ClipX, Canvas->ClipY), FLinearColor(0.f, 0.f, 0.f, 0.5f));
 	Dim.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(Dim);
@@ -64,7 +64,7 @@ void FNWTradeskillMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 				E->Fill = P ? P->TradeProgress(t) : 0.f;
 			}
 		}
-		// Destaque do jogo (skillcellhover) com o mouse em cima.
+		// Game highlight (skillcellhover) with the mouse over it.
 		FNWUIElement* Root = Layout.FindOne(TEXT("tradeskills"), Cell);
 		if (FNWUIElement* Hl = Layout.FindOne(TEXT("tradeskills"), Cell + TEXT("/Highlight")))
 		{
@@ -79,7 +79,7 @@ void FNWTradeskillMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 
 void FNWTradeskillMenu::DrawTabs(UCanvas* Canvas, const FVector2D& Mouse, int32 Active)
 {
-	// TabbedList do jogo (no topo da janela): botões escuros com moldura; a aba atual fica em dourado.
+	// Game TabbedList (at the top of the window): dark buttons with a frame; the current tab is gold.
 	const float S = Canvas->ClipY / 1080.f;
 	const float W = 300.f * S, H = 44.f * S, Y = 100.f * S;
 	const float X0 = Canvas->ClipX * 0.5f - W * 1.5f - 12.f * S;

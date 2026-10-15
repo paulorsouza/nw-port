@@ -33,10 +33,10 @@
 
 namespace
 {
-	// ---------------------------------------------------------------- estilo (cores e fontes do jogo)
+	// ---------------------------------------------------------------- style (the game's colors and fonts)
 	using namespace NWSlate;
-	constexpr double KeepAfterDone = 2.0;   // previsão de bolsa/moedas depois do fim, até a replicação chegar
-	constexpr double GiveUp = 15.0;         // sem resposta do servidor: desiste da previsão
+	constexpr double KeepAfterDone = 2.0;   // bag/coins prediction after the end, until replication arrives
+	constexpr double GiveUp = 15.0;         // no response from the server: gives up the prediction
 	const TCHAR* SpinnerTex = TEXT("lyshineui/images/frontend/image_loading_spinner.dds");
 	const TCHAR* SearchTex = TEXT("lyshineui/images/socialpane/icon_magnifying_glass.dds");
 	const FName ColName("Name"), ColTier("Tier"), ColGs("Gs"), ColQuality("Quality"), ColPerks("Perks"), ColSeller("Seller"),
@@ -109,7 +109,7 @@ namespace
 		}
 	}
 
-	/** Ícone do item sobre a cor da raridade. */
+	/** Item icon over the rarity color. */
 	TSharedRef<SWidget> ItemIcon(const FNWItem& I, float Size)
 	{
 		const FNWItemDef* D = Def(I);
@@ -127,7 +127,7 @@ namespace
 			];
 	}
 
-	/** Ícones das perks do item com o texto no tooltip. */
+	/** Icons of the item's perks with the text in the tooltip. */
 	TSharedRef<SWidget> PerkIcons(const FNWItem& I, float Size)
 	{
 		const FNWItemRules& IR = FNWItemRules::Get();
@@ -147,7 +147,7 @@ namespace
 		return Box;
 	}
 
-	/** Linha da tabela: cada célula numa borda que faz aparecer suave, apagar (esperando) e piscar (recusado). */
+	/** Table row: each cell in a border that fades in smoothly, dims (waiting) and flashes (refused). */
 	class SNWMarketRow : public SMultiColumnTableRow<SNWMarket::FRowPtr>
 	{
 	public:
@@ -204,7 +204,7 @@ namespace
 	};
 }
 
-// ---------------------------------------------------------------- montagem
+// ---------------------------------------------------------------- construction
 
 void SNWMarket::Construct(const FArguments& Args)
 {
@@ -231,7 +231,7 @@ void SNWMarket::Construct(const FArguments& Args)
 	}
 
 	TSharedRef<SWidgetSwitcher> Pages = SNew(SWidgetSwitcher).WidgetIndex_Lambda([this]() { return int32(Page); });
-	// Comprar: filtros | busca + tabela | painel do item.
+	// Buy: filters | search + table | item panel.
 	Pages->AddSlot()
 	[
 		SNew(SHorizontalBox)
@@ -244,7 +244,7 @@ void SNWMarket::Construct(const FArguments& Args)
 		]
 		+ SHorizontalBox::Slot().AutoWidth()[BuildPanel(EPage::Buy)]
 	];
-	// Vender: busca + tabela | painel do item.
+	// Sell: search + table | item panel.
 	Pages->AddSlot()
 	[
 		SNew(SHorizontalBox)
@@ -263,7 +263,7 @@ void SNWMarket::Construct(const FArguments& Args)
 		SNew(SBorder)
 		.BorderImage(&St().Backdrop)
 		.Padding(0.f)
-		.OnMouseButtonDown_Lambda([](const FGeometry&, const FPointerEvent&) { return FReply::Handled(); })   // nada passa para o jogo
+		.OnMouseButtonDown_Lambda([](const FGeometry&, const FPointerEvent&) { return FReply::Handled(); })   // nothing passes through to the game
 		[
 			SNew(SBox)
 			.MaxDesiredWidth(1720.f)
@@ -271,7 +271,7 @@ void SNWMarket::Construct(const FArguments& Args)
 			.Padding(FMargin(48.f, 30.f, 48.f, 36.f))
 			[
 				SNew(SVerticalBox)
-				// Título e moedas (com spinner enquanto o servidor confirma).
+				// Title and coins (with a spinner while the server confirms).
 				+ SVerticalBox::Slot().AutoHeight()
 				[
 					SNew(SHorizontalBox)
@@ -348,7 +348,7 @@ void SNWMarket::Close()
 
 TSharedRef<SToolTip> SNWMarket::ItemTip(const FNWItem& I)
 {
-	// Mesmo conteúdo do painel do item, num quadro escuro junto do mouse.
+	// Same content as the item panel, in a dark box next to the mouse.
 	return SNew(SToolTip)
 		.BorderImage(&St().None)
 		.TextMargin(0.f)
@@ -450,7 +450,7 @@ TSharedRef<SWidget> SNWMarket::BuildFilters()
 	{
 		return SNew(SBox).Padding(FMargin(0.f, 16.f, 0.f, 6.f))[Txt(Label, 1, 12, Dim)];
 	};
-	// Chip que liga e desliga: contorno dourado quando ligado.
+	// Toggle chip: golden outline when on.
 	auto Chip = [this](TSharedRef<SWidget> Content, TFunction<bool()> On, TFunction<void()> Toggle)
 	{
 		return SNew(SButton)
@@ -513,7 +513,7 @@ TSharedRef<SWidget> SNWMarket::BuildFilters()
 		]
 	];
 
-	// Categorias.
+	// Categories.
 	static const TCHAR* CatKeys[int32(ECat::Num)] = {TEXT("ui_allitems"), TEXT("nw.market.cat_weapons"), TEXT("nw.market.cat_armor"),
 		TEXT("nw.market.cat_jewelry"), TEXT("nw.market.cat_tools"), TEXT("nw.market.cat_gems"), TEXT("nw.market.cat_materials")};
 	V->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f);
@@ -544,7 +544,7 @@ TSharedRef<SWidget> SNWMarket::BuildFilters()
 		];
 	}
 
-	// Escala (tier).
+	// Tier.
 	V->AddSlot().AutoHeight()[Section(NWText::Get(TEXT("trade_column_tier")))];
 	TSharedRef<SWrapBox> TierBox = SNew(SWrapBox).UseAllottedSize(true).InnerSlotPadding(FVector2D(6.f, 6.f));
 	for (int32 t = 1; t <= 5; ++t)
@@ -555,7 +555,7 @@ TSharedRef<SWidget> SNWMarket::BuildFilters()
 	}
 	V->AddSlot().AutoHeight()[TierBox];
 
-	// Raridade.
+	// Rarity.
 	V->AddSlot().AutoHeight()[Section(NWText::Get(TEXT("trade_column_rarity")))];
 	TSharedRef<SWrapBox> RarBox = SNew(SWrapBox).UseAllottedSize(true).InnerSlotPadding(FVector2D(6.f, 6.f));
 	for (int32 r = 0; r <= 4; ++r)
@@ -575,7 +575,7 @@ TSharedRef<SWidget> SNWMarket::BuildFilters()
 	}
 	V->AddSlot().AutoHeight()[RarBox];
 
-	// GS mínimo.
+	// Minimum GS.
 	V->AddSlot().AutoHeight()[Section(NWText::Get(TEXT("ui_min_gear_score")))];
 	V->AddSlot().AutoHeight()
 	[
@@ -593,7 +593,7 @@ TSharedRef<SWidget> SNWMarket::BuildFilters()
 		]
 	];
 
-	// Atributo.
+	// Attribute.
 	V->AddSlot().AutoHeight()[Section(NWText::Get(TEXT("ui_attributes")))];
 	TSharedRef<SWrapBox> AttrBox = SNew(SWrapBox).UseAllottedSize(true).InnerSlotPadding(FVector2D(6.f, 6.f));
 	for (int32 a = 0; a < IR.Attributes.Num(); ++a)
@@ -605,11 +605,11 @@ TSharedRef<SWidget> SNWMarket::BuildFilters()
 	}
 	V->AddSlot().AutoHeight()[AttrBox];
 
-	// Perks que aparecem à venda (todas as escolhidas ao mesmo tempo).
+	// Perks that appear for sale (all chosen ones at the same time).
 	V->AddSlot().AutoHeight()[Section(NWText::Get(TEXT("ui_perks")))];
 	V->AddSlot().AutoHeight()[SAssignNew(PerkChips, SBox)];
 
-	// Pode pagar.
+	// Can afford.
 	V->AddSlot().AutoHeight().Padding(0.f, 18.f, 0.f, 0.f)
 	[
 		ChipFrame(Chip(Txt(NWText::Get(TEXT("ui_canafford")), 0, 13, Tan), [this]() { return bAfford; }, [this]() { bAfford = !bAfford; }),
@@ -747,7 +747,7 @@ TSharedRef<SWidget> SNWMarket::BuildList(EPage P)
 					Count = 1;
 					if (i == int32(EPage::Sell) && R.IsValid())
 					{
-						Price = R->Lowest;   // sugestão: o menor preço anunciado do mesmo item
+						Price = R->Lowest;   // suggestion: the lowest listed price of the same item
 					}
 					RefreshPanel(EPage(i));
 				}
@@ -869,7 +869,7 @@ TSharedRef<SWidget> SNWMarket::ItemHeader(const FNWItem& I)
 
 TSharedRef<SWidget> SNWMarket::ItemDetails(const FNWItem& I)
 {
-	// Atributo, qualidade, perks com o valor da qualidade, gema e artesão (como o tooltip do inventário).
+	// Attribute, quality, perks with the quality value, gem and crafter (like the inventory tooltip).
 	const FNWItemRules& IR = FNWItemRules::Get();
 	TSharedRef<SVerticalBox> V = SNew(SVerticalBox);
 	if (I.Attr != 255 && IR.Attributes.IsValidIndex(I.Attr) && I.GearScore > 0)
@@ -887,7 +887,7 @@ TSharedRef<SWidget> SNWMarket::ItemDetails(const FNWItem& I)
 			+ SHorizontalBox::Slot().FillWidth(1.f)[Txt(NWText::Get(TEXT("ui_quality")), 0, 14, Gray)]
 			+ SHorizontalBox::Slot().AutoWidth()[Txt(Percent(I.Quality), 2, 15, Gold)]
 		];
-		// Barra da qualidade.
+		// Quality bar.
 		V->AddSlot().AutoHeight().Padding(0.f, 4.f, 0.f, 6.f)
 		[
 			SNew(SBox).HeightOverride(4.f)
@@ -1184,7 +1184,7 @@ void SNWMarket::RefreshPanel(EPage P)
 	}
 }
 
-// ---------------------------------------------------------------- estado
+// ---------------------------------------------------------------- state
 
 double SNWMarket::Clock() const
 {
@@ -1348,7 +1348,7 @@ void SNWMarket::Consume()
 		}
 		else
 		{
-			// Recusado: volta ao que era e a linha pisca.
+			// Refused: goes back to what it was and the row flashes.
 			const FPending& P = Pending[i];
 			Flash.Add(P.Kind == EKind::Post ? FString::Printf(TEXT("bag:%d"), P.Slot) : P.OrderId, Now);
 			Pending.RemoveAt(i);
@@ -1356,7 +1356,7 @@ void SNWMarket::Consume()
 		bDirty = true;
 	}
 	Me->Interactor->MarketDone.Reset();
-	// Previsão que já não faz falta: livro novo chegou (vem antes do fim) e a bolsa/moedas já mudaram, ou passou o tempo.
+	// Prediction no longer needed: a new book arrived (it comes before the end) and the bag/coins already changed, or time ran out.
 	const int32 Before = Pending.Num();
 	Pending.RemoveAll([Now, Me](const FPending& P)
 	{
@@ -1391,7 +1391,7 @@ void SNWMarket::Rebuild()
 	}
 	bDirty = false;
 	const double Now = Clock();
-	// Livro com a previsão: pedido novo entra, compra tira quantidade, cancelamento marca a linha.
+	// Book with the prediction: a new order goes in, a purchase removes quantity, a cancellation marks the row.
 	TArray<FNWMarketRow> Book = Me->Interactor->MarketRows;
 	for (const FPending& P : Pending)
 	{
@@ -1508,7 +1508,7 @@ void SNWMarket::Rebuild()
 			}
 		}
 	}
-	// Chips das perks: só quando o conjunto muda.
+	// Perk chips: only when the set changes.
 	TArray<FName> Perks = PerksSeen.Array();
 	Perks.Sort([](FName A, FName B) { return A.LexicalLess(B); });
 	uint32 Sig = 0;
@@ -1537,7 +1537,7 @@ void SNWMarket::Tick(const FGeometry& Geometry, const double CurrentTime, const 
 	}
 	Consume();
 	const double Now = Clock();
-	// Livro atualizado a cada 10 s com a tela aberta.
+	// Book refreshed every 10 s with the screen open.
 	if (Now - LastRefresh > 10.0)
 	{
 		LastRefresh = Now;
@@ -1589,7 +1589,7 @@ void SNWMarket::SetPage(EPage P)
 	}
 }
 
-// ---------------------------------------------------------------- ações (previsão + pedido ao servidor)
+// ---------------------------------------------------------------- actions (prediction + request to the server)
 
 void SNWMarket::Buy(FRowPtr R)
 {
@@ -1670,7 +1670,7 @@ void SNWMarket::Cancel(FRowPtr R)
 	Rebuild();
 }
 
-// ---------------------------------------------------------------- captura offline
+// ---------------------------------------------------------------- offline capture
 
 void SNWMarket::ShotTab(int32 Tab)
 {

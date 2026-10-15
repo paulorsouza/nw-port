@@ -1,16 +1,16 @@
-"""Importa os sons de fundo de Guardaventos (ogg extraídos do jogo) como SoundWave em loop.
+"""Imports the Windsward background sounds (ogg extracted from the game) as looping SoundWaves.
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_audio.py"
 
-Música do território e da cidade (extract/audio/music/gameplay/territory) e ambiente renderizado dos .txtp do jogo
-(extract/audio/ambient/windsward). Saída /Game/NW/Audio/{Music,Ambient}/S_<nome>, usada por UNWAmbienceComponent.
+Territory and city music (extract/audio/music/gameplay/territory) and ambience rendered from the game's .txtp files
+(extract/audio/ambient/windsward). Output /Game/NW/Audio/{Music,Ambient}/S_<name>, used by UNWAmbienceComponent.
 """
 import glob
 import os
 
 import unreal
 
-# Raiz do repositório a partir do projeto (unreal/NWPort/), sem caminho fixo de máquina.
+# Repository root from the project (unreal/NWPort/), with no machine-specific path.
 ROOT = os.path.join(os.path.abspath(os.path.join(unreal.Paths.project_dir(), "..", "..")), "extract", "audio")
 SETS = {
     "Music": [os.path.join(ROOT, "music/gameplay/territory", f"{n}.ogg") for n in ("windsward_ambient", "windsward_settlement_august")],
@@ -22,7 +22,7 @@ n = 0
 for folder, files in SETS.items():
     for f in files:
         if not os.path.exists(f):
-            unreal.log_warning(f"AUDIO falta {f}")
+            unreal.log_warning(f"AUDIO missing {f}")
             continue
         name = "S_" + os.path.splitext(os.path.basename(f))[0]
         task = unreal.AssetImportTask()
@@ -39,4 +39,4 @@ for folder, files in SETS.items():
             s.set_editor_property("looping", True)
             eal.save_asset(path, only_if_is_dirty=False)
             n += 1
-unreal.log_warning(f"AUDIO {n} sons importados")
+unreal.log_warning(f"AUDIO {n} sounds imported")

@@ -37,7 +37,7 @@ static FString ChannelName(ENWChatChannel C)
 	}
 }
 
-// Campo de texto por cima do Canvas; posição em pixels da tela, dividida pela escala da geometria (DPI).
+// Text field over the Canvas; position in screen pixels, divided by the geometry scale (DPI).
 class SNWChatInput : public SCompoundWidget
 {
 public:
@@ -92,7 +92,7 @@ private:
 
 void FNWChat::Add(ENWChatChannel Channel, const FString& Sender, const FString& Text)
 {
-	// Mensagens do servidor chegam como "#chave|args".
+	// Server messages arrive as "#key|args".
 	Lines.Add({Channel, Sender, NWText::Resolve(Text), FPlatformTime::Seconds()});
 	if (Lines.Num() > 100)
 	{
@@ -110,7 +110,7 @@ void FNWChat::Open(ANWPlayerController* PC)
 	bOpen = true;
 	TSharedRef<SNWChatInput> Input = SNew(SNWChatInput).Chat(this);
 	Edit = Input->Edit;
-	// Referência forte: com SWeakWidget o campo era destruído ao sair daqui (chat abria sem campo e travava).
+	// Strong reference: with SWeakWidget the field was destroyed on leaving here (chat opened fieldless and hung).
 	Host = Input;
 	GEngine->GameViewport->AddViewportWidgetContent(Input, 45);
 	FInputModeGameAndUI Mode;
@@ -162,7 +162,7 @@ void FNWChat::Draw(UCanvas* Canvas)
 	}
 	UIScale = Canvas->ClipY / 1080.f;
 	const double Now = FPlatformTime::Seconds();
-	// Caixa: 520 x 300 de referência, acima do canto inferior esquerdo.
+	// Box: 520 x 300 reference, above the lower-left corner.
 	const float S = UIScale;
 	const FBox2f Box(FVector2f(30.f, 600.f) * S, FVector2f(560.f, 900.f) * S);
 	const float Pad = 10.f * S;
@@ -182,7 +182,7 @@ void FNWChat::Draw(UCanvas* Canvas)
 		Canvas->DrawItem(InputFrame);
 	}
 
-	// Linhas de baixo para cima, com quebra por palavra.
+	// Lines from bottom to top, with word wrap.
 	const float TextScale = 20.f * S / Font->LegacyFontSize;
 	const float MaxW = Box.GetSize().X - Pad * 2.f;
 	float Y = (bOpen ? InputPixels.Min.Y : Box.Max.Y) - Pad;
@@ -199,7 +199,7 @@ void FNWChat::Draw(UCanvas* Canvas)
 		}
 		const FString Prefix = L.Sender.IsEmpty() ? FString::Printf(TEXT("[%s] "), *ChannelName(L.Channel))
 			: FString::Printf(TEXT("[%s] %s: "), *ChannelName(L.Channel), *L.Sender);
-		// Quebra: prefixo + texto em linhas de no máximo MaxW.
+		// Wrap: prefix + text in lines of at most MaxW.
 		TArray<FString> Words;
 		(Prefix + L.Text).ParseIntoArrayWS(Words);
 		TArray<FString> Wrapped;
@@ -235,7 +235,7 @@ void FNWChat::Draw(UCanvas* Canvas)
 			const FString& Text = Wrapped[w];
 			float X = Box.Min.X + Pad;
 			const float LY = Y + LineH * w;
-			// O prefixo (canal e nome) na cor do canal; o resto no tom de texto do jogo.
+			// The prefix (channel and name) in the channel color; the rest in the game's text tone.
 			const int32 PrefixHere = FMath::Clamp(PrefixLen - Consumed, 0, Text.Len());
 			auto Put = [&](const FString& Part, const FLinearColor& Color)
 			{

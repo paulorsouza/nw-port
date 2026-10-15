@@ -68,7 +68,7 @@ void FNWCreatureCatalog::Load(const FString& File)
 
 namespace
 {
-	// Por conjunto: cápsula (raio, meia altura, antes da escala do jogo), alcance e ataques, velocidades.
+	// Per set: capsule (radius, half height, before the game's scale), reach and attacks, speeds.
 	struct FSetTuning
 	{
 		float Radius, HalfHeight, AttackRange, Walk, Chase;
@@ -85,8 +85,8 @@ namespace
 	}
 	const FSetTuning* Tuning(FName Set)
 	{
-		// Javali: chifrada de perto; de longe prepara (bufa e cava) e investe em linha, depois freia exposto.
-		// Lobo: matilha que cerca pelos flancos; mordidas de perto, bote de meia distância, salto de longe.
+		// Boar: gore up close; from afar it winds up (snorts and paws) and charges in a line, then brakes exposed.
+		// Wolf: a pack that surrounds from the flanks; bites up close, mid-range pounce, leap from afar.
 		static const TMap<FName, FSetTuning> T = {
 			{TEXT("boar"), {42.f, 42.f, 240.f, 140.f, 450.f, {TEXT("Attack1"), TEXT("Attack1"), TEXT("Heavy")}, ENWBrainStyle::Charger,
 				{Atk(TEXT("Attack1"), 0.f, 250.f, 3.f),
@@ -97,7 +97,7 @@ namespace
 		};
 		return T.Find(Set);
 	}
-	constexpr float LeashRange = 4000.f;   // longe disto de casa, desiste e volta
+	constexpr float LeashRange = 4000.f;   // farther than this from home, gives up and goes back
 }
 
 ANWCreature::ANWCreature(const FObjectInitializer& ObjectInitializer)
@@ -111,7 +111,7 @@ ANWCreature::ANWCreature(const FObjectInitializer& ObjectInitializer)
 	Shield->SetVisibility(false);
 	Stowed->SetVisibility(false);
 	Combat->LightComboStart = TEXT("Attack1");
-	Combat->StaggerResistRating = 10.f;   // javali e lobo (GritComponent das slices)
+	Combat->StaggerResistRating = 10.f;   // boar and wolf (GritComponent of the slices)
 	Behavior = CreateDefaultSubobject<UNWBehaviorTreeComponent>(TEXT("Behavior"));
 	AnimClass = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/NW/Creatures/ABP_NW_Creature.ABP_NW_Creature_C")));
 }
@@ -140,7 +140,7 @@ void ANWCreature::Setup(const FNWCreatureDef& D, const TArray<FVector>& InPath, 
 		WalkSpeed = T->Walk;
 		ChaseSpeed = T->Chase;
 		RunSpeed = T->Chase;
-		// Com a árvore do jogo (Data/AI/<conjunto>.json) ela manda; sem, o cérebro do port.
+		// With the game's tree (Data/AI/<set>.json) the tree is in charge; without one, the port's brain.
 		bUseBehaviorTree = FNWBTAsset::Get(D.Set) != nullptr;
 		if (bUseBehaviorTree)
 		{
@@ -161,7 +161,7 @@ const FNWCreatureDef* ANWCreature::Def() const
 
 const FNWCreatureDef* ANWCreature::FindDef(FName Id)
 {
-	// O catálogo (vida, dano, conjunto) vale em qualquer mapa; os spawners só no da região (ANWSpawnField).
+	// The catalog (health, damage, set) applies on any map; the spawners only on the region's map (ANWSpawnField).
 	FNWCreatureCatalog::Get().Load(FPaths::ProjectDir() / TEXT("Data/World/guardaventos_spawns.json"));
 	return FNWCreatureCatalog::Get().Find(Id);
 }
@@ -191,8 +191,8 @@ void ANWCreature::ApplyAssets()
 	}
 	SetActorScale3D(FVector(D->Scale));
 	LoadMissingAssets();
-	// Quadrúpede é comprido e a cápsula é um cilindro em pé: o corpo (physics asset do import) também bloqueia quem
-	// anda (jogador) e recebe os golpes no formato do bicho. Câmera atravessa.
+	// A quadruped is long and the capsule is an upright cylinder: the body (physics asset from the import) also blocks whoever
+	// walks (the player) and takes hits in the beast's shape. The camera passes through.
 	USkeletalMeshComponent* Body = GetMesh();
 	Body->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Body->SetCollisionObjectType(ECC_Pawn);
@@ -200,7 +200,7 @@ void ANWCreature::ApplyAssets()
 	Body->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 	Body->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	Body->SetGenerateOverlapEvents(false);
-	// Blend space de andar do conjunto na variável Locomotion do ABP de criatura (como as armas do jogador).
+	// The set's walk blend space in the Locomotion variable of the creature ABP (like the player's weapons).
 	if (UAnimInstance* Anim = GetMesh()->GetAnimInstance())
 	{
 		UBlendSpace* BS = TSoftObjectPtr<UBlendSpace>(FSoftObjectPath(FString::Printf(TEXT("/Game/NW/%s/Anims/BS_Walk.BS_Walk"), *Set))).LoadSynchronous();
@@ -225,7 +225,7 @@ void ANWCreature::BeginPlay()
 		const FNWCreatureDef* D = Def();
 		bUseBehaviorTree = D && Behavior->Start(D->Set, Home, Path);
 	}
-	// A malha recém-criada pode não ter a AnimInstance no ApplyAssets: tenta de novo no próximo quadro.
+	// The newly created mesh may not have the AnimInstance in ApplyAssets: tries again next frame.
 	GetWorldTimerManager().SetTimerForNextTick([Weak = TWeakObjectPtr<ANWCreature>(this)]()
 	{
 		if (ANWCreature* Self = Weak.Get())
@@ -258,10 +258,10 @@ void ANWCreature::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	if (!HasAuthority() || Combat->State == ENWCombatState::Dead || bUseBehaviorTree)
 	{
-		return;   // com a árvore do jogo, ela cuida de patrulha, perseguição e leash
+		return;   // with the game's tree, it handles patrol, chase and leash
 	}
 	const FNWCreatureDef* D = Def();
-	// Longe demais de casa: desiste, volta andando e recupera a vida.
+	// Too far from home: gives up, walks back and recovers health.
 	if (!bReturning && FVector::Dist2D(GetActorLocation(), Home) > LeashRange)
 	{
 		bReturning = true;
@@ -283,7 +283,7 @@ void ANWCreature::Tick(float DeltaSeconds)
 	}
 	if (HasTarget())
 	{
-		// Perseguição e ataque: UNWBrainComponent (ou ANWCharacter::TickDummy). Rodeando, anda.
+		// Chase and attack: UNWBrainComponent (or ANWCharacter::TickDummy). When circling, walks.
 		GetCharacterMovement()->MaxWalkSpeed = bWalking ? WalkSpeed : ChaseSpeed;
 		return;
 	}
@@ -306,7 +306,7 @@ void ANWCreature::TickPatrol(float DeltaSeconds)
 	const FVector To = Target - GetActorLocation();
 	if (To.Size2D() < 80.f)
 	{
-		// Tarefa do waypoint (pastar, farejar...): parado pelo tempo do jogo; sem tempo, alguns segundos.
+		// Waypoint task (graze, sniff...): stands still for the game's time; without a time, a few seconds.
 		const float W = Waits.IsValidIndex(PathIndex) ? Waits[PathIndex] : -1.f;
 		WaitLeft = W > 0.f ? W : FMath::FRandRange(4.f, 10.f);
 		PathIndex = (PathIndex + 1) % Path.Num();

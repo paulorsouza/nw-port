@@ -1,10 +1,10 @@
-//! Governança das cidades (migration 0013, docs/game/economy.md). Uma cidade por região; canais da mesma região
-//! dividem tudo. A cidade compra matéria-prima e vende a lista pelo preço do governador (dentro das faixas de
-//! tools/precos_cidade.json), recebe o imposto de fabricação e gasta o balancete em mesas, buffs e armas. Na virada da
-//! semana: manutenção das mesas, meta, faixa e prêmio do governador (tenebroso = venda obrigatória). A cada 2 dias
-//! depois da primeira semana do dono: ataque simulado contra as armas da cidade.
+//! City governance (migration 0013, docs/game/economy.md). One city per region; channels of the same region
+//! share everything. The city buys raw materials and sells its list at the governor's price (within the ranges of
+//! tools/precos_cidade.json), collects the crafting tax and spends the treasury on stations, buffs and weapons. At the
+//! week rollover: station upkeep, goal, tier and governor prize (`tenebroso` = forced sale). Every 2 days
+//! after the owner's first week: a simulated attack against the city's weapons.
 //!
-//! Regras em tools/governanca.json (lido aqui no build). Moedas em centavos.
+//! Rules in tools/governanca.json (read here at build time). Coins in cents.
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::LazyLock;
@@ -25,7 +25,7 @@ use crate::routes::market::credit;
 use crate::routes::storage::Snapshot;
 use crate::AppState;
 
-// ---------------------------------------------------------------- regras
+// ---------------------------------------------------------------- rules
 
 #[derive(Deserialize)]
 pub(crate) struct Rules {
@@ -36,7 +36,7 @@ pub(crate) struct Rules {
     pub carencia_dias: i64,
     pub imposto: TaxRange,
     pub limite_semanal: Limits,
-    /// Mesa -> matéria-prima da manutenção.
+    /// Station -> upkeep raw material.
     pub mesas: BTreeMap<String, String>,
     pub mesa_escala: TierRule,
     pub mesa_nivel: LevelRule,
@@ -48,9 +48,9 @@ pub(crate) struct Rules {
     pub ataque: Attack,
     pub premio: Prize,
     pub leilao: AuctionRule,
-    /// Teto de moedas por personagem (centavos): o que passa não entra (dono 2026-10-15).
+    /// Coin cap per character (cents): the excess is not added (maintainer 2026-10-15).
     pub moedas_max: i64,
-    /// Preço unitário máximo no mercado (centavos).
+    /// Maximum unit price on the market (cents).
     pub preco_item_max: i64,
 }
 
@@ -79,7 +79,7 @@ pub(crate) struct Limits {
     pub venda_por_item: i64,
 }
 
-/// Uma subida (escala, nível ou arma): cesta de matéria-prima do estoque e moedas do balancete.
+/// One upgrade (tier, level or weapon): basket of raw materials from stock and coins from the treasury.
 #[derive(Deserialize)]
 pub(crate) struct Up {
     #[serde(default)]
@@ -151,7 +151,7 @@ pub(crate) struct PriceRange {
     pub min: i64,
     pub max: i64,
     pub padrao: i64,
-    /// Limite semanal por personagem só deste item (sem ele vale `limite_semanal` das regras).
+    /// Weekly per-character limit for this item only (without it, the rules' `limite_semanal` applies).
     #[serde(default, skip_serializing)]
     pub limite: Option<i64>,
 }
@@ -167,13 +167,13 @@ pub(crate) static RULES: LazyLock<Rules> =
 pub(crate) static PRICES: LazyLock<Prices> =
     LazyLock::new(|| serde_json::from_str(include_str!("../../../tools/precos_cidade.json")).expect("tools/precos_cidade.json"));
 
-/// Escala máxima da mesa (depois dela, níveis).
+/// Maximum station tier (after it, levels).
 const TOP_TIER: i32 = 5;
 const STATION_COLS: &str = "station, level, reached, crafts, tier, work, work_target, work_ends_at";
 
-// ---------------------------------------------------------------- semana
+// ---------------------------------------------------------------- week
 
-/// Início da semana (terça 08:00 UTC, a mesma dos brindes dos NPCs).
+/// Start of the week (Tuesday 08:00 UTC, the same as the NPC rewards).
 pub(crate) fn week_start(now: OffsetDateTime) -> OffsetDateTime {
     let t = now - Duration::hours(8);
     let back = (t.weekday().number_days_from_monday() as i64 + 7 - Weekday::Tuesday.number_days_from_monday() as i64) % 7;
@@ -190,7 +190,7 @@ fn week_begin(id: &str) -> Option<OffsetDateTime> {
     Some(time::Date::parse(id, f).ok()?.with_time(Time::from_hms(8, 0, 0).unwrap()).assume_utc())
 }
 
-// ---------------------------------------------------------------- estado
+// ---------------------------------------------------------------- state
 
 #[derive(sqlx::FromRow, Debug, Clone)]
 struct CityRow {
@@ -216,12 +216,12 @@ struct CityRow {
 #[derive(sqlx::FromRow, Debug, Clone, Serialize)]
 pub struct StationRow {
     pub station: String,
-    /// Nível depois da escala 5.
+    /// Level after tier 5.
     pub level: i32,
     pub reached: i32,
     pub crafts: i32,
     pub tier: i32,
-    /// Obra em andamento: "tier", "level" ou "repair".
+    /// Work in progress: "tier", "level" or "repair".
     pub work: Option<String>,
     pub work_target: Option<i32>,
     #[serde(with = "time::serde::rfc3339::option")]
@@ -251,12 +251,12 @@ async fn weapons_of(tx: &mut sqlx::PgConnection, region: &str) -> ApiResult<Vec<
         .await?)
 }
 
-/// Preço em vigor de um item: o do governador ou o padrão.
+/// Current price of an item: the governor's or the default.
 fn price_of(prices: &Value, item: &str, range: &PriceRange) -> i64 {
     prices.get(item).and_then(Value::as_i64).unwrap_or(range.padrao)
 }
 
-/// Cria a cidade da região (regras) se ainda não existe; devolve a linha travada.
+/// Creates the region's city (rules) if it does not exist yet; returns the locked row.
 async fn lock_city(tx: &mut sqlx::PgConnection, region: &str) -> ApiResult<CityRow> {
     let Some(rule) = RULES.regioes.iter().find(|r| r.id == region) else {
         return Err(ApiError::not_found("Região"));
@@ -333,7 +333,7 @@ async fn week_add(tx: &mut sqlx::PgConnection, region: &str, week: &str, col: &s
         "tax_coins" => "update city_weeks set tax_coins = tax_coins + $3 where region = $1 and week = $2",
         "project_value" => "update city_weeks set project_value = project_value + $3 where region = $1 and week = $2",
         "buffs" => "update city_weeks set buffs = buffs + $3::int where region = $1 and week = $2",
-        _ => unreachable!("coluna da semana: {col}"),
+        _ => unreachable!("week column: {col}"),
     };
     sqlx::query(sql).bind(region).bind(week).bind(delta).execute(&mut *tx).await?;
     Ok(())
@@ -346,7 +346,7 @@ fn require_owner(c: &CityRow, who: Uuid) -> ApiResult<()> {
     Ok(())
 }
 
-// ---------------------------------------------------------------- leitura
+// ---------------------------------------------------------------- read
 
 #[derive(Serialize)]
 pub struct PriceView {
@@ -354,7 +354,7 @@ pub struct PriceView {
     pub price: i64,
     #[serde(flatten)]
     pub range: PriceRange,
-    /// Com `character_id`: quanto ele já vendeu (compra da cidade) ou comprou (lista) nesta semana.
+    /// With `character_id`: how much they already sold (city buys) or bought (list) this week.
     pub used: i64,
     pub limit: i64,
 }
@@ -368,9 +368,9 @@ pub struct CityView {
     #[serde(with = "time::serde::rfc3339::option")]
     pub owner_since: Option<OffsetDateTime>,
     pub price: i64,
-    /// Quanto o dono atual pagou.
+    /// How much the current owner paid.
     pub paid: i64,
-    /// Leilão em andamento (venda da cidade).
+    /// Auction in progress (city sale).
     pub auction: Option<AuctionView>,
     pub treasury: i64,
     pub tax: f32,
@@ -382,7 +382,7 @@ pub struct CityView {
     pub stock: BTreeMap<String, i64>,
     pub buffs: Vec<(String, String)>,
     pub weapons: Vec<WeaponRow>,
-    /// Defesa da cidade = soma das escalas das armas (prontas).
+    /// City defense = sum of the weapon tiers (finished ones).
     pub defense: i32,
     #[serde(with = "time::serde::rfc3339::option")]
     pub next_attack_at: Option<OffsetDateTime>,
@@ -399,9 +399,9 @@ pub struct AuctionView {
     pub forced: bool,
     pub bid: Option<i64>,
     pub bidder_name: Option<String>,
-    /// Menor lance aceito agora.
+    /// Lowest bid accepted now.
     pub min_bid: i64,
-    /// Quem consulta é o maior lance.
+    /// The caller holds the highest bid.
     pub mine: bool,
 }
 
@@ -530,21 +530,21 @@ pub async fn log_list(State(state): State<AppState>, _server: GameServer, Path(r
     Ok(Json(rows))
 }
 
-// ---------------------------------------------------------------- jogadores: vender matéria-prima, comprar da lista
+// ---------------------------------------------------------------- players: sell raw materials, buy from the list
 
 #[derive(Deserialize)]
 pub struct Trade {
     pub character_id: Uuid,
     pub item_id: String,
     pub quantity: i64,
-    /// Preço unitário que o jogador viu; outro preço em vigor = 409 `price_changed`.
+    /// Unit price the player saw; a different current price = 409 `price_changed`.
     pub unit_price: i64,
-    /// Bolsa e moedas depois da troca (servidor de jogo).
+    /// Bag and coins after the trade (game server).
     #[serde(flatten)]
     pub snapshot: Snapshot,
 }
 
-/// O jogador vende matéria-prima à cidade: sai do balancete, entra no estoque.
+/// The player sells raw materials to the city: paid from the treasury, added to the stock.
 pub async fn sell_raw(State(state): State<AppState>, _server: GameServer, Path(region): Path<String>, Json(t): Json<Trade>) -> ApiResult<Json<CityView>> {
     let Some(range) = PRICES.compra.get(&t.item_id) else {
         return Err(ApiError::bad_request("not_bought", "A cidade não compra este item."));
@@ -558,7 +558,7 @@ pub async fn sell_raw(State(state): State<AppState>, _server: GameServer, Path(r
     let c = lock_city(&mut tx, &region).await?;
     let mut price = price_of(&c.buy_prices, &t.item_id, range);
     if c.owner_id == Some(t.character_id) {
-        price = price.min(range.padrao);   // o governador não paga a si mesmo mais que o padrão
+        price = price.min(range.padrao);   // the governor does not pay himself more than the default
     }
     if price != t.unit_price {
         return Err(ApiError::conflict("price_changed", "O preço mudou."));
@@ -580,7 +580,7 @@ pub async fn sell_raw(State(state): State<AppState>, _server: GameServer, Path(r
     Ok(Json(v))
 }
 
-/// O jogador compra um item da lista: entra no balancete.
+/// The player buys an item from the list: goes into the treasury.
 pub async fn buy_item(State(state): State<AppState>, _server: GameServer, Path(region): Path<String>, Json(t): Json<Trade>) -> ApiResult<Json<CityView>> {
     let Some(range) = PRICES.venda.get(&t.item_id) else {
         return Err(ApiError::bad_request("not_sold", "A cidade não vende este item."));
@@ -612,7 +612,7 @@ pub async fn buy_item(State(state): State<AppState>, _server: GameServer, Path(r
     Ok(Json(v))
 }
 
-/// Soma no limite da semana; devolve o total do lado que mudou.
+/// Adds to the weekly limit; returns the total of the side that changed.
 async fn limit_add(tx: &mut sqlx::PgConnection, region: &str, week: &str, who: Uuid, item: &str, sold: i64, bought: i64) -> ApiResult<i64> {
     let (s, b): (i64, i64) = sqlx::query_as(
         "insert into city_limits (region, week, character_id, item_id, sold, bought) values ($1, $2, $3, $4, $5, $6)
@@ -664,8 +664,8 @@ async fn stock_of(tx: &mut sqlx::PgConnection, region: &str, item: &str) -> ApiR
         .unwrap_or(0))
 }
 
-/// Imposto de fabricação (vem no salvamento do personagem, mesma transação): entra no balancete e conta a fabricação
-/// na mesa (manutenção).
+/// Crafting tax (comes with the character save, same transaction): goes into the treasury and counts the craft
+/// at the station (upkeep).
 #[derive(Deserialize, Debug, Clone)]
 pub struct CityTax {
     pub region: String,
@@ -691,12 +691,12 @@ pub(crate) async fn apply_tax(tx: &mut sqlx::PgConnection, who: Uuid, t: &CityTa
     Ok(())
 }
 
-// ---------------------------------------------------------------- dono: comprar, vender, gerir, projetos
+// ---------------------------------------------------------------- owner: buy, sell, manage, projects
 
 #[derive(Deserialize)]
 pub struct BuyCity {
     pub character_id: Uuid,
-    /// Preço que o jogador viu (inicial ou o pedido do dono).
+    /// Price the player saw (initial or the owner's asking price).
     pub price: i64,
     #[serde(flatten)]
     pub snapshot: Snapshot,
@@ -708,7 +708,7 @@ pub async fn buy_city(State(state): State<AppState>, _server: GameServer, Path(r
     let now = OffsetDateTime::now_utc();
     advance_city(&mut tx, &region, now).await?;
     let c = lock_city(&mut tx, &region).await?;
-    // Cidade sem dono: preço fixo, o valor some. Com dono, só por leilão (`bid`).
+    // City without owner: fixed price, the amount is removed from the game. With owner, only by auction (`bid`).
     if c.owner_id.is_some() {
         return Err(ApiError::conflict("city_not_for_sale", "A cidade tem governador; a venda é por leilão."));
     }
@@ -725,7 +725,7 @@ pub async fn buy_city(State(state): State<AppState>, _server: GameServer, Path(r
     Ok(Json(v))
 }
 
-/// Troca de dono (compra sem dono ou fim de leilão): ataques recomeçam a contar, a semana passa a ser dele.
+/// Owner change (purchase with no owner or end of auction): attack timer restarts, the week becomes theirs.
 async fn set_owner(tx: &mut sqlx::PgConnection, c: &CityRow, owner: Uuid, paid: i64, now: OffsetDateTime) -> ApiResult<()> {
     sqlx::query(
         "update cities set owner_id = $2, owner_since = $3, paid = $4, next_attack_at = $5,
@@ -751,11 +751,11 @@ async fn set_owner(tx: &mut sqlx::PgConnection, c: &CityRow, owner: Uuid, paid: 
 #[derive(Deserialize)]
 pub struct Sale {
     pub character_id: Uuid,
-    /// Lance inicial do leilão; nulo cancela (só sem lance e fora da venda obrigatória).
+    /// Auction starting bid; null cancels (only with no bids and outside a forced sale).
     pub price: Option<i64>,
 }
 
-/// O governador põe a cidade em leilão de 24 h com o lance inicial que quiser (depois da carência).
+/// The governor puts the city up for a 24 h auction with any starting bid (after the grace period).
 pub async fn sale(State(state): State<AppState>, _server: GameServer, Path(region): Path<String>, Json(s): Json<Sale>) -> ApiResult<Json<CityView>> {
     let mut tx = state.db.begin().await?;
     let now = OffsetDateTime::now_utc();
@@ -810,7 +810,7 @@ async fn start_auction(tx: &mut sqlx::PgConnection, region: &str, start: i64, fo
 pub struct Bid {
     pub character_id: Uuid,
     pub amount: i64,
-    /// Bolsa e moedas já sem o lance (fica guardado até alguém cobrir ou o leilão acabar).
+    /// Bag and coins already without the bid (held until someone outbids it or the auction ends).
     #[serde(flatten)]
     pub snapshot: Snapshot,
 }
@@ -831,7 +831,7 @@ pub async fn bid(State(state): State<AppState>, _server: GameServer, Path(region
         return Err(ApiError::conflict("bid_too_low", "Lance abaixo do mínimo."));
     }
     let ctx = b.snapshot.apply(&mut tx, b.character_id).await?;
-    // O lance coberto volta em crédito para quem deu.
+    // The outbid amount goes back as credit to the bidder.
     if let (Some(prev), Some(who)) = (c.auction_bid, c.auction_bidder) {
         credit(&mut tx, who, prev, "city_bid_refund", None).await?;
     }
@@ -848,8 +848,8 @@ pub async fn bid(State(state): State<AppState>, _server: GameServer, Path(region
     Ok(Json(v))
 }
 
-/// Fim do leilão: o maior lance leva (o governador que sai recebe o lance, menos a taxa se a venda foi dele). Sem
-/// lance: venda do dono acaba sem mudança; venda obrigatória deixa a cidade sem governador.
+/// End of auction: the highest bid wins (the outgoing governor receives the bid, minus the fee if the sale was theirs).
+/// No bid: an owner's sale ends with no change; a forced sale leaves the city without a governor.
 async fn settle(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDateTime) -> ApiResult<()> {
     let c: CityRow = sqlx::query_as("select * from cities where region = $1 for update").bind(region).fetch_one(&mut *tx).await?;
     let Some(ends) = c.auction_ends_at else {
@@ -947,7 +947,7 @@ pub async fn manage(State(state): State<AppState>, _server: GameServer, Path(reg
 #[derive(Deserialize)]
 pub struct Project {
     pub character_id: Uuid,
-    /// "station" (escala, nível ou conserto, conforme a mesa), "buff" ou "weapon" (escala da arma).
+    /// "station" (tier, level or repair, depending on the station), "buff" or "weapon" (weapon tier).
     pub kind: String,
     #[serde(default)]
     pub station: Option<String>,
@@ -957,7 +957,7 @@ pub struct Project {
     pub weapon: Option<String>,
 }
 
-/// Paga uma subida: cesta do estoque (fração `share` dela) e moedas; devolve o valor (padrão da faixa) da cesta paga.
+/// Pays an upgrade: basket from stock (fraction `share` of it) and coins; returns the value (range default) of the basket paid.
 async fn pay(tx: &mut sqlx::PgConnection, region: &str, up: &Up, share: f64, coins: bool) -> ApiResult<i64> {
     let mut value = 0;
     for (item, qty) in &up.materiais {
@@ -981,7 +981,7 @@ pub async fn project(State(state): State<AppState>, _server: GameServer, Path(re
     let ends = now + Duration::hours(RULES.obra_horas);
     match p.kind.as_str() {
         "weapon" => {
-            // Arma do forte: sobe uma escala (até a última da regra), obra de 24 h.
+            // Fort weapon: goes up one tier (up to the last one in the rules), 24 h of work.
             let Some(weapon) = p.weapon.as_ref().filter(|w| RULES.armas.tipos.contains(w)) else {
                 return Err(ApiError::bad_request("invalid_project", "Arma desconhecida."));
             };
@@ -1033,8 +1033,8 @@ pub async fn project(State(state): State<AppState>, _server: GameServer, Path(re
             clog(&mut tx, &region, "buff", Some(p.character_id), None, 1, rule.custo, json!({"station": station, "buff": buff})).await?;
         }
         "station" => {
-            // Mesa: primeiro a escala (até a 5), depois os níveis; nível que a mesa já teve é conserto (30% da cesta,
-            // sem moedas, fora da meta). Tudo com obra de 24 h.
+            // Station: first the tier (up to 5), then the levels; a level the station already had is a repair (30% of
+            // the basket, no coins, outside the goal). All with 24 h of work.
             let Some(station) = p.station.as_ref().filter(|st| RULES.mesas.contains_key(*st)) else {
                 return Err(ApiError::bad_request("invalid_project", "Mesa desconhecida."));
             };
@@ -1081,7 +1081,7 @@ pub async fn project(State(state): State<AppState>, _server: GameServer, Path(re
     Ok(Json(v))
 }
 
-/// Obras que terminaram: a mesa ou a arma sobe para o alvo.
+/// Finished works: the station or weapon goes up to the target.
 async fn works(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDateTime) -> ApiResult<()> {
     let done: Vec<(String, String, i32)> = sqlx::query_as(
         "update city_stations set
@@ -1113,16 +1113,16 @@ async fn works(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDateTime) -
     Ok(())
 }
 
-// ---------------------------------------------------------------- tempo: ataques e virada da semana
+// ---------------------------------------------------------------- time: attacks and week rollover
 
 #[derive(Deserialize, Default)]
 pub struct Advance {
-    /// Instante a considerar (testes); ausente = agora.
+    /// Instant to use (tests); missing = now.
     #[serde(default, with = "time::serde::rfc3339::option")]
     pub now: Option<OffsetDateTime>,
 }
 
-/// Roda o que venceu em todas as cidades (o nw-core chama a cada minuto; testes chamam com `now`).
+/// Runs what is due in every city (nw-core calls it every minute; tests call it with `now`).
 pub async fn advance(State(state): State<AppState>, _server: GameServer, body: Option<Json<Advance>>) -> ApiResult<StatusCode> {
     let now = body.and_then(|b| b.0.now).unwrap_or_else(OffsetDateTime::now_utc);
     advance_all(&state.db, now).await?;
@@ -1144,7 +1144,7 @@ pub async fn advance_all(db: &sqlx::PgPool, now: OffsetDateTime) -> ApiResult<()
     Ok(())
 }
 
-/// Antes de qualquer ação numa cidade: semana e ataques em dia (a virada compara todas as cidades).
+/// Before any action in a city: week and attacks up to date (the rollover compares all cities).
 async fn advance_city(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDateTime) -> ApiResult<()> {
     let c = lock_city(tx, region).await?;
     if c.week != week_id(now) {
@@ -1179,13 +1179,13 @@ async fn attacks(tx: &mut sqlx::PgConnection, region: &str, now: OffsetDateTime)
         let defense: i32 = weapons.iter().map(|w| w.tier).sum();
         let a = &RULES.ataque;
         let weeks = ((at - since).whole_days() / 7) as f64;
-        // Força cresce com a semana do dono e com o tamanho da cidade (escalas acima da inicial e níveis).
+        // Strength grows with the owner's week and the city's size (tiers above the initial one, and levels).
         let growth: i32 = stations.iter().map(|s| (s.tier - RULES.mesa_escala.inicial).max(0) + s.level).sum();
         let strength = (a.base + a.por_semana * weeks + a.por_nivel * growth as f64) * (1.0 - a.variacao + 2.0 * a.variacao * rand01());
         let won = defense as f64 >= strength;
         let mut lost = Vec::new();
         if !won {
-            // Perde nível das mesas (a escala nunca cai); sem nível para perder, uma arma perde escala.
+            // Stations lose levels (the tier never drops); with no level to lose, a weapon loses a tier.
             for s in stations.iter().filter(|s| s.level > 0).take(a.niveis_perdidos) {
                 sqlx::query("update city_stations set level = level - 1 where region = $1 and station = $2")
                     .bind(region)
@@ -1227,7 +1227,7 @@ struct WeekRow {
     buffs: i32,
 }
 
-/// Fecha as semanas vencidas de todas as cidades (as linhas já estão travadas): manutenção, meta, faixa, prêmio.
+/// Closes the due weeks of all cities (the rows are already locked): upkeep, goal, tier, prize.
 async fn rollover(tx: &mut sqlx::PgConnection, now: OffsetDateTime) -> ApiResult<()> {
     let current = week_id(now);
     loop {
@@ -1253,7 +1253,7 @@ async fn rollover(tx: &mut sqlx::PgConnection, now: OffsetDateTime) -> ApiResult
             let teneb = w.raw_units < pr.tenebroso_materia_prima || w.list_units < pr.tenebroso_lista || w.buffs == 0;
             results.push((w.region, c.owner_id, score, teneb));
         }
-        // Média das cidades que não ficaram no tenebroso; uma cidade só = média das últimas 4 semanas dela.
+        // Mean of the cities that did not end in `tenebroso`; a single city = mean of its last 4 weeks.
         let alive: Vec<f64> = results.iter().filter(|r| !r.3).map(|r| r.2).collect();
         let best = results.iter().filter(|r| !r.3).map(|r| r.2).fold(f64::MIN, f64::max);
         for (region, owner, score, teneb) in &results {
@@ -1300,7 +1300,7 @@ async fn rollover(tx: &mut sqlx::PgConnection, now: OffsetDateTime) -> ApiResult
                 credit(tx, *owner, paid, "city_prize", None).await?;
                 clog(tx, region, "prize", Some(*owner), None, 0, paid, json!({"week": oldest, "tier": tier, "score": score, "ratio": ratio})).await?;
                 if *teneb {
-                    // Leilão obrigatório de 24 h a partir do preço inicial (substitui um leilão do próprio dono sem lance).
+                    // Forced 24 h auction from the initial price (replaces an owner's own auction with no bids).
                     let running: Option<i64> = sqlx::query_scalar("select auction_bid from cities where region = $1").bind(region).fetch_one(&mut *tx).await?;
                     if running.is_none() {
                         start_auction(tx, region, RULES.preco_cidade, true, now).await?;
@@ -1308,7 +1308,7 @@ async fn rollover(tx: &mut sqlx::PgConnection, now: OffsetDateTime) -> ApiResult
                     clog(tx, region, "forced_sale", Some(*owner), None, 0, RULES.preco_cidade, json!({"week": oldest})).await?;
                 }
             }
-            // Semana seguinte.
+            // Next week.
             let next = week_begin(&oldest).map(|t| week_id(t + Duration::days(7))).unwrap_or_else(|| current.clone());
             sqlx::query("update cities set week = $2 where region = $1").bind(region).bind(&next).execute(&mut *tx).await?;
             sqlx::query("insert into city_weeks (region, week, owner_id) values ($1, $2, $3) on conflict do nothing")
@@ -1321,11 +1321,11 @@ async fn rollover(tx: &mut sqlx::PgConnection, now: OffsetDateTime) -> ApiResult
     }
 }
 
-/// Manutenção da semana: cada fabricação numa mesa evoluída gasta matéria-prima do nível dela; sem material, a mesa
-/// perde um nível. Zera a contagem.
+/// Weekly upkeep: each craft at an upgraded station consumes raw material per its level; without material, the station
+/// loses a level. Resets the count.
 async fn upkeep(tx: &mut sqlx::PgConnection, region: &str) -> ApiResult<()> {
-    // Cada fabricação numa mesa acima da escala inicial (ou com nível) gasta a matéria-prima da mesa; sem material, a
-    // mesa perde um nível (a escala não cai).
+    // Each craft at a station above the initial tier (or with a level) consumes the station's raw material; without
+    // material, the station loses a level (the tier does not drop).
     let stations = stations_of(tx, region).await?;
     for s in stations {
         let size = (s.tier - RULES.mesa_escala.inicial).max(0) + s.level;

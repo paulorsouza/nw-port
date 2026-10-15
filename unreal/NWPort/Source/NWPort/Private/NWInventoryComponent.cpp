@@ -150,7 +150,7 @@ float UNWInventoryComponent::DamageMultiplier(FName WeaponSet) const
 	{
 		return 1.f;
 	}
-	// Gear score 100 -> 0,6x, 600 -> 1,4x (o jogo escala o dano base pelo gear score).
+	// Gear score 100 -> 0.6x, 600 -> 1.4x (the game scales base damage by gear score).
 	return FMath::GetMappedRangeValueClamped(FVector2f(100.f, 600.f), FVector2f(0.6f, 1.4f), float(W->GearScore));
 }
 
@@ -167,7 +167,7 @@ int32 UNWInventoryComponent::AddItem(const FNWItem& In)
 		return In.Quantity;
 	}
 	int32 Left = In.Quantity;
-	// Junta nas pilhas que já existem (armas não empilham: Stack = 1).
+	// Merges into the existing stacks (weapons do not stack: Stack = 1).
 	for (FNWItem& I : Items)
 	{
 		if (Left > 0 && I.Container == ENWItemContainer::Bag && I.SameKind(In) && I.Quantity < D->Stack)
@@ -206,8 +206,8 @@ FString UNWInventoryComponent::FormatCoins(int64 Cents)
 
 void UNWInventoryComponent::AddCoins(int64 Amount)
 {
-	// Teto de moedas (governança, dono 2026-10-15): o que passa não entra, sem crédito; fica no log do servidor e no
-	// log de itens do nw-core.
+	// Coin cap (governance, maintainer 2026-10-15): the excess does not come in, no credit; it goes to the server log and
+	// to the nw-core item log.
 	const int64 Max = NWCity::Rules().CoinsMax;
 	if (Amount > 0 && Max > 0 && Coins + Amount > Max)
 	{
@@ -216,7 +216,7 @@ void UNWInventoryComponent::AddCoins(int64 Amount)
 		Amount = Kept;
 		const APawn* P = Cast<APawn>(GetOwner());
 		const ANWPlayerController* PC = P ? Cast<ANWPlayerController>(P->GetController()) : nullptr;
-		UE_LOG(LogTemp, Warning, TEXT("Teto de moedas: %s perdeu %lld (%s)"), PC && PC->Record ? *PC->Record->Name : *GetNameSafe(GetOwner()), Lost,
+		UE_LOG(LogTemp, Warning, TEXT("Coin cap: %s lost %lld (%s)"), PC && PC->Record ? *PC->Record->Name : *GetNameSafe(GetOwner()), Lost,
 			*NWOps::CurrentReason(TEXT("coins_cap")));
 		if (PC && PC->Record && GetWorld() && GetWorld()->GetGameInstance())
 		{
@@ -239,7 +239,7 @@ void UNWInventoryComponent::Load(const TArray<FNWItem>& InItems, int64 InCoins)
 	Items.Reset();
 	for (const FNWItem& I : InItems)
 	{
-		// Item que saiu do catálogo some (não trava a entrada).
+		// An item that left the catalog is dropped (does not block entering the game).
 		if (FNWItemCatalog::Get().Find(I.ItemId) && I.Quantity > 0)
 		{
 			Items.Add(I);
@@ -278,7 +278,7 @@ void UNWInventoryComponent::GiveTools()
 	for (int32 i = 0; i < UE_ARRAY_COUNT(Tools); ++i)
 	{
 		const int32 Slot = NWEquip::FirstTool + i;
-		// Só se não tem nenhuma ferramenta desse tipo (equipada ou na bolsa).
+		// Only if there is no tool of this type (equipped or in the bag).
 		const bool bHasKind = Items.ContainsByPredicate([Slot](const FNWItem& I)
 		{
 			const FNWItemDef* D = FNWItemCatalog::Get().Find(I.ItemId);
@@ -327,7 +327,7 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 	TWeakObjectPtr<UNWInventoryComponent> Self(this);
 	if (NWOps::Defer(Cast<ANWCharacter>(GetOwner()), [Self, FromContainer, FromSlot, ToContainer, ToSlot]() { if (Self.IsValid()) { Self->ServerMove_Implementation(FromContainer, FromSlot, ToContainer, ToSlot); } }))
 	{
-		return;   // uma operação está gravando: entra depois dela
+		return;   // an operation is recording: runs after it
 	}
 	const int32 ToMax = ToContainer == ENWItemContainer::Bag ? BagSize : NWEquip::Count;
 	FNWItem* From = Find(FromContainer, FromSlot);
@@ -336,7 +336,7 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 		return;
 	}
 	FNWItem* To = Find(ToContainer, ToSlot);
-	// Equipar: o item tem que servir no espaço; trocar: o que sai tem que servir onde o outro estava.
+	// Equip: the item has to fit the slot; swap: the outgoing one has to fit where the other was.
 	if (ToContainer == ENWItemContainer::Equip && !CanEquip(*From, ToSlot))
 	{
 		return;
@@ -345,7 +345,7 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 	{
 		return;
 	}
-	// Mesma pilha na bolsa: junta.
+	// Same stack in the bag: merges.
 	if (To && To->SameKind(*From) && ToContainer == ENWItemContainer::Bag && FromContainer == ENWItemContainer::Bag)
 	{
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(From->ItemId);
@@ -369,7 +369,7 @@ void UNWInventoryComponent::ServerMove_Implementation(ENWItemContainer FromConta
 	}
 	From->Container = ToContainer;
 	From->Slot = ToSlot;
-	// Vincula ao equipar (docs/game/items.md): equipado uma vez, fica preso ao personagem.
+	// Binds on equip (docs/game/items.md): once equipped, it stays bound to the character.
 	if (ToContainer == ENWItemContainer::Equip && From->Bind == 1)
 	{
 		From->Bind = 2;
@@ -382,7 +382,7 @@ void UNWInventoryComponent::ServerUseBestPotion_Implementation()
 	TWeakObjectPtr<UNWInventoryComponent> Self(this);
 	if (NWOps::Defer(Cast<ANWCharacter>(GetOwner()), [Self]() { if (Self.IsValid()) { Self->ServerUseBestPotion_Implementation(); } }))
 	{
-		return;   // uma operação está gravando: entra depois dela
+		return;   // an operation is recording: runs after it
 	}
 	const int32 Slot = BestPotionSlot();
 	if (Slot != INDEX_NONE)
@@ -396,7 +396,7 @@ void UNWInventoryComponent::ServerUse_Implementation(int32 BagSlot)
 	TWeakObjectPtr<UNWInventoryComponent> Self(this);
 	if (NWOps::Defer(Cast<ANWCharacter>(GetOwner()), [Self, BagSlot]() { if (Self.IsValid()) { Self->ServerUse_Implementation(BagSlot); } }))
 	{
-		return;   // uma operação está gravando: entra depois dela
+		return;   // an operation is recording: runs after it
 	}
 	FNWItem* I = Find(ENWItemContainer::Bag, BagSlot);
 	const FNWItemDef* D = I ? FNWItemCatalog::Get().Find(I->ItemId) : nullptr;
@@ -405,7 +405,7 @@ void UNWInventoryComponent::ServerUse_Implementation(int32 BagSlot)
 	{
 		return;
 	}
-	// Poção: cura fixa do jogo escalada para a nossa vida máxima + porcentagem da vida.
+	// Potion: the game's fixed heal scaled to our max health + a percentage of health.
 	UNWCombatComponent* C = Me->Combat;
 	const float Amount = D->Heal * (C->MaxHealth / GameMaxHealth) + D->HealPercent * C->MaxHealth;
 	C->Health = FMath::Min(C->MaxHealth, C->Health + Amount);
@@ -440,7 +440,7 @@ FString UNWInventoryComponent::Unsocket(ENWItemContainer Container, int32 Slot)
 	{
 		return TEXT("nw.item.gem_cost");
 	}
-	// A gema volta para a bolsa: precisa de pilha com espaço ou de espaço livre.
+	// The gem goes back to the bag: needs a stack with room or a free slot.
 	const FNWItemDef* GD = FNWItemCatalog::Get().Find(Gem);
 	FNWItem Back;
 	Back.ItemId = Gem;
@@ -462,7 +462,7 @@ FString UNWInventoryComponent::Unsocket(ENWItemContainer Container, int32 Slot)
 void UNWInventoryComponent::ServerSocket_Implementation(int32 GemBagSlot, ENWItemContainer Container, int32 Slot)
 {
 	TWeakObjectPtr<UNWInventoryComponent> Self(this);
-	// Operação gravada (NWOps): a mesma função roda dentro dela e só vale depois de gravar.
+	// Recorded operation (NWOps): the same function runs inside it and only takes effect after recording.
 	if (ANWCharacter* Owner = Cast<ANWCharacter>(GetOwner()); Owner && !NWOps::IsApplying(Owner) && NWOps::Persists(Owner))
 	{
 		NWOps::Run(Owner, TEXT("socket"), [Self, GemBagSlot, Container, Slot]() { if (Self.IsValid()) { Self->ServerSocket_Implementation(GemBagSlot, Container, Slot); } return Self.IsValid(); },
@@ -482,7 +482,7 @@ void UNWInventoryComponent::ServerSocket_Implementation(int32 GemBagSlot, ENWIte
 		Warn(TEXT("nw.item.gem_wrong"));
 		return;
 	}
-	// Slot ocupado: retirar antes, pagando (docs/game/items.md "Slot"); acoplar não troca.
+	// Slot occupied: remove first, paying (docs/game/items.md "Slot and gems"); socketing does not swap.
 	if (!Item->Gem.IsNone())
 	{
 		Warn(TEXT("nw.item.gem_occupied"));
@@ -502,7 +502,7 @@ void UNWInventoryComponent::ServerSocket_Implementation(int32 GemBagSlot, ENWIte
 void UNWInventoryComponent::ServerUnsocket_Implementation(ENWItemContainer Container, int32 Slot)
 {
 	TWeakObjectPtr<UNWInventoryComponent> Self(this);
-	// Operação gravada (NWOps): a mesma função roda dentro dela e só vale depois de gravar.
+	// Recorded operation (NWOps): the same function runs inside it and only takes effect after recording.
 	if (ANWCharacter* Owner = Cast<ANWCharacter>(GetOwner()); Owner && !NWOps::IsApplying(Owner) && NWOps::Persists(Owner))
 	{
 		NWOps::Run(Owner, TEXT("unsocket"), [Self, Container, Slot]() { if (Self.IsValid()) { Self->ServerUnsocket_Implementation(Container, Slot); } return Self.IsValid(); },
@@ -520,7 +520,7 @@ void UNWInventoryComponent::ServerUnsocket_Implementation(ENWItemContainer Conta
 
 void UNWInventoryComponent::ServerDrop_Implementation(int32 BagSlot, int32 Quantity)
 {
-	// Operação gravada: a bolsa sem os itens e o saco no chão numa transação (NWOps::Overflow → ground).
+	// Recorded operation: the bag without the items and the sack on the ground in one transaction (NWOps::Overflow → ground).
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 	TWeakObjectPtr<UNWInventoryComponent> Self(this);
 	NWOps::Run(Me, TEXT("drop"),
@@ -549,7 +549,7 @@ void UNWInventoryComponent::ServerDrop_Implementation(int32 BagSlot, int32 Quant
 void UNWInventoryComponent::ServerDestroy_Implementation(int32 BagSlot, int32 Quantity)
 {
 	TWeakObjectPtr<UNWInventoryComponent> Self(this);
-	// Operação gravada (NWOps): a mesma função roda dentro dela e só vale depois de gravar.
+	// Recorded operation (NWOps): the same function runs inside it and only takes effect after recording.
 	if (ANWCharacter* Owner = Cast<ANWCharacter>(GetOwner()); Owner && !NWOps::IsApplying(Owner) && NWOps::Persists(Owner))
 	{
 		NWOps::Run(Owner, TEXT("destroy"), [Self, BagSlot, Quantity]() { if (Self.IsValid()) { Self->ServerDestroy_Implementation(BagSlot, Quantity); } return Self.IsValid(); },
@@ -574,8 +574,8 @@ void UNWInventoryComponent::ServerDestroy_Implementation(int32 BagSlot, int32 Qu
 
 void UNWInventoryComponent::Grant(const TArray<FNWItem>& Gained, int64 GainedCoins)
 {
-	// Coleta, saque de criatura, F10: operação gravada (NWOps, só os espaços que mudaram); o aviso de saque e o item
-	// aparecem depois de gravar. Dentro de outra operação (fabricar, refinar) ou sem nw-core, entra na hora.
+	// Gathering, creature loot, F10: recorded operation (NWOps, only the slots that changed); the loot notice and the item
+	// appear after recording. Inside another operation (crafting, refining) or without nw-core, applies immediately.
 	ANWCharacter* Owner = Cast<ANWCharacter>(GetOwner());
 	if (Owner && !NWOps::IsApplying(Owner) && NWOps::Persists(Owner))
 	{
@@ -611,8 +611,8 @@ void UNWInventoryComponent::GrantNow(const TArray<FNWItem>& Gained, int64 Gained
 	}
 	const APawn* Pawn = Cast<APawn>(GetOwner());
 	ANWPlayerController* PC = Pawn ? Cast<ANWPlayerController>(Pawn->GetController()) : nullptr;
-	// Bolsa cheia: o resto vai para o chão (não cancela a fabricação nem a coleta), sem o limite de peso no chão. Dentro
-	// de uma operação, o saco é gravado junto com ela (NWOps::Overflow).
+	// Bag full: the rest goes to the ground (does not cancel the crafting or the gathering), without the ground weight limit.
+	// Inside an operation, the sack is recorded together with it (NWOps::Overflow).
 	if (Over.Num() > 0)
 	{
 		NWOps::Overflow(Owner, Over);
@@ -636,7 +636,7 @@ void UNWInventoryComponent::ClientLoot_Implementation(const TArray<FNWItem>& Gai
 	}
 }
 
-// Moedas de dev (F10): +100,00 (10.000 centavos) para testar loja, refino e mercado. Grava com o estado (PUT state).
+// Dev coins (F10): +100.00 (10,000 cents) to test the shop, refining and market. Saved with the state (PUT state).
 NW_REGISTER_DEV(DevCoins, TEXT("sistemas.dev_coins"), TEXT("nw.dev.dev_coins"),
 	[](ANWPlayerController* PC)
 	{
@@ -652,7 +652,7 @@ NW_REGISTER_DEV(DevCoins, TEXT("sistemas.dev_coins"), TEXT("nw.dev.dev_coins"),
 		return FText::FromString(C && C->Inventory ? UNWInventoryComponent::FormatCoins(C->Inventory->Coins) : FString());
 	});
 
-// Bolsa de dev (F10): peso máximo de 10.000.000 para testar refino e ofício sem sobrecarga. Não vai para o nw-core.
+// Dev bag (F10): max weight of 10,000,000 to test refining and trade skills without overload. Not sent to nw-core.
 NW_REGISTER_DEV(DevBag, TEXT("sistemas.dev_bag"), TEXT("nw.dev.dev_bag"),
 	[](ANWPlayerController* PC)
 	{

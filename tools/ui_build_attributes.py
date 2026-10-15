@@ -1,12 +1,12 @@
-"""Aba de atributos da janela "Personagem" do jogo (lyshineui/skills/skills.dynamicuicanvas, subárvore Attributes).
+"""Attributes tab of the game's "Character" window (lyshineui/skills/skills.dynamicuicanvas, Attributes subtree).
 
     python3 tools/ui_build_attributes.py
 
-Gera unreal/NWPort/Data/UI/attributes_layout.<idioma>.json e extract/ui/attributes_textures.txt. Aplica o que o Lua
-do jogo faz e não está no arquivo: moldura padrão, nome de cada linha (Força, Destreza, Inteligência, Foco,
-Constituição), textos dos botões (−, +, Confirmar), foco dos botões só com o mouse em cima (o C++ liga) e o valor
-pendente desligado. Ficam de fora a barra de limiares (o Lua monta as seções; o FNWAttributesMenu desenha uma barra
-simples com a textura do jogo), os ícones de bônus, o "?" e a coluna de estatísticas da direita.
+Writes unreal/NWPort/Data/UI/attributes_layout.<language>.json and extract/ui/attributes_textures.txt. Applies what the
+game's Lua does and is not in the file: default frame, name of each row (Strength, Dexterity, Intelligence, Focus,
+Constitution), button texts (−, +, Confirm), button focus only on mouse hover (the C++ turns it on) and the pending
+value turned off. Left out: the threshold bar (the Lua builds the sections; FNWAttributesMenu draws a simple bar
+with the game texture), the bonus icons, the "?" and the stats column on the right.
 """
 import json
 import os
@@ -22,11 +22,11 @@ UI = os.path.join(ROOT, "extract", "ui")
 KEEP = ["_root/Skills/ScreenHolder/FrameMultiBg", "_root/Skills/ScreenHolder/FrameHeader", "_root/Skills/ScreenHolder/Attributes"]
 EXCLUDE = ["AttributeThresholdBonusBar", "GlowIconHolder", "AttributeIconHolder", "QuestionMark", "StatsSectionBg",
            "ValueTooltipSetter", "buttonTooltipSetter", "spinner", "buttonSecondaryIconSprite", "buttonSecondaryIconHolder",
-           # Redistribuir (custa moedas no jogo), estatísticas de dano/vida e marcos da barra de XP: o port não tem.
+           # Respec (costs coins in the game), damage/health stats and XP bar milestones: the port does not have them.
            "Respec", "VitalsLabel", "VitalsLabelDivider", "BaseStats", "DamageLabel", "DabageLabelDivider", "DamageStats",
            "ViewMilestoneButton", "NextMilestoneLabel", "ExpansionBadgeWithText", "MultiplierBg", "MeterRestedFill",
            "IncreaseDelta", "DeltaXpBg", "WeaponLine"]
-# Peças de foco/realce dos botões: o jogo liga só no hover.
+# Button focus/highlight pieces: the game turns them on only on hover.
 HOVER_ONLY = {"buttonBgFocus", "buttonFocus", "frameFocus", "heroBorder", "buttonBottomGlow", "buttonFocusHero"}
 ROWS = {"Attribute": "@ui_strength", "Attribute2": "@ui_dexterity", "Attribute3": "@ui_intelligence",
         "Attribute4": "@ui_focus", "Attribute5": "@ui_constitution"}
@@ -78,7 +78,7 @@ def main():
                   separators=(",", ":"))
     textures = sorted({e["image"]["texture"].lower() for e in lay["elements"] if e.get("image") and e["image"]["texture"]} | set(EXTRA))
     open(os.path.join(UI, "attributes_textures.txt"), "w").write("\n".join(textures) + "\n")
-    print(f"{len(lay['elements'])} elementos, {len(textures)} texturas")
+    print(f"{len(lay['elements'])} elements, {len(textures)} textures")
 
 
 if __name__ == "__main__":

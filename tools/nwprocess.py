@@ -1,4 +1,4 @@
-"""Execucao supervisionada, fila e etapas retomaveis no Windows/Linux."""
+"""Supervised execution, heavy-job queue and resumable steps on Windows/Linux."""
 import contextlib
 import ctypes
 import os
@@ -35,11 +35,11 @@ def available_memory():
         for line in stream:
             if line.startswith("MemAvailable:"):
                 return int(line.split()[1]) * 1024
-    raise ResourceError("MemAvailable indisponivel")
+    raise ResourceError("MemAvailable unavailable")
 
 
 def memory_floor(memory):
-    # NW_MIN_MEM_GIB limita os minimos de memoria em maquinas com pouca folga.
+    # NW_MIN_MEM_GIB caps the memory minimums on machines with little headroom.
     configured = os.environ.get("NW_MIN_MEM_GIB")
     if memory and configured:
         return min(memory, int(float(configured) * GIB))
@@ -49,18 +49,18 @@ def memory_floor(memory):
 def require_resources(paths=(), memory=0, disk=0):
     memory = memory_floor(memory)
     if memory and available_memory() < memory:
-        raise ResourceError(f"menos de {memory / GIB:g} GiB de memoria disponivel")
+        raise ResourceError(f"less than {memory / GIB:g} GiB of memory available")
     for path in paths:
         existing = Path(path).resolve()
         while not existing.exists() and existing != existing.parent:
             existing = existing.parent
         if disk and shutil.disk_usage(existing).free < disk:
-            raise ResourceError(f"menos de {disk / GIB:g} GiB livres em {existing}")
+            raise ResourceError(f"less than {disk / GIB:g} GiB free on {existing}")
 
 
 @contextlib.contextmanager
 def heavy_lock(path=None, poll=0.2):
-    # Mesmo nome/caminho do pesado.sh no Linux. Filhos herdam NW_PESADO=1.
+    # Same name/path as pesado.sh on Linux. Children inherit NW_PESADO=1.
     if os.environ.get("NW_PESADO"):
         yield
         return
@@ -89,11 +89,11 @@ def heavy_lock(path=None, poll=0.2):
                 acquire()
                 break
             except OSError as exc:
-                # Uma falha real de I/O/permissao nao deve virar espera infinita.
+                # A real I/O/permission failure must not turn into an endless wait.
                 if exc.errno not in (11, 13, 35, 36):
                     raise
                 if not announced:
-                    print(f"[pesado] esperando outro trabalho ({path})...", flush=True)
+                    print(f"[pesado] waiting for another heavy job ({path})...", flush=True)
                     announced = True
                 time.sleep(poll)
         previous = os.environ.get("NW_PESADO")
@@ -109,7 +109,7 @@ def heavy_lock(path=None, poll=0.2):
 
 
 class WindowsJob:
-    """Job Object: ao fechar, encerra apenas a arvore deste trabalho."""
+    """Job Object: on close, ends only this job's process tree."""
     def __init__(self):
         from ctypes import wintypes
         class BasicLimits(ctypes.Structure):
@@ -162,8 +162,8 @@ class WindowsJob:
 
     def close(self):
         if self.handle:
-            # Encerramento do Job e assincrono. Espere tambem os filhos liberarem
-            # arquivos, mesmo quando o wrapper pai ja terminou.
+            # Job termination is asynchronous. Also wait for the children to release
+            # files, even when the parent wrapper has already exited.
             try:
                 if not self.api.TerminateJobObject(self.handle, 1):
                     raise ctypes.WinError(ctypes.get_last_error())
@@ -179,7 +179,7 @@ class WindowsJob:
                     if info.counts[2] == 0:  # ActiveProcesses
                         break
                     if time.monotonic() >= deadline:
-                        raise RuntimeError("processos do Job Windows nao encerraram em 5 segundos")
+                        raise RuntimeError("Windows Job processes did not exit within 5 seconds")
                     time.sleep(.01)
             finally:
                 self.api.CloseHandle(self.handle)
@@ -187,7 +187,7 @@ class WindowsJob:
 
 
 def stop_group(process):
-    # O grupo Linux permanece mesmo se o pai terminou deixando netos vivos.
+    # The Linux group remains even if the parent exited leaving grandchildren alive.
     try:
         os.killpg(process.pid, signal.SIGTERM)
     except ProcessLookupError:
@@ -209,8 +209,8 @@ def run(command, *, cwd=nwplatform.ROOT, log=None, min_memory=0, timeout=None,
     if dry_run:
         return
     if nwplatform.store_python():
-        raise ResourceError(f"Python da Microsoft Store ({sys.executable}) nao contem os processos filhos; "
-                            "instale o Python de python.org e rode com ele")
+        raise ResourceError(f"Microsoft Store Python ({sys.executable}) does not contain child processes; "
+                            "install Python from python.org and run with it")
     min_memory = memory_floor(min_memory)
     require_resources(memory=min_memory)
     job = None
@@ -228,7 +228,7 @@ def run(command, *, cwd=nwplatform.ROOT, log=None, min_memory=0, timeout=None,
                 job = WindowsJob()
                 gate_dir = Path(stack.enter_context(tempfile.TemporaryDirectory(prefix="nw-process-")))
                 gate = gate_dir / "ready"
-                # O wrapper espera a atribuicao ao Job antes de criar qualquer filho.
+                # The wrapper waits for the Job assignment before creating any child.
                 launch = [sys.executable, str(Path(__file__).resolve()), "--child", str(gate), *command]
                 process = subprocess.Popen(launch, creationflags=subprocess.BELOW_NORMAL_PRIORITY_CLASS, **kwargs)
                 job.assign(process.pid)
@@ -238,11 +238,11 @@ def run(command, *, cwd=nwplatform.ROOT, log=None, min_memory=0, timeout=None,
                 try:
                     os.setpriority(os.PRIO_PROCESS, process.pid, 19)
                 except ProcessLookupError:
-                    pass  # Comando curto pode terminar antes de ajustar prioridade.
+                    pass  # A short command may finish before the priority is set.
             start = time.monotonic()
             while process.poll() is None:
                 if min_memory and available_memory() < min_memory:
-                    raise ResourceError("memoria abaixo do limite durante o trabalho")
+                    raise ResourceError("memory below the limit during the job")
                 if timeout is not None and time.monotonic() - start >= timeout:
                     raise subprocess.TimeoutExpired(command, timeout)
                 time.sleep(poll)
@@ -271,12 +271,12 @@ class Steps:
             return
         marker = self.directory / f"{name}.ok"
         if not self.only and marker.is_file():
-            print(f"[{name}] {description}: ja feito", flush=True)
+            print(f"[{name}] {description}: already done", flush=True)
             return
         if self.before and not self.dry_run:
             self.before()
         print(f"[{name}] {description}", flush=True)
-        # Uma etapa forcada que falha precisa voltar a ficar pendente.
+        # A forced step that fails must go back to pending.
         if not self.dry_run:
             marker.unlink(missing_ok=True)
         action()
@@ -292,7 +292,7 @@ def child_main():
     deadline = time.monotonic() + 30
     while not Path(gate).is_file():
         if time.monotonic() >= deadline:
-            raise SystemExit("supervisor nao liberou o processo")
+            raise SystemExit("supervisor did not release the process")
         time.sleep(0.01)
     raise SystemExit(subprocess.call(command))
 

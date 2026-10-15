@@ -1,5 +1,5 @@
 {
-  "_comment": "Faixas de preço do NPC da cidade (docs/game/economy.md), centavos. O governador escolhe dentro da faixa; sem governador vale 'padrao' (meio da faixa). Faixa = 0,4× a 2,1× o central de tools/precos_referencia.json (exemplo do dono: minério de ferro 0,20 a 1,00), múltiplo de 0,05. A cidade só compra matéria-prima; vende a lista fixa. Cada item pode ter \"limite\" próprio (semana, por personagem); sem ele vale o padrão de tools/governanca.json (limite_semanal).",
+  "_comment": "City NPC price ranges (docs/game/economy.md), cents. The governor picks within the range; with no governor 'padrao' applies (middle of the range). Range = 0.4× to 2.1× the central price from tools/precos_referencia.json (maintainer's example: iron ore 0.20 to 1.00), multiple of 0.05. The city only buys raw materials; it sells the fixed list. Each item may have its own \"limite\" (week, per character); without it the default from tools/governanca.json applies (limite_semanal).",
   "limite_semanal_por_personagem": {
     "compra_materia_prima": 5000,
     "venda_por_tipo": 1000

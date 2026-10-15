@@ -54,7 +54,7 @@ class MigrationTests(unittest.TestCase):
         audit = check_migration.Audit(self.root, [self.old]).scan()
         self.assertIn(document, audit.actions)
         self.assertTrue((self.markers / "11.ok").exists())
-        self.assertEqual(document.read_bytes(), original)  # Scan nunca escreve.
+        self.assertEqual(document.read_bytes(), original)  # Scan never writes.
         backup = audit.apply()
         self.assertEqual((backup / "files" / document.relative_to(self.root)).read_bytes(), original)
         repaired = json.loads(document.read_text(encoding="utf-8"))
@@ -113,7 +113,7 @@ class MigrationTests(unittest.TestCase):
         try:
             link.symlink_to("/missing/old/path/sample.bnk")
         except OSError:
-            self.skipTest("host sem permissao para criar symlink de fixture")
+            self.skipTest("host has no permission to create the fixture symlink")
         audit = check_migration.Audit(self.root).scan()
         backup = audit.apply()
         self.assertFalse(link.is_symlink())

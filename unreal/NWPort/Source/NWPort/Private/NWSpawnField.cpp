@@ -13,7 +13,7 @@
 
 ANWSpawnField::ANWSpawnField()
 {
-	bReplicates = false;   // só o servidor decide; as criaturas replicam sozinhas
+	bReplicates = false;   // only the server decides; the creatures replicate on their own
 }
 
 FString ANWSpawnField::DataFileFor(const UWorld* World)
@@ -68,7 +68,7 @@ bool ANWSpawnField::Load(const FString& File)
 		const FNWCreatureDef* D = FNWCreatureCatalog::Get().Find(S.Creature);
 		if (!D || D->Set.IsNone())
 		{
-			continue;   // conjunto ainda não convertido
+			continue;   // set not converted yet
 		}
 		S.Location = FVector(A[1]->AsNumber(), A[2]->AsNumber(), A[3]->AsNumber());
 		S.Yaw = A[4]->AsNumber();
@@ -91,7 +91,7 @@ void ANWSpawnField::BeginPlay()
 	{
 		return;
 	}
-	UE_LOG(LogTemp, Log, TEXT("NW: %d spawners de criaturas"), Spawns.Num());
+	UE_LOG(LogTemp, Log, TEXT("NW: %d creature spawners"), Spawns.Num());
 	GetWorldTimerManager().SetTimer(Timer, this, &ANWSpawnField::Step, 1.f, true, 2.f);
 }
 
@@ -119,7 +119,7 @@ void ANWSpawnField::Step()
 		}
 		return Best;
 	};
-	int32 Budget = 4;   // no máximo 4 nascimentos por segundo (evita engasgo ao chegar num POI)
+	int32 Budget = 4;   // at most 4 spawns per second (avoids a hitch when arriving at a POI)
 	for (FSpawn& S : Spawns)
 	{
 		if (ANWCreature* C = S.Alive.Get())
@@ -129,7 +129,7 @@ void ANWSpawnField::Step()
 			{
 				S.DiedAt = Now;
 			}
-			// Carcaça some depois de um tempo (ou logo depois de esfolada); renasce mais tarde.
+			// Carcass disappears after a while (or soon after being skinned); respawns later.
 			if (bDead && (Now - S.DiedAt > CorpseSeconds || (C->bSkinned && Now - S.DiedAt > 5.0)))
 			{
 				C->Destroy();
@@ -137,7 +137,7 @@ void ANWSpawnField::Step()
 				S.ReadyAt = Now + FMath::FRandRange(RespawnSeconds.X, RespawnSeconds.Y);
 				continue;
 			}
-			// Longe de todos e fora de combate: some sem contar como morte.
+			// Far from everyone and out of combat: disappears without counting as a death.
 			if (!bDead && Nearest(C->GetActorLocation()) > DespawnRadius && !C->Combat->IsBusy())
 			{
 				C->Destroy();
@@ -150,7 +150,7 @@ void ANWSpawnField::Step()
 			continue;
 		}
 		const FNWCreatureDef* D = FNWCreatureCatalog::Get().Find(S.Creature);
-		// Chão debaixo do ponto do jogo (a altura do dado é a do jogo; o terreno da Unreal pode diferir um pouco).
+		// Ground under the game point (the data height is the game's; the Unreal terrain may differ a little).
 		FVector At = S.Location + FVector(0.f, 0.f, 150.f);
 		FHitResult Hit;
 		if (World->LineTraceSingleByChannel(Hit, S.Location + FVector(0.f, 0.f, 1000.f), S.Location - FVector(0.f, 0.f, 2000.f), ECC_WorldStatic))

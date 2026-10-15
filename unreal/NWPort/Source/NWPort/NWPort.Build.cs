@@ -5,16 +5,16 @@ public class NWPort : ModuleRules
 	public NWPort(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		// Cada .cpp tem helpers proprios em namespace anonimo (Img, Tan, Roman...); no unity build do MSVC eles colidem.
+		// Each .cpp has its own helpers in an anonymous namespace (Img, Tan, Roman...); in the MSVC unity build they collide.
 		bUseUnity = false;
 		PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AnimGraphRuntime", "AnimationCore", "NetCore", "Json", "RenderCore", "SlateCore", "Slate", "HTTP" });
-		// Captura de tela offline (NWUIShotCommandlet): renderizador da Slate para as fontes de runtime.
+		// Offline screenshot (NWUIShotCommandlet): Slate renderer for the runtime fonts.
 		PrivateDependencyModuleNames.Add("SlateRHIRenderer");
-		// FWidgetRenderer (captura offline das telas em Slate).
+		// FWidgetRenderer (offline capture of the Slate screens).
 		PrivateDependencyModuleNames.Add("UMG");
-		// Dados fora de Content (catálogo, telas, textos, fontes): entram no pacote (servidor e cliente).
+		// Data outside Content (catalog, screens, texts, fonts): goes into the package (server and client).
 		RuntimeDependencies.Add("$(ProjectDir)/Data/...", StagedFileType.UFS);
-		// Efeitos do jogo em Niagara (docs/tech/particles.md); a montagem dos sistemas é só no editor.
+		// Game effects in Niagara (docs/tech/particles.md); building the systems happens only in the editor.
 		PublicDependencyModuleNames.Add("Niagara");
 		if (Target.bBuildEditor)
 		{

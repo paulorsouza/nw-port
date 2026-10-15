@@ -14,7 +14,7 @@ static const FLinearColor MenuGold(FColor(0xED, 0xC6, 0x3E));
 
 namespace
 {
-	// Ids dos botões: ações, abas e linhas de opção (linha * 10 + parte: 0 seta esquerda, 1 seta direita, 2 barra).
+	// Button ids: actions, tabs and option rows (row * 10 + part: 0 left arrow, 1 right arrow, 2 bar).
 	enum : int32 { IdResume = 1, IdSettings, IdExitMenu, IdExitDesktop, IdBack, IdResetKeys, IdUnstuck, IdTab = 10, IdKey = 500, IdRow = 1000 };
 	const TArray<int32> FpsSteps = {30, 60, 120, 144, 240, 0};
 
@@ -44,7 +44,7 @@ void FNWGameMenu::DrawText(UCanvas* Canvas, const FString& Text, float X, float 
 
 void FNWGameMenu::DrawPanel(UCanvas* Canvas, const FBox2f& R) const
 {
-	// Fundo das janelas do jogo (inventory/contentbg) e a faixa de cabeçalho.
+	// Background of the game windows (inventory/contentbg) and the header strip.
 	if (UTexture2D* Tex = FNWUILayout::GameTexture(TEXT("lyshineui/images/inventory/contentbg.dds")))
 	{
 		FCanvasTileItem Tile(FVector2D(R.Min), Tex->GetResource(), FVector2D(R.GetSize()), FLinearColor(1.f, 1.f, 1.f, 0.97f));
@@ -84,7 +84,7 @@ void FNWGameMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	}
 	UIScale = Canvas->ClipY / 1080.f;
 	Buttons.Reset();
-	// Escurece a tela inteira (ScreenScrim do jogo).
+	// Darkens the whole screen (game's ScreenScrim).
 	FCanvasTileItem Scrim(FVector2D::ZeroVector, FVector2D(Canvas->ClipX, Canvas->ClipY), FLinearColor(0.f, 0.f, 0.f, 0.55f));
 	Scrim.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(Scrim);
@@ -101,7 +101,7 @@ void FNWGameMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 void FNWGameMenu::DrawMain(UCanvas* Canvas, const FVector2D& Mouse)
 {
 	const float S = UIScale;
-	// Janela do Esc do jogo: 840 x 800 no centro; aqui só a coluna "Jogo" / "Sair do Jogo" (sem loja nem suporte).
+	// Game's Esc window: 840 x 800 centered; here only the "Jogo" / "Sair do Jogo" column (no store or support).
 	const FVector2f C(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
 	Panel = FBox2f(C - FVector2f(260.f, 335.f) * S, C + FVector2f(260.f, 335.f) * S);
 	DrawPanel(Canvas, Panel);
@@ -140,7 +140,7 @@ void FNWGameMenu::OptionRow(UCanvas* Canvas, float Y, const FString& Label, cons
 		Canvas->DrawItem(Hl);
 	}
 	DrawText(Canvas, Label, X + 10.f * S, Y + 11.f * S, 18.f, MenuTan);
-	// Controle à direita: [<] valor [>] ou barra 0..1 com o valor ao lado.
+	// Control on the right: [<] value [>] or a 0..1 bar with the value beside it.
 	const float CW = 300.f * S, CX = Right - CW - 10.f * S;
 	if (Bar >= 0.f)
 	{
@@ -175,7 +175,7 @@ void FNWGameMenu::DrawOptions(UCanvas* Canvas, const FVector2D& Mouse)
 	Panel = FBox2f(C - FVector2f(520.f, 400.f) * S, C + FVector2f(520.f, 400.f) * S);
 	DrawPanel(Canvas, Panel);
 	DrawText(Canvas, NWText::Get(TEXT("ui_navmenu_settings")), Panel.Min.X + 60.f * S, Panel.Min.Y + 34.f * S, 32.f, MenuTan, 1);
-	// Abas do jogo: Vídeo, Áudio, Jogo, Atalhos de Teclado e Mouse.
+	// Game tabs: Video, Audio, Game, Keyboard and Mouse Bindings.
 	static const TCHAR* Tabs[] = {TEXT("ui_options_visuals"), TEXT("ui_options_audio"), TEXT("ui_options_gameplay"), TEXT("ui_options_kbm_controls")};
 	float TX = Panel.Min.X + 60.f * S;
 	for (int32 t = 0; t < 4; ++t)
@@ -309,7 +309,7 @@ FNWGameMenu::EAction FNWGameMenu::Click(const FVector2D& Mouse)
 
 void FNWGameMenu::DrawKeys(UCanvas* Canvas, const FVector2D& Mouse)
 {
-	// Duas colunas: ação (texto do jogo) e a tecla; clicar espera a próxima tecla (Esc cancela).
+	// Two columns: action (game text) and the key; clicking waits for the next key (Esc cancels).
 	const float S = UIScale;
 	const TArray<FNWKeyAction>& Actions = FNWOptions::KeyActions();
 	const FNWOptions& O = FNWOptions::Get();

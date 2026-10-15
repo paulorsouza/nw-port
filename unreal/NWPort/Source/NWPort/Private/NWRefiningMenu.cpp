@@ -23,7 +23,7 @@
 
 namespace
 {
-	// Cores do jogo (_common/uistyle.lua; docs/game/ui/refining.md §2).
+	// Game colors (_common/uistyle.lua; docs/game/ui/refining.md §2).
 	const FLinearColor TanWarm(FColor(0xEB, 0xE3, 0xD6));
 	const FLinearColor GrayNew(FColor(0xB2, 0xAE, 0xA1));
 	const FLinearColor Gray50(FColor(0x80, 0x80, 0x80));
@@ -34,16 +34,16 @@ namespace
 	const FLinearColor Yellow(FColor(0xFF, 0xDB, 0x7A));
 	const FLinearColor CategoryBg(FColor(0x4A, 0x5D, 0x70));
 	const TCHAR* Img = TEXT("lyshineui/images/");
-	constexpr float RowStep = 46.f;          // UiDynamicScrollBox: protótipo 449×46
-	constexpr int32 VisibleRows = 16;       // cabem 16 linhas inteiras até a borda de baixo da lista (a 17ª saía cortada)
+	constexpr float RowStep = 46.f;          // UiDynamicScrollBox: prototype 449×46
+	constexpr int32 VisibleRows = 16;       // 16 whole rows fit down to the bottom edge of the list (the 17th was cut off)
 	constexpr double RollCount = 1.0;        // craftroll.lua: duration
-	constexpr double RollDelay = 0.5;        // ProgressionContainer: atraso 0,5 s
-	constexpr double RollEnd = 2.2;          // fim da contagem + Base/Bonus (0,2 + 0,5)
-	// heroImageSequence/heroImageSequenceDisabled: UiFlipbookAnimation 30 quadros a 30 fps em laço (craftingscreenv4).
+	constexpr double RollDelay = 0.5;        // ProgressionContainer: 0.5 s delay
+	constexpr double RollEnd = 2.2;          // end of the count + Base/Bonus (0.2 + 0.5)
+	// heroImageSequence/heroImageSequenceDisabled: UiFlipbookAnimation, 30 frames at 30 fps, looping (craftingscreenv4).
 	constexpr int32 LoopFrames = 30;
 	constexpr double LoopFps = 30.0;
-	// button.lua repeatParamsDefault (repeatEnabled em craftquantitywidget.lua): espera 0,5 s, um passo a cada 0,1 s;
-	// depois de 1,8 s o passo dobra a cada 1,5 s, até 16.
+	// button.lua repeatParamsDefault (repeatEnabled in craftquantitywidget.lua): waits 0.5 s, one step every 0.1 s;
+	// after 1.8 s the step doubles every 1.5 s, up to 16.
 	constexpr double RepeatInitialWait = 0.5;
 	constexpr double RepeatPressInterval = 0.1;
 	constexpr double RepeatAccelAfter = 1.8;
@@ -71,12 +71,12 @@ namespace
 		}
 	}
 	void SetShown(FNWUIElement* El, bool bOn) { if (El) { El->Visible = bOn; } }
-	// Troca a textura sem mexer no cache: o FNWUILayout recarrega quando TextureOverride muda (CachedFor).
+	// Swaps the texture without touching the cache: FNWUILayout reloads when TextureOverride changes (CachedFor).
 	void SetTexture(FNWUIElement* El, const FString& T) { if (El) { El->TextureOverride = T; } }
-	// Opacidade animada pelo Lua (UiFaderBus.SetFadeValue): o canvas guarda o valor inicial em Fade.
+	// Opacity animated by the Lua (UiFaderBus.SetFadeValue): the canvas keeps the initial value in Fade.
 	void SetFade(FNWUIElement* El, float F) { if (El) { El->Fade = F; } }
 
-	// UiTransformBus SetLocalPosition + tamanho (ScriptedEntityTweener x/y/w/h) para elemento de âncora pontual.
+	// UiTransformBus SetLocalPosition + size (ScriptedEntityTweener x/y/w/h) for a point-anchored element.
 	void SetLocalRect(FNWUIElement* El, float X, float Y, float W, float H)
 	{
 		if (El)
@@ -84,7 +84,7 @@ namespace
 			El->Offsets = FVector4f(X - W * El->Pivot.X, Y - H * El->Pivot.Y, X + W * (1.f - El->Pivot.X), Y + H * (1.f - El->Pivot.Y));
 		}
 	}
-	// Ícone de estação (tradeskillscommon.lua, icon da estação).
+	// Station icon (tradeskillscommon.lua, the station's icon).
 	const TCHAR* StationIcon(const FString& Type)
 	{
 		return Type == TEXT("carpentry") ? TEXT("woodshop") : Type == TEXT("weaving") ? TEXT("loom") : Type == TEXT("masonry") ? TEXT("mason")
@@ -92,10 +92,10 @@ namespace
 	}
 
 	FString Loc(const TCHAR* Key) { return NWText::Get(Key); }
-	// Nome do território da cidade da estação (javelindata_territorydefinitions: Queda Eterna = @Everfall).
+	// Territory name of the station's city (javelindata_territorydefinitions: Everfall = @Everfall).
 	FString TerritoryName(const FString& City)
 	{
-		// Só Queda Eterna tem estações no port (captura offline: estação sem cidade).
+		// Only Everfall has stations in the port (offline capture: station without a city).
 		return City.IsEmpty() || City == TEXT("queda_eterna") ? NWText::Get(TEXT("everfall")) : City;
 	}
 	FString NameOf(const TMap<FString, FString>& M, const FString& Fallback)
@@ -126,7 +126,7 @@ bool FNWRefiningMenu::Load()
 	{
 		return false;
 	}
-	// Os quadros do botão entram de uma vez na abertura: carregar um por quadro no meio do laço engasga a tela.
+	// The button frames load all at once on open: loading one per frame in the middle of the loop stutters the screen.
 	for (int32 i = 0; i < LoopFrames; ++i)
 	{
 		FNWUILayout::GameTexture(Tex(*FString::Printf(TEXT("slices/button/blue_loop/blue_%02d.dds"), i)));
@@ -148,8 +148,8 @@ void FNWRefiningMenu::Open(ANWCharacter* InCharacter, ANWStation* InStation)
 	Character = InCharacter;
 	Station = InStation;
 	Recipes = InStation ? FNWCrafting::Get().ForStation(InStation->Type, InStation->Tier) : TArray<const FNWRecipe*>();
-	// Família e grupo na ordem do jogo (craftingtreeview.lua: sortingIndex de craftingsortinfo.lua); dentro do grupo,
-	// por nível (Sort by Level, o padrão da tela).
+	// Family and group in the game's order (craftingtreeview.lua: sortingIndex from craftingsortinfo.lua); within the
+	// group, by level (Sort by Level, the screen's default).
 	Recipes.StableSort([](const FNWRecipe& A, const FNWRecipe& B)
 	{
 		if (A.CategoryOrder != B.CategoryOrder) { return A.CategoryOrder < B.CategoryOrder; }
@@ -165,7 +165,7 @@ void FNWRefiningMenu::Open(ANWCharacter* InCharacter, ANWStation* InStation)
 	Drag = EDrag::None;
 	State = EState::Select;
 	Sound(TEXT("ui_crafting_intro"));
-	bReroll = false;   // cada mesa abre nas receitas (a aba "Melhorar itens" só existe nas mesas de fabricar)
+	bReroll = false;   // each table opens on the recipes (the "Improve items" tab only exists on crafting tables)
 }
 
 void FNWRefiningMenu::Select(FName RecipeId, int32 InCount)
@@ -251,7 +251,7 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 	const int32 Max = C.MaxCount(Inv, R);
 	Count = FMath::Clamp(Count, 1, FMath::Max(1, Max));
 
-	// Painel central: item resultado (RP/Header), sem raridade nos recursos (ItemName #cccccc).
+	// Center panel: result item (RP/Header), no rarity on resources (ItemName #cccccc).
 	FString Name = D ? D->Name : R.Out.ToString();
 	if (R.Qty > 1)
 	{
@@ -263,7 +263,7 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 	SetTexture(E(TEXT("CraftingRecipePanel/Header/ItemRarityBg")), Tex(TEXT("crafting/crafting_itemraritybglarge0.dds")));
 	SetTexture(E(TEXT("Header/ItemRarityBg/ItemIcon")), D ? D->Icon : FString());
 
-	// Ingredientes: 7 linhas fixas (ingredientrowv4), "tenho/preciso", vermelho quando falta.
+	// Ingredients: 7 fixed rows (ingredientrowv4), "have/need", red when missing.
 	for (int32 i = 0; i < 7; ++i)
 	{
 		const FString P = FString::Printf(TEXT("Ingredients/IngredientRow%d"), i + 1);
@@ -286,12 +286,12 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 		}
 		if (FNWUIElement* Ic = Ui.FindOne(TEXT("refining"), P + TEXT("/ItemLayout/ItemIcon")))
 		{
-			Ic->ImageType = 4;   // ícone quadrado no ItemLayout 118×56: proporção mantida (o jogo redimensiona o layout)
+			Ic->ImageType = 4;   // square icon in the 118×56 ItemLayout: aspect ratio kept (the game resizes the layout)
 			SetTexture(Ic, ID ? ID->Icon : FString());
 		}
 		SetText(Ui.FindOne(TEXT("refining"), P + TEXT("/Quantity")), FString::Printf(TEXT("%d/%d"), Have, Need),
 			Have >= Need ? FLinearColor::White : RedMedium);
-		// Nome no estilo do canvas (FONT_STYLE_NIMBUS_MEDIUM_GRAY_50); vermelho só quando falta.
+		// Name in the canvas style (FONT_STYLE_NIMBUS_MEDIUM_GRAY_50); red only when missing.
 		FNWUIElement* IName = Ui.FindOne(TEXT("refining"), P + TEXT("/Quantity/IngredientName"));
 		SetText(IName, ID ? ID->Name : Shown.ToString());
 		if (IName)
@@ -300,7 +300,7 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 		}
 	}
 
-	// Painel direito: bloco de refino (nível do ofício e chance de item extra).
+	// Right panel: refining block (trade skill level and extra item chance).
 	SetText(E(TEXT("Refining/Skill/LevelBg/Level")), FString::Printf(TEXT("%d"), Prog ? Prog->TradeLevel(Skill) : 0));
 	SetText(E(TEXT("Refining/Skill/Description")), Loc(*NWTradeskill::TextKey(Skill)));
 	TArray<FName> Chosen;
@@ -311,8 +311,8 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 	SetText(E(TEXT("Refining/Bonus/LevelBg/BonusAmt")),
 		FString::Printf(TEXT("%.0f%%"), C.BonusChance(R, Prog ? Prog->TradeRollBonus(Skill) : 0, Chosen) * 100.f));
 
-	// Requisitos (craftingstatspanel.lua UpdateRequirements): verde com check, vermelho com x; ícone da estação e do
-	// ofício ao lado do texto; linhas em y = 81 + 28·n e o bloco (e a quantidade) sobe 28 por linha mostrada.
+	// Requirements (craftingstatspanel.lua UpdateRequirements): green with a check, red with an x; station and trade skill
+	// icon next to the text; rows at y = 81 + 28·n and the block (and the quantity) moves up 28 per row shown.
 	auto Req = [this](const TCHAR* Text, const TCHAR* Icon, bool bOk, const FString& Desc)
 	{
 		SetText(E(Text), Desc, bOk ? Green : RedMedium);
@@ -322,7 +322,7 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 	Req(TEXT("ResourcesRequirement/HasResourcesText"), TEXT("ResourcesRequirement/HasResourcesIcon"), bResources,
 		Loc(TEXT("ui_has_resources")));
 	ANWStation* St = Station.Get();
-	// "@<estação>_station" (tradeskillscommon.lua requireSubText) + "Tier n" do StationType da receita.
+	// "@<station>_station" (tradeskillscommon.lua requireSubText) + "Tier n" from the recipe's StationType.
 	Req(TEXT("StationRequirement/Description"), TEXT("StationRequirementIcon"), St->Tier >= R.Tier,
 		FString::Printf(TEXT("%s %s %d"), *Loc(*(R.Station + TEXT("_station"))), *Loc(TEXT("ui_tier")), R.Tier));
 	SetTexture(E(TEXT("StationRequirement/Icon")), Tex(*FString::Printf(TEXT("icons/stations/%s.dds"), StationIcon(St->Type))));
@@ -332,7 +332,7 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 			*Loc(TEXT("cr_levelrequired")).Replace(TEXT("{requiredSkillLevel}"), *FString::FromInt(R.Level))));
 	SetTexture(E(TEXT("SkillRequirement/Icon")), NWTradeskill::Icon(Skill));
 	SetFade(E(TEXT("SkillRequirement/Icon")), 1.f);
-	const float Lines = 2.f * 28.f;   // estação + habilidade
+	const float Lines = 2.f * 28.f;   // station + skill
 	if (FNWUIElement* Box = E(TEXT("OffsetContainer/CraftingRequirements")))
 	{
 		Box->Translate.Y = -Lines;   // -123 - L11 (canvas: -123)
@@ -342,20 +342,20 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 		Q->Translate.Y = -Lines;     // -261 - L11 (canvas: -261)
 	}
 
-	// Taxa e XP do ofício.
-	// craftingstatspanel.lua: "@ui_craft_fee" com o território e GetLocalizedCurrency (centavos), cinza (COLOR_GRAY_50).
-	// O desconto por standing/companhia (GetCraftingFeeOnCurrentTerritory) é nativo e sem fonte: taxa base × quantidade.
+	// Trade skill fee and XP.
+	// craftingstatspanel.lua: "@ui_craft_fee" with the territory and GetLocalizedCurrency (cents), gray (COLOR_GRAY_50).
+	// The standing/company discount (GetCraftingFeeOnCurrentTerritory) is native and has no source: base fee × quantity.
 	SetText(E(TEXT("OffsetContainer/TaxRate")), Loc(TEXT("ui_craft_fee"))
 		.Replace(TEXT("{territoryName}"), *TerritoryName(St ? St->City : FString()))
 		.Replace(TEXT("{fee}"), *UNWInventoryComponent::FormatCoins(int64(R.Fee) * Count)), Gray50);
-	// craftingstatspanel.lua: "@ui_craft_bonus" (+{amount} {bonus} {bonus2}); amount = reward × GetIngredientCount × quantidade
-	// (crafting.xp_ingrediente_contagem: soma das Qty), bonus = nome do ofício. Sem buffs de facção nem boosts no port.
+	// craftingstatspanel.lua: "@ui_craft_bonus" (+{amount} {bonus} {bonus2}); amount = reward × GetIngredientCount × quantity
+	// (crafting.xp_ingrediente_contagem: sum of the Qty), bonus = trade skill name. No faction buffs or boosts in the port.
 	SetText(E(TEXT("OffsetContainer/SkillExpReward")), Loc(TEXT("ui_craft_bonus"))
 		.Replace(TEXT("{amount}"), *FString::FromInt(R.XpFor(Count, Prog && !Prog->HasCrafted(R.Id))))
 		.Replace(TEXT("{bonus}"), *Loc(*NWTradeskill::TextKey(Skill)))
 		.Replace(TEXT(" {bonus2}"), TEXT("")), Yellow);
 
-	// Quantidade (craftquantitywidget): mínimo 1, máximo pelos materiais; número acima da barra. Com tempo: uma por vez.
+	// Quantity (craftquantitywidget): minimum 1, maximum by the materials; number above the bar. With time: one at a time.
 	const bool bSlider = Max > 1 && !R.bGear;
 	for (const TCHAR* Off : {TEXT("OffsetContainer/Quantity/PlusButton"), TEXT("OffsetContainer/Quantity/MinusButton"),
 		TEXT("OffsetContainer/Quantity/Minimum"), TEXT("OffsetContainer/Quantity/Maximum"), TEXT("SliderWithTextInput/Slider")})
@@ -373,10 +373,10 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 	SetShown(E(TEXT("SliderWithTextInput/CurrentValueTextInput")), !R.bGear);
 	if (FNWUIElement* H = E(TEXT("Slider/SliderHandleHolder")))
 	{
-		H->Translate.X = Max > 1 ? 280.f * float(Count - 1) / float(Max - 1) : 0.f;   // trilho de 280 (SliderTrack)
+		H->Translate.X = Max > 1 ? 280.f * float(Count - 1) / float(Max - 1) : 0.f;   // 280 track (SliderTrack)
 	}
-	// craftquantitywidget.lua: botões sem texto, com ícone (SetIconPath) centrado; SLIDER_STYLE_2 (sliderwithtextinput.lua):
-	// caixa do valor 250×40 acima do centro da barra, Caslon 36 centralizado.
+	// craftquantitywidget.lua: buttons without text, with a centered icon (SetIconPath); SLIDER_STYLE_2 (sliderwithtextinput.lua):
+	// 250×40 value box above the center of the bar, Caslon 36 centered.
 	for (const TCHAR* B : {TEXT("Quantity/PlusButton"), TEXT("Quantity/MinusButton")})
 	{
 		const FString P(B);
@@ -386,7 +386,7 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 			Ic->Visible = bSlider;
 			Ic->Fade = 1.f;
 			Ic->TextureOverride = Tex(P.EndsWith(TEXT("PlusButton")) ? TEXT("icons/crafting/icon_crafting_plus.png") : TEXT("icons/crafting/icon_crafting_minus.png"));
-			Ic->Translate.X = 27.f + 1.f;   // âncora −44…−10 do texto vazio; SetIconPositionX(1)
+			Ic->Translate.X = 27.f + 1.f;   // anchor −44…−10 of the empty text; SetIconPositionX(1)
 		}
 		SetShown(Ui.FindOne(TEXT("refining"), P + TEXT("/buttonText/buttonIconHolder/buttonIconValue")), false);
 	}
@@ -399,8 +399,8 @@ void FNWRefiningMenu::Fill(UCanvas* Canvas, const FNWRecipe& R)
 		V->HAlign = 1;
 	}
 
-	// Botão CONFECCIONAR: herói azul (flipbook blue_loop, 15 quadros) quando pode; apagado quando não. Arma, escudo e
-	// ferramenta: "Fabricar".
+	// CONFECCIONAR (CRAFT) button: blue hero (flipbook blue_loop, 15 frames) when possible; dimmed when not. Weapon, shield
+	// and tool: "Fabricar" (Craft).
 	const bool bCan = bResources && bLevel;
 	const FString ButtonText = R.bGear ? NWText::Get(TEXT("nw.craft.start")) : Loc(TEXT("ui_craft"));
 	SetText(E(TEXT("OffsetContainer/CraftButton/buttonText")), FText::FromString(ButtonText).ToUpper().ToString(), bCan ? TanWarm : Gray50);
@@ -429,8 +429,8 @@ void FNWRefiningMenu::DrawRows(UCanvas* Canvas, const FVector2D& Mouse)
 	const float BaseY = (MaskRect.Min.Y - ProtoRect.Min.Y) / UIScale;
 	const FBox2f ProtoLocal(ProtoRect.Min / UIScale, ProtoRect.Max / UIScale);
 	auto At = [this](const TCHAR* Off) { return Ui.FindOne(TEXT("refining"), FString(TEXT("Mask/Content/CraftingTreeViewItem")) + Off); };
-	// Posição x de cada peça por profundidade (craftingtreeviewitem.lua), relativa ao início do item. A base vem do Draw
-	// deste quadro, em que o Translate dessas peças foi zerado (Draw).
+	// X position of each piece by depth (craftingtreeviewitem.lua), relative to the start of the item. The base comes from
+	// this frame's Draw, in which the Translate of these pieces was zeroed (Draw).
 	TMap<FNWUIElement*, float> Base;
 	for (const TCHAR* Off : {TEXT("/StateIcon"), TEXT("/EntryText"), TEXT("/RarityFrame"), TEXT("/TypeIcon")})
 	{
@@ -454,7 +454,7 @@ void FNWRefiningMenu::DrawRows(UCanvas* Canvas, const FVector2D& Mouse)
 		const bool bHeader = Row.Depth < 3;
 		const FNWRecipe* R = bHeader ? nullptr : Recipes[Row.Recipe];
 		const FNWItemDef* D = R ? FNWItemCatalog::Get().Find(R->Out) : nullptr;
-		// Fundo: cabeçalho com categoryBgAdd (#4a5d70, 0,3); receita com itemBg (#e7e7e7, 0,07); seleção: faixa azul.
+		// Background: header with categoryBgAdd (#4a5d70, 0.3); recipe with itemBg (#e7e7e7, 0.07); selection: blue strip.
 		SetShown(At(TEXT("/ListItemBg/categoryBgAdd")), bHeader);
 		if (FNWUIElement* Cb = At(TEXT("/ListItemBg/categoryBgAdd")))
 		{
@@ -466,7 +466,7 @@ void FNWRefiningMenu::DrawRows(UCanvas* Canvas, const FVector2D& Mouse)
 			Bg->Tint = FLinearColor(FColor(0xE7, 0xE7, 0xE7));
 			Bg->Fade = bHeader ? 0.f : 0.07f;
 		}
-		// EntryText.w (craftingtreeviewitem.lua): 360 nos cabeçalhos, 245 na receita aprendida; nome longo encolhe.
+		// EntryText.w (craftingtreeviewitem.lua): 360 on headers, 245 on a learned recipe; a long name shrinks.
 		if (FNWUIElement* Et = At(TEXT("/EntryText")))
 		{
 			Et->Offsets.Z = Et->Offsets.X + (bHeader ? 360.f : 245.f);
@@ -484,7 +484,7 @@ void FNWRefiningMenu::DrawRows(UCanvas* Canvas, const FVector2D& Mouse)
 		SetShown(At(TEXT("/ListItemBg/HoverGlow")), false);
 		SetShown(At(TEXT("/ListItemBg/FocusAdd")), bHover && !bSel);
 		SetFade(At(TEXT("/ListItemBg/FocusAdd")), 1.f);
-		SetFade(At(TEXT("/ListItemBg/SelectedSequenceMask/LastFrame")), 1.f);   // último quadro do flipbook de seleção
+		SetFade(At(TEXT("/ListItemBg/SelectedSequenceMask/LastFrame")), 1.f);   // last frame of the selection flipbook
 		SetFade(At(TEXT("/ListItemBg/focusGlow")), 1.f);
 		SetShown(At(TEXT("/TypeIcon/ObjectiveIcon")), false);
 		SetShown(At(TEXT("/TypeIcon/Pulse")), false);
@@ -499,14 +499,14 @@ void FNWRefiningMenu::DrawRows(UCanvas* Canvas, const FVector2D& Mouse)
 		{
 			SetTexture(At(TEXT("/StateIcon")), Tex(Collapsed.Contains(Row.Key) ? TEXT("icons/misc/dropdownarrowwhiteright.dds") : TEXT("icons/misc/dropdownarrowwhite.dds")));
 			SetText(At(TEXT("/EntryText")), Row.Text, Color);
-			// craftingtreeviewitem.lua; +6 no texto: a seta do port é desenhada sem a folga do sprite do jogo.
+			// craftingtreeviewitem.lua; +6 on the text: the port's arrow is drawn without the padding of the game's sprite.
 			const float X[3][2] = {{15.f, 36.f}, {36.f, 57.f}, {59.f, 80.f}};
 			PlaceX(TEXT("/StateIcon"), X[Row.Depth][0]);
 			PlaceX(TEXT("/EntryText"), X[Row.Depth][1]);
 		}
 		else
 		{
-			// "[n] nome": n = quantos do resultado o personagem já tem (QueryInventoryCache), sem colchete quando 0.
+			// "[n] name": n = how many of the result the character already has (QueryInventoryCache), no bracket when 0.
 			const ANWCharacter* Me = Character.Get();
 			const int32 Owned = Me && Me->Inventory ? Me->Inventory->CountOf(R->Out) : 0;
 			const FString Name = D ? D->Name : R->Out.ToString();
@@ -516,7 +516,7 @@ void FNWRefiningMenu::DrawRows(UCanvas* Canvas, const FVector2D& Mouse)
 			if (FNWUIElement* Ti = At(TEXT("/GearScoreText/TradeskillIcon")))
 			{
 				Ti->Tint = Color;
-				Ti->Translate.X = -6.f;   // folga entre o ícone e o nível
+				Ti->Translate.X = -6.f;   // gap between the icon and the level
 			}
 			SetTexture(At(TEXT("/GearScoreText/TradeskillIcon")), NWTradeskill::Icon(NWTradeskill::Index(R->Skill)));
 			SetTexture(At(TEXT("/RarityFrame")), Tex(TEXT("slices/itemlayout/itembgsquare0.dds")));
@@ -532,7 +532,7 @@ void FNWRefiningMenu::DrawRows(UCanvas* Canvas, const FVector2D& Mouse)
 
 void FNWRefiningMenu::DrawRoll(const FNWRecipe& R)
 {
-	// Painéis do roll de equipamento ficam desligados no refino.
+	// Gear roll panels stay off in refining.
 	for (const TCHAR* P : {TEXT("RarityOffset/QualityInfo"), TEXT("RarityOffset/Stats/Weapons"), TEXT("RarityOffset/Stats/PerkContainer")})
 	{
 		SetShown(E(P), bGearRoll);
@@ -540,7 +540,7 @@ void FNWRefiningMenu::DrawRoll(const FNWRecipe& R)
 	SetShown(E(TEXT("RarityOffset/Stats/Quantity")), !bGearRoll);
 	if (FNWUIElement* Off = E(TEXT("RarityOffset/Header/HeaderOffset")))
 	{
-		Off->Translate.Y = bGearRoll ? -14.f : 0.f;   // SetRollData: HeaderOffset y = −14 no equipamento
+		Off->Translate.Y = bGearRoll ? -14.f : 0.f;   // SetRollData: HeaderOffset y = −14 on gear
 	}
 	if (FNWUIElement* Ro = E(TEXT("CraftRollContainer/RarityOffset")))
 	{
@@ -552,7 +552,7 @@ void FNWRefiningMenu::DrawRoll(const FNWRecipe& R)
 		DrawGearRoll(R);
 		return;
 	}
-	// craftroll.lua, tipo "Quantity": a contagem sobe de 0 ao total em 1 s depois de 0,5 s; Base e Bônus no fim.
+	// craftroll.lua, "Quantity" type: the count rises from 0 to the total in 1 s, after 0.5 s; Base and Bonus at the end.
 	const ANWCharacter* Me = Character.Get();
 	const double T = Now() - RollStart;
 	const int32 Received = Me && Me->Inventory ? FMath::Max(0, Me->Inventory->CountOf(R.Out) - HaveBefore) : 0;
@@ -562,7 +562,7 @@ void FNWRefiningMenu::DrawRoll(const FNWRecipe& R)
 	SetText(E(TEXT("RarityOffset/Header/HeaderOffset/ItemName")), D ? D->Name : R.Out.ToString(), TanCol);
 	if (FNWUIElement* Icon = E(TEXT("RarityOffset/Header/HeaderOffset/ItemImage")))
 	{
-		Icon->ImageType = 4;   // ícone do item no lugar do exemplo do canvas, com a proporção mantida
+		Icon->ImageType = 4;   // item icon in place of the canvas example, with the aspect ratio kept
 		SetTexture(Icon, D ? D->Icon : FString());
 	}
 	SetText(E(TEXT("Stats/Quantity/RefiningAmount")), FString::Printf(TEXT("%d"), FMath::FloorToInt(Total * K)));
@@ -579,7 +579,7 @@ void FNWRefiningMenu::DrawRoll(const FNWRecipe& R)
 	{
 		Box->AlphaMul = float(FMath::Clamp((T - 0.25) / 0.3, 0.0, 1.0));
 	}
-	// RarityOffset termina de subir em 1,4 s: Crafting_Done (refino.md §6).
+	// RarityOffset finishes rising in 1.4 s: Crafting_Done (docs/game/ui/refining.md §6).
 	SoundAt(T, 1.4, 0, TEXT("ui_crafting_complete"));
 	if (State == EState::Roll && T > RollEnd)
 	{
@@ -589,7 +589,7 @@ void FNWRefiningMenu::DrawRoll(const FNWRecipe& R)
 
 double FNWRefiningMenu::GearRollLength() const
 {
-	// Última linha de perk/gema (0,55 + 0,15 por linha) + 0,3 da entrada, ou a contagem de 1 s.
+	// Last perk/gem row (0.55 + 0.15 per row) + 0.3 for the entry, or the 1 s count.
 	const FNWItem* It = RollResult();
 	const int32 Lines = It ? It->Perks.Num() + 1 : 0;
 	return FMath::Max(1.0, 0.55 + 0.15 * Lines + 0.3);
@@ -600,7 +600,7 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 	const FNWItem* It = RollResult();
 	const double Now0 = Now();
 	auto Fade = [](double T, double Delay, double Dur) { return float(FMath::Clamp((T - Delay) / FMath::Max(Dur, 0.001), 0.0, 1.0)); };
-	// Fundo, janela e runas entram como no refino (0,25 + 0,3).
+	// Background, window and runes come in as in refining (0.25 + 0.3).
 	const double TB = Now0 - RollStart;
 	for (const TCHAR* P : {TEXT("CraftRoll/Background"), TEXT("CraftRoll/CraftRollContainer")})
 	{
@@ -610,11 +610,11 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		}
 	}
 	FNWUIElement* Ro = E(TEXT("CraftRollContainer/RarityOffset"));
-	SetShown(E(TEXT("CraftRollContainer/ProgressionContainer")), false);   // sem a barra de XP do ofício nesta tela
+	SetShown(E(TEXT("CraftRollContainer/ProgressionContainer")), false);   // no trade skill XP bar on this screen
 	if (!It)
 	{
-		// Até o item chegar só o fundo e as runas (v4: SetSlot). O servidor recusou (aviso na tela): volta em 10 s
-		// (v4: OnCraftingFailed).
+		// Until the item arrives, only the background and the runes (v4: SetSlot). The server rejected (notice on screen):
+		// returns in 10 s (v4: OnCraftingFailed).
 		SetShown(Ro, false);
 		if (TB > 10.0)
 		{
@@ -626,7 +626,7 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 	{
 		ResultAt = Now0;
 		const FNWItem& Before = Character->Interactor->CraftResult.Before;
-		// Fabricar: a contagem começa 41 a 60 abaixo (SetGearScore). Sortear GS: do GS antigo ao novo (sobe ou desce).
+		// Craft: the count starts 41 to 60 below (SetGearScore). Reroll GS: from the old GS to the new one (up or down).
 		GsFrom = RollKind == 255 ? FMath::Max(0, It->GearScore - (FMath::RandRange(1, 20) + 40))
 			: RollKind == uint8(ENWImprove::GearScore) ? Before.GearScore : It->GearScore;
 	}
@@ -639,7 +639,7 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 	const int32 Rarity = FMath::Clamp<int32>(It->Rarity, 0, 4);
 	const FLinearColor RarityCol = NWRarityColor(uint8(Rarity));
 
-	// Cabeçalho: ícone, nome na cor da raridade e a qualidade embaixo do nome.
+	// Header: icon, name in the rarity color and the quality below the name.
 	if (FNWUIElement* H = E(TEXT("RarityOffset/Header")))
 	{
 		H->AlphaMul = Fade(T, 0.0, 0.2);
@@ -663,7 +663,7 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		Bg->AlphaMul = Fade(T, 0.0, 0.1);
 	}
 
-	// QualityInfo: GS contando em 1 s (linear) e a raridade.
+	// QualityInfo: GS counting in 1 s (linear) and the rarity.
 	if (FNWUIElement* Qi = E(TEXT("RarityOffset/QualityInfo")))
 	{
 		Qi->AlphaMul = Fade(T, 0.0, 0.2);
@@ -672,19 +672,19 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 	SetText(E(TEXT("GearScoreLabel/GearScore")), FString::FromInt(FMath::FloorToInt(GsFrom + (It->GearScore - GsFrom) * K)));
 	for (int32 n = 1; n <= 4; ++n)
 	{
-		SetShown(E(*FString::Printf(TEXT("RarityBG/RarityEffect%d"), n)), false);   // flipbooks fora do layout convertido
+		SetShown(E(*FString::Printf(TEXT("RarityBG/RarityEffect%d"), n)), false);   // flipbooks outside the converted layout
 	}
 	SetText(E(TEXT("RarityLabel/RarityText")), Loc(*FString::Printf(TEXT("raritylevel%d_displayname"), Rarity)), RarityCol);
 	if (FNWUIElement* Lc = E(TEXT("RarityBG/RarityLabelContainer")))
 	{
-		Lc->AlphaMul = Rarity > 0 ? Fade(T, 0.8, 0.1) : 1.f;   // efeito 0,5 + 0,3
+		Lc->AlphaMul = Rarity > 0 ? Fade(T, 0.8, 0.1) : 1.f;   // effect 0.5 + 0.3
 	}
 	if (FNWUIElement* Sun = E(TEXT("RarityLabelContainer/RisingSun")))
 	{
 		Sun->AlphaMul = Rarity > 0 ? Fade(T, 0.5, 0.3) : 0.f;
 	}
 
-	// Arma e escudo: dano base (não muda com o GS no port). Ferramenta: velocidade de coleta.
+	// Weapon and shield: base damage (does not change with GS in the port). Tool: gathering speed.
 	FNWUIElement* W = E(TEXT("RarityOffset/Stats/Weapons"));
 	SetShown(W, Class == TEXT("arma") || Class == TEXT("escudo") || bTool);
 	if (W)
@@ -696,13 +696,13 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		: bTool ? FString::Printf(TEXT("%.0f%%"), D->Efficiency * 100.f) : FString::Printf(TEXT("%.0f"), D->Damage));
 	SetShown(E(TEXT("PrimaryBaseValue/PrimaryValue")), false);
 
-	// Armadura (RO/Stats/Armor, craftroll-equipamento.md §6): base da receita (qualidade 0) → resistência do item, física e
-	// mágica iguais no port (docs/game/items.md "Armaduras e joias"). Joia (RO/Stats/Trinket): só o divisor.
+	// Armor (RO/Stats/Armor, docs/game/crafting.md "Crafting gear"): recipe base (quality 0) → item resistance, physical
+	// and magical equal in the port (docs/game/items.md "Armor and jewelry"). Jewelry (RO/Stats/Trinket): only the divisor.
 	const bool bArmor = Class == TEXT("armadura");
 	FNWUIElement* Ar = E(TEXT("RarityOffset/Stats/Armor"));
 	SetShown(Ar, bArmor);
 	SetShown(E(TEXT("RarityOffset/Stats/Trinket")), Class == TEXT("amuleto") || Class == TEXT("anel") || Class == TEXT("brinco"));
-	// O layout traz os filhos do painel desligados (o Lua liga): liga os que o port usa; os brilhos ficam fora.
+	// The layout brings the panel's children turned off (the Lua turns them on): turns on the ones the port uses; glows stay off.
 	for (const TCHAR* P : {TEXT("Armor/AbsorptionTitle"), TEXT("Armor/PhysicalLabel"), TEXT("PhysicalLabel/PhysicalValue"),
 		TEXT("PhysicalValue/FinalPhysical"), TEXT("FinalPhysical/Arrow"), TEXT("FinalPhysical/ElementalLabel"),
 		TEXT("ElementalLabel/ElementalValue"), TEXT("ElementalValue/FinalElemental"), TEXT("FinalElemental/Arrow"),
@@ -724,16 +724,16 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 			if (FNWUIElement* F = E(P))
 			{
 				SetText(F, Final);
-				F->AlphaMul = Fade(T, 0.3, 0.3);   // FinalPhysical 0→1 em 0,3
+				F->AlphaMul = Fade(T, 0.3, 0.3);   // FinalPhysical 0→1 in 0.3
 			}
 		}
 	}
 
-	// Atributo (CraftingAttribute) em 0,4; perks em 0,55 + 0,15·k; gema depois. Posições da tabela por número de perks
+	// Attribute (CraftingAttribute) at 0.4; perks at 0.55 + 0.15·k; gem after. Positions from the table by number of perks
 	// (craftroll.lua 4535–5088).
 	SetShown(E(TEXT("Stats/NoPerkLabel")), false);
 	const int32 NumPerks = It->Perks.Num();
-	// Sons: raridade em 0,5 (Crafting_Rarity_n), cada perk em 0,55 + 0,15·k + 0,2 (Crafting_Perk_Show), gema depois
+	// Sounds: rarity at 0.5 (Crafting_Rarity_n), each perk at 0.55 + 0.15·k + 0.2 (Crafting_Perk_Show), gem after
 	// (Crafting_GemSlot_Show).
 	SoundAt(T, 0.5, 1, FString::Printf(TEXT("ui_crafting_rarity_%d"), Rarity));
 	for (int32 k = 0; k < NumPerks && k < 8; ++k)
@@ -780,7 +780,7 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		const FNWItemRules::FPerk* PD = Rules.Perks.Find(Perk);
 		const double Delay = 0.55 + 0.15 * k;
 		Row(El, Delay);
-		// Nome em cima e efeito embaixo dentro da faixa de 75; efeito longo (perk de habilidade) em letra menor.
+		// Name on top and effect below, inside the 75 strip; a long effect (ability perk) in a smaller font.
 		const FString Desc = Rules.PerkText(Perk, It->Quality, false);
 		if (FNWUIElement* Name = E(*(P + TEXT("/Bg/PerkName"))))
 		{
@@ -796,7 +796,7 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		SetTexture(E(*(P + TEXT("/PerkImageBg/Mask/PerkImage"))), PD ? PD->Icon : FString());
 		if (FNWUIElement* Cover = E(*(P + TEXT("/PerkImageBg/PerkImageCover"))))
 		{
-			Cover->AlphaMul = 1.f - Fade(T, Delay + 0.1, 0.3);   // ShowPerk: capa 1→0
+			Cover->AlphaMul = 1.f - Fade(T, Delay + 0.1, 0.3);   // ShowPerk: cover 1→0
 		}
 	}
 	FNWUIElement* Gem = E(TEXT("PerkContainer/GemPerkSlot"));
@@ -806,7 +806,7 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		static const float GemY[] = {112.f, 112.f, 186.f, 260.f, 334.f, 408.f};
 		Gem->Translate.Y = GemY[FMath::Clamp(NumPerks, 0, 5)] - 408.f;   // canvas: 408
 		Row(Gem, 0.55 + 0.15 * NumPerks);
-		// Com gema: nome e ícone dela e os efeitos (docs/game/items.md "Slot"); vazio: o soquete do jogo.
+		// With a gem: its name and icon and the effects (docs/game/items.md "Slot and gems"); empty: the game's socket.
 		const FNWItemDef* GD = It->Gem.IsNone() ? nullptr : FNWItemCatalog::Get().Find(It->Gem);
 		SetText(E(TEXT("GemPerkSlot/Bg/PerkName")), GD ? GD->Name : NWText::Get(TEXT("nw.item.gem_empty")));
 		SetText(E(TEXT("GemPerkSlot/Bg/PerkDesc")), GD ? FString::Join(FNWItemRules::Get().GemLines(It->Gem), TEXT("  ")) : FString());
@@ -814,10 +814,10 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 		SetTexture(E(TEXT("GemPerkSlot/PerkImageBg/PerkImage")), GD ? GD->Icon : FString());
 		if (FNWUIElement* Cover = E(TEXT("GemPerkSlot/PerkImageBg/PerkImageCover")))
 		{
-			Cover->AlphaMul = 1.f - Fade(T, 0.65 + 0.15 * NumPerks, 0.3);   // ShowPerk(d, true): capa 1→0, fica o soquete
+			Cover->AlphaMul = 1.f - Fade(T, 0.65 + 0.15 * NumPerks, 0.3);   // ShowPerk(d, true): cover 1→0, the socket stays
 		}
 	}
-	// SetSlot → AdvanceStep em 0,2 s: estado de fim (o clique termina as animações antes de voltar).
+	// SetSlot → AdvanceStep at 0.2 s: end state (the click finishes the animations before returning).
 	if (State == EState::Roll && T > 0.2)
 	{
 		State = EState::Done;
@@ -826,8 +826,8 @@ void FNWRefiningMenu::DrawGearRoll(const FNWRecipe& R)
 
 void FNWRefiningMenu::DrawHelp(UCanvas* Canvas)
 {
-	// Rodapé (helpbar): ENTER Chat à esquerda; à direita, da direita para a esquerda, ESC Voltar e (máximo > 1) ESPAÇO
-	// Quantidade máxima. A caixa da tecla acompanha o texto dela; o rótulo vem 12 depois da caixa.
+	// Footer (helpbar): ENTER Chat on the left; on the right, from right to left, ESC Back and (max > 1) SPACE
+	// Max quantity. The key box follows its text; the label comes 12 after the box.
 	FNWUIElement* Proto = Help.FindOne(TEXT("helpbar"), TEXT("ActionsDisplays/ActionDisplay"));
 	FNWUIElement* Hint = Help.FindOne(TEXT("helpbar"), TEXT("ActionsDisplays/ActionDisplay/Hint"));
 	FNWUIElement* Key = Help.FindOne(TEXT("helpbar"), TEXT("ActionDisplay/Hint/HintText"));
@@ -848,7 +848,7 @@ void FNWRefiningMenu::DrawHelp(UCanvas* Canvas)
 	Help.Draw(Canvas);
 	const float UIScale = Canvas->ClipY / 1080.f;
 	const float ProtoRight = Help.RectOf(Proto).Max.X / UIScale;
-	const float ProtoLeft = ProtoRight - 200.f;   // ActionDisplay: -200..0 à direita
+	const float ProtoLeft = ProtoRight - 200.f;   // ActionDisplay: -200..0 on the right
 	auto Measure = [&](const FString& K, const FString& Text, float& HintW)
 	{
 		SetText(Key, K);
@@ -871,7 +871,7 @@ void FNWRefiningMenu::DrawHelp(UCanvas* Canvas)
 	{
 		Right.Add({TEXT("SPACE"), Loc(TEXT("crafting_set_max"))});
 	}
-	float X = ProtoRight - 40.f;   // mesma margem do ENTER à esquerda
+	float X = ProtoRight - 40.f;   // same margin as ENTER on the left
 	for (const TPair<FString, FString>& A : Right)
 	{
 		float HintW = 32.f;
@@ -896,7 +896,7 @@ void FNWRefiningMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	SetShown(E(TEXT("CraftingContainer/CraftingPanel")), !bRoll);
 	SetShown(E(TEXT("CraftingContainer/CraftRoll")), bRoll);
 	SetShown(E(TEXT("CraftingContainer/CraftDone")), State == EState::Done);
-	// Equipamento: os botões do fim tomam o lugar do "Clique em qualquer lugar" (o clique fora deles continua valendo).
+	// Gear: the end buttons take the place of "Click anywhere" (clicking outside them still works).
 	SetShown(E(TEXT("CraftDoneWindow/ContinueText")), !bGearRoll);
 	if (FNWUIElement* Bg = E(TEXT("_root/CraftingScreen/BackgroundStep1")))
 	{
@@ -904,14 +904,14 @@ void FNWRefiningMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	}
 	if (FNWUIElement* Proto = E(TEXT("Mask/Content/CraftingTreeViewItem")))
 	{
-		Proto->Visible = false;   // item-modelo: desenhado por linha em DrawRows
+		Proto->Visible = false;   // template item: drawn per row in DrawRows
 	}
 	for (const TCHAR* Off : {TEXT("CraftingTreeViewItem/StateIcon"), TEXT("CraftingTreeViewItem/EntryText"),
 		TEXT("CraftingTreeViewItem/RarityFrame"), TEXT("CraftingTreeViewItem/TypeIcon")})
 	{
 		if (FNWUIElement* El = E(Off))
 		{
-			El->Translate.X = 0.f;   // DrawRows mede a posição base neste Draw
+			El->Translate.X = 0.f;   // DrawRows measures the base position in this Draw
 		}
 	}
 	if (R && !bRoll)
@@ -941,7 +941,7 @@ void FNWRefiningMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 			DrawReroll(Canvas, Mouse);
 		}
 	}
-	// Barra de título: nome da estação e moedas.
+	// Title bar: station name and coins.
 	SetText(Head.FindOne(TEXT("screen_header"), TEXT("HeaderHolder/HeaderText")), St->Interact->DisplayName.ToString());
 	SetText(Head.FindOne(TEXT("screen_header"), TEXT("CurrencyDisplay/CurrencyAmount")),
 		UNWInventoryComponent::FormatCoins(Me->Inventory ? Me->Inventory->Coins : 0));
@@ -976,7 +976,7 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 		}
 		else if (B.Value == EDoneButton::Exit)
 		{
-			// OnExitPostCrafting: fecha a estação.
+			// OnExitPostCrafting: closes the station.
 			if (ANWPlayerController* PC = Me ? Cast<ANWPlayerController>(Me->GetController()) : nullptr)
 			{
 				PC->CloseMenus();
@@ -990,11 +990,11 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 	}
 	if (bGearRoll && State != EState::Select)
 	{
-		// TrySkip: com animação em curso termina tudo; depois volta à mesa. Sem o item ainda, espera.
+		// TrySkip: with an animation running, finishes everything; after that returns to the table. Without the item yet, waits.
 		if (ResultAt > 0.0 && Now() - ResultAt < GearRollLength())
 		{
 			ResultAt = Now() - GearRollLength();
-			SoundsDone = ~0u;   // pular termina as animações sem tocar tudo de uma vez
+			SoundsDone = ~0u;   // skipping finishes the animations without playing everything at once
 		}
 		else if (ResultAt > 0.0)
 		{
@@ -1004,7 +1004,7 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 	}
 	if (State == EState::Done)
 	{
-		State = EState::Select;   // clique em qualquer lugar volta à estação (CraftCompleteReturnToStation)
+		State = EState::Select;   // a click anywhere returns to the station (CraftCompleteReturnToStation)
 		return true;
 	}
 	if (State == EState::Roll)
@@ -1039,14 +1039,14 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 		{
 			if (B.Rect.IsInside(M) && Me && Me->Interactor && Station.IsValid())
 			{
-				// Mesma contagem da fabricação, até o resultado que o servidor devolve (ClientCraftResult).
+				// Same count as crafting, up to the result the server returns (ClientCraftResult).
 				const FNWItem* It = Me->Inventory->Items.FindByPredicate([&B](const FNWItem& I) { return I.Container == ENWItemContainer::Bag && I.Slot == B.Slot; });
 				StartResultRoll(It ? It->ItemId : FName(), B.Kind);
 				Me->Interactor->ServerImprove(Station->Type, B.Slot, B.Kind, B.Mat);
 				return true;
 			}
 		}
-		return true;   // a aba cobre a tela de receitas
+		return true;   // the tab covers the recipe screen
 	}
 	for (const TPair<FBox2f, int32>& Row : RowRects)
 	{
@@ -1061,7 +1061,7 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 			}
 			else
 			{
-				// Cabeçalho: abre/fecha (StateIcon); mantém a receita escolhida se ela continuar na lista.
+				// Header: opens/closes (StateIcon); keeps the chosen recipe if it is still in the list.
 				const int32 Keep = Rows.IsValidIndex(Selected) ? Rows[Selected].Recipe : INDEX_NONE;
 				if (!Collapsed.Remove(Clicked.Key))
 				{
@@ -1082,7 +1082,7 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 	const bool bMinus = Ui.RectOf(E(TEXT("Quantity/MinusButton"))).IsInside(M);
 	if (bMinus || Ui.RectOf(E(TEXT("Quantity/PlusButton"))).IsInside(M))
 	{
-		// button.lua: o clique dá um passo; segurando, Hold repete (OnTick).
+		// button.lua: the click takes one step; when held, Hold repeats (OnTick).
 		Step(bMinus ? -1 : 1);
 		Drag = bMinus ? EDrag::Minus : EDrag::Plus;
 		HoldLast = Now();
@@ -1096,7 +1096,7 @@ bool FNWRefiningMenu::Click(const FVector2D& Mouse)
 	else if (Max > 1 && (Ui.RectOf(E(TEXT("SliderWithTextInput/Slider"))).IsInside(M)
 		|| Ui.RectOf(E(TEXT("Slider/SliderHandleHolder"))).ExpandBy(8.f).IsInside(M)))
 	{
-		// Clique na barra ou no marcador: vai ao ponto e segue o mouse enquanto segura (snapToIntegers).
+		// Click on the bar or the marker: jumps to the point and follows the mouse while held (snapToIntegers).
 		Drag = EDrag::Slider;
 		SliderTo(M.X);
 	}
@@ -1121,8 +1121,8 @@ void FNWRefiningMenu::ClickCraft()
 	SoundsDone = 0;
 	if (R.bGear)
 	{
-		// Na hora: o item vai para a bolsa (ou só XP no treino). Com item, a contagem do jogo sobe até o GS dele.
-		// A espera começa antes do pedido: com servidor local o resultado volta dentro da própria chamada.
+		// Immediately: the item goes to the bag (or only XP in training). With an item, the game's count rises to its GS.
+		// The wait starts before the request: with a local server the result comes back inside the call itself.
 		const int32 Level = Me->Progression ? Me->Progression->TradeLevel(NWTradeskill::Index(R.Skill)) : 0;
 		if (Level >= FNWItemRules::Get().CraftLevel)
 		{
@@ -1173,7 +1173,7 @@ void FNWRefiningMenu::SliderTo(float MouseX)
 
 void FNWRefiningMenu::Step(int32 Delta)
 {
-	// craftquantitywidget.lua IncrementSlider/DecrementSlider: soma GetQuantityToUpdate, entre 1 e o máximo.
+	// craftquantitywidget.lua IncrementSlider/DecrementSlider: adds GetQuantityToUpdate, between 1 and the maximum.
 	Count = FMath::Clamp(Count + Delta, 1, FMath::Max(1, MaxCount()));
 }
 
@@ -1218,8 +1218,8 @@ void FNWRefiningMenu::Hold(const FVector2D& Mouse, bool bDown)
 
 void FNWRefiningMenu::Space()
 {
-	// uishared.xml, actionmap "crafting": tryskip = espaço. craftingscreenv4.lua TrySkip: na escolha, SetMaxCraft;
-	// na contagem, pula para o fim; no resultado, CraftCompleteReturnToStation.
+	// uishared.xml, actionmap "crafting": tryskip = space. craftingscreenv4.lua TrySkip: on selection, SetMaxCraft;
+	// during the count, skips to the end; on the result, CraftCompleteReturnToStation.
 	if (!IsOpen())
 	{
 		return;
@@ -1248,14 +1248,14 @@ void FNWRefiningMenu::Wheel(float Delta)
 
 void FNWRefiningMenu::DrawCraftInfo(UCanvas* Canvas, const FNWRecipe& R, const FVector2D& Mouse)
 {
-	// Acima do botão: tempo, faixa de GS e de qualidade (ou o aviso de treino), espectro e a fabricação em andamento.
+	// Above the button: time, GS and quality range (or the training notice), spectrum and the craft in progress.
 	ANWCharacter* Me = Character.Get();
 	const FBox2f Button = Ui.RectOf(E(TEXT("OffsetContainer/CraftButton")));
 	if (!Me || !Me->Progression || !Button.bIsValid)
 	{
 		return;
 	}
-	// No espaço vazio da coluna da direita, entre o bônus potencial e a quantidade (que some na receita com tempo).
+	// In the empty space of the right column, between the potential bonus and the quantity (which is hidden for timed recipes).
 	const float S0 = Canvas->ClipY / 1080.f;
 	const FVector2f Origin(Button.Min.X, Button.Min.Y - 455.f * S0);
 	const FNWItemRules& Rules = FNWItemRules::Get();
@@ -1263,7 +1263,7 @@ void FNWRefiningMenu::DrawCraftInfo(UCanvas* Canvas, const FNWRecipe& R, const F
 	UFont* Font = FNWUILayout::GameFont(0);
 	const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6)), Gold(FColor(0xED, 0xC6, 0x3E));
 	float Y = Origin.Y;
-	// Tamanho do texto como nas telas fiéis: altura da linha da fonte medida a 1.
+	// Text size as in the faithful screens: font line height measured at 1.
 	float W1 = 0.f, H1 = 1.f;
 	Canvas->TextSize(Font, TEXT("Ag"), W1, H1, 1.f, 1.f);
 	const float Scale = 24.f * S / FMath::Max(1.f, H1);
@@ -1331,7 +1331,7 @@ namespace
 
 void FNWRefiningMenu::DrawTab(UCanvas* Canvas, const FVector2D& Mouse)
 {
-	// Só nas mesas de fabricar (receitas com tempo): botão que alterna entre receitas e "Sortear atributo".
+	// Only on crafting tables (timed recipes): button that toggles between recipes and "Reroll attribute".
 	TabRect = FBox2f(ForceInit);
 	if (!Recipes.ContainsByPredicate([](const FNWRecipe* R) { return R->bGear; }))
 	{
@@ -1360,9 +1360,9 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 	}
 	const float S = Canvas->ClipY / 1080.f;
 	const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6)), Gray(FColor(0xB2, 0xAE, 0xA1));
-	// Cobre o painel da receita e o da direita.
+	// Covers the recipe panel and the right one.
 	const FBox2f Panel(FVector2f(Button.Min.X - 752.f * S, 150.f * S), FVector2f(Button.Max.X + 36.f * S, 1010.f * S));
-	// Opaco: a tela de receitas embaixo não pode aparecer.
+	// Opaque: the recipe screen below must not show through.
 	FCanvasTileItem Bg(FVector2D(Panel.Min), FVector2D(Panel.GetSize()), FLinearColor(0.02f, 0.02f, 0.03f, 1.f));
 	Bg.BlendMode = SE_BLEND_Opaque;
 	Canvas->DrawItem(Bg);
@@ -1394,8 +1394,8 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 		CraftText(Canvas, D->Name, Panel.Min.X + 108.f * S, Y - 4.f * S, 24.f, Tan, 1);
 		CraftText(Canvas, FString::Printf(TEXT("GS %d  ·  +%d %s  ·  %s"), I.GearScore, Rules.AttrValue(I.GearScore), *Attr,
 			*NWText::Format(TEXT("nw.item.quality"), {FString::Printf(TEXT("%.1f"), I.Quality)})), Panel.Min.X + 108.f * S, Y + 26.f * S, 21.f, Gold);
-		// Materiais que pagam as melhorias (lingote, tábua, couro da receita...): um clique escolhe; sem escolha, o primeiro
-		// que dá para sortear o GS.
+		// Materials that pay for the improvements (ingot, plank, the recipe's leather...): a click selects; with no selection,
+		// the first one that can reroll the GS.
 		const FNWCrafting& Crafting = FNWCrafting::Get();
 		const TArray<FName> Mats = Crafting.ImproveMaterials(*R);
 		uint8 Mat = 255;
@@ -1448,8 +1448,8 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 		}
 		const FNWItemDef* MD = FNWItemCatalog::Get().Find(Mats[Mat]);
 		const int32 Have = Me->Inventory->CountOf(Mats[Mat]);
-		// Três botões à direita: sortear atributo, sortear GS, desvincular; embaixo de cada um, o ícone do material e
-		// quanto custa (vermelho se faltar); no atributo a chance, no GS os limites.
+		// Three buttons on the right: reroll attribute, reroll GS, unbind; below each one, the material icon and
+		// how much it costs (red if missing); on attribute the chance, on GS the limits.
 		float BX = Panel.Max.X - 30.f * S;
 		for (int32 k = int32(ENWImprove::Num) - 1; k >= 0; --k)
 		{
@@ -1473,7 +1473,7 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 					Canvas->DrawItem(T);
 				}
 				CraftText(Canvas, Text, CX + 38.f * S, Y + 50.f * S, 22.f, Have >= Cost.Qty ? Tan : Red);
-				// Chances: atributo = um dos outros, igual para todos; GS = só os limites.
+				// Odds: attribute = one of the others, equal for all; GS = only the limits.
 				TArray<FString> Odds;
 				if (Kind == ENWImprove::Attribute)
 				{
@@ -1487,7 +1487,7 @@ void FNWRefiningMenu::DrawReroll(UCanvas* Canvas, const FVector2D& Mouse)
 				float OY = Y + 82.f * S;
 				for (const FString& Line : Odds)
 				{
-					// Mesma escala do CraftText (tamanho = altura da linha), para centrar embaixo do botão.
+					// Same scale as CraftText (size = line height), to center below the button.
 					float TW = 0.f, TH = 0.f, AW = 0.f, AH = 1.f;
 					Canvas->TextSize(FNWUILayout::GameFont(0), *Line, TW, TH, 1.f, 1.f);
 					Canvas->TextSize(FNWUILayout::GameFont(0), TEXT("Ag"), AW, AH, 1.f, 1.f);
@@ -1517,14 +1517,14 @@ const FNWItem* FNWRefiningMenu::ResultInBag() const
 	{
 		return nullptr;
 	}
-	// O item sorteado é único (GS, qualidade, perks e série): acha o espaço dele na bolsa.
+	// The rolled item is unique (GS, quality, perks and serial): finds its slot in the bag.
 	return Me->Inventory->Items.FindByPredicate([R](const FNWItem& I) { return I.Container == ENWItemContainer::Bag && I.SameKind(*R); });
 }
 
 void FNWRefiningMenu::DrawDoneButtons(UCanvas* Canvas, const FVector2D& Mouse)
 {
-	// ActiveButtonsContainer (craftingscreenv4): x 232–602, a partir de y 520, espaçamento 8 (o do UnusedButtonContainer).
-	// Continuar é o botão de destaque (70 de altura); Equipar e Sair, 45. Aparecem com a janela do fim (0,7 s, atraso 0,55).
+	// ActiveButtonsContainer (craftingscreenv4): x 232–602, from y 520, spacing 8 (the UnusedButtonContainer's).
+	// Continue is the highlighted button (70 high); Equip and Exit, 45. They appear with the end window (0.7 s, delay 0.55).
 	const FNWItem* It = ResultInBag();
 	const FNWItemDef* D = It ? FNWItemCatalog::Get().Find(It->ItemId) : nullptr;
 	const bool bEquip = D && NWEquip::SlotForSet(D->Set) != INDEX_NONE;
@@ -1553,7 +1553,7 @@ void FNWRefiningMenu::Sound(const TCHAR* Event) const
 	UWorld* World = Me ? Me->GetWorld() : nullptr;
 	if (!World || FixedNow > 0.0 || !World->IsGameWorld())
 	{
-		return;   // captura sem jogo (FixedNow) e fora do jogo não tocam
+		return;   // capture without a game (FixedNow) and outside the game do not play
 	}
 	static TMap<FString, TArray<TArray<FString>>> Events = []
 	{

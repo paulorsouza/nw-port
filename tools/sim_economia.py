@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Simulador da economia das cidades (docs/game/economy.md), semana a semana.
+"""Town economy simulator (docs/game/economy.md), week by week.
 
-    python3 tools/sim_economia.py [--param tools/economia.json] [--jogadores N] [--semanas N] [--set a.b=valor ...]
+    python3 tools/sim_economia.py [--param tools/economia.json] [--jogadores N] [--semanas N] [--set a.b=value ...]
 
-Modelo agregado por cidade (uma cidade por região): jogadores fazem dungeons, coletam, vendem matéria-prima à cidade,
-compram a lista (poções, catalisadores) e pagam imposto ao fabricar. O governador (estilo em "governadores") escolhe
-onde fica o preço na faixa (0 = mínimo, 1 = máximo), imposto, buffs e quanto gasta em mesas e defesa. Ataques a cada
-2 dias a partir da semana 2. Saída: moeda criada e destruída, renda do jogador, balancete, faixa e prêmio de cada
-governador. Faixas de preço de tools/precos_cidade.json; o resto de tools/economia.json.
+Aggregate model per town (one town per region): players run dungeons, gather, sell raw materials to the town,
+buy the list (potions, catalysts) and pay tax when crafting. The governor (style in "governadores") picks
+where the price sits in the range (0 = minimum, 1 = maximum), tax, buffs and how much is spent on stations and
+defense. Attacks every 2 days from week 2. Output: coin created and destroyed, player income, balance sheet, tier
+and prize of each governor. Price ranges from tools/precos_cidade.json; the rest from tools/economia.json.
 """
 import argparse
 import json
@@ -38,7 +38,7 @@ def set_path(d, dotted, value):
 
 
 def price_at(rng, pos):
-    """Preço (moedas) na posição pos (0..1) da faixa."""
+    """Price (coins) at position pos (0..1) of the range."""
     return (rng["min"] + pos * (rng["max"] - rng["min"])) / 100.0
 
 
@@ -70,24 +70,24 @@ def simulate(p, prices, ref):
         for c in cities:
             g = c["g"]
             act = g["atividade"]
-            # --- jogadores: dungeon e brinde (moeda nova)
+            # --- players: dungeon and handout (new coin)
             dung = P * dungeons * J["moedas_por_dungeon"]
             brinde = P * J["brinde_moedas_semana"]
             minted["dungeon"] += dung
             minted["brinde"] += brinde
-            # --- preço médio de compra de matéria-prima na posição do governador
+            # --- mean raw material buy price at the governor's position
             buy_price = sum(price_at(r, g["preco_compra"]) for r in raw.values()) / len(raw)
             ref_raw = sum(price_at(r, 0.5) for r in raw.values()) / len(raw)
-            # Quanto os jogadores querem vender à cidade: sobe com o preço.
+            # How much the players want to sell to the town: rises with the price.
             sell_frac = min(1.0, 0.3 + 0.7 * g["preco_compra"])
             supply = P * gather_units * sell_frac
-            # Quanto a cidade quer: material do próximo nível de cada mesa (governador ativo) + consertos.
+            # How much the town wants: material for each station's next level (active governor) + repairs.
             need = 0.0
             for lv in c["niveis"]:
                 if lv < C["nivel_max"]:
                     need += C["evoluir"][lv]["materia_prima"] * act
             need += c.get("conserto", 0.0)
-            # Manutenção pelo uso: cada fabricação numa mesa evoluída gasta matéria-prima (cresce com os jogadores).
+            # Upkeep from use: each craft on an upgraded station spends raw material (grows with the players).
             avg_lv0 = sum(c["niveis"]) / len(c["niveis"])
             use = P * min(1.0, 0.6 + 0.1 * avg_lv0 + 0.05 * g["buffs"])
             upkeep = avg_lv0 * use * C["manutencao_por_jogador_nivel"]
@@ -99,18 +99,18 @@ def simulate(p, prices, ref):
             afford = c["cofre"] / buy_price if buy_price > 0 else 0
             units = min(supply, need, afford, P * C["limite_compra_por_tipo"] * len(raw))
             raw_cost = units * buy_price
-            # Parte da compra que foi para conserto não conta na meta.
+            # The part of the purchase that went to repairs does not count toward the goal.
             raw_counted = raw_cost * (1.0 - min(1.0, repair_need / need)) if need > 0 else 0.0
             c["cofre"] -= raw_cost
             c["estoque"] += units
-            # Paga a manutenção; sem material, uma mesa perde nível.
+            # Pays the upkeep; without material, a station loses a level.
             if c["estoque"] >= upkeep:
                 c["estoque"] -= upkeep
             elif upkeep > 0:
                 c["estoque"] = 0.0
                 j = max(range(len(c["niveis"])), key=lambda k: c["niveis"][k])
                 c["niveis"][j] -= 1
-            # --- lista: poções e catalisadores, demanda elástica ao preço
+            # --- list: potions and catalysts, price-elastic demand
             def demand(ids, base):
                 q = rev = 0.0
                 for i in ids:
@@ -124,12 +124,12 @@ def simulate(p, prices, ref):
             q_cat, r_cat = demand(cat_ids, J["catalisadores_semana"])
             list_q, list_rev = q_pot + q_cat, r_pot + r_cat
             c["cofre"] += list_rev
-            # --- imposto: parte da fabricação na cidade (mesas melhores e buffs atraem, imposto alto afasta)
+            # --- tax: share of crafting in the town (better stations and buffs attract, high tax drives away)
             avg_lv = sum(c["niveis"]) / len(c["niveis"])
             share = min(1.0, 0.6 + 0.1 * avg_lv + 0.05 * g["buffs"]) * max(0.2, 1.0 - (g["imposto"] - C["imposto_padrao"]) * 4)
             tax = P * J["valor_fabricado_semana"] * share * g["imposto"]
             c["cofre"] += tax
-            # --- gastos do governador: buffs, defesa, evoluir
+            # --- governor spending: buffs, defense, upgrades
             buffs = 0
             for _ in range(g["buffs"]):
                 if c["cofre"] >= C["buff_moedas"]:
@@ -154,15 +154,15 @@ def simulate(p, prices, ref):
                     c["cofre"] -= e["moedas"]
                     burned["projetos"] += e["moedas"]
                     c["niveis"][i] += 1
-                    # Só conta na meta o nível alcançado pela primeira vez (reconstruir depois de ataque não conta).
+                    # Only a level reached for the first time counts toward the goal (rebuilding after an attack does not).
                     if c["niveis"][i] > c["maximo"][i]:
                         c["maximo"][i] = c["niveis"][i]
                         proj += e["moedas"] + e["materia_prima"] * ref_raw
-            # --- ataques (a partir da semana 2, ~3,5 por semana)
+            # --- attacks (from week 2, ~3.5 per week)
             lost = 0
             if w >= 2 and act >= 0:
                 for _ in range(3 if w % 2 else 4):
-                    # Força do ataque varia ±30%: defesa justa às vezes perde.
+                    # Attack strength varies ±30%: a just-enough defense sometimes loses.
                     if c["armas"] < strength * rnd.uniform(0.7, 1.3):
                         for _ in range(C["mesas_perdidas_por_ataque"]):
                             j = max(range(len(c["niveis"])), key=lambda k: c["niveis"][k])
@@ -171,8 +171,8 @@ def simulate(p, prices, ref):
                                 c["conserto"] += C["evoluir"][c["niveis"][j]]["materia_prima"] * C["conserto_fracao"]
                                 lost += 1
                         c["armas"] = max(0, c["armas"] - 1)
-            # --- pontuação e renda
-            # O que vai para os jogadores (compra de matéria-prima) pesa mais que o que sai deles (lista, imposto).
+            # --- score and income
+            # What goes to the players (raw material purchases) weighs more than what comes from them (list, tax).
             score = raw_counted + PR["peso_lista"] * list_rev + PR["peso_imposto"] * tax + proj \
                 + PR["peso_nivel"] * sum(c["niveis"]) / len(c["niveis"])
             teneb = units < PR["tenebroso_materia_prima"] or list_q < PR["tenebroso_lista"] or buffs == 0
@@ -183,9 +183,9 @@ def simulate(p, prices, ref):
                                    "lista": list_q, "imposto": tax, "nivel_medio": sum(c["niveis"]) / len(c["niveis"]),
                                    "armas": c["armas"], "forca_ataque": strength, "mesas_perdidas": lost,
                                    "pontos": score, "tenebroso": teneb, "renda_jogador": income})
-        # --- faixas do prêmio: razão com a média das cidades da semana
+        # --- prize tiers: ratio to the week's town average
         scores = [x["pontos"] for x in row["cidades"]]
-        # Média só das cidades que não ficaram no tenebroso (a ausente não infla as outras).
+        # Average only over towns not in the "tenebroso" tier (an absent one does not inflate the others).
         alive = [x["pontos"] for x in row["cidades"] if not x["tenebroso"]] or scores
         mean = sum(alive) / len(alive) if alive else 1
         best = max(range(len(scores)), key=lambda k: scores[k])
@@ -217,8 +217,8 @@ def main():
     ap.add_argument("--param", default=os.path.join(ROOT, "tools", "economia.json"))
     ap.add_argument("--jogadores", type=int)
     ap.add_argument("--semanas", type=int)
-    ap.add_argument("--set", action="append", default=[], help="a.b=valor (JSON) sobrescreve um parâmetro")
-    ap.add_argument("--detalhe", action="store_true", help="tabela por cidade em cada semana")
+    ap.add_argument("--set", action="append", default=[], help="a.b=value (JSON) overrides a parameter")
+    ap.add_argument("--detalhe", action="store_true", help="per-town table for each week")
     a = ap.parse_args()
     p = load(a.param)
     if a.jogadores:
@@ -233,18 +233,18 @@ def main():
     weeks, cities, minted, burned = simulate(p, prices, ref)
 
     P = p["jogadores_por_regiao"]
-    print(f"{p['cidades']} cidades, {P} jogadores por região, {p['semanas']} semanas")
-    print("\nsemana  renda/jogador  " + "  ".join(f"{c['g']['nome']:>22}" for c in cities))
+    print(f"{p['cidades']} towns, {P} players per region, {p['semanas']} weeks")
+    print("\n  week  income/player  " + "  ".join(f"{c['g']['nome']:>22}" for c in cities))
     for row in weeks:
         cells = []
         for x in row["cidades"]:
-            cells.append(f"{x['faixa'][:9]:>9} {x['cofre']/1000:7.0f}k nv{x['nivel_medio']:.1f}")
+            cells.append(f"{x['faixa'][:9]:>9} {x['cofre']/1000:7.0f}k lv{x['nivel_medio']:.1f}")
         print(f"{row['semana']:>6}  {row['renda_media']:13.0f}  " + "  ".join(f"{c:>22}" for c in cells))
         if a.detalhe:
             for x in row["cidades"]:
-                print(f"        {x['nome']:>10}: mp {x['mp_comprada']:8.0f} lista {x['lista']:7.0f} imposto {x['imposto']:7.0f} "
-                      f"armas {x['armas']:3d}/{x['forca_ataque']:.1f} perdidas {x['mesas_perdidas']} pontos {x['pontos']:7.0f} razão {x['razao']:.2f}")
-    print("\ngovernador   prêmio total  média/semana  faixas")
+                print(f"        {x['nome']:>10}: raw {x['mp_comprada']:8.0f} list {x['lista']:7.0f} tax {x['imposto']:7.0f} "
+                      f"weapons {x['armas']:3d}/{x['forca_ataque']:.1f} lost {x['mesas_perdidas']} score {x['pontos']:7.0f} ratio {x['razao']:.2f}")
+    print("\n  governor    total prize    mean/week  tiers")
     for c in cities:
         fx = {}
         for t in c["faixas"]:
@@ -252,9 +252,9 @@ def main():
         print(f"{c['g']['nome']:>10}  {c['premios']:12.0f}  {c['premios']/p['semanas']:12.0f}  {fx}")
     tot_m = sum(minted.values())
     tot_b = sum(burned.values())
-    print("\nmoeda criada:   " + ", ".join(f"{k} {v/1000:.0f}k" for k, v in minted.items()) + f"  (total {tot_m/1000:.0f}k)")
-    print("moeda destruída: " + ", ".join(f"{k} {v/1000:.0f}k" for k, v in burned.items()) + f"  (total {tot_b/1000:.0f}k)")
-    print(f"por jogador por semana: criada {tot_m/(P*p['cidades']*p['semanas']):.0f}, destruída {tot_b/(P*p['cidades']*p['semanas']):.0f}")
+    print("\ncoin created:   " + ", ".join(f"{k} {v/1000:.0f}k" for k, v in minted.items()) + f"  (total {tot_m/1000:.0f}k)")
+    print("coin destroyed: " + ", ".join(f"{k} {v/1000:.0f}k" for k, v in burned.items()) + f"  (total {tot_b/1000:.0f}k)")
+    print(f"per player per week: created {tot_m/(P*p['cidades']*p['semanas']):.0f}, destroyed {tot_b/(P*p['cidades']*p['semanas']):.0f}")
 
 
 if __name__ == "__main__":

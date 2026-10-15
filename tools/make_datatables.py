@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Gera os CSV das DataTables do Unreal (structs FNWDamageRow e FNWActionRow) a partir dos dados do jogo.
+"""Generates the CSVs of the Unreal DataTables (structs FNWDamageRow and FNWActionRow) from the game data.
 
-uso: make_datatables.py extract/ue/sword_shield/manifest.json
-Saída: extract/ue/<conjunto>/data/DT_NWDamage.csv e DT_NWActions.csv (importados pelo tools/ue/import_nw.py).
-Requer os datasheets em JSON em extract/data (nwbt unpack --x-datasheet json).
+usage: make_datatables.py extract/ue/sword_shield/manifest.json
+Output: extract/ue/<set>/data/DT_NWDamage.csv and DT_NWActions.csv (imported by tools/ue/import_nw.py).
+Needs the datasheets as JSON in extract/data (nwbt unpack --x-datasheet json).
 """
 import csv
 import json
@@ -17,22 +17,22 @@ from armas_manopla import (ICEGAUNTLET_ABILITY_IDS, ICEGAUNTLET_ACTIONS, ICEGAUN
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DT = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites", "datatables")
 
-# Ação -> (montagem, DamageID do jogo, CostID de stamina do jogo, próxima do combo).
+# Action -> (montage, game DamageID, game stamina CostID, next in the combo).
 ACTIONS = {
     "Light1": ("AM_LightCombo_1", "1H_Sword_Attack1", "Attack_1H_Sword_Primary", "Light2"),
     "Light2": ("AM_LightCombo_2", "1H_Sword_Attack1", "Attack_1H_Sword_Primary", "Light3"),
     "Light3": ("AM_LightCombo_3", "1H_Sword_Attack1_Ender", "Attack_1H_Sword_Primary", ""),
     "Heavy": ("AM_Heavy", "1H_Sword_Attack2", "Attack_1H_Sword_Heavy", ""),
-    # Segurar o botão: carga (Attack_Start_Charge); soltar cedo = leve, no meio = Heavy, carga cheia = HeavyCharged.
+    # Holding the button: charge (Attack_Start_Charge); release early = light, midway = Heavy, full charge = HeavyCharged.
     "HeavyCharge": ("AM_HeavyCharge", "", "", ""),
     "HeavyCharged": ("AM_HeavyCharged", "1H_Sword_Attack2_Charged", "Attack_1H_Sword_Heavy", ""),
     "SprintAttack": ("AM_SprintAttack", "1H_Sword_Attack_Charge", "Attack_1H_Sword_Run", ""),
     "ShieldBash": ("AM_ShieldBash", "OH_Shield_Attack_Bash", "", ""),
     "ShieldRush": ("AM_ShieldRush", "OH_Shield_Attack_Rush", "", ""),
     "SpinAttack": ("AM_SpinAttack", "1H_Sword_Attack_Spin", "Attack_1H_Sword_Special", ""),
-    # Transtorno (Ability_Sword_ReverseStab): 180% = 1H_Sword_Attack_Stab (a linha Swipe é de outra versão).
+    # Reverse Stab (Ability_Sword_ReverseStab): 180% = 1H_Sword_Attack_Stab (the Swipe row is from another version).
     "SwipeStab": ("AM_SwipeStab", "1H_Sword_Attack_Stab", "Attack_1H_Sword_Special", ""),
-    # Golpe com Salto: mesmo clipe do golpe de corrida (fragmento Ability_Sword_Leap_*).
+    # Leaping Strike: same clip as the sprint attack (fragment Ability_Sword_Leap_*).
     "LeapingStrike": ("AM_SprintAttack", "1H_Sword_Attack_Charge", "Attack_1H_Sword_Special", ""),
     "FinalStand": ("AM_FinalStand", "", "", ""),
     "StunLoop": ("AM_StunLoop", "", "", ""),
@@ -55,7 +55,7 @@ ACTIONS = {
 }
 
 
-# Lost: ataques do inimigo usando as linhas de dano da espada do jogador (as do NPC usam outra escala).
+# Lost: enemy attacks using the player's sword damage rows (the NPC ones use another scale).
 LOST_ACTIONS = {
     "Attack1": ("AM_Attack1", "1H_Sword_Attack1", "", ""),
     "Attack2": ("AM_Attack2", "1H_Sword_Attack1", "", ""),
@@ -68,13 +68,13 @@ LOST_ACTIONS = {
     "Hit_R": ("AM_Hit_R", "", "", ""),
     "Death": ("AM_Death", "", "", ""),
 }
-# Criaturas (G3): DamageID do jogo da tabela da criatura com prefixo (as tabelas repetem nomes: Attack_Gore, Fall...).
+# Creatures (G3): game DamageID from the creature's table with a prefix (the tables repeat names: Attack_Gore, Fall...).
 BOAR_ACTIONS = {
     "Attack1": ("AM_Attack1", "Boar_Attack_Gore", "", ""),
     "Heavy": ("AM_Heavy", "Boar_Attack_Charge", "", ""),
     "Aggro": ("AM_Aggro", "", "", ""),
     "Growl": ("AM_Growl", "", "", ""),
-    # Investida em três partes, encadeadas pela IA: preparar (sem dano), correr (Attack_Charge), frear.
+    # Charge in three parts, chained by the AI: wind-up (no damage), run (Attack_Charge), brake.
     "ChargeStart": ("AM_ChargeStart", "", "", ""),
     "ChargeEnd": ("AM_ChargeEnd", "", "", ""),
     "Hit_F": ("AM_Hit_F", "", "", ""), "Hit_B": ("AM_Hit_B", "", "", ""),
@@ -92,10 +92,10 @@ WOLF_ACTIONS = {
     "Death": ("AM_Death", "", "", ""),
 }
 CREATURE_SHAPES = {"Heavy": ("Front", 260, 70), "Leap": ("Front", 300, 60), "Attack1": ("Front", 200, 90), "Attack2": ("Front", 200, 90)}
-# Tabelas de dano das criaturas: (arquivo, prefixo).
+# Creature damage tables: (file, prefix).
 CREATURE_DAMAGE = [("javelindata_damagetable_boar", "Boar_"),
                    ("charactertables/wolf_datatables/javelindata_damagetable_wolf", "Wolf_")]
-# Formato do acerto (padrão: lâmina). Alcance em cm, ângulo = abertura total do cone. Valores iniciais, a calibrar com nw.DebugHits.
+# Hit shape (default: blade). Range in cm, angle = full cone opening. Initial values, to be tuned with nw.DebugHits.
 HIT_SHAPES = {
     "Heavy": ("Front", 230, 50),
     "HeavyCharged": ("Front", 230, 50),
@@ -106,7 +106,7 @@ HIT_SHAPES = {
     "SwipeStab": ("Front", 270, 80),
     "LeapingStrike": ("Front", 260, 70),
 }
-# Habilidade -> AbilityID do jogo (recarga em javelindata_cooldowns_player).
+# Ability -> game AbilityID (cooldown in javelindata_cooldowns_player).
 ABILITY_IDS = {
     "ShieldBash": "Ability_Sword_Bash",
     "ShieldRush": "Ability_Sword_Rush",
@@ -116,12 +116,12 @@ ABILITY_IDS = {
     "FinalStand": "Ability_Sword_FinalStand",
     "LeapingStrike": "Ability_Sword_LeapingStrike",
 }
-# Efeitos das descrições do jogo (weaponabilities.loc.xml): atordoar o alvo (s); buff em si (s, redução de dano).
+# Effects from the game descriptions (weaponabilities.loc.xml): stun the target (s); self buff (s, damage reduction).
 EFFECTS = {
     "ShieldBash": {"TargetStun": 2.0},
     "FinalStand": {"BuffSeconds": 8.0, "BuffDamageReduction": 0.3},
 }
-# Machadinha (mesmo esqueleto; montagens AM_Hx_*). Reações e morte reaproveitam as da espada.
+# Hatchet (same skeleton; AM_Hx_* montages). Reactions and death reuse the sword ones.
 HATCHET_ACTIONS = {
     "Light1": ("AM_Hx_LightCombo_1", "Hatchet_Damage_PrimaryAttack", "", "Light2"),
     "Light2": ("AM_Hx_LightCombo_2", "Hatchet_Damage_PrimaryAttack", "", "Light3"),
@@ -161,10 +161,10 @@ HATCHET_SHAPES = {
 }
 HATCHET_ABILITY_IDS = {a: f"Ability_Hatchet_{a}" for a in
                        ("Berserk", "FeralRush", "RagingTorrent", "RendingThrow", "SocialDistancing", "InfectedThrow")}
-# Berserk: +20% de dano por 5 s (descrição do jogo).
+# Berserk: +20% damage for 5 s (game description).
 HATCHET_EFFECTS = {"Berserk": {"BuffSeconds": 5.0, "BuffDamageBonus": 0.2}}
-# Arco (montagens AM_Bw_*; docs/game/weapons/bow.md). Clique sem mira = Light1 (tiro rápido); com mira (botão direito):
-# HeavyCharge puxa, soltar antes de 0,5 s = AimShot, depois = ChargedShot; recarga automática (NextAction).
+# Bow (AM_Bw_* montages; docs/game/weapons/bow.md). Click without aiming = Light1 (quick shot); aiming (right button):
+# HeavyCharge draws, release before 0.5 s = AimShot, after = ChargedShot; automatic reload (NextAction).
 BOW_ACTIONS = {
     "Light1": ("AM_Bw_HipFire", "BowAttack_Hipshot", "Attack_2H_Bow_Primary", ""),
     "HeavyCharge": ("AM_Bw_Charge", "", "Attack_2H_Bow_Aim_Charge", ""),
@@ -191,7 +191,7 @@ BOW_ACTIONS = {
     "ExplosiveArrow": ("AM_Bw_ExplosiveArrow", "Bow_ExplosionShot_Projectile", "", ""),
     "RainOfArrows": ("AM_Bw_RainShot", "Bow_RainOfArrows_Attack", "", ""),
 }
-# Flecha (radb Bow): 100 m/s, reta 5 m, raio 0,15 m (carregada 0,275), alcance 100 m.
+# Arrow (radb Bow): 100 m/s, straight for 5 m, radius 0.15 m (charged 0.275), range 100 m.
 ARROW = {"ProjectileSpeed": 10000, "ProjectileRadius": 15, "GravityDelay": 500}
 BOW_SHAPES = {a: ("Projectile", 10000, 0) for a in ("Light1", "AimShot", "ChargedShot", "RapidShot", "EvadeShot", "PoisonShot", "ExplosiveArrow")}
 BOW_SHAPES["PenetratingShot"] = ("Projectile", 5000, 0)
@@ -206,15 +206,15 @@ BOW_EFFECTS = {
                   "FireDamageIDs": "Bow_RapidAttack_Standard;Bow_RapidAttack_Standard;Bow_RapidAttack_KnockBack"},
     "EvadeShot": {**ARROW, "FireTimes": "0.733"},
     "PenetratingShot": {**ARROW, "FireTimes": "0.033", "bPierce": True},
-    # Disparo Venenoso: veneno de 20% do dano de arma por segundo por 7 s no alvo (a nuvem de 3 m ainda não existe).
-    # Disparo Venenoso: onde cai, nuvem de 3 m por 6 s; quem entra fica envenenado (20% do dano de arma por segundo, 7 s).
+    # Poison Shot: poison of 20% weapon damage per second for 7 s on the target (the 3 m cloud does not exist yet).
+    # Poison Shot: where it lands, a 3 m cloud for 6 s; whoever enters is poisoned (20% weapon damage per second, 7 s).
     "PoisonShot": {**ARROW, "FireTimes": "0.033", "CloudRadius": 300, "CloudSeconds": 6,
                    "StatusID": "Bow_Poison", "StatusSeconds": 7, "StatusTick": 1, "StatusDamage": 0.2},
     "ExplosiveArrow": {**ARROW, "ExplodeRadius": 250, "ExplodeDamageID": "Bow_ExplosionShot_Explosion"},
-    # Chuva de Flechas: área de 4 m no ponto mirado (até 50 m), acerto em 0,7 s.
+    # Rain of Arrows: 4 m area at the aimed point (up to 50 m), hit at 0.7 s.
     "RainOfArrows": {"GroundRadius": 400, "GroundRange": 5000, "GroundDelay": 0.7},
 }
-# Rapieira (montagens AM_Rp_*; docs/game/weapons/rapier.md). Bloqueio e guardar reaproveitam os da machadinha.
+# Rapier (AM_Rp_* montages; docs/game/weapons/rapier.md). Block and sheath reuse the Hatchet ones.
 RAPIER_ACTIONS = {
     "Light1": ("AM_Rp_LightCombo_1", "1H_Rapier_PrimaryAttack", "Attack_1H_Rapier_Primary", "Light2"),
     "Light2": ("AM_Rp_LightCombo_2", "1H_Rapier_PrimaryTwoThirdsAttack", "Attack_1H_Rapier_Primary", "Light3"),
@@ -253,7 +253,7 @@ RAPIER_EFFECTS = {
     "Tondo": BLEED,
     "Flurry": {"FireDamageIDs": ";".join(f"1H_Rapier_Flurry_Strike_{i}" for i in range(1, 6))},
     "Finish": {"ConsumeStatusID": "Rapier_Bleed_DOT", "ConsumeDamage": 1.1},
-    # Ripostar: 1 s de postura (sem dano e sem reação); golpe recebido → contra-ataque que atordoa 2 s (acaba no 1º dano).
+    # Riposte: 1 s stance (no damage and no reaction); hit taken → counterattack that stuns 2 s (ends on the 1st damage).
     "Riposte": {"CounterSeconds": 1.0, "CounterAction": "RiposteOut", "NextAction": "RiposteLoop"},
     "RiposteLoop": {"CounterAction": "RiposteOut", "NextAction": "RiposteCancel"},
     "RiposteOut": {"TargetStun": 2.0, "bStunBreaksOnDamage": True},
@@ -261,8 +261,8 @@ RAPIER_EFFECTS = {
     "FlecheLoop": {"NextAction": "FlecheEnd"},
     **{f"Evade_{d}": {"CooldownGroup": "Evade", "bCancelsAny": True} for d in "FBLR"},
 }
-# Reações por PowerLevel (tabela de reação do jogo): Hit1 = R1 (leve), Hit = R2, Hit3 = R3 (forte), Down = R4 (cai e
-# levanta: GetUp entra sozinho). Entram em todas as tabelas do jogador.
+# Reactions by PowerLevel (game reaction table): Hit1 = R1 (light), Hit = R2, Hit3 = R3 (strong), Down = R4 (falls and
+# gets up: GetUp plays on its own). They go into every player table.
 MELEE_REACTIONS = {**{f"Hit1_{d}": (f"AM_Hit1_{d}", "", "", "") for d in "FBLR"},
                    **{f"Hit3_{d}": (f"AM_Hit3_{d}", "", "", "") for d in "FBLR"},
                    **{f"Down_{d}": (f"AM_Down_{d}_1", "", "", "") for d in "FBLR"},
@@ -278,8 +278,8 @@ ICEGAUNTLET_ACTIONS.update(MELEE_REACTIONS)
 for fx in (EFFECTS, HATCHET_EFFECTS, BOW_EFFECTS, RAPIER_EFFECTS, ICEGAUNTLET_EFFECTS):
     fx.update(REACTION_NEXT)
 
-# Janela do jogo que libera cada ação no meio de outra (nomes das CAGE-TransitionInstant/Buffered do .adb; as
-# curvas "<nome>" e "Buffer_<nome>" saem do import). Ação sem entrada usa CanTransition.
+# Game window that allows each action in the middle of another (names of the .adb CAGE-TransitionInstant/Buffered; the
+# "<name>" and "Buffer_<name>" curves come from the import). An action with no entry uses CanTransition.
 TRANSITIONS = {
     "DT_NWActions": {"HeavyCharge": "CanAttack_Heavy", "ShieldBash": "CanAttack_ShieldBash", "ShieldRush": "CanAttack_ShieldRush",
                      "SpinAttack": "CanAttack_SpinAttack", "SwipeStab": "CanAttack_SwipeStabAttack", "FinalStand": "CanAttack_LastStand"},
@@ -303,20 +303,20 @@ SETS = {"sword_shield": [("DT_NWActions", ACTIONS, HIT_SHAPES, ABILITY_IDS, None
         "wolf": [("DT_WolfActions", WOLF_ACTIONS, CREATURE_SHAPES, {}, {})]}
 
 
-# Colunas da damagetable no DT_NWDamage (FNWDamageRow) e a coluna do jogo de onde cada uma vem, quando o nome muda.
-# Colunas que o jogo lê e o port não: python3 tools/re_check.py.
+# damagetable columns in DT_NWDamage (FNWDamageRow) and the game column each one comes from, when the name changes.
+# Columns the game reads and the port does not: python3 tools/re_check.py.
 DAMAGE_COLS = ["WeaponCategory", "DamageType", "DmgCoef", "HitStun", "BlockHitStun", "PowerLevel", "BlockPowerLevel", "ImpactDistance",
                "Unblockable", "AttackType", "ImpactDistanceX", "ImpactDecayRate", "HitStun_AI", "PowerLevel_AI", "ImpactDistance_AI",
                "DmgCoefCrit", "CritHitStun", "CritPowerLevel", "CritImpactDistance", "DmgCoefHead", "NoBackstab", "NoHeadshot",
                "StaggerDmgModifier", "StaggerResistModifier", "BlockStaminaDmgMod", "CameraShakeID", "TargetCameraShakeID",
                "BlockCameraShakeID", "BlockTargetCameraShakeID", "CritCameraShakeID", "CritTargetCameraShakeID"]
 DAMAGE_SOURCE = {"ImpactDistance": "ImpactDistanceY", "ImpactDistance_AI": "ImpactDistanceY_AI", "CritImpactDistance": "CritImpactDistanceY"}
-# Fora de propósito, com o motivo (texto).
-DAMAGE_IGNORED = {"CanCrit": "dano.cancrit_vazio: o nwbt grava célula vazia como False, então a coluna não diz quem crita"}
+# Left out on purpose, with the reason (text).
+DAMAGE_IGNORED = {"CanCrit": "dano.cancrit_vazio: nwbt writes an empty cell as False, so the column does not say who can crit"}
 
 
 def hitstun_start(manifest, montage, fallback):
-    """Início do procclip HitStun da montagem (janelas do manifest); reação sem janela usa o mais comum do conjunto."""
+    """Start of the montage's HitStun procclip (manifest windows); a reaction without a window uses the set's most common one."""
     for sec in manifest.get("windows", {}).get(montage, []):
         for w in sec["windows"]:
             if w.get("type") == "HitStun":
@@ -325,7 +325,7 @@ def hitstun_start(manifest, montage, fallback):
 
 
 def set_hitstun_start(name):
-    """Início mais comum do procclip HitStun nos .adb do conjunto (window_adbs de tools/sets/<conjunto>.json)."""
+    """Most common start of the HitStun procclip in the set's .adb files (window_adbs of tools/sets/<set>.json)."""
     import collections
     import adb_windows
     import xml.etree.ElementTree as ET
@@ -362,8 +362,8 @@ def main():
     mana = {r["CostID"]: r["ManaCost"] for r in rows("javelindata_manacosts_player")}
 
     tables = SETS[manifest["name"]]
-    # Tabela de dano única para todos os conjuntos: linhas das armas do jogador e das criaturas. Colunas e regras:
-    # docs/game/combat.md (empurrão X/Y e decaimento, colunas _AI, crítico, cabeça, stagger, tremidas).
+    # Single damage table for every set: rows of the player weapons and of the creatures. Columns and rules:
+    # docs/game/combat.md (X/Y push and decay, _AI columns, crit, head, stagger, shakes).
     used = sorted(d for d in damage if d.startswith(("1H_Sword", "OH_Shield", "Hatchet_", "1H_Rapier", "Bow", "IceMagic_", *(p for _, p in CREATURE_DAMAGE)))
                   or damage[d].get("WeaponCategory") in ("Bow", "Bow_Heavy", "Rapier"))
     cols, source = DAMAGE_COLS, DAMAGE_SOURCE
@@ -383,7 +383,7 @@ def main():
         w.writerow(["Name", *cols])
         for did in used:
             w.writerow([did, *(cell(damage[did], c) for c in cols)])
-    # Tremidas de câmera (SShakeParams do CryEngine; ver FNWCameraShakeRow).
+    # Camera shakes (CryEngine SShakeParams; see FNWCameraShakeRow).
     with open(os.path.join(out, "DT_NWCameraShake.csv"), "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["Name", "ShiftX", "ShiftY", "ShiftZ", "AngleX", "AngleY", "AngleZ", "FadeIn", "Sustain", "FadeOut", "Frequency", "Randomness", "FlipVec"])
@@ -420,7 +420,7 @@ def main():
                 shape, rng, ang = shapes.get(action, ("Blade", 0, 0))
                 cd = cooldown.get(ability_ids.get(action, ""), 0)
                 fx = dict(effects.get(action, {}))
-                # Montagem que começa no meio do clipe (montage_starts do conjunto).
+                # Montage that starts mid-clip (the set's montage_starts).
                 fx.setdefault("StartAt", manifest.get("montage_starts", {}).get(montage, 0))
                 fx.setdefault("TransitionCurve", TRANSITIONS.get(table_name, {}).get(action, ""))
                 fx.setdefault("ManaCost", mana.get(cost_id, 0))
@@ -431,10 +431,10 @@ def main():
                             fx.get("TargetStun", 0), fx.get("BuffSeconds", 0), fx.get("BuffDamageReduction", 0),
                             fx.get("BuffDamageBonus", 0),
                             *(fx.get(c, default(c)) for c in fx_cols)])
-        print(f"{len(actions)} ações ({table_name})")
-    print(f"{len(used)} danos em {out}")
+        print(f"{len(actions)} actions ({table_name})")
+    print(f"{len(used)} damage rows in {out}")
     if missing:
-        print(f"montagens ausentes no manifest: {missing}", file=sys.stderr)
+        print(f"montages missing from the manifest: {missing}", file=sys.stderr)
 
 
 if __name__ == "__main__":

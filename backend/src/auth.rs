@@ -1,5 +1,5 @@
-//! Senhas (Argon2id), tokens opacos (guardados como SHA-256) e os extratores de sessão do cliente e do
-//! servidor de jogo.
+//! Passwords (Argon2id), opaque tokens (stored as SHA-256) and the session extractors for the client and the
+//! game server.
 
 use argon2::password_hash::phc::PasswordHash;
 use argon2::password_hash::{PasswordHasher, PasswordVerifier};
@@ -19,7 +19,7 @@ pub async fn hash_password(password: String) -> anyhow::Result<String> {
         Argon2::default()
             .hash_password(password.as_bytes())
             .map(|h| h.to_string())
-            .map_err(|e| anyhow::anyhow!("hash de senha: {e}"))
+            .map_err(|e| anyhow::anyhow!("password hash: {e}"))
     })
     .await?
 }
@@ -34,13 +34,13 @@ pub async fn verify_password(password: String, hash: String) -> bool {
     .unwrap_or(false)
 }
 
-/// Hash usado quando a conta não existe, para o login levar o mesmo tempo.
+/// Hash used when the account does not exist, so login takes the same time.
 pub fn dummy_hash() -> &'static str {
     static DUMMY: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     DUMMY.get_or_init(|| Argon2::default().hash_password(b"nw-core-dummy").unwrap().to_string())
 }
 
-/// Token aleatório de 256 bits em base64url.
+/// Random 256-bit token in base64url.
 pub fn new_token() -> String {
     let mut bytes = [0u8; 32];
     rand::fill(&mut bytes);
@@ -51,7 +51,7 @@ pub fn token_hash(token: &str) -> Vec<u8> {
     Sha256::digest(token.as_bytes()).to_vec()
 }
 
-/// Código de convite: 16 caracteres sem ambíguos (0/O, 1/I/L), em grupos de 4.
+/// Invite code: 16 characters with no ambiguous ones (0/O, 1/I/L), in groups of 4.
 pub fn new_invite_code() -> String {
     const ALPHABET: &[u8] = b"23456789ABCDEFGHJKMNPQRSTUVWXYZ";
     let mut bytes = [0u8; 16];
@@ -69,7 +69,7 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 
-/// Jogador autenticado (cabeçalho `Authorization: Bearer <token>`).
+/// Authenticated player (`Authorization: Bearer <token>` header).
 #[derive(Debug, Clone)]
 pub struct Session {
     pub account_id: Uuid,
@@ -102,7 +102,7 @@ impl FromRequestParts<AppState> for Session {
     }
 }
 
-/// Chamada de um servidor de jogo (cabeçalho `X-NW-Server-Secret`).
+/// Call from a game server (`X-NW-Server-Secret` header).
 pub struct GameServer;
 
 impl FromRequestParts<AppState> for GameServer {

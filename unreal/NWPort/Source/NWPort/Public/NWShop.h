@@ -3,15 +3,15 @@
 #include "CoreMinimal.h"
 
 /**
- * Lojas do port (esteira 4; Data/World/shops.json, de tools/shops.json). O jogo não tem vendedor com preço em moedas:
- * lista, preço (centavos) e limite semanal por personagem são decisão do dono (docs/game/city.md "Lojas").
- * A compra é do servidor (UNWInteractorComponent::ServerShopBuy); o limite renova com os brindes (FNWNpcRewards::Period).
+ * Port shops (area 4; Data/World/shops.json, from tools/shops.json). The game has no vendor with prices in coins:
+ * list, price (cents) and weekly limit per character are the maintainer's decision (docs/game/city.md "Shops and merchants").
+ * The purchase is server-side (UNWInteractorComponent::ServerShopBuy); the limit resets with the gifts (FNWNpcRewards::Period).
  */
 struct NWPORT_API FNWShopItem
 {
 	FName Id;
 	int64 Price = 0;
-	/** 0 = sem limite. */
+	/** 0 = no limit. */
 	int32 WeeklyLimit = 0;
 };
 
@@ -19,7 +19,7 @@ struct NWPORT_API FNWShop
 {
 	FString Id;
 	FString City;
-	/** VariantID do NPC que vende (ANWNpc::Variant). */
+	/** VariantID of the NPC that sells (ANWNpc::Variant). */
 	FString Npc;
 	TArray<FNWShopItem> Items;
 	const FNWShopItem* Find(FName Item) const { return Items.FindByPredicate([Item](const FNWShopItem& I) { return I.Id == Item; }); }

@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# Empacota o servidor dedicado em deploy/build/LinuxServer.
+# Packages the dedicated server into deploy/build/LinuxServer.
 #   tools/linux/package_server.sh [--skip-cook]
-# 1. Cozinha o conteúdo para LinuxServer com o editor instalado (mesmo CompatibleChangelist da engine do fonte).
-# 2. Monta a pasta (binário NWPortServer já compilado pela engine do fonte + .pak) com o UAT da engine do fonte.
-# O resultado contém assets do jogo extraídos da sua instalação: fica só em máquinas suas.
+# 1. Cooks the content for LinuxServer with the installed editor (same CompatibleChangelist as the source engine).
+# 2. Stages the folder (NWPortServer binary already built by the source engine + .pak) with the source engine's UAT.
+# The result contains game assets extracted from your install: keep it on your own machines only.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
-# O MSBuild do UAT deixa nós vivos para reaproveitar, e eles herdam o cadeado da fila de trabalho pesado
-# (tools/linux/pesado.sh): a fila ficava presa depois do pacote.
+# UAT's MSBuild leaves nodes alive for reuse, and they inherit the heavy-job queue lock
+# (tools/linux/pesado.sh): the queue stayed stuck after packaging.
 export MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 uproject="$root/unreal/NWPort/NWPort.uproject"
-installed="${NW_UE:?defina NW_UE em local.env}"
-source_engine="${NW_UE_SOURCE:?defina NW_UE_SOURCE (engine 5.8.3 compilada do código-fonte) em local.env}"
+installed="${NW_UE:?set NW_UE in local.env}"
+source_engine="${NW_UE_SOURCE:?set NW_UE_SOURCE (engine 5.8.3 built from source) in local.env}"
 out="$root/deploy/build"
-# Mapas cozidos (NW_SERVER_MAPS troca a lista).
+# Cooked maps (NW_SERVER_MAPS replaces the list).
 maps="${NW_SERVER_MAPS:-/Game/NW/Maps/L_SouthWindsward+/Game/NW/Maps/L_QuedaEterna+/Game/NW/Maps/L_Arena}"
 
 if [ "${1:-}" != "--skip-cook" ]; then

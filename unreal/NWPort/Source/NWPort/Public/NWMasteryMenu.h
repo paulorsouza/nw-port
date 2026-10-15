@@ -7,12 +7,12 @@ class ANWCharacter;
 class UCanvas;
 
 /**
- * Tela de maestria de armas do jogo (MasteryTreeWindow de lyshineui/skills/skills.dynamicuicanvas), desenhada
- * por FNWUILayout. O que o Lua do jogo fazia vem daqui: nós nas linhas/colunas do datasheet, estados
- * (ativo, passivo, ultimate; possuído/disponível), espaços Q/R/F, pontos e tooltip.
+ * Game weapon mastery screen (MasteryTreeWindow of lyshineui/skills/skills.dynamicuicanvas), drawn
+ * by FNWUILayout. What the game Lua did comes from here: nodes in the datasheet rows/columns, states
+ * (active, passive, ultimate; owned/available), Q/R/F slots, points and tooltip.
  *
- * Clique numa habilidade ativa e depois num espaço para equipar. Passivas e ultimate gastam pontos (só visual
- * por enquanto). Abas 1/2 no cabeçalho para a outra arma.
+ * Click an active ability and then a slot to equip. Passives and ultimate spend points (visual only
+ * for now). Tabs 1/2 in the header for the other weapon.
  */
 class NWPORT_API FNWMasteryMenu
 {
@@ -23,7 +23,7 @@ public:
 	void Close() { Character.Reset(); Pending = NAME_None; }
 
 	void Draw(UCanvas* Canvas, const FVector2D& Mouse);
-	// true = clique consumido; bCloseRequested = fechar a tela.
+	// true = click consumed; bCloseRequested = close the screen.
 	bool Click(const FVector2D& Mouse, bool& bCloseRequested);
 
 private:
@@ -35,8 +35,8 @@ private:
 		int32 Tree = 0, Row = 0, Col = 0;
 		FString Icon, Background, Name, Description, Parent;
 		float Cooldown = 0.f;
-		FString ElementPath; // caminho do nó na tela (…/Row2/Node3)
-		// Elementos do nó na tela (fixos depois do Load).
+		FString ElementPath; // node path on the screen (…/Row2/Node3)
+		// Node elements on the screen (fixed after Load).
 		FNWUIElement *Root = nullptr, *Rune = nullptr, *Glow = nullptr, *Bg = nullptr, *Border = nullptr, *IconBg = nullptr,
 			*IconImg = nullptr, *VLine = nullptr, *HLine = nullptr, *Ultimate = nullptr, *Lock = nullptr, *Ticks = nullptr;
 	};
@@ -62,11 +62,11 @@ private:
 	TArray<FWeapon> Weapons;
 	int32 Tab = 0;
 	TWeakObjectPtr<ANWCharacter> Character;
-	FName Pending;                 // habilidade ativa escolhida, esperando um espaço
-	TSet<FString> Owned;           // passivas/ultimate marcadas (por arma)
+	FName Pending;                 // active ability chosen, waiting for a slot
+	TSet<FString> Owned;           // passives/ultimate marked (per weapon)
 	TArray<FBox2f> TabRects;
 	float UIScale = 1.f;
 	bool bHoverConfirm = false;
-	static constexpr int32 TotalPoints = 19;      // pontos de maestria no nível 20 do jogo
-	static constexpr int32 UltimatePoints = 10;   // pontos na árvore para liberar o ultimate
+	static constexpr int32 TotalPoints = 19;      // mastery points at game level 20
+	static constexpr int32 UltimatePoints = 10;   // points in the tree to unlock the ultimate
 };

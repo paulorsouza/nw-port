@@ -26,8 +26,8 @@ namespace
 	struct FQueue
 	{
 		TArray<FOp> Pending;
-		bool bBusy = false;       // gravando
-		bool bApplying = false;   // dentro do Apply
+		bool bBusy = false;       // recording
+		bool bApplying = false;   // inside Apply
 		TArray<TFunction<void()>> Held, Deferred, AfterFns;
 		TArray<FNWItem> Over;
 		FVector OverAt = FVector::ZeroVector;
@@ -90,7 +90,7 @@ namespace
 		bool bOk = Res == NWOps::EResult::Ok;
 		if (Res == NWOps::EResult::Retry && Op.Retries < 1)
 		{
-			// O nw-core pediu para refazer em cima do estado novo (armazém mudou): roda a mesma operação de novo.
+			// nw-core asked to redo on top of the new state (storage changed): runs the same operation again.
 			++Op.Retries;
 			Q->Pending.Insert(MoveTemp(Op), 0);
 			Pump(WeakWho);
@@ -104,13 +104,13 @@ namespace
 			}
 			if (PC)
 			{
-				PC->Record = R1;   // um salvamento depois (sair, cair) já parte do estado gravado
+				PC->Record = R1;   // a later save (logout, disconnect) already starts from the recorded state
 			}
 			RunAll(Held);
 		}
 		else
 		{
-			UE_LOG(LogNWOps, Warning, TEXT("operação %s não gravada: nada mudou"), *Op.Reason);
+			UE_LOG(LogNWOps, Warning, TEXT("operation %s not recorded: nothing changed"), *Op.Reason);
 			if (PC && Res != NWOps::EResult::Rejected)
 			{
 				PC->Warning(NWText::Key(TEXT("nw.save.failed")));
@@ -180,7 +180,7 @@ namespace
 			}
 			if (!bPersist)
 			{
-				// Sem nw-core: vale na hora.
+				// Without nw-core: applies immediately.
 				RunAll(Held);
 				if (Over.Num() > 0 && ANWLootBag::Drop(Who, Over, false) && PC)
 				{
@@ -192,11 +192,11 @@ namespace
 				}
 				continue;
 			}
-			// Resultado copiado e estado de volta ao de antes no mesmo ciclo (o cliente não vê nada até gravar).
+			// Result copied and state back to what it was in the same cycle (the client sees nothing until it is recorded).
 			const FNWOpState S1 = NWOps::Capture(Who);
 			if (Over.Num() == 0 && SameState(S0, S1))
 			{
-				// Nada de item, moeda ou armazém mudou: não há o que gravar.
+				// No item, coin or storage changed: nothing to record.
 				RunAll(Held);
 				if (Op.Done)
 				{
@@ -218,7 +218,7 @@ namespace
 				});
 				return;
 			}
-			// Excesso para o chão: o saco e a bolsa numa transação (ground), depois o resto da operação.
+			// Overflow to the ground: the sack and the bag in one transaction (ground), then the rest of the operation.
 			for (int32 i = 0; i < Over.Num(); ++i)
 			{
 				Over[i].Slot = i;
@@ -232,7 +232,7 @@ namespace
 					Finish(WeakWho, WeakPC, MoveTemp(Copy), S1, R1, MoveTemp(Held), NWOps::EResult::Failed);
 					return;
 				}
-				// O saco já está gravado (com a bolsa sem os itens): ele aparece mesmo se o resto falhar.
+				// The sack is already recorded (with the bag without the items): it appears even if the rest fails.
 				Held.Add([WeakPC, Over, OverAt, Id = Bag.Id, Life = Bag.ExpiresIn]()
 				{
 					if (ANWPlayerController* P = WeakPC.Get())
@@ -245,7 +245,7 @@ namespace
 				{
 					if (Res != NWOps::EResult::Ok)
 					{
-						UE_LOG(LogNWOps, Error, TEXT("operação %s: saco gravado, resto não (%d); vale o que foi gravado"), *Inner.Reason, int32(Res));
+						UE_LOG(LogNWOps, Error, TEXT("operation %s: sack recorded, rest not (%d); what was recorded stands"), *Inner.Reason, int32(Res));
 					}
 					Finish(WeakWho, WeakPC, MoveTemp(Inner), S1, R1, MoveTemp(Held), NWOps::EResult::Ok);
 				});

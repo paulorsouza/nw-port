@@ -1,10 +1,10 @@
-"""Habilidades por arma para a HUD e a tela de maestria (dados do jogo, textos em pt-BR e en-US).
+"""Abilities per weapon for the HUD and the Weapon Mastery screen (game data, text in pt-BR and en-US).
 
     python3 tools/make_abilities.py
 
-Lê extract/data (javelindata_ability_<arma>, javelindata_cooldowns_player) e extract/loc/localization/<idioma>,
-grava unreal/NWPort/Data/UI/abilities.<idioma>.json. Na descrição, a marcação do jogo vira texto rico do Slate:
-destaque dourado (<font color="#edc63e">) -> <hl>..</>, nota em itálico cinza -> <dim>..</>; {[expr]} é calculado.
+Reads extract/data (javelindata_ability_<weapon>, javelindata_cooldowns_player) and extract/loc/localization/<language>,
+writes unreal/NWPort/Data/UI/abilities.<language>.json. In the description, the game markup becomes Slate rich text:
+gold highlight (<font color="#edc63e">) -> <hl>..</>, grey italic note -> <dim>..</>; {[expr]} is evaluated.
 """
 import glob
 import html
@@ -18,10 +18,10 @@ DT = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites
 LOC_ROOT = os.path.join(ROOT, "extract", "loc", "localization")
 LANGS = ["pt-br", "en-us"]
 DECIMAL = {"pt-br": ",", "en-us": "."}
-lang = "pt-br"   # idioma em geração (calc usa o separador decimal dele)
+lang = "pt-br"   # language being generated (calc uses its decimal separator)
 ICONS = "lyshineui/images/icons/abilities/"
 
-# Habilidade do jogo -> ação da tabela DT_NWActions.
+# Game ability -> action in the DT_NWActions table.
 WEAPONS = {
     "sword": {
         "name_key": "ui_straightsword_mastery", "trees": ["ui_sword", "ui_shield"],
@@ -59,7 +59,7 @@ WEAPONS = {
         "default": ["Tondo", "Riposte", "Evade"],
         "hud_icon": "lyshineui/images/icons/items/drawing/1hrapier.dds",
     },
-    # Manopla de gelo (sub-esteira 1a): tabela javelindata_ability_icemagic; ações das habilidades na parte 2.
+    # Ice Gauntlet (sub-area 1a): table javelindata_ability_icemagic; ability actions in part 2.
     "icegauntlet": {
         "table": "icemagic", "name_key": "ui_icemagic_mastery", "trees": ["ui_icemagic_tree1", "ui_icemagic_tree2"],
         "actions": {"IceMagic_Spikes": "Spikes", "IceMagic_IceStorm": "IceStorm", "IceMagic_WindChill": "WindChill",
@@ -68,7 +68,7 @@ WEAPONS = {
         "hud_icon": "lyshineui/images/icons/items/drawing/icegauntlet.dds",
     },
 }
-# Fundo do ícone pela categoria (AbilitiesCommon.backgroundPathByCategory do jogo).
+# Icon background by category (the game's AbilitiesCommon.backgroundPathByCategory).
 BACKGROUND = {"Attack": "abilities_bg2.dds", "Defense": "abilities_bg3.dds"}
 
 
@@ -92,7 +92,7 @@ def calc(m):
     expr = m.group(1)
     if not re.fullmatch(r"[0-9.\s*/+\-()]+", expr):
         return expr
-    v = eval(expr)  # só números e operadores (conferido acima)
+    v = eval(expr)  # only numbers and operators (checked above)
     return str(int(round(v))) if abs(v - round(v)) < 1e-6 else f"{v:.1f}".replace(".", DECIMAL[lang])
 
 
@@ -121,14 +121,14 @@ def build(language):
             icon = ICONS + os.path.basename(r["Icon"]).lower().replace(".png", ".dds")
             entries.append({
                 "action": cfg["actions"][aid], "ability_id": aid, "tree": int(r.get("TreeId") or 0),
-                # Chaves de texto nas colunas do datasheet (@chave); a espada usa o próprio AbilityID.
+                # String keys in the datasheet columns (@key); the sword uses the AbilityID itself.
                 "name": rich(loc.get(str(r.get("DisplayName", "")).lstrip("@").lower(), loc.get(aid.lower(), aid))),
                 "description": rich(loc.get(str(r.get("Description", "")).lstrip("@").lower(), loc.get(aid.lower() + "_description", ""))),
                 "category": r.get("UICategory", ""), "icon": icon,
                 "background": ICONS + BACKGROUND.get(r.get("UICategory", ""), "abilities_bg1.dds"),
                 "cooldown": cooldown.get(aid, 0),
             })
-        # Árvore inteira para a tela de maestria: ativas, melhorias, passivas e ultimate, com linha/coluna do jogo.
+        # Whole tree for the Weapon Mastery screen: actives, upgrades, passives, ultimate, with the game's row/column.
         nodes = []
         all_rows = rows(f"javelindata_ability_{cfg.get('table', weapon)}")
         for r in all_rows:
@@ -146,7 +146,7 @@ def build(language):
                 "description": rich(loc.get(str(r.get("Description", "")).lstrip("@").lower(), loc.get(aid.lower() + "_description", ""))),
                 "cooldown": cooldown.get(aid, 0),
             })
-        # Melhoria liga na habilidade de cima, na mesma coluna (setas da árvore).
+        # An upgrade links to the ability above it, in the same column (tree arrows).
         for n in nodes:
             above = [m for m in nodes if m["tree"] == n["tree"] and m["col"] == n["col"] and m["row"] < n["row"]]
             n["parent"] = max(above, key=lambda m: m["row"])["id"] if n["id"].startswith("Upgrade_") and above else ""

@@ -1,12 +1,12 @@
-"""Materiais prontos para Nanite: liga "Used with Nanite" e "Used with Instanced Static Meshes" nos materiais e desliga o Nanite nas malhas que usam
-material translúcido/aditivo (Nanite só desenha opaco e masked). Instâncias cujo pai está fora de /Game (o glTF do
-Interchange usa /InterchangeAssets/gltf/M_Default) passam a usar uma cópia do pai em /Game/NW/Materials/Interchange,
-com a flag: a instalação da engine não é alterada.
+"""Nanite-ready materials: turns on "Used with Nanite" and "Used with Instanced Static Meshes" on the materials and turns Nanite off on meshes
+that use a translucent/additive material (Nanite only draws opaque and masked). Instances whose parent is outside /Game
+(Interchange's glTF uses /InterchangeAssets/gltf/M_Default) switch to a copy of the parent in /Game/NW/Materials/Interchange,
+with the flag: the engine install is not modified.
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/fix_nanite_materials.py /Game/NW/Cities /Game/NW/Gatherables ..."
 
-Sem a flag, o jogo fora do editor (-game, pacote) troca o material pelo padrão: a cidade aparecia cinza/escura
-(2026-10-11). Rodar depois de importar malhas novas com Nanite (tools/ue/nanite_on.py, import_gatherables.py).
+Without the flag, the game outside the editor (-game, package) swaps the material for the default: the city showed up
+gray/dark (2026-10-11). Run after importing new meshes with Nanite (tools/ue/nanite_on.py, import_gatherables.py).
 """
 import sys
 import time
@@ -27,7 +27,7 @@ copies = {}
 
 
 def project_parent(parent):
-    """Cópia em /Game de um pai que mora num plugin/engine; instância intermediária leva a cadeia junto."""
+    """Copy in /Game of a parent that lives in a plugin/the engine; an intermediate instance takes the chain along."""
     path = parent.get_path_name().split(".")[0]
     if path.startswith("/Game/"):
         return parent
@@ -59,7 +59,7 @@ flagged, already = 0, 0
 for p in assets:
     a = eal.load_asset(p)
     if isinstance(a, unreal.Material):
-        # Nanite e malhas instanciadas (a paisagem de coletáveis usa UInstancedStaticMeshComponent).
+        # Nanite and instanced meshes (the gatherables landscape uses UInstancedStaticMeshComponent).
         if a.get_editor_property("used_with_nanite") and a.get_editor_property("used_with_instanced_static_meshes"):
             already += 1
             continue
@@ -71,7 +71,7 @@ for p in assets:
 
 
 def base_blend(mi):
-    """Blend mode efetivo: a primeira sobreposição na cadeia de instâncias, senão o do material base."""
+    """Effective blend mode: the first override in the instance chain, otherwise the base material's."""
     m = mi
     while isinstance(m, unreal.MaterialInstance):
         ov = m.get_editor_property("base_property_overrides")
@@ -96,6 +96,6 @@ for p in assets:
         eal.save_asset(p, only_if_is_dirty=False)
         nanite_off.append(p.split("/")[-1].split(".")[0])
 
-unreal.log_warning(f"NANITE instâncias com pai copiado={reparented} ({list(copies)}) materiais marcados={flagged} "
-           f"já tinham={already} malhas sem Nanite (translúcidas)={len(nanite_off)} "
-           f"{nanite_off[:15]} em {time.time() - t0:.0f}s")
+unreal.log_warning(f"NANITE instances with copied parent={reparented} ({list(copies)}) materials flagged={flagged} "
+           f"already had it={already} meshes without Nanite (translucent)={len(nanite_off)} "
+           f"{nanite_off[:15]} in {time.time() - t0:.0f}s")

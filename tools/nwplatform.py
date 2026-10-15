@@ -1,7 +1,7 @@
-"""Caminhos e ferramentas compartilhados pelos scripts Linux e Windows.
+"""Paths and tools shared by the Linux and Windows scripts.
 
-Os caminhos da máquina (NW_GAME, NW_UE, NW_BLENDER, NW_ASSETS...) vêm do ambiente ou de local.env na raiz do
-repositório (fora do git; modelo em local.env.example). O ambiente vence o arquivo.
+Machine paths (NW_GAME, NW_UE, NW_BLENDER, NW_ASSETS...) come from the environment or from local.env at the
+repository root (outside git; template in local.env.example). The environment wins over the file.
 """
 import json
 import os
@@ -34,7 +34,7 @@ for _key, _value in read_local_env().items():
 
 
 def steam_libraries():
-    """Bibliotecas da Steam desta máquina (libraryfolders.vdf), a principal primeiro."""
+    """Steam libraries of this machine (libraryfolders.vdf), the main one first."""
     if WINDOWS:
         roots = [Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Steam"]
         try:
@@ -86,7 +86,7 @@ def game_directory():
 
 
 def ue_version(engine):
-    """Versão "M.m.p" de uma pasta da engine (a que tem Engine/Build/Build.version), ou None."""
+    """Version "M.m.p" of an engine folder (the one with Engine/Build/Build.version), or None."""
     try:
         v = json.loads((Path(engine) / "Engine/Build/Build.version").read_text(encoding="utf-8"))
         return f"{v['MajorVersion']}.{v['MinorVersion']}.{v['PatchVersion']}"
@@ -95,7 +95,7 @@ def ue_version(engine):
 
 
 def ue_directory():
-    """NW_UE, ou a primeira engine 5.8 achada nos lugares de costume; None se não houver."""
+    """NW_UE, or the first 5.8 engine found in the usual places; None if there is none."""
     configured = os.environ.get("NW_UE")
     if configured:
         return configured
@@ -123,19 +123,19 @@ def executable(name):
         return str(bundled)
     found = shutil.which(filename)
     if not found and name == "blender" and not WINDOWS:
-        # Onde o docs/tech/tools.md instala no Linux (o tools/linux/env.sh poe no PATH): dispensa o "source".
+        # Where docs/tech/tools.md installs it on Linux (tools/linux/env.sh puts it on PATH): no "source" needed.
         found = next((str(p) for p in sorted(Path.home().glob(".local/opt/blender-*/blender"), reverse=True)), None)
     return found or filename
 
 
 def store_python():
-    # O Python da Microsoft Store roda empacotado: filhos fora do pacote (nwbt, Blender) saem do Job
-    # do Windows e sobrevivem a um aborto. Use o instalador de python.org.
+    # The Microsoft Store Python runs packaged: children outside the package (nwbt, Blender) leave the Windows
+    # Job and survive an abort. Use the python.org installer.
     return WINDOWS and any(part.casefold() == "windowsapps" for part in Path(sys.executable).parts)
 
 
 def nwbt_workers():
-    # NW_NWBT_WORKERS limita "nwbt models" sem -w (padrao 8) em maquinas com pouca RAM.
+    # NW_NWBT_WORKERS limits "nwbt models" without -w (default 8) on machines with little RAM.
     configured = os.environ.get("NW_NWBT_WORKERS")
     return ["-w", configured] if configured else []
 
@@ -153,7 +153,7 @@ def configure():
 
 
 def shell_exports():
-    """Linhas "export X=..." para os scripts de tools/linux/ (local.env e caminhos achados)."""
+    """Lines "export X=..." for the tools/linux/ scripts (local.env and found paths)."""
     import shlex
     values = dict(read_local_env())
     values.update({k: v for k, v in os.environ.items() if k in values})

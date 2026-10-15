@@ -1,11 +1,11 @@
-"""Aba de ofícios de coleta do jogo (lyshineui/skills/skills.dynamicuicanvas, TradeSkills > GatheringSection).
+"""The game's gathering trade skills tab (lyshineui/skills/skills.dynamicuicanvas, TradeSkills > GatheringSection).
 
     python3 tools/ui_build_tradeskills.py
 
-Gera unreal/NWPort/Data/UI/tradeskills_layout.<idioma>.json e extract/ui/tradeskills_textures.txt. Aplica o que o Lua do
-jogo faz e não está no arquivo: moldura padrão (FRAME_STYLE_DEFAULT_2023), círculo de nível reduzido para caber na
-célula (escala 0,5 levada aos filhos, porque o FNWUILayout só escala o próprio retângulo), a seção de coleta
-centrada no topo da janela (o jogo empilha as seções numa lista), título "Hab. Mercantes" e textos @chave resolvidos.
+Writes unreal/NWPort/Data/UI/tradeskills_layout.<language>.json and extract/ui/tradeskills_textures.txt. Applies what the
+game's Lua does and is not in the file: default frame (FRAME_STYLE_DEFAULT_2023), level circle shrunk to fit the
+cell (0.5 scale carried to the children, because FNWUILayout only scales its own rectangle), the gathering section
+centered at the top of the window (the game stacks the sections in a list), "Trade Skills" title and @key texts resolved.
 """
 import json
 import os
@@ -23,7 +23,7 @@ KEEP = ["_root/Skills/ScreenHolder/FrameMultiBg", "_root/Skills/ScreenHolder/Fra
 EXCLUDE = ["FishingCell", "Tooltip", "MomentFlash", "MomentPulse", "CellPostCapIcon", "StationIcon", "PostCapLevelText",
            "ExpansionBadge"]
 CIRCLE_SCALE = 0.5
-# Seção de coleta: do meio da lista (y 478) para o topo da janela, centrada em x.
+# Gathering section: from the middle of the list (y 478) to the top of the window, centered in x.
 SHIFT = (-113.0, -248.0)
 FRAME_BG = "lyshineui/images/slices/framemultibg/framestyles/framebgdefault2023.dds"
 
@@ -53,7 +53,7 @@ def main():
         if "/SkillLevelCircleProgress" in p:
             o = e["offsets"]
             if p.endswith("/SkillLevelCircleProgress"):
-                # Escala em volta do pivô (centro): só o tamanho encolhe.
+                # Scale around the pivot (center): only the size shrinks.
                 cx, cy = (o[0] + o[2]) / 2, (o[1] + o[3]) / 2
                 e["offsets"] = [cx + (o[0] - cx) * CIRCLE_SCALE, cy + (o[1] - cy) * CIRCLE_SCALE,
                                 cx + (o[2] - cx) * CIRCLE_SCALE, cy + (o[3] - cy) * CIRCLE_SCALE]
@@ -74,7 +74,7 @@ def main():
     textures = sorted({e["image"]["texture"].lower() for e in lay["elements"] if e.get("image") and e["image"]["texture"]}
                       | {FRAME_BG, "lyshineui/images/skills/tradeskills/skillcellhover.dds"})
     open(os.path.join(UI, "tradeskills_textures.txt"), "w").write("\n".join(textures) + "\n")
-    print(f"{len(lay['elements'])} elementos, {len(textures)} texturas")
+    print(f"{len(lay['elements'])} elements, {len(textures)} textures")
 
 
 if __name__ == "__main__":

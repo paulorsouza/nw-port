@@ -19,12 +19,12 @@ namespace
 	struct FProgressionData
 	{
 		int32 BaseAttribute = 5;
-		TArray<int64> LevelXp;      // [n] = XP total para chegar ao nível n+1
-		TArray<int32> LevelPoints;  // [n] = pontos ganhos ao chegar ao nível n+1
+		TArray<int64> LevelXp;      // [n] = total XP to reach level n+1
+		TArray<int32> LevelPoints;  // [n] = points gained on reaching level n+1
 		TMap<int32, float> ConstitutionHealth;
 		struct FTrade { TArray<int32> Xp; TArray<float> Eff; TArray<int32> Roll; TArray<TArray<FIntPoint>> Gs; };
 		FTrade Trade[NWTradeskill::Num];
-		// Tutoriais de nível (tools/tutorials.json).
+		// Level tutorials (tools/tutorials.json).
 		struct FTutorial { FString Id; FString Kind; FString Target; int32 Count = 0; int32 Levels = 0; TMap<FString, FString> Name; };
 		TArray<FTutorial> Tutorials;
 		float KillLevelFraction = 0.f;
@@ -134,8 +134,8 @@ namespace NWTradeskill
 	FString TextKey(int32 I) { return I >= 0 && I < Num ? TEXT("ui_") + FString(Names[I]).ToLower() : FString(); }
 	FString Icon(int32 I)
 	{
-		// Ícones com o nome da mesa no jogo: masonary (cantaria, grafia do jogo), blacksmithing (armeiro), alchemy (arcano),
-		// outfitting (armoraria).
+		// Icons with the game's station name: masonary (Stonecutting, the game's spelling), blacksmithing (Weaponsmithing),
+		// alchemy (Arcana), outfitting (Armoring).
 		const FString File = I == Index(TEXT("Stonecutting")) ? FString(TEXT("masonary"))
 			: I == Index(TEXT("Weaponsmithing")) ? FString(TEXT("blacksmithing"))
 			: I == Index(TEXT("Arcana")) ? FString(TEXT("alchemy"))
@@ -202,7 +202,7 @@ FIntPoint UNWProgressionComponent::TradeGsBonus(int32 Skill, int32 ItemTier) con
 	}
 	const TArray<TArray<FIntPoint>>& Gs = FProgressionData::Get().Trade[Skill].Gs;
 	const int32 L = TradeLevel(Skill);
-	const int32 T = ItemTier - 2;   // colunas T2..T5
+	const int32 T = ItemTier - 2;   // columns T2..T5
 	return Gs.IsValidIndex(L) && Gs[L].IsValidIndex(T) ? Gs[L][T] : FIntPoint::ZeroValue;
 }
 
@@ -311,7 +311,7 @@ int32 UNWProgressionComponent::UnspentPoints() const
 
 float UNWProgressionComponent::ConstitutionHealth() const
 {
-	// A coluna Health já é o total acumulado para o valor (6 = 40, 14 = 360).
+	// The Health column is already the accumulated total for the value (6 = 40, 14 = 360).
 	return FProgressionData::Get().ConstitutionHealth.FindRef(Attribute(ENWAttribute::Constitution));
 }
 
@@ -327,7 +327,7 @@ void UNWProgressionComponent::Load(const TSharedPtr<FJsonObject>& Json)
 	{
 		Xp = FMath::Max<int64>(0, int64(Num));
 	}
-	// O nível sai do XP pela tabela (o salvo é só conferência).
+	// The level comes from XP through the table (the saved one is only a check).
 	Level = 1;
 	while (Level < MaxLevel() && Xp >= XpForLevel(Level + 1))
 	{
@@ -393,7 +393,7 @@ void UNWProgressionComponent::Load(const TSharedPtr<FJsonObject>& Json)
 			}
 		}
 	}
-	// Pontos gastos além dos ganhos (tabela mudou): zera a distribuição.
+	// Points spent beyond those gained (table changed): resets the distribution.
 	int32 Used = 0;
 	for (int32 S : Spent)
 	{
@@ -476,7 +476,7 @@ void UNWProgressionComponent::AddShopBought(FName Item, int32 Quantity, const FS
 	}
 	if (ShopPeriod != Period)
 	{
-		// Semana nova: o limite volta a zero.
+		// New week: the limit goes back to zero.
 		ShopPeriod = Period;
 		ShopBoughtIds.Reset();
 		ShopBoughtQty.Reset();
@@ -571,7 +571,7 @@ void UNWProgressionComponent::ClientXpGained_Implementation(int64 Amount, int32 
 }
 
 
-// ---------------------------------------------------------------- tutoriais de nível (esteira 4)
+// ---------------------------------------------------------------- level tutorials (area 4)
 
 void UNWProgressionComponent::BeginPlay()
 {
@@ -641,7 +641,7 @@ void UNWProgressionComponent::AdvanceTutorials(const FString& Kind, const FStrin
 		TutorialCount[i] = FMath::Min(TutorialCount[i] + Amount, Ts[i].Count);
 		if (TutorialCount[i] >= Ts[i].Count)
 		{
-			// Concluída: o XP exato de N níveis pela tabela do jogo (decisão do dono: recompensa em níveis).
+			// Completed: the exact XP of N levels from the game's table (maintainer's decision: reward in levels).
 			TutorialCount[i] = -1;
 			const int32 TargetLevel = FMath::Min(Level + Ts[i].Levels, MaxLevel());
 			AddXp(XpForLevel(TargetLevel) - Xp);
@@ -664,7 +664,7 @@ void UNWProgressionComponent::HandleKill(AActor* Killer, AActor* Victim)
 		return;
 	}
 	AdvanceTutorials(TEXT("abate"), Me->WeaponSets[Me->ActiveWeapon].Id.ToString(), 1);
-	// Depois dos tutoriais: cada abate dá uma fração do XP do nível atual, até o nível máximo da regra.
+	// After the tutorials: each kill gives a fraction of the current level's XP, up to the rule's max level.
 	const FProgressionData& D = FProgressionData::Get();
 	if (TutorialsDone() && Level < D.KillXpMaxLevel && D.KillLevelFraction > 0.f)
 	{
@@ -689,7 +689,7 @@ void UNWProgressionComponent::HandleRefine(ANWCharacter* Who, const FString& Sta
 	}
 }
 
-// Menu de dev (F10): progresso dos tutoriais até existir a tela de missões. O clique mostra as que faltam no aviso.
+// Dev menu (F10): tutorial progress until the quest screen exists. The click shows the remaining ones in the notice.
 NW_REGISTER_DEV(Tutorials, TEXT("sistemas.tutorials"), TEXT("nw.dev.tutorials"),
 	[](ANWPlayerController* PC)
 	{

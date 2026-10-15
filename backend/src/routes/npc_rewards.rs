@@ -1,6 +1,6 @@
-//! Brindes dos NPCs: o que o personagem já pegou e a coleta (itens iniciais uma vez; brinde semanal por período).
-//! O servidor de jogo decide e sorteia os itens; aqui fica a garantia de não pegar duas vezes, gravada na mesma
-//! transação da bolsa.
+//! NPC rewards: what the character already claimed and the claim itself (starter items once; weekly reward per period).
+//! The game server decides and rolls the items; this module guarantees nothing is claimed twice, stored in the same
+//! transaction as the bag.
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -30,7 +30,7 @@ pub struct ClaimList {
 
 #[derive(Deserialize, Debug)]
 pub struct ListQuery {
-    /// Período semanal atual: devolve os 'once' e os desse período.
+    /// Current weekly period: returns the 'once' claims and the ones for this period.
     pub period: Option<String>,
 }
 
@@ -39,7 +39,7 @@ pub struct NewClaim {
     pub npc: String,
     pub kind: String,
     pub period: String,
-    /// Bolsa e moedas com os itens já somados.
+    /// Bag and coins with the items already added.
     #[serde(flatten)]
     pub snapshot: Snapshot,
 }

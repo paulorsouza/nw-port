@@ -1,5 +1,5 @@
 #!/bin/bash
-# Descompila funções no Ghidra headless (porta 8089), criando a função antes. Uso: tools/re/dec.sh 0x1426... [...]
+# Decompiles functions in headless Ghidra (port 8089), creating the function first. Usage: tools/re/dec.sh 0x1426... [...]
 for a in "$@"; do
   curl -s -m 60 -X POST -H 'Content-Type: application/json' -d "{\"address\":\"$a\"}" http://127.0.0.1:8089/create_function >/dev/null
   echo "//==== $a"

@@ -39,7 +39,7 @@ namespace
 		}
 	}
 
-	/** Livro de ordens do servidor: lido do nw-core no máximo a cada CacheSeconds; quem pede junto espera a mesma leitura. */
+	/** Server order book: read from nw-core at most every CacheSeconds; whoever asks at the same time waits for the same read. */
 	struct FBook
 	{
 		double FetchedAt = -1.0;
@@ -152,8 +152,8 @@ void UNWInteractorComponent::ClientMarketDone_Implementation(int32 Req, bool bOk
 
 void UNWInteractorComponent::MarketFinish(int32 Req, bool bOk)
 {
-	// Linhas novas antes do fim do pedido (RPCs confiáveis do mesmo ator chegam em ordem): a tela troca a previsão pelo
-	// livro sem piscar.
+	// New rows before the end of the request (reliable RPCs from the same actor arrive in order): the screen swaps the
+	// preview for the book without flickering.
 	UNWBackend* B = MarketBackend(this);
 	ANWPlayerController* PC = MarketPC(this);
 	if (!B || !PC || !PC->Record || !bMarketOpen)
@@ -174,8 +174,8 @@ void UNWInteractorComponent::MarketFinish(int32 Req, bool bOk)
 
 void UNWInteractorComponent::MarketClaimCredits()
 {
-	// Créditos de vendas (ordem de venda completada, ordem de compra cancelada ou vencida): operação gravada, soma
-	// exatamente o que havia até a consulta.
+	// Sale credits (sell order completed, buy order cancelled or expired): written operation, adds
+	// exactly what there was up to the query.
 	UNWBackend* B = MarketBackend(this);
 	ANWPlayerController* PC = MarketPC(this);
 	ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
@@ -210,7 +210,7 @@ void UNWInteractorComponent::MarketClaimCredits()
 				{
 					if (Status == 200 && Got != Amount)
 					{
-						UE_LOG(LogNWMarket, Error, TEXT("créditos: esperado %lld, resgatado %lld"), Amount, Got);
+						UE_LOG(LogNWMarket, Error, TEXT("credits: expected %lld, claimed %lld"), Amount, Got);
 					}
 					Fin(Status == 200 || Status == 208 ? NWOps::EResult::Ok : NWOps::EResult::Failed);
 				});
@@ -232,7 +232,7 @@ NWOps::FCommit UNWInteractorComponent::MarketCommit(TFunction<void(const FNWChar
 			}
 			if (Status == 400 || Status == 409)
 			{
-				MarketWarn(Self.Get(), CodeKey(Code));   // recusado pelo nw-core: o motivo, não o aviso genérico
+				MarketWarn(Self.Get(), CodeKey(Code));   // refused by nw-core: the reason, not the generic warning
 				Fin(NWOps::EResult::Rejected);
 				return;
 			}
@@ -275,7 +275,7 @@ void UNWInteractorComponent::ServerMarketBuy_Implementation(int32 Req, const FSt
 		ClientMarketDone(Req, false);
 		return;
 	}
-	const int64 Total = O->UnitPrice * Quantity;   // sem taxas
+	const int64 Total = O->UnitPrice * Quantity;   // no fees
 	const FString Reason = FString::Printf(TEXT("market_buy:%s:%d"), *O->Item.ItemId.ToString(), Quantity);
 	TWeakObjectPtr<UNWInteractorComponent> Self(this);
 	NWOps::Run(Me, Reason,
@@ -385,7 +385,7 @@ void UNWInteractorComponent::ServerMarketPostBuy_Implementation(int32 Req, FName
 		ClientMarketDone(Req, false);
 		return;
 	}
-	// Ordem de compra de equipamento: qualquer peça fabricada daquele item (o vendedor entrega a dele).
+	// Equipment buy order: any crafted piece of that item (the seller delivers theirs).
 	FNWItem Probe;
 	Probe.ItemId = ItemId;
 	Probe.Quantity = Quantity;
@@ -409,7 +409,7 @@ void UNWInteractorComponent::ServerMarketPostBuy_Implementation(int32 Req, FName
 				MarketWarn(Self.Get(), TEXT("ui_insufficient_funds"));
 				return false;
 			}
-			Me->Inventory->AddCoins(-Total);   // garantia da ordem (volta em crédito se cancelar ou vencer)
+			Me->Inventory->AddCoins(-Total);   // order collateral (comes back as credit if cancelled or expired)
 			return true;
 		},
 		MarketCommit([Self, Wanted, UnitPrice, Days](const FNWCharacterRecord& After, TFunction<void(int32, const FString&)> Done)
@@ -430,7 +430,7 @@ void UNWInteractorComponent::ServerMarketCancel_Implementation(int32 Req, const 
 		ClientMarketDone(Req, false);
 		return;
 	}
-	// O nw-core devolve o item ao armazém (venda) ou a garantia em crédito (compra), que é resgatado em seguida.
+	// nw-core returns the item to Storage (sale) or the collateral as credit (purchase), which is claimed right after.
 	const bool bBuy = !O->bSell;
 	TWeakObjectPtr<UNWInteractorComponent> Self(this);
 	B->CancelOrder(PC->Record->Id, OrderId, [Self, Req, bBuy](int32 Status)

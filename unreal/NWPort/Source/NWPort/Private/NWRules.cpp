@@ -32,7 +32,7 @@ double FNWRules::Num(const TCHAR* Id, double Default)
 		}
 		else
 		{
-			UE_LOG(LogNWRules, Log, TEXT("%s ausente: valores padrão do código"), *File);
+			UE_LOG(LogNWRules, Log, TEXT("%s missing: code defaults"), *File);
 		}
 	}
 	if (const double* V = Values.Find(Id))
@@ -42,7 +42,7 @@ double FNWRules::Num(const TCHAR* Id, double Default)
 	if (!Warned.Contains(Id))
 	{
 		Warned.Add(Id);
-		UE_LOG(LogNWRules, Verbose, TEXT("regra %s fora de Data/regras.json; usando %g"), Id, Default);
+		UE_LOG(LogNWRules, Verbose, TEXT("rule %s not in Data/regras.json; using %g"), Id, Default);
 	}
 	return Default;
 }

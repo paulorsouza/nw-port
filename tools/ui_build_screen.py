@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""Tela do jogo a partir do canvas e de um arquivo de estado (esteira 4: refino, armazém, ...).
+"""A game screen from the canvas and a state file (area 4: refining, Storage, ...).
 
-    python3 tools/ui_build_screen.py tools/ui_screens/<tela>.json [--preview saida.png]
+    python3 tools/ui_build_screen.py tools/ui_screens/<screen>.json [--preview output.png]
 
-O canvas tem as peças de todos os modos; o Lua do jogo (extract/lua/lyshineui/, decompilado) decide o que aparece.
-O arquivo de estado diz isso para a tela que o port mostra:
+The canvas has the pieces of every mode; the game's Lua (extract/lua/lyshineui/, decompiled) decides what shows.
+The state file says that for the screen the port shows:
 
     {
       "canvas": "lyshineui/crafting/craftingscreenv4",   # extract/ui/<canvas>.dynamicuicanvas.json
-      "name": "refining",                                # Data/UI/<name>_layout.<idioma>.json, canvas "<name>"
-      "keep": ["_root/CraftingScreen/..."],              # subárvores que ficam (vazio = tudo)
-      "exclude": ["MultiCraft"],                         # nomes cujas subárvores saem
-      "show": ["/Refining"], "hide": ["/QualityComplex"],# sufixos de caminho ligados/desligados (o que o Lua faz)
+      "name": "refining",                                # Data/UI/<name>_layout.<language>.json, canvas "<name>"
+      "keep": ["_root/CraftingScreen/..."],              # subtrees that stay (empty = everything)
+      "exclude": ["MultiCraft"],                         # names whose subtrees are removed
+      "show": ["/Refining"], "hide": ["/QualityComplex"],# path suffixes turned on/off (what the Lua does)
       "set": {"/FrameHeaderText": {"text": "@ui_x", "color": [1, 1, 1, 1], "texture": "lyshineui/...dds"}},
-      "extra_textures": ["lyshineui/images/...dds"],     # texturas que o C++ usa fora do layout
-      "buttons": {"/FilterButton": "default"},           # estilo do slices/button.lua (camadas, texturas, fonte)
-      "styles": {"/EntryText": "FONT_STYLE_X"}           # estilo de texto do _common/uistyle.lua (tools/ui_styles.py)
+      "extra_textures": ["lyshineui/images/...dds"],     # textures the C++ uses outside the layout
+      "buttons": {"/FilterButton": "default"},           # slices/button.lua style (layers, textures, font)
+      "styles": {"/EntryText": "FONT_STYLE_X"}           # text style from _common/uistyle.lua (tools/ui_styles.py)
     }
 
-Saída: unreal/NWPort/Data/UI/<name>_layout.<idioma>.json e extract/ui/<name>_textures.txt (import: tools/ue/import_ui.py).
-Textos @chave resolvidos por idioma; o C++ preenche os dados (FNWUILayout, TextOverride/Visible/DrawSubtree).
+Output: unreal/NWPort/Data/UI/<name>_layout.<language>.json and extract/ui/<name>_textures.txt (import: tools/ue/import_ui.py).
+@key texts resolved per language; the C++ fills in the data (FNWUILayout, TextOverride/Visible/DrawSubtree).
 """
 import argparse
 import json
@@ -62,8 +62,8 @@ def main():
     def match(path, suffixes):
         return any(path.endswith(s) or ("/" + s.strip("/") + "/") in (path + "/") for s in suffixes)
 
-    # Raiz do canvas: no arquivo é uma caixa de 100×100 no centro; no jogo o HUD estica a tela inteira. Sem isso, o que
-    # é ancorado em cima/embaixo/nos cantos (barra de título, rodapé, painéis) cai perto do centro.
+    # Canvas root: in the file it is a 100×100 box in the center; in the game the HUD stretches it to the whole screen.
+    # Without this, what is anchored top/bottom/corners (title bar, footer, panels) ends up near the center.
     for e in lay["elements"]:
         if e["parent"] < 0:
             e["anchors"], e["offsets"] = [0, 0, 1, 1], [0, 0, 0, 0]
@@ -93,7 +93,7 @@ def main():
             for k in ("anchors", "offsets"):
                 if k in ch:
                     e[k] = ch[k]
-    # Estilos do Lua (uistyle.lua via tools/ui_styles.py): fonte, tamanho, cor, espaçamento, caixa.
+    # Lua styles (uistyle.lua via tools/ui_styles.py): font, size, color, spacing, case.
     styles = json.load(open(os.path.join(UI, "uistyle.json"))) if (spec.get("styles") or spec.get("buttons")) else {}
     cases = {"eUiTextCaseSetting_Normal": 0, "eUiTextCaseSetting_Lower": 1, "eUiTextCaseSetting_Upper": 2}
 
@@ -113,8 +113,8 @@ def main():
         for e in lay["elements"]:
             if e["path"].endswith(suffix):
                 apply_style(e, style)
-    # Botões (slices/button.lua, SetButtonStyle): o canvas traz todas as camadas; o estilo padrão usa fundo e moldura
-    # 2023, sem borda/sequência de herói, foco a 0,2 e brilhos apagados.
+    # Buttons (slices/button.lua, SetButtonStyle): the canvas carries every layer; the default style uses the 2023
+    # background and frame, no hero border/sequence, focus at 0.2 and glows off.
     extra = set()
     for suffix, kind in spec.get("buttons", {}).items():
         roots = [e["path"] for e in lay["elements"] if e["path"].endswith(suffix)]
@@ -125,17 +125,17 @@ def main():
                     continue
                 if rel in ("/buttonText/buttonHintHolder", "/buttonText/buttonSecondaryIconHolder",
                            "/buttonText/buttonSecondaryIconSprite", "/spinner"):
-                    e["enabled"] = False   # dica de tecla, ícone secundário e spinner: só quando o Lua liga
+                    e["enabled"] = False   # key hint, secondary icon and spinner: only when the Lua turns them on
                 if kind == "hero":
-                    # BUTTON_STYLE_HERO: fundo preto, sequência azul a 1, brilho inferior em y −11, borda herói a 0
-                    # (acende no foco), moldura heroframe2023, texto FONT_STYLE_BUTTON_HERO_2023.
+                    # BUTTON_STYLE_HERO: black background, blue sequence at 1, bottom glow at y −11, hero border at 0
+                    # (lights up on focus), heroframe2023 frame, FONT_STYLE_BUTTON_HERO_2023 text.
                     if rel == "/buttonBg" and e.get("image"):
                         e["image"]["color"] = [0, 0, 0, 1]
                     elif rel in ("/heroBorder", "/buttonFocus", "/buttonFocusHero", "/heroImageSequenceDisabled", "/frameFocus",
                                  "/buttonBgFocus"):
                         e["fade"] = 0
                     elif rel == "/heroImageSequence":
-                        # Flipbook (UiFlipbookAnimation, sem imagem no canvas): o C++ troca o quadro blue_loop/blue_NN.
+                        # Flipbook (UiFlipbookAnimation, no image in the canvas): the C++ swaps the blue_loop/blue_NN frame.
                         e["fade"] = 1
                         e["image"] = {"texture": "lyshineui/images/slices/button/blue_loop/blue_00.dds", "color": [1, 1, 1, 1],
                                       "alpha": 1, "type": "stretched", "blend": 0, "fill": "none", "fill_amount": 1,
@@ -168,7 +168,7 @@ def main():
                     if b:
                         e["image"]["type"], e["image"]["borders"] = "sliced", b
                     extra.add(e["image"]["texture"])
-    # visible (prévia) = pai visível e o próprio ligado, depois das trocas acima.
+    # visible (preview) = parent visible and itself enabled, after the changes above.
     for e in lay["elements"]:
         par = lay["elements"][e["parent"]] if e["parent"] >= 0 else None
         e["visible"] = (par["visible"] if par else True) and e.get("enabled", True)
@@ -194,7 +194,7 @@ import ui_canvas
 lay = json.load(open({tmp!r}))
 ui_canvas.preview(lay['elements'], lay['size'], {os.path.join(UI, 'tex')!r}, {a.preview!r})
 """], check=True)
-    print(f"{name}: {len(lay['elements'])} elementos, {len(textures)} texturas")
+    print(f"{name}: {len(lay['elements'])} elements, {len(textures)} textures")
 
 
 if __name__ == "__main__":

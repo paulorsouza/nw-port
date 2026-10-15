@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Log de itens do nw-core (backend/src/routes/journal.rs): quem, o quê, de onde para onde e por quê.
+"""nw-core item log (backend/src/routes/journal.rs): who, what, from where to where and why.
 
-Uso:
-  tools/item_log.py --personagem Exilado [--item OreT1] [--serie <número>] [--desde 2026-10-14T10:00:00Z] [--limite 200]
+Usage:
+  tools/item_log.py --personagem Exilado [--item OreT1] [--serie <number>] [--desde 2026-10-14T10:00:00Z] [--limite 200]
 
-Lê NW_BACKEND e NW_SERVER_SECRET do ambiente ou de backend/dev.env. Mais novo primeiro; quantidade + entrou, − saiu.
+Reads NW_BACKEND and NW_SERVER_SECRET from the environment or backend/dev.env. Newest first; quantity + in, − out.
 """
 import argparse
 import json
@@ -48,12 +48,12 @@ def main():
         print(json.dumps(rows, ensure_ascii=False, indent=1))
         return
     for r in rows:
-        item = r["item_id"] or "moedas"
+        item = r["item_id"] or "coins"
         extra = []
         if r["gear_score"]:
             extra.append(f"GS {r['gear_score']}")
         if (r.get("props") or {}).get("serial"):
-            extra.append(f"série {r['props']['serial']}")
+            extra.append(f"serial {r['props']['serial']}")
         seq = f"{r['session']}.{r['seq']}" if r["session"] is not None else "nw-core"
         print(f"{r['at'][:19]}  {seq:>9}  {r['reason']:<28} {r['place']:<14} {r['quantity']:+8d}  {item} {' '.join(extra)}")
 

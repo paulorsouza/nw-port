@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Exporta o que a Unreal importou em zips numa pasta local, para subir à mão na pasta do OneDrive.
+"""Exports what Unreal imported as zips in a local folder, to be uploaded by hand to the OneDrive folder.
 
-uso: assets_export.py [--dir <pasta>] [--allow-dirty] [--force] [--jobs 4]
+usage: assets_export.py [--dir <folder>] [--allow-dirty] [--force] [--jobs 4]
 
-A pasta (padrão ~/nw-port-assets, ou NW_ASSETS) espelha a do OneDrive: manifest.json + bundles/*.zip.
-Vai: unreal/NWPort/Content (menos o que está no git), unreal/NWPort/Data e a lista dos ue_*.ok de extract/.etapas.
-Um zip por pasta de até 1 GiB. Só é zipado o que mudou desde o manifest.json da pasta; os zips que não mudaram
-continuam valendo no OneDrive e não precisam estar aqui. No fim, diz o que subir e o que apagar no OneDrive.
-Antes de exportar, baixe do OneDrive o manifest.json mais novo para a pasta. Roteiro: docs/tech/asset-sync.md.
+The folder (default ~/nw-port-assets, or NW_ASSETS) mirrors the OneDrive one: manifest.json + bundles/*.zip.
+Included: unreal/NWPort/Content (minus what is in git), unreal/NWPort/Data and the list of ue_*.ok in extract/.etapas.
+One zip per folder of up to 1 GiB. Only what changed since the folder's manifest.json is zipped; unchanged zips
+stay valid on OneDrive and do not need to be here. At the end, it says what to upload and what to delete on OneDrive.
+Before exporting, download the newest manifest.json from OneDrive into the folder. Walkthrough: docs/tech/asset-sync.md.
 """
 import argparse
 import os
@@ -35,8 +35,8 @@ def make_zip(target, rels):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dir", type=Path, default=DEFAULT_DIR)
-    ap.add_argument("--allow-dirty", action="store_true", help="exporta com código sem commit em Source/ ou tools/")
-    ap.add_argument("--force", action="store_true", help="exporta por cima da publicação de outra máquina")
+    ap.add_argument("--allow-dirty", action="store_true", help="export with uncommitted code in Source/ or tools/")
+    ap.add_argument("--force", action="store_true", help="export over another machine's publication")
     ap.add_argument("--jobs", type=int, default=4)
     a = ap.parse_args()
     out_dir = a.dir.expanduser()
@@ -45,32 +45,32 @@ def main():
     preflight()
     head = git("rev-parse", "HEAD").stdout.strip()
     if not git("branch", "-r", "--contains", head).stdout.strip():
-        die("O commit atual não está no GitHub: push do código antes (os assets dependem dele).")
+        die("The current commit is not on GitHub: push the code first (the assets depend on it).")
     dirty = git("status", "--porcelain", "--", "unreal/NWPort/Source", "unreal/NWPort/Config",
                 "unreal/NWPort/NWPort.uproject", "tools").stdout.strip()
     if dirty and not a.allow_dirty:
         print(dirty, file=sys.stderr)
-        die("Mudança não commitada em código ou tools/: commit e push antes (ou --allow-dirty).")
+        die("Uncommitted change in code or tools/: commit and push first (or --allow-dirty).")
     ue = ue_version()
 
     old = read_json(out_dir / "manifest.json", None)
     gen = old["generation"] if old else 0
     if old and not a.force:
         if old.get("id") != read_state().get("id"):
-            die(f"O manifest.json da pasta é da geração {gen} ({old['machine']}, {old['created_at']}) e esta máquina "
-                "não importou essa publicação: rode o assets_import.py antes (ou --force, que descarta a publicação "
-                "dela).")
+            die(f"The folder's manifest.json is from generation {gen} ({old['machine']}, {old['created_at']}) and this "
+                "machine has not imported that publication: run assets_import.py first (or --force, which discards that "
+                "publication).")
         if old["ue_version"] != ue:
-            die(f"A publicação atual é da Unreal {old['ue_version']}, esta máquina usa {ue}.")
+            die(f"The current publication is from Unreal {old['ue_version']}, this machine uses {ue}.")
 
-    print("Lendo os arquivos...")
+    print("Reading the files...")
     files = scan()
     if not files:
-        die("Content e Data vazios: nada a exportar.")
+        die("Content and Data are empty: nothing to export.")
     check_names(files)
     if old and len(files) < sum(b["files"] for b in old["bundles"].values()) / 2 and not a.force:
-        die(f"{len(files)} arquivos aqui, a publicação atual tem bem mais. Rode o assets_import.py antes "
-            "(ou --force para exportar assim).")
+        die(f"{len(files)} files here, the current publication has many more. Run assets_import.py first "
+            "(or --force to export anyway).")
     hasher = Hasher()
     bundles = plan_bundles(files)
     groups, _ = group(files, bundles)
@@ -82,7 +82,7 @@ def main():
         name = zip_name(path, deep, fp)
         p = prev.get(path)
         if p and p["zip"] == name:
-            entries[path] = p  # igual ao que já está no OneDrive
+            entries[path] = p  # same as what is already on OneDrive
             continue
         entries[path] = {"deep": deep, "fingerprint": fp, "zip": name, "files": len(rels),
                          "bytes": sum(files[r][0] for r in rels)}
@@ -92,11 +92,11 @@ def main():
     if etapas is None and old:
         etapas = old.get("etapas")
     if old and not todo and set(entries) == set(prev) and etapas == old.get("etapas"):
-        print(f"Nada mudou desde a geração {gen}.")
+        print(f"Nothing changed since generation {gen}.")
         return
 
-    print(f"{len(entries)} zips; {len(todo)} novos "
-          f"({sum(entries[p]['bytes'] for p, _, _ in todo) / 2**30:.1f} GiB de origem).")
+    print(f"{len(entries)} zips; {len(todo)} new "
+          f"({sum(entries[p]['bytes'] for p, _, _ in todo) / 2**30:.1f} GiB of source).")
     bdir.mkdir(parents=True, exist_ok=True)
     with ProcessPoolExecutor(max_workers=a.jobs) as ex:
         futs = {ex.submit(make_zip, bdir / name, rels): path for path, name, rels in todo}
@@ -117,13 +117,13 @@ def main():
     write_state(manifest)
 
     new_bytes = sum(entries[p]["zip_bytes"] for p, _, _ in todo)
-    print(f"\nExportada a geração {gen + 1} em {out_dir}.")
-    print(f"Suba para a pasta do OneDrive ({new_bytes / 2**30:.2f} GiB): os zips primeiro, o manifest.json por último.")
+    print(f"\nExported generation {gen + 1} to {out_dir}.")
+    print(f"Upload to the OneDrive folder ({new_bytes / 2**30:.2f} GiB): the zips first, manifest.json last.")
     for _, name, _ in todo:
         print(f"  bundles/{name}")
     print("  manifest.json")
     if removed:
-        print("Depois, pode apagar da pasta bundles/ do OneDrive:")
+        print("Afterwards, you can delete from the OneDrive bundles/ folder:")
         for z in removed:
             print(f"  bundles/{z}")
 

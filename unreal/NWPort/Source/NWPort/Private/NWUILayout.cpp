@@ -22,7 +22,7 @@ static FLinearColor ReadColor(const TSharedPtr<FJsonObject>& O, const TCHAR* Fie
 		return FLinearColor(1, 1, 1, Alpha);
 	}
 	const float W = A->Num() > 3 ? (*A)[3]->AsNumber() : 1.f;
-	// Valores como o LyShine guarda (0..1), multiplicando a textura direto, como as cores da HUD do Canvas.
+	// Values as LyShine stores them (0..1), multiplying the texture directly, like the Canvas HUD colors.
 	return FLinearColor((*A)[0]->AsNumber(), (*A)[1]->AsNumber(), (*A)[2]->AsNumber(), W * Alpha);
 }
 
@@ -51,7 +51,7 @@ bool FNWUILayout::Load(const FString& JsonFile)
 	FString Raw;
 	if (!FFileHelper::LoadFileToString(Raw, *JsonFile))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NW UI: layout não encontrado em %s"), *JsonFile);
+		UE_LOG(LogTemp, Warning, TEXT("NW UI: layout not found at %s"), *JsonFile);
 		return false;
 	}
 	TSharedPtr<FJsonObject> Root;
@@ -142,7 +142,7 @@ bool FNWUILayout::Load(const FString& JsonFile)
 			}
 		}
 	}
-	UE_LOG(LogTemp, Log, TEXT("NW UI: %d telas carregadas de %s"), Canvases.Num(), *JsonFile);
+	UE_LOG(LogTemp, Log, TEXT("NW UI: %d screens loaded from %s"), Canvases.Num(), *JsonFile);
 	return true;
 }
 
@@ -188,14 +188,14 @@ UFont* FNWUILayout::GameFont(int32 Style)
 	{
 		return Cache[Style];
 	}
-	// O importador de fontes do editor pede confirmação em janela e não roda em commandlet: lê o .otf direto.
+	// The editor's font importer asks for confirmation in a window and does not run in a commandlet: reads the .otf directly.
 	static const TCHAR* Files[8] = {TEXT("nimbussannov-reg.otf"), TEXT("nimbussannov-sembol.otf"), TEXT("nimbussannov-bol.otf"),
 		TEXT("imfepirm28p.ttf"), TEXT("imfepiit28p.ttf"), TEXT("caslonant.otf"), TEXT("nimbussannov-regita.otf"),
 		TEXT("nimbussannov-med.otf")};   // Pica = IM Fell (pica_regular.font)
 	const FString File = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("Data/UI/Fonts") / Files[Style]);
 	if (!FPaths::FileExists(File))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NW UI: fonte não encontrada %s"), *File);
+		UE_LOG(LogTemp, Warning, TEXT("NW UI: font not found %s"), *File);
 		return GEngine->GetMediumFont();
 	}
 	UFont* F = NewObject<UFont>(GetTransientPackage());
@@ -211,7 +211,7 @@ UFont* FNWUILayout::GameFont(int32 Style)
 
 UTexture2D* FNWUILayout::GameTexture(const FString& GameTexturePath)
 {
-	// Caminho vazio vira "/Game/NW/UI//T_" e a Unreal derruba o processo ao criar o pacote.
+	// An empty path becomes "/Game/NW/UI//T_" and Unreal crashes the process when creating the package.
 	if (GameTexturePath.IsEmpty() || FPaths::GetBaseFilename(GameTexturePath).IsEmpty())
 	{
 		return nullptr;
@@ -228,7 +228,7 @@ UTexture2D* FNWUILayout::GameTexture(const FString& GameTexturePath)
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NW UI: textura não importada %s"), *GameTexturePath);
+		UE_LOG(LogTemp, Warning, TEXT("NW UI: texture not imported %s"), *GameTexturePath);
 	}
 	Cache.Add(GameTexturePath, T);
 	return T;
@@ -255,7 +255,7 @@ void FNWUILayout::DrawOne(UCanvas* Canvas, const FString& CanvasName)
 
 void FNWUILayout::DrawCanvas(UCanvas* Canvas, FNWUICanvasLayout& L)
 {
-	// Tela de referência escalada pela altura; a largura acompanha a proporção da janela (âncoras resolvem).
+	// Reference screen scaled by height; the width follows the window's aspect ratio (anchors resolve it).
 	const float UIScale = Canvas->ClipY / L.Size.Y;
 	const FBox2f Screen(FVector2f(0.f, 0.f), FVector2f(Canvas->ClipX / UIScale, L.Size.Y));
 	const FBox2f FullClip(FVector2f(0.f, 0.f), FVector2f(Canvas->ClipX, Canvas->ClipY));
@@ -268,7 +268,7 @@ void FNWUILayout::DrawCanvas(UCanvas* Canvas, FNWUICanvasLayout& L)
 	L.LastRects.SetNum(L.Elements.Num());
 	L.LastClips.SetNum(L.Elements.Num());
 	L.LastShown.SetNum(L.Elements.Num());
-	TArray<TPair<int32, FBox2f>> Clips;   // (fim da subárvore, recorte em pixels)
+	TArray<TPair<int32, FBox2f>> Clips;   // (end of the subtree, clip in pixels)
 	for (int32 i = 0; i < L.Elements.Num(); ++i)
 	{
 		while (Clips.Num() > 0 && i > Clips.Last().Key)
@@ -285,7 +285,7 @@ void FNWUILayout::DrawCanvas(UCanvas* Canvas, FNWUICanvasLayout& L)
 		float Bottom = P.Min.Y + E.Anchors.W * PS.Y + E.Offsets.W + E.Translate.Y;
 		if (bExactText && E.bFitWidth && E.bHasText)
 		{
-			// UiLayoutFitter: largura do texto, em volta do pivô.
+			// UiLayoutFitter: text width, around the pivot.
 			const float FitW = TextWidth(Canvas, E, UIScale);
 			const float PX = Left + (Right - Left) * E.Pivot.X;
 			Left = PX - FitW * E.Pivot.X;
@@ -404,7 +404,7 @@ FBox2f FNWUILayout::RectOf(const FNWUIElement* Element) const
 	return FBox2f(ForceInit);
 }
 
-// Estado do desenho de uma imagem (recorte e mistura) usado pelas peças.
+// Draw state of an image (clip and blend) used by the pieces.
 static FBox2f GClip(ForceInit);
 static ESimpleElementBlendMode GBlend = SE_BLEND_Translucent;
 
@@ -414,7 +414,7 @@ static void Tile(UCanvas* Canvas, const FTexture* Tex, const FVector2f& Pos, con
 	{
 		return;
 	}
-	// Recorte pela máscara: corta o retângulo e as UVs na mesma proporção.
+	// Clip by the mask: cuts the rectangle and the UVs in the same proportion.
 	FVector2f P0 = Pos, P1 = Pos + Size, T0 = UV0, T1 = UV1;
 	if (GClip.bIsValid)
 	{
@@ -438,8 +438,8 @@ static void Tile(UCanvas* Canvas, const FTexture* Tex, const FVector2f& Pos, con
 void FNWUILayout::DrawImage(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect, float Alpha, float UIScale, const FBox2f& Clip)
 {
 	GClip = Clip;
-	// Aditivo do LyShine = (SrcAlpha, One); o da Unreal é (One, One) e acende o RGB de onde o alfa é 0. No modo fiel vai como
-	// translúcido, que para brilhos de alfa baixo fica perto do original.
+	// LyShine additive = (SrcAlpha, One); Unreal's is (One, One) and lights the RGB where alpha is 0. In faithful mode it goes
+	// as translucent, which for low-alpha glows stays close to the original.
 	GBlend = E.Blend == 1 && !bExactText ? SE_BLEND_Additive : SE_BLEND_Translucent;
 	const FString& TexPath = E.TextureOverride.IsEmpty() ? E.Texture : E.TextureOverride;
 	if (E.CachedFor != TexPath)
@@ -458,7 +458,7 @@ void FNWUILayout::DrawImage(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect
 	FBox2f R = Rect;
 	if (bExactText && E.ImageType == 4 && E.CachedTexture && E.CachedTexture->GetSizeY() > 0)
 	{
-		// StretchedToFit: mantém a proporção da textura, centrada no retângulo.
+		// StretchedToFit: keeps the texture's aspect ratio, centered in the rectangle.
 		const float TA = float(E.CachedTexture->GetSizeX()) / float(E.CachedTexture->GetSizeY());
 		const FVector2f S = Rect.GetSize(), C = Rect.GetCenter();
 		const FVector2f Fit = S.X / FMath::Max(1.f, S.Y) > TA ? FVector2f(S.Y * TA, S.Y) : FVector2f(S.X, S.X / TA);
@@ -468,7 +468,7 @@ void FNWUILayout::DrawImage(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect
 	const float Amount = FMath::Clamp(E.Fill.Get(E.FillAmount), 0.f, 1.f);
 	if (E.FillType == 1 && Amount < 1.f)
 	{
-		// Preenchimento linear: corta o retângulo e as UVs a partir da borda de origem.
+		// Linear fill: cuts the rectangle and the UVs from the origin edge.
 		const FVector2f S = R.GetSize();
 		switch (E.FillEdgeOrigin)
 		{
@@ -484,7 +484,7 @@ void FNWUILayout::DrawImage(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect
 		{
 			return;
 		}
-		// Radial: leque a partir do centro; 0° = topo, sentido horário.
+		// Radial: fan from the center; 0° = top, clockwise.
 		const FVector2f C = R.GetCenter();
 		const FVector2f H = R.GetExtent();
 		auto Edge = [&](float Deg)
@@ -515,7 +515,7 @@ void FNWUILayout::DrawImage(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect
 
 	if (E.ImageType == 1 && E.bHasBorders && E.CachedTexture)
 	{
-		// 9-slice: cantos no tamanho da textura (escalados com a tela), bordas e centro esticados.
+		// 9-slice: corners at the texture size (scaled with the screen), edges and center stretched.
 		const FVector2f TexSize(E.CachedTexture->GetSizeX(), E.CachedTexture->GetSizeY());
 		const float U[4] = {0.f, E.Borders.X, E.Borders.Y, 1.f};
 		const float V[4] = {0.f, E.Borders.Z, E.Borders.W, 1.f};
@@ -544,7 +544,7 @@ UFont* FNWUILayout::TextFont(const FNWUIElement& E) const
 	int32 Style = E.FontStyle;
 	if (bExactText)
 	{
-		// Família do canvas: Nimbus itálico e médio têm arquivo próprio (GameFont 6 e 7).
+		// Canvas family: Nimbus italic and medium have their own file (GameFont 6 and 7).
 		const FString& F = E.FontFile;
 		Style = F.Contains(TEXT("pica_italic")) ? 4 : F.Contains(TEXT("pica")) ? 3 : F.Contains(TEXT("caslon")) ? 5
 			: F.Contains(TEXT("italic")) ? 6 : F.Contains(TEXT("semibold")) ? 1 : F.Contains(TEXT("bold")) ? 2
@@ -555,8 +555,8 @@ UFont* FNWUILayout::TextFont(const FNWUIElement& E) const
 
 float FNWUILayout::TextScale(UCanvas* Canvas, const FNWUIElement& E, UFont* Font, float UIScale) const
 {
-	// Tamanho do LyShine = altura da linha (ascendente + descendente) em pixels da tela de referência. No modo fiel, a
-	// escala sai da altura de linha da própria fonte (medida a 1); senão, do tamanho nominal (24).
+	// LyShine size = line height (ascender + descender) in reference-screen pixels. In faithful mode, the
+	// scale comes from the font's own line height (measured at 1); otherwise, from the nominal size (24).
 	if (bExactText)
 	{
 		float W1 = 0.f, H1 = 0.f;
@@ -566,7 +566,7 @@ float FNWUILayout::TextScale(UCanvas* Canvas, const FNWUIElement& E, UFont* Font
 	return E.FontSize * UIScale / FMath::Max(1, Font->LegacyFontSize);
 }
 
-// caseoverride do LyShine. FString::ToUpper só troca ASCII ("FUNDIçãO"); FText usa as regras do idioma.
+// LyShine caseoverride. FString::ToUpper only changes ASCII ("FUNDIçãO"); FText uses the language rules.
 static FString NWUICaseOverride(const FString& Raw, int32 Case)
 {
 	return Case == 2 ? FText::FromString(Raw).ToUpper().ToString() : Case == 1 ? FText::FromString(Raw).ToLower().ToString() : Raw;
@@ -628,7 +628,7 @@ void FNWUILayout::DrawText(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect,
 	}
 	if (bExactText && E.bWrap && !E.bFitWidth && MaxW > 1.f)
 	{
-		// Quebra por palavra na largura do elemento (wraptextsetting).
+		// Word wrap at the element width (wraptextsetting).
 		TArray<FString> Wrapped;
 		for (const FString& L : Lines)
 		{
@@ -654,7 +654,7 @@ void FNWUILayout::DrawText(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect,
 	}
 	else if (bExactText && E.ShrinkToFit != 0 && !E.bFitWidth && MaxW > 1.f)
 	{
-		// Encolher para caber na largura (shrinktofit), até minshrinkscale.
+		// Shrink to fit the width (shrinktofit), down to minshrinkscale.
 		float Widest = 0.f;
 		for (const FString& L : Lines)
 		{
@@ -678,7 +678,7 @@ void FNWUILayout::DrawText(UCanvas* Canvas, FNWUIElement& E, const FBox2f& Rect,
 		float X = E.HAlign == 1 ? Rect.GetCenter().X - W * 0.5f : E.HAlign == 2 ? Rect.Max.X - W : Rect.Min.X;
 		if (Extra != 0.f)
 		{
-			// Espaçamento entre letras (títulos do jogo: "S M E L T E R"): letra a letra.
+			// Letter spacing (game titles: "S M E L T E R"): letter by letter.
 			for (int32 i = 0; i < Line.Len(); ++i)
 			{
 				const FString Ch = Line.Mid(i, 1);
@@ -724,7 +724,7 @@ FBox2f FNWUILayout::DrawSubtree(UCanvas* Canvas, const FString& CanvasName, cons
 	}
 	FNWUICanvasLayout& L = *LP;
 	const float UIScale = Canvas->ClipY / L.Size.Y;
-	// Fim da subárvore: os elementos estão em pré-ordem; a subárvore vai até o primeiro que não descende de Root.
+	// End of the subtree: elements are in pre-order; the subtree goes up to the first one that does not descend from Root.
 	int32 End = R;
 	for (int32 i = R + 1; i < L.Elements.Num(); ++i)
 	{
@@ -743,7 +743,7 @@ FBox2f FNWUILayout::DrawSubtree(UCanvas* Canvas, const FString& CanvasName, cons
 	const FBox2f ParentRect = L.LastRects.IsValidIndex(Parent)
 		? FBox2f(L.LastRects[Parent].Min / UIScale, L.LastRects[Parent].Max / UIScale)
 		: FBox2f(FVector2f(0.f, 0.f), FVector2f(Canvas->ClipX / UIScale, L.Size.Y));
-	// Alfa herdado dos pais (o Root está escondido, então a cadeia acima dele vale).
+	// Alpha inherited from the parents (Root is hidden, so the chain above it applies).
 	float BaseAlpha = 1.f;
 	for (int32 P = Parent; L.Elements.IsValidIndex(P); P = L.Elements[P].Parent)
 	{
@@ -771,7 +771,7 @@ FBox2f FNWUILayout::DrawSubtree(UCanvas* Canvas, const FString& CanvasName, cons
 		float Bottom = P.Min.Y + E.Anchors.W * PS.Y + E.Offsets.W + T.Y;
 		if (bExactText && E.bFitWidth && E.bHasText)
 		{
-			// UiLayoutFitter: largura do texto, em volta do pivô.
+			// UiLayoutFitter: text width, around the pivot.
 			const float FitW = TextWidth(Canvas, E, UIScale);
 			const float PX = Left + (Right - Left) * E.Pivot.X;
 			Left = PX - FitW * E.Pivot.X;
@@ -790,11 +790,11 @@ FBox2f FNWUILayout::DrawSubtree(UCanvas* Canvas, const FString& CanvasName, cons
 		{
 			RowRect = Px;
 		}
-		// O Root desenha mesmo escondido no layout (é o item-modelo); os filhos seguem o próprio estado.
+		// Root draws even when hidden in the layout (it is the template item); the children follow their own state.
 		const bool bShown = bRoot ? true : E.Visible.Get(E.bEnabled);
 		if (!bShown)
 		{
-			// Filho escondido: a subárvore dele também some (marca o fim como recorte vazio).
+			// Hidden child: its subtree disappears too (marks the end as an empty clip).
 			int32 SubEnd = i;
 			for (int32 j = i + 1; j <= End; ++j)
 			{

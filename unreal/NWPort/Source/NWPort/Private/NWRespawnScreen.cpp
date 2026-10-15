@@ -23,7 +23,7 @@ bool FNWRespawnScreen::Load()
 	{
 		Layout.Fonts[i] = FNWUILayout::GameFont(i);
 	}
-	// Camadas de foco do botão e da mensagem: o Lua liga conforme o estado.
+	// Focus layers of the button and the message: the Lua turns them on according to the state.
 	if (FNWUIElement* M = E(TEXT("KilledByMessage"))) M->Visible = false;
 	if (FNWUIElement* B = E(FString(Button) + TEXT("/heroBorder"))) B->Visible = false;
 	if (FNWUIElement* Bg = E(FString(Button) + TEXT("/buttonBg"))) Bg->Tint = FLinearColor(0.10f, 0.13f, 0.20f);

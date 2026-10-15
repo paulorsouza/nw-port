@@ -19,27 +19,27 @@
 #include "NWProgressionComponent.h"
 #include "NWText.h"
 
-// Spec: docs/game/ui/inventory.md (posições em px da tela de 1080 de altura).
+// Spec: docs/game/ui/inventory.md (positions in px of the 1080-high screen).
 static const FLinearColor InvTan(FColor(0xEB, 0xE3, 0xD6));      // COLOR_TAN_WARM
-static const FLinearColor InvTanNew(FColor(0xC6, 0xB6, 0x94));   // títulos de seção, rótulos dos atributos
-static const FLinearColor InvGray(FColor(0xB2, 0xAE, 0xA1));     // peso da seção, máximo do peso
-static const FLinearColor InvTanBody(FColor(0xA5, 0x98, 0x7D));  // botões de ordenação
-static const FLinearColor InvLine(FColor(0xFF, 0xF1, 0xCE));     // linha embaixo do título da seção
+static const FLinearColor InvTanNew(FColor(0xC6, 0xB6, 0x94));   // section titles, attribute labels
+static const FLinearColor InvGray(FColor(0xB2, 0xAE, 0xA1));     // section weight, weight maximum
+static const FLinearColor InvTanBody(FColor(0xA5, 0x98, 0x7D));  // sort buttons
+static const FLinearColor InvLine(FColor(0xFF, 0xF1, 0xCE));     // line under the section title
 static const FLinearColor InvRed(FColor(0xFF, 0x71, 0x71));
 static const FLinearColor InvDim(FColor(0x9A, 0x96, 0x8E));
 static const FLinearColor InvGold(FColor(0xED, 0xC6, 0x3E));
 static const TCHAR* ItemLayoutDir = TEXT("lyshineui/images/slices/itemlayout/");
 static const TCHAR* EquipDir = TEXT("lyshineui/images/equipment/");
 static const TCHAR* MiscDir = TEXT("lyshineui/images/icons/misc/");
-// catsection.lua: peça 60x60, passo 62x65, 4 por linha em 2 colunas. Altura do cabeçalho medida no print 02 (o
-// 101 do Lua conta a margem de cima da seção).
+// catsection.lua: 60x60 piece, 62x65 step, 4 per row in 2 columns. Header height measured in screenshot 02 (the
+// Lua's 101 counts the section's top margin).
 static constexpr float Cell = 60.f, CellStepX = 62.f, CellStepY = 65.f, SectionItemsY = 74.f, SectionGap = 16.f, ColumnWidth = 246.f;
 static constexpr int32 PerRow = 4;
-// equipmentv3: espaço 63x63; itemdraggable: cópia arrastada 75x75.
+// equipmentv3: 63x63 slot; itemdraggable: 75x75 dragged copy.
 static constexpr float EquipCell = 63.f, DragSize = 75.f, DragStart = 6.f;
-// catcontainer: a janela do armazém fica 316 à direita do lugar do inventário; o inventário vai 300 para a esquerda.
+// catcontainer: the storage window sits 316 to the right of the inventory spot; the inventory moves 300 to the left.
 static constexpr float StorageShift = 316.f, InvShift = -300.f;
-static constexpr float LootListTop = 214.f;   // lista da bolsa de saque, abaixo do aviso e da contagem
+static constexpr float LootListTop = 214.f;   // loot bag list, below the notice and the count
 
 namespace
 {
@@ -49,7 +49,7 @@ namespace
 		return R[FMath::Clamp(Tier, 0, 5)];
 	}
 
-	// Seções do jogo (dynamicitemlist.lua, defaultSectionInfos): UiItemClass, coluna esquerda, chave do título.
+	// Game sections (dynamicitemlist.lua, defaultSectionInfos): UiItemClass, left column, title key.
 	struct FSectionDef { const TCHAR* Class; bool bLeft; const TCHAR* Key; };
 	const FSectionDef SectionDefs[] = {
 		{TEXT("Rewards"), true, TEXT("owg_rewards_title")}, {TEXT("Weapon"), true, TEXT("ui_weapons")},
@@ -64,7 +64,7 @@ namespace
 		{TEXT("Stonecutting"), false, TEXT("inv_stonecutting")}, {TEXT("Alchemy"), false, TEXT("inv_alchemy")},
 		{TEXT("Dye"), false, TEXT("inv_dyes")},
 	};
-	constexpr int32 DefaultSection = 8;   // Material: o que não tem seção própria vai para recursos
+	constexpr int32 DefaultSection = 8;   // Material: whatever has no section of its own goes to resources
 	int32 SectionIndex(FName Class)
 	{
 		for (int32 i = 0; i < UE_ARRAY_COUNT(SectionDefs); ++i)
@@ -76,18 +76,18 @@ namespace
 		}
 		return DefaultSection;
 	}
-	// Raridade da peça: armas pela raridade sorteada; o resto pelo tier.
+	// Piece rarity: weapons by the rolled rarity; the rest by tier.
 	int32 RarityOf(const FNWItemDef& D, const FNWItem& I)
 	{
 		return D.Type == TEXT("weapon") || D.Type == TEXT("armor") ? FMath::Min<int32>(I.Rarity, 4) : FMath::Clamp(D.Tier - 1, 0, 4);
 	}
 
-	// Espaços do port nas posições do equipmentv3 (relativas à origem do painel).
+	// Port slots at the equipmentv3 positions (relative to the panel origin).
 	struct FEquipPos { int32 Slot; float X, Y; const TCHAR* Empty; };
 	const FEquipPos CombatSlots[] = {
 		{NWEquip::Sword, 548.f, 216.f, TEXT("iconweapon")}, {NWEquip::Hatchet, 548.f, 284.f, TEXT("iconweapon")},
 		{NWEquip::Shield, 30.f, 556.f, TEXT("iconshield")},
-		// Armadura e joias (docs/game/items.md).
+		// Armor and jewelry (docs/game/items.md).
 		{NWEquip::Head, 30.f, 216.f, TEXT("iconhead")}, {NWEquip::Chest, 30.f, 284.f, TEXT("iconchest")},
 		{NWEquip::Hands, 30.f, 352.f, TEXT("iconhand")}, {NWEquip::Legs, 30.f, 420.f, TEXT("iconlegs")},
 		{NWEquip::Feet, 30.f, 488.f, TEXT("iconfeet")}, {NWEquip::Amulet, 548.f, 438.f, TEXT("iconamulet")},
@@ -103,13 +103,13 @@ namespace
 		for (const FEquipPos& E : ToolSlots) { if (E.Slot == Slot) return E.Empty; }
 		return TEXT("iconweapon");
 	}
-	// Espaços do jogo que o port não tem: vazios, para o painel ter a forma do jogo.
+	// Game slots the port does not have: empty, so the panel has the game's shape.
 	struct FEmptyPos { float X, Y; const TCHAR* Icon; };
 	const FEmptyPos CombatEmpty[] = {{548.f, 352.f, TEXT("iconrune")}};
 	const FEmptyPos ToolEmpty[] = {{548.f, 623.f, TEXT("iconfishing")}};
 
-	// Alvo de soltar aceso (containerareadroptarget/dropzoneglow): borda de 2 px e um véu leve. O canvas da Unreal mistura
-	// em linear, então preenchimento forte fica pesado demais; a borda marca o alvo.
+	// Lit drop target (containerareadroptarget/dropzoneglow): 2 px border and a light veil. The Unreal canvas blends
+	// in linear, so a strong fill looks too heavy; the border marks the target.
 	void DrawDropZone(UCanvas* Canvas, const FBox2f& B, const FLinearColor& C, bool bFill = true)
 	{
 		const float T = FMath::Max(2.f, Canvas->ClipY / 540.f);
@@ -131,7 +131,7 @@ namespace
 		}
 	}
 
-	// Busca sem maiúsculas nem acentos ("fundição" acha "Fundicao").
+	// Search without case or accents ("fundição" finds "Fundicao").
 	FString Fold(const FString& In)
 	{
 		static const TCHAR* From = TEXT("áàâãäéèêëíìîïóòôõöúùûüçñ");
@@ -151,7 +151,7 @@ namespace
 		return Out;
 	}
 
-	// Fonte do jogo pelo nome do arquivo .font (índices do FNWUILayout::GameFont).
+	// Game font by the .font file name (FNWUILayout::GameFont indices).
 	int32 FontIndex(const TCHAR* Font)
 	{
 		const FString F(Font);
@@ -171,7 +171,7 @@ bool FNWInventoryMenu::Load()
 	{
 		Window.Fonts[i] = FNWUILayout::GameFont(i);
 	}
-	// A janela vai por DrawSubtree no lugar certo (inventário e armazém); o desenho normal só calcula o layout.
+	// The window goes through DrawSubtree at its spot (inventory and storage); the normal draw only computes layout.
 	if (FNWUIElement* Content = Window.FindOne(TEXT("inventory"), TEXT("Inventory/Content")))
 	{
 		Content->Visible = false;
@@ -247,8 +247,8 @@ void FNWInventoryMenu::CommitRename(const FString& Name)
 
 void FNWInventoryMenu::DrawTabs(UCanvas* Canvas, const FVector2D& Mouse)
 {
-	// Cinco abas como botões do jogo (buttonbg #2c251b + primarybuttonframe); a aberta com a moldura cheia e o texto claro.
-	// Arrastando um item, a aba sob o mouse acende (soltar guarda ou passa para ela).
+	// Five tabs as game buttons (buttonbg #2c251b + primarybuttonframe); the open one with the full frame and light text.
+	// While dragging an item, the tab under the mouse lights up (dropping stores into it or moves to it).
 	const ANWCharacter* Me = Character.Get();
 	const TArray<FString>* Names = Me && Me->Interactor ? &Me->Interactor->StorageTabNames : nullptr;
 	const float S = UIScale;
@@ -270,7 +270,7 @@ void FNWInventoryMenu::DrawTabs(UCanvas* Canvas, const FVector2D& Mouse)
 		}
 		if (t == RenameTab && RenameEdit.IsValid())
 		{
-			continue;   // o campo de texto do Slate fica por cima
+			continue;   // the Slate text field sits on top
 		}
 		FString Label = Names && Names->IsValidIndex(t) && !(*Names)[t].IsEmpty() ? (*Names)[t]
 			: NWText::Get(TEXT("nw.storage.tab")).Replace(TEXT("{0}"), *FString::FromInt(t + 1));
@@ -413,7 +413,7 @@ void FNWInventoryMenu::DrawText(UCanvas* Canvas, const FString& Text, float X, f
 
 float FNWInventoryMenu::GameScale(UFont* Font, int32 Index, float Size) const
 {
-	// Tamanho do LyShine = altura da linha (FNWUILayout::TextScale no modo fiel), medida uma vez por fonte.
+	// LyShine size = line height (FNWUILayout::TextScale in faithful mode), measured once per font.
 	if (LineH[Index] <= 0.f && DrawCanvas)
 	{
 		float W1 = 0.f;
@@ -472,7 +472,7 @@ void FNWInventoryMenu::DrawTile(UCanvas* Canvas, UTexture2D* Tex, const FBox2f& 
 	FBox2f D = R;
 	if (ClipRect.bIsValid)
 	{
-		// Recorte da lista: corta o retângulo e as coordenadas de textura na mesma proporção.
+		// List clipping: cuts the rectangle and the texture coordinates in the same proportion.
 		D = FBox2f(FVector2f::Max(R.Min, ClipRect.Min), FVector2f::Min(R.Max, ClipRect.Max));
 		if (D.Max.X <= D.Min.X || D.Max.Y <= D.Min.Y)
 		{
@@ -526,8 +526,8 @@ TArray<int32> FNWInventoryMenu::SectionSlots(FName Class, bool bStorageItems) co
 
 void FNWInventoryMenu::LayoutList(FList& L, bool bStorageItems)
 {
-	// dynamicitemlist.lua UpdateSizes: seções empilhadas em duas colunas (cada uma com a própria altura); seção vazia
-	// some; recolhida fica só com o cabeçalho.
+	// dynamicitemlist.lua UpdateSizes: sections stacked in two columns (each with its own height); an empty section
+	// disappears; a collapsed one keeps only the header.
 	const ANWCharacter* Me = Character.Get();
 	const TArray<FNWItem>* Items = !Me ? nullptr : bStorageItems ? ContainerItems() : (Me->Inventory ? &Me->Inventory->Items : nullptr);
 	TArray<TArray<const FNWItem*>> BySection;
@@ -542,8 +542,8 @@ void FNWInventoryMenu::LayoutList(FList& L, bool bStorageItems)
 			BySection[SectionIndex(D->UiClass)].Add(&I);
 		}
 	}
-	// inventoryfilter.lua: a chave escolhida, maior primeiro (clicar de novo inverte). O port não guarda a hora de
-	// chegada: o espaço mais alto vale como o mais novo.
+	// inventoryfilter.lua: the chosen key, largest first (clicking again reverses). The port does not store the arrival
+	// time: the highest slot counts as the newest.
 	const int32 Sort = L.Sort, Dir = L.SortDir;
 	auto Key = [Sort](const FNWItem& I) -> double
 	{
@@ -586,7 +586,7 @@ void FNWInventoryMenu::LayoutList(FList& L, bool bStorageItems)
 			const FBox2f Visible(FVector2f(R.Min.X, FMath::Max(R.Min.Y, L.Area.Min.Y)), FVector2f(R.Max.X, FMath::Min(R.Max.Y, L.Area.Max.Y)));
 			if (Visible.Max.Y <= Visible.Min.Y)
 			{
-				continue;   // fora da área com rolagem
+				continue;   // outside the scrolling area
 			}
 			FSlotRef Ref;
 			Ref.Container = ENWItemContainer::Bag;
@@ -605,7 +605,7 @@ void FNWInventoryMenu::LayoutList(FList& L, bool bStorageItems)
 void FNWInventoryMenu::LayoutEquipment()
 {
 	const float S = UIScale;
-	// Abas em ícone (ViewsTabbedList [-2,74], botões 55x55, margem 9).
+	// Icon tabs (ViewsTabbedList [-2,74], 55x55 buttons, margin 9).
 	for (int32 t = 0; t < 2; ++t)
 	{
 		const FVector2f P = EquipOrigin + FVector2f(30.f + t * 64.f, 74.f);
@@ -624,7 +624,7 @@ void FNWInventoryMenu::LayoutEquipment()
 	{
 		Add(P.Slot, P.X, P.Y);
 	}
-	// Alvo universal: o lado inteiro do equipamento.
+	// Universal target: the whole equipment side.
 	EquipArea = FBox2f((EquipOrigin + FVector2f(0.f, 40.f)) * S, (EquipOrigin + FVector2f(640.f, 1040.f)) * S);
 }
 
@@ -632,12 +632,12 @@ void FNWInventoryMenu::Layout(UCanvas* Canvas)
 {
 	const float S = UIScale;
 	Slots.Reset();
-	// Content do canvas: âncora no centro + 6,5 (x 966 de 1920), largura 623.
+	// Canvas Content: anchor at center + 6.5 (x 966 of 1920), width 623.
 	const float W0 = Canvas->ClipX / S * 0.5f + 6.5f;
 	InvLeft = W0;
 	if (bLoot && !LootBag.IsValid())
 	{
-		bStorage = bLoot = false;   // a bolsa sumiu (vazia ou 3 min): fica só o inventário
+		bStorage = bLoot = false;   // the bag is gone (empty or 3 min): only the inventory remains
 	}
 	InvOffsetX = bStorage ? InvShift : 0.f;
 	auto SetWindow = [S](FList& L, float Left)
@@ -658,7 +658,7 @@ void FNWInventoryMenu::Layout(UCanvas* Canvas)
 		SetWindow(Lists[1], W0 + StorageShift);
 		if (bLoot)
 		{
-			// Bolsa de saque: sem busca nem ordenação; aviso e contagem no lugar (LootBagInfoContainer), lista mais abaixo.
+			// Loot bag: no search or sorting; notice and count in their place (LootBagInfoContainer), list further down.
 			Lists[1].SearchBox = FBox2f(ForceInit);
 			for (FBox2f& R : Lists[1].SortRects)
 			{
@@ -668,7 +668,7 @@ void FNWInventoryMenu::Layout(UCanvas* Canvas)
 		}
 		else
 		{
-			// Abas embaixo da busca, a lista desce.
+			// Tabs below the search, the list moves down.
 			const float L0 = W0 + StorageShift + 36.f, L1 = W0 + StorageShift + 593.f, Gap = 6.f;
 			const float W = (L1 - L0 - Gap * (MaxTabs - 1)) / MaxTabs;
 			const int32 N = FMath::Clamp(FNWItemRules::Get().StorageTabs, 1, MaxTabs);
@@ -682,7 +682,7 @@ void FNWInventoryMenu::Layout(UCanvas* Canvas)
 		LayoutList(Lists[1], true);
 		TakeAllRect = FBox2f(FVector2f(W0 + StorageShift + 425.f, 935.f) * S, FVector2f(W0 + StorageShift + 595.f, 985.f) * S);
 	}
-	// Equipamento: armadura em x≈311 de 1920 (print 02), 300 px à esquerda com o armazém.
+	// Equipment: armor at x≈311 of 1920 (screenshot 02), 300 px to the left with the storage.
 	EquipOrigin = FVector2f(W0 - 655.f + InvOffsetX, 0.f);
 	LayoutEquipment();
 }
@@ -692,7 +692,7 @@ const FNWInventoryMenu::FSlotRef* FNWInventoryMenu::SlotAt(const FVector2D& Mous
 	return Slots.FindByPredicate([&](const FSlotRef& S) { return S.Rect.IsInside(FVector2f(Mouse)); });
 }
 
-// ------------------------------------------------------------------------------------------------------------ desenho
+// ------------------------------------------------------------------------------------------------------------ drawing
 
 void FNWInventoryMenu::DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWItem* Item, bool bRound, float Alpha, bool bHover, int32 SortShown)
 {
@@ -701,22 +701,22 @@ void FNWInventoryMenu::DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWI
 	{
 		return;
 	}
-	// itemlayout.lua SetRarityBgColor: moldura itemBg{Square|Circle}{r} e fundo itemRarityBg{Square|Circle}{r}.
+	// itemlayout.lua SetRarityBgColor: frame itemBg{Square|Circle}{r} and background itemRarityBg{Square|Circle}{r}.
 	const TCHAR* Shape = bRound ? TEXT("circle") : TEXT("square");
 	const int32 Rarity = RarityOf(*D, *Item);
 	const FLinearColor A(1.f, 1.f, 1.f, Alpha);
 	DrawTexture(Canvas, FString::Printf(TEXT("%sitemraritybg%s%d.dds"), ItemLayoutDir, Shape, Rarity), R, A);
 	DrawTexture(Canvas, FString::Printf(TEXT("%sitembg%s%d.dds"), ItemLayoutDir, Shape, Rarity), R, A);
-	const float K = R.GetSize().X / (Cell * UIScale);   // escala da peça (60 = 1)
+	const float K = R.GetSize().X / (Cell * UIScale);   // piece scale (60 = 1)
 	const float S = UIScale * K;
 	if (UTexture2D* Icon = FNWUILayout::GameTexture(D->Icon))
 	{
-		// Ícone = peça − 6 px, centrado.
+		// Icon = piece − 6 px, centered.
 		const float Side = R.GetSize().X - 6.f * S;
 		const FVector2f C = R.GetCenter();
 		DrawTile(Canvas, Icon, FBox2f(C - FVector2f(Side * 0.5f), C + FVector2f(Side * 0.5f)), A);
 	}
-	// Canto de cima: peso ao ordenar por peso, gear score ao ordenar por gear score; senão o tier (Pica itálico 14).
+	// Top corner: weight when sorting by weight, gear score when sorting by gear score; else the tier (Pica italic 14).
 	const FLinearColor TextA(InvTan.R, InvTan.G, InvTan.B, Alpha);
 	if (SortShown == 2)
 	{
@@ -731,10 +731,10 @@ void FNWInventoryMenu::DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWI
 	{
 		DrawGameText(Canvas, Roman(D->Tier), R.Min.X + 5.f * S, R.Min.Y + 1.f * S, 14.f * K, TextA, TEXT("pica_italic"));
 	}
-	// Gema acoplada: ícone dela no canto de baixo à direita, sobre o soquete do tooltip (docs/game/items.md "Slot").
+	// Socketed gem: its icon in the lower-right corner, over the tooltip socket (docs/game/items.md "Slot and gems").
 	if (const FNWItemDef* GD = Item->Gem.IsNone() ? nullptr : FNWItemCatalog::Get().Find(Item->Gem))
 	{
-		// Pouco mais de metade da peça (34 de 60), para a gema ser reconhecível na bolsa.
+		// A bit more than half the piece (34 of 60), so the gem is recognizable in the bag.
 		const FBox2f GB(FVector2f(R.Max.X - 34.f * S, R.Max.Y - 34.f * S), FVector2f(R.Max.X, R.Max.Y));
 		DrawTexture(Canvas, TEXT("lyshineui/images/tooltip/frame_gemsocket.dds"), GB, A);
 		if (UTexture2D* GemIcon = FNWUILayout::GameTexture(GD->Icon))
@@ -742,7 +742,7 @@ void FNWInventoryMenu::DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWI
 			DrawTile(Canvas, GemIcon, FBox2f(GB.Min + FVector2f(2.f * S), GB.Max - FVector2f(2.f * S)), A);
 		}
 	}
-	// Quantidade só acima de 1, sobre frame_lootticker no canto de baixo à direita.
+	// Quantity only above 1, over frame_lootticker in the lower-right corner.
 	if (Item->Quantity > 1)
 	{
 		const FString Q = FString::FromInt(Item->Quantity);
@@ -753,7 +753,7 @@ void FNWInventoryMenu::DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWI
 	}
 	if (bHover)
 	{
-		// EnableHighlight: pulsa entre 0,5 e 1.
+		// EnableHighlight: pulses between 0.5 and 1.
 		const float Pulse = 0.75f + 0.25f * FMath::Cos(float(FPlatformTime::Seconds()) * 2.f * PI / 1.3f);
 		DrawTexture(Canvas, FString::Printf(TEXT("%sitemhighlight%s.dds"), ItemLayoutDir, Shape), R, FLinearColor(1.f, 1.f, 1.f, Pulse));
 	}
@@ -761,7 +761,7 @@ void FNWInventoryMenu::DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWI
 
 void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX, bool bStorageWindow, const FVector2D& Mouse)
 {
-	// Moldura, cabeçalho, ícone, título e moedas do canvas newinventory, deslocados para o lugar da janela.
+	// Frame, header, icon, title and coins of the newinventory canvas, shifted to the window position.
 	const ANWCharacter* Me = Character.Get();
 	const float S = UIScale;
 	FNWUIElement* Content = Window.FindOne(TEXT("inventory"), TEXT("Inventory/Content"));
@@ -775,7 +775,7 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 	}
 	if (FNWUIElement* Icon = Window.FindOne(TEXT("inventory"), TEXT("Content/InventoryIcon")))
 	{
-		// catcontainer: ícone do galpão 36x36 no lugar do ícone da mochila.
+		// catcontainer: 36x36 shed icon in place of the backpack icon.
 		Icon->TextureOverride = !bStorageWindow ? FString() : bLoot ? TEXT("lyshineui/images/catcontainer/icon_dropped_items.dds")
 			: TEXT("lyshineui/images/catcontainer/icon_storage_shed.dds");
 	}
@@ -786,11 +786,11 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 	}
 	Window.DrawSubtree(Canvas, TEXT("inventory"), Content, FVector2f(OffsetX, 0.f));
 
-	// Peso (weightbar): valor Pica 28 #ebe3d6 + "/ máximo" Pica 28 #b2aea1, ícone 16x16, à direita do cabeçalho.
+	// Weight (weightbar): value Pica 28 #ebe3d6 + "/ max" Pica 28 #b2aea1, 16x16 icon, right of the header.
 	float Cur = 0.f, Max = 1.f;
 	if (bStorageWindow && bLoot)
 	{
-		// Bolsa no chão: peso dela contra o limite de itens no chão do jogador.
+		// Bag on the ground: its weight against the player's limit of items on the ground.
 		Cur = LootBag.IsValid() ? LootBag->Weight() : 0.f;
 		Max = ANWLootBag::MaxGroundWeight;
 	}
@@ -813,10 +813,10 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 	const float IX = Right - MaxW - CurW - 30.f * S;
 	DrawTexture(Canvas, FString(MiscDir) + TEXT("icon_weight.dds"), FBox2f(FVector2f(IX, Y + 7.f * S), FVector2f(IX + 16.f * S, Y + 23.f * S)), Cur > Max ? InvRed : InvTan);
 
-	// Ordenação (itemfilterbutton.lua): #a5987d, selecionado e hover #ebe3d6, barra 34x2 embaixo do selecionado.
+	// Sorting (itemfilterbutton.lua): #a5987d, selected and hover #ebe3d6, 34x2 bar under the selected one.
 	static const TCHAR* SortIcons[4] = {TEXT("icon_filter_chrono"), TEXT("icon_weight"), TEXT("icon_filter_gearscore"), TEXT("icon_filter_tier")};
 	static const FVector2f SortSize[4] = {FVector2f(33.f, 33.f), FVector2f(22.f, 20.f), FVector2f(30.f, 30.f), FVector2f(30.f, 30.f)};
-	const bool bLootWindow = bStorageWindow && bLoot;   // bolsa de saque: sem ordenação nem busca
+	const bool bLootWindow = bStorageWindow && bLoot;   // loot bag: no sorting or search
 	for (int32 i = 0; i < (bLootWindow ? 0 : 4); ++i)
 	{
 		const FBox2f& B = L.SortRects[i];
@@ -831,8 +831,8 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 			Canvas->DrawItem(Bar);
 		}
 	}
-	// Busca (textinputsearch): fundo 360x45, lupa, "Buscar" em Nimbus médio 25 #b2aea1. O texto digitado é do campo do
-	// Slate por cima; sem ele (captura offline), o canvas desenha o texto.
+	// Search (textinputsearch): 360x45 background, magnifier, "Buscar" in Nimbus medium 25 #b2aea1. Typed text comes
+	// from the Slate field on top; without it (offline capture), the canvas draws the text.
 	if (!bLootWindow)
 	{
 		const FBox2f& B = L.SearchBox;
@@ -852,8 +852,8 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 	}
 	if (bLootWindow)
 	{
-		// LootBagInfoContainer: aviso de tempo de vida (Nimbus 23 #c8c8c8, quebra por palavra, entrelinha −4) e a contagem
-		// "N itens" embaixo.
+		// LootBagInfoContainer: lifetime notice (Nimbus 23 #c8c8c8, word wrap, line spacing −4) and the count
+		// "N itens" below.
 		const FLinearColor Info(FColor(0xC8, 0xC8, 0xC8));
 		const float InfoX = L.Area.Min.X, InfoW = L.Area.GetSize().X - 24.f * S;
 		float InfoY = 108.f * S;
@@ -883,7 +883,7 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 			: NWText::Get(TEXT("ui_loot_bag_items")).Replace(TEXT("{amount}"), *FString::FromInt(N));
 		DrawGameText(Canvas, Count, InfoX, InfoY + 8.f * S, 23.f, Info, TEXT("nimbus_regular"));
 	}
-	// Linha embaixo da barra de ordenação, como o fundo da busca do jogo.
+	// Line under the sort bar, like the game's search background.
 	FCanvasTileItem Sep(FVector2D(L.Area.Min.X, (bLootWindow ? LootListTop - 18.f : 166.f) * S), FVector2D(L.Area.GetSize().X - 16.f * S, 1.f * S), FLinearColor(InvLine.R, InvLine.G, InvLine.B, 0.25f));
 	Sep.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(Sep);
@@ -894,7 +894,7 @@ void FNWInventoryMenu::DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX
 
 	if (bStorageWindow)
 	{
-		// Pegar tudo (catcontainer ButtonTakeAll 170x50): buttonbg #2c251b + primarybuttonframe, Pica.
+		// Take all (catcontainer ButtonTakeAll 170x50): buttonbg #2c251b + primarybuttonframe, Pica.
 		const bool bHot = TakeAllRect.IsInside(FVector2f(Mouse));
 		DrawTexture(Canvas, TEXT("lyshineui/images/slices/button/buttonbg.dds"), TakeAllRect, FLinearColor(FColor(0x2C, 0x25, 0x1B)));
 		DrawTexture(Canvas, TEXT("lyshineui/images/slices/button/primarybuttonframe.dds"), TakeAllRect, FLinearColor(1.f, 1.f, 1.f, bHot ? 1.f : 0.75f));
@@ -908,7 +908,7 @@ void FNWInventoryMenu::DrawList(UCanvas* Canvas, const FList& L, bool bStorageIt
 {
 	const float S = UIScale;
 	const FVector2f M(Mouse);
-	// Tudo da lista recortado na área com rolagem.
+	// Everything in the list clipped to the scrolling area.
 	auto Inside = [&L](const FBox2f& B) { return B.Min.Y >= L.Area.Min.Y - 1.f && B.Max.Y <= L.Area.Max.Y + 1.f; };
 	ClipRect = L.Area;
 	for (const FSectionHit& H : L.Sections)
@@ -916,7 +916,7 @@ void FNWInventoryMenu::DrawList(UCanvas* Canvas, const FList& L, bool bStorageIt
 		const int32 Idx = SectionIndex(H.Class);
 		const bool bCollapsed = L.Collapsed.Contains(H.Class);
 		const float Left = H.Arrow.Min.X + 8.f * S;
-		// Título: seta dropdownarrowwhite 18x18 (−90° recolhida) + Pica 27 #c6b694 em maiúsculas; linha #fff1ce.
+		// Title: dropdownarrowwhite arrow 18x18 (−90° collapsed) + Pica 27 #c6b694 uppercase; line #fff1ce.
 		if (Inside(FBox2f(H.Arrow.Min, H.Arrow.Max + FVector2f(0.f, 8.f * S))))
 		{
 			if (UTexture2D* Arrow = FNWUILayout::GameTexture(FString(MiscDir) + TEXT("dropdownarrowwhite.dds")))
@@ -934,7 +934,7 @@ void FNWInventoryMenu::DrawList(UCanvas* Canvas, const FList& L, bool bStorageIt
 		}
 		FillRect(Canvas, FBox2f(FVector2f(Left, H.Arrow.Max.Y + 3.f * S), FVector2f(Left + ColumnWidth * S, H.Arrow.Max.Y + 4.f * S)),
 			FLinearColor(InvLine.R, InvLine.G, InvLine.B, 0.35f));
-		// 2ª linha: peso da seção (Pica 27 #b2aea1 com icon_weight 12x12) e o botão de mover a seção.
+		// 2nd row: section weight (Pica 27 #b2aea1 with icon_weight 12x12) and the move-section button.
 		float W = 0.f;
 		for (int32 Slot : SectionSlots(H.Class, bStorageItems))
 		{
@@ -948,21 +948,21 @@ void FNWInventoryMenu::DrawList(UCanvas* Canvas, const FList& L, bool bStorageIt
 			}
 		}
 		const FString WT = FString::Printf(TEXT("%.1f"), W);
-		const bool bTransfer = bStorage && (bStorageItems || !bLoot);   // bolsa no chão: só pegar
+		const bool bTransfer = bStorage && (bStorageItems || !bLoot);   // bag on the ground: take only
 		const float WR = bTransfer ? H.Transfer.Min.X - 8.f * S : H.Transfer.Max.X;
 		DrawGameText(Canvas, WT, WR, H.Transfer.Min.Y, 24.f, InvGray, TEXT("pica_regular"), true);
 		const float IX = WR - GameTextWidth(WT, 24.f, TEXT("pica_regular")) - 16.f * S;
 		DrawTexture(Canvas, FString(MiscDir) + TEXT("icon_weight.dds"), FBox2f(FVector2f(IX, H.Transfer.Min.Y + 9.f * S), FVector2f(IX + 12.f * S, H.Transfer.Min.Y + 21.f * S)), InvGray);
 		if (bTransfer)
 		{
-			// TransferAll: icon_smallArrowNarrow, apontando para o outro lado (espelhado no inventário).
+			// TransferAll: icon_smallArrowNarrow, pointing to the other side (mirrored in the inventory).
 			const bool bHot = H.Transfer.IsInside(M);
 			const FVector2f C = H.Transfer.GetCenter();
 			DrawTile(Canvas, FNWUILayout::GameTexture(FString(MiscDir) + TEXT("icon_smallarrownarrow.dds")), FBox2f(C - FVector2f(12.f * S), C + FVector2f(12.f * S)),
 				bHot ? FLinearColor::White : InvTanBody, false, FVector2f(bStorageItems ? 0.f : 1.f, 0.f), FVector2f(bStorageItems ? 1.f : 0.f, 1.f));
 		}
 	}
-	// Peças.
+	// Pieces.
 	for (const FSlotRef& R : Slots)
 	{
 		if (R.Container != ENWItemContainer::Bag || R.bStorage != bStorageItems)
@@ -975,7 +975,7 @@ void FNWInventoryMenu::DrawList(UCanvas* Canvas, const FList& L, bool bStorageIt
 		DrawItemTile(Canvas, R.Full, Item, D && D->bRound, bSource ? 0.5f : 1.f, Hover == &R && !bDragging, L.Sort);
 	}
 	ClipRect = FBox2f(ForceInit);
-	// Barra de rolagem fina quando a lista passa da área.
+	// Thin scroll bar when the list overflows the area.
 	const float AreaH = L.Area.GetSize().Y / S;
 	if (L.ContentH > AreaH)
 	{
@@ -988,7 +988,7 @@ void FNWInventoryMenu::DrawList(UCanvas* Canvas, const FList& L, bool bStorageIt
 		FCanvasTileItem Thumb(FVector2D(X, TY), FVector2D(3.f * S, TH), InvTanBody);
 		Canvas->DrawItem(Thumb);
 	}
-	// Alvo de soltar (containerareadroptarget): dropzoneglow acende com o mouse em cima, vindo do outro lado.
+	// Drop target (containerareadroptarget): dropzoneglow lights up with the mouse over it, coming from the other side.
 	const bool bFromOther = bStorageItems ? Pressed.Source() != ESource::Storage && !bLoot : Pressed.Source() != ESource::Bag;
 	if (bDragging && bFromOther && L.Window.IsInside(M))
 	{
@@ -1005,7 +1005,7 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 	const FString Backdrop = FString(EquipDir) + TEXT("equipmentstatsbackdrop.dds");
 	const FLinearColor Half(1.f, 1.f, 1.f, 0.5f);
 
-	// Abas em ícone.
+	// Icon tabs.
 	static const TCHAR* Tabs[] = {TEXT("tabweaponsarmor"), TEXT("tabtools")};
 	for (int32 t = 0; t < 2; ++t)
 	{
@@ -1014,7 +1014,7 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 			TabRects[t], FLinearColor(1.f, 1.f, 1.f, EquipTab == t || bHot ? 1.f : 0.75f));
 	}
 
-	// Fundos pretos por grupo (equipmentstatsbackdrop a 0,5) e espaços do jogo que o port não tem, vazios.
+	// Black backgrounds per group (equipmentstatsbackdrop at 0.5) and game slots the port does not have, empty.
 	auto EmptySlot = [&](float X, float Y, const TCHAR* IconName)
 	{
 		DrawTexture(Canvas, FString(EquipDir) + TEXT("equipmentbg.dds"), Box(X - 2.f, Y - 1.f, 70.f, 69.f));
@@ -1039,7 +1039,7 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 		}
 	}
 
-	// Espaços do port: fundo, item (ou ícone vazio) e icon_item_selected nos compatíveis durante o arrasto.
+	// Port slots: background, item (or empty icon) and icon_item_selected on the compatible ones while dragging.
 	const FNWItem* Dragged = bDragging ? ItemOf(Pressed) : nullptr;
 	for (const FSlotRef& R : Slots)
 	{
@@ -1065,12 +1065,12 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 		}
 	}
 
-	// Nível e gear score (Pica 48) no alto à direita.
+	// Level and gear score (Pica 48) at the top right.
 	const UNWProgressionComponent* Prog = Me->Progression;
 	DrawTexture(Canvas, TEXT("lyshineui/images/icons/objectives/reward_xp.dds"), Box(524.f, 103.f, 48.f, 48.f));
 	DrawGameText(Canvas, FString::FromInt(Prog ? Prog->Level : 1), (EquipOrigin.X + 576.f) * S, 103.f * S, 48.f, InvTan, TEXT("pica_regular"));
 	int32 Sum = 0, Count = 0;
-	for (int32 Slot = 0; Slot < NWEquip::Count; ++Slot)   // armas, armadura e joias (ferramentas não contam)
+	for (int32 Slot = 0; Slot < NWEquip::Count; ++Slot)   // weapons, armor and jewelry (tools do not count)
 	{
 		if (const FNWItem* I = NWEquip::IsTool(Slot) ? nullptr : Inv->At(ENWItemContainer::Equip, Slot); I && I->GearScore > 0)
 		{
@@ -1081,7 +1081,7 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 	DrawTexture(Canvas, FString(MiscDir) + TEXT("icon_gearscore_dropshadow.dds"), Box(528.f, 156.f, 40.f, 40.f));
 	DrawGameText(Canvas, Count ? FString::FromInt(Sum / Count) : TEXT("0"), (EquipOrigin.X + 576.f) * S, 150.f * S, 48.f, InvTan, TEXT("pica_regular"));
 
-	// Atributos (equipmentstatrow: rótulo Nimbus médio 25 #c6b694, valor Pica 28), "+" com pontos livres.
+	// Attributes (equipmentstatrow: label Nimbus medium 25 #c6b694, value Pica 28), "+" with free points.
 	for (FBox2f& PR : PointRects)
 	{
 		PR = FBox2f(ForceInit);
@@ -1106,7 +1106,7 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 		}
 	}
 
-	// Alvo universal (equipmentuniversaldroptarget): acende com o mouse em cima ao arrastar da bolsa; vermelho se não equipa.
+	// Universal target (equipmentuniversaldroptarget): lights up on hover while dragging from the bag; red if it cannot equip.
 	if (Dragged && Pressed.Source() == ESource::Bag && EquipArea.IsInside(FVector2f(Mouse)))
 	{
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(Dragged->ItemId);
@@ -1117,7 +1117,7 @@ void FNWInventoryMenu::DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, co
 
 void FNWInventoryMenu::DrawDrag(UCanvas* Canvas, const FVector2D& Mouse)
 {
-	// itemdraggable OnDragStart: cópia 75x75 centrada no cursor.
+	// itemdraggable OnDragStart: 75x75 copy centered on the cursor.
 	const FNWItem* Item = ItemOf(Pressed);
 	const FNWItemDef* D = Item ? FNWItemCatalog::Get().Find(Item->ItemId) : nullptr;
 	if (!D)
@@ -1140,12 +1140,12 @@ void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	UIScale = Canvas->ClipY / 1080.f;
 	Center = FVector2f(Canvas->ClipX * 0.5f, Canvas->ClipY * 0.5f);
 
-	// Escurece a tela de leve, deixando o personagem no meio à vista.
+	// Slightly darkens the screen, leaving the character in the middle visible.
 	FCanvasTileItem Dim(FVector2D::ZeroVector, FVector2D(Canvas->ClipX, Canvas->ClipY), FLinearColor(0.f, 0.f, 0.f, 0.25f));
 	Dim.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(Dim);
 
-	Window.DrawOne(Canvas, TEXT("inventory"));   // só o layout: o Content está escondido
+	Window.DrawOne(Canvas, TEXT("inventory"));   // layout only: the Content is hidden
 	Layout(Canvas);
 	DrawWindow(Canvas, Lists[0], InvOffsetX, false, Mouse);
 	if (bStorage)
@@ -1170,7 +1170,7 @@ void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 		DrawPopup(Canvas, Mouse);
 		return;
 	}
-	// Tooltip depois de 0,1 s parado sobre a peça.
+	// Tooltip after 0.1 s still over the piece.
 	const void* Key = Hover ? static_cast<const void*>(ItemOf(*Hover)) : nullptr;
 	if (Key != HoverKey)
 	{
@@ -1181,7 +1181,7 @@ void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	{
 		const FNWItem* Item = ItemOf(*Hover);
 		const FBox2f R = DrawTooltip(Canvas, *Item, Mouse, Hover->Source() == ESource::Equip);
-		// Comparação: item da bolsa que vai num espaço ocupado mostra o equipado ao lado.
+		// Comparison: a bag item that goes into an occupied slot shows the equipped one beside it.
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(Item->ItemId);
 		const int32 EquipSlot = D && Hover->Source() == ESource::Bag ? NWEquip::SlotForSet(D->Set) : INDEX_NONE;
 		if (const FNWItem* Equipped = EquipSlot != INDEX_NONE ? Me->Inventory->At(ENWItemContainer::Equip, EquipSlot) : nullptr; Equipped && R.bIsValid)
@@ -1193,7 +1193,7 @@ void FNWInventoryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	}
 }
 
-// ------------------------------------------------------------------------------------------------------------ entrada
+// ------------------------------------------------------------------------------------------------------------ input
 
 void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 {
@@ -1235,7 +1235,7 @@ void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 		}
 		if (const int32 T = ShowsTabs() ? TabAt(M) : INDEX_NONE; T != INDEX_NONE)
 		{
-			// Clique troca de aba; clique duplo na aba aberta renomeia.
+			// Click switches tab; double click on the open tab renames it.
 			const double Now = FPlatformTime::Seconds();
 			if (T == StorageTab && LastTabClicked == T && Now - LastTabClick < 0.4)
 			{
@@ -1264,7 +1264,7 @@ void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 			{
 				if (L.SortRects[i].IsInside(M))
 				{
-					// inventoryfilter: o modo ativo inverte; outro modo volta à direção padrão.
+					// inventoryfilter: the active mode reverses; another mode goes back to the default direction.
 					L.SortDir = L.Sort == i + 1 ? -L.SortDir : 1;
 					L.Sort = i + 1;
 					return;
@@ -1286,7 +1286,7 @@ void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 				}
 				if (bStorage && (l == 1 || !bLoot) && H.Transfer.IsInside(M))
 				{
-					// TransferAll: a seção inteira para o outro lado.
+					// TransferAll: the whole section to the other side.
 					ContainerMoveMany(l == 0, SectionSlots(H.Class, l == 1));
 					return;
 				}
@@ -1305,7 +1305,7 @@ void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 			TArray<int32> All;
 			for (const FNWItem& I : Me->Interactor->StorageItems)
 			{
-				if (InList(I, true))   // Pegar tudo da aba aberta
+				if (InList(I, true))   // Take all from the open tab
 				{
 					All.Add(I.Slot);
 				}
@@ -1324,7 +1324,7 @@ void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 		RightClick(*S);
 		return;
 	}
-	// Ctrl + clique: dividir a pilha (InvokeStackSplitter; não abre com 1).
+	// Ctrl + click: split the stack (InvokeStackSplitter; does not open with 1).
 	if (ModifierDown(EKeys::LeftControl) || ModifierDown(EKeys::RightControl))
 	{
 		if (S->Source() != ESource::Equip && ItemOf(*S)->Quantity > 1)
@@ -1333,13 +1333,13 @@ void FNWInventoryMenu::Click(const FVector2D& Mouse, bool bRight)
 		}
 		return;
 	}
-	// Shift + clique: guardar/retirar rápido.
+	// Shift + click: quick store/withdraw.
 	if (ModifierDown(EKeys::LeftShift) || ModifierDown(EKeys::RightShift))
 	{
 		QuickMove(*S);
 		return;
 	}
-	// Apertou num item: vira arrasto quando o mouse andar (Hold).
+	// Pressed on an item: becomes a drag when the mouse moves (Hold).
 	bPressed = true;
 	bDragging = false;
 	Pressed = *S;
@@ -1402,7 +1402,7 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 		if (const FNWItem* TI = Target && Target->Source() != ESource::Storage ? ItemOf(*Target) : nullptr;
 			TI && FNWItemRules::Get().Gems.Contains(Item->ItemId) && !(Target->Source() == ESource::Bag && Target->Slot == Pressed.Slot))
 		{
-			// Gema ou vidro rúnico solto num item: confirma antes de acoplar (o servidor confere se encaixa).
+			// Gem or runeglass dropped on an item: confirms before socketing (the server checks if it fits).
 			const FNWItemDef* TD = FNWItemCatalog::Get().Find(TI->ItemId);
 			if (TD && FNWItemRules::Get().CanSocket(*TD, *TI, Item->ItemId))
 			{
@@ -1413,7 +1413,7 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 				}
 				else
 				{
-					Inv->ServerSocket(Pressed.Slot, Target->Container, Target->Slot);   // recusa e avisa: retirar antes
+					Inv->ServerSocket(Pressed.Slot, Target->Container, Target->Slot);   // refuses and warns: remove first
 				}
 			}
 		}
@@ -1423,7 +1423,7 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 		}
 		else if (const int32 T = ShowsTabs() ? TabAt(M) : INDEX_NONE; T != INDEX_NONE)
 		{
-			// Soltar na aba: guarda direto nela.
+			// Dropping on the tab: stores straight into it.
 			const int32 Was = StorageTab;
 			StorageTab = T;
 			ContainerMove(true, Pressed.Slot, Item->Quantity);
@@ -1431,16 +1431,16 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 		}
 		else if (bStorage && Lists[1].Window.IsInside(M))
 		{
-			ContainerMove(true, Pressed.Slot, Item->Quantity);   // na bolsa no chão não guarda
+			ContainerMove(true, Pressed.Slot, Item->Quantity);   // the bag on the ground does not store
 		}
 		else if (!bStorage && GroundZone().IsInside(M))
 		{
-			// Solta a pilha numa bolsa no chão (ANWLootBag), como o grounddroptarget do jogo.
+			// Drops the stack into a bag on the ground (ANWLootBag), like the game's grounddroptarget.
 			Inv->ServerDrop(Pressed.Slot, Item->Quantity);
 		}
 		else if (EquipArea.IsInside(M))
 		{
-			// Alvo universal: equipa no espaço do item (EquipItemToBestSlot).
+			// Universal target: equips into the item's slot (EquipItemToBestSlot).
 			const FNWItemDef* D = FNWItemCatalog::Get().Find(Item->ItemId);
 			if (const int32 To = D ? NWEquip::SlotForSet(D->Set) : INDEX_NONE; To != INDEX_NONE)
 			{
@@ -1461,7 +1461,7 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 	case ESource::Storage:
 		if (const int32 T = ShowsTabs() ? TabAt(M) : INDEX_NONE; T != INDEX_NONE && Me->Interactor)
 		{
-			Me->Interactor->ServerStorageSetTab(Pressed.Slot, uint8(T));   // passa a pilha para a aba
+			Me->Interactor->ServerStorageSetTab(Pressed.Slot, uint8(T));   // moves the stack to the tab
 		}
 		else if (Lists[0].Window.IsInside(M))
 		{
@@ -1473,7 +1473,7 @@ void FNWInventoryMenu::Drop(const FVector2D& Mouse)
 
 void FNWInventoryMenu::RightClick(const FSlotRef& S)
 {
-	// Atalho do port (o jogo abre o menu de ações): com o armazém, move; senão equipa, usa ou desequipa.
+	// Port shortcut (the game opens the actions menu): with the storage, moves; otherwise equips, uses or unequips.
 	ANWCharacter* Me = Character.Get();
 	const FNWItem* Item = ItemOf(S);
 	const FNWItemDef* D = Item ? FNWItemCatalog::Get().Find(Item->ItemId) : nullptr;
@@ -1484,7 +1484,7 @@ void FNWInventoryMenu::RightClick(const FSlotRef& S)
 	UNWInventoryComponent* Inv = Me->Inventory;
 	if (S.Source() != ESource::Storage && !Item->Gem.IsNone() && (ModifierDown(EKeys::LeftShift) || ModifierDown(EKeys::RightShift)))
 	{
-		OpenPopup(EPopup::Unsocket, S);   // Shift + clique direito: retirar a gema
+		OpenPopup(EPopup::Unsocket, S);   // Shift + right click: remove the gem
 	}
 	else if (S.Source() == ESource::Storage || (bStorage && !bLoot && S.Source() == ESource::Bag))
 	{
@@ -1535,11 +1535,11 @@ void FNWInventoryMenu::Wheel(float Delta, const FVector2D& Mouse)
 	}
 }
 
-// ------------------------------------------------------------------------------------------------------------ popup e chão
+// -------------------------------------------------------------------------------------------------------- popup and ground
 
 FBox2f FNWInventoryMenu::GroundZone() const
 {
-	// grounddroptarget: com o inventário sozinho fica em x 1576..1899 de 1920 (610 à direita do Content).
+	// grounddroptarget: with the inventory alone it sits at x 1576..1899 of 1920 (610 to the right of the Content).
 	return FBox2f(FVector2f(InvLeft + 610.f, 62.f) * UIScale, FVector2f(InvLeft + 933.f, 995.f) * UIScale);
 }
 
@@ -1547,7 +1547,7 @@ void FNWInventoryMenu::DrawGround(UCanvas* Canvas, const FVector2D& Mouse)
 {
 	if (bStorage || Pressed.Source() != ESource::Bag)
 	{
-		return;   // só arrastando da bolsa e sem contêiner aberto
+		return;   // only when dragging from the bag and with no container open
 	}
 	const float S = UIScale;
 	const FBox2f Z = GroundZone();
@@ -1556,7 +1556,7 @@ void FNWInventoryMenu::DrawGround(UCanvas* Canvas, const FVector2D& Mouse)
 	{
 		DrawDropZone(Canvas, Z, InvTan, false);
 	}
-	// @inv_dropTargetMessage em Pica itálico 30 #dddddd entre dois dropitemtrim 220x27 (o de baixo invertido).
+	// @inv_dropTargetMessage in Pica italic 30 #dddddd between two dropitemtrim 220x27 (the lower one flipped).
 	const FString T = NWText::Get(TEXT("inv_droptargetmessage"));
 	const float CX = Z.GetCenter().X, CY = Z.GetCenter().Y;
 	const FLinearColor Text(FColor(0xDD, 0xDD, 0xDD));
@@ -1594,7 +1594,7 @@ void FNWInventoryMenu::OpenPopup(EPopup Kind, const FSlotRef& S)
 	}
 	else if (Kind == EPopup::Socket || Kind == EPopup::Unsocket)
 	{
-		// Retirar (ou trocar) paga o custo; sem ele o botão fica apagado.
+		// Removing (or swapping) pays the cost; without it the button is greyed out.
 		int32 Qty = 0;
 		const FName Cost = Item->Gem.IsNone() ? NAME_None : FNWItemRules::Get().UnsocketCost(Item->Gem, Qty);
 		const ANWCharacter* Me = Character.Get();
@@ -1636,7 +1636,7 @@ void FNWInventoryMenu::RunAction(EAction Action)
 		ContainerMove(PopupSlot.Source() == ESource::Bag, PopupSlot.Slot, PopupQty);
 		break;
 	case EAction::Drop:
-		// Soltar a parte escolhida numa bolsa no chão (ANWLootBag).
+		// Drops the chosen part into a bag on the ground (ANWLootBag).
 		if (Me->Inventory && PopupSlot.Source() == ESource::Bag)
 		{
 			Me->Inventory->ServerDrop(PopupSlot.Slot, PopupQty);
@@ -1701,7 +1701,7 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 	PopupQty = FMath::Clamp(PopupQty, 1, PopupMax);
 	const float S = UIScale;
 	const FVector2f M(Mouse);
-	// popup.lua: fundo escurece a 0,8; caixa centrada.
+	// popup.lua: background darkens to 0.8; box centered.
 	FillRect(Canvas, FBox2f(FVector2f(0.f), FVector2f(Canvas->ClipX, Canvas->ClipY)), FLinearColor(0.f, 0.f, 0.f, 0.6f));
 	const bool bSplit = Popup == EPopup::Split;
 	const bool bGem = Popup == EPopup::Socket || Popup == EPopup::Unsocket;
@@ -1725,7 +1725,7 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 	FillRect(Canvas, FBox2f(FVector2f(Box.Min.X + 40.f * S, Box.Min.Y + 66.f * S), FVector2f(Box.Max.X - 40.f * S, Box.Min.Y + 67.f * S)),
 		FLinearColor(InvLine.R, InvLine.G, InvLine.B, 0.35f));
 
-	const float Tile = 75.f * S;   // ItemLayout a 1,25
+	const float Tile = 75.f * S;   // ItemLayout at 1.25
 	FNWItem Copy = *Item;
 	auto TileAt = [&](float X, float Y, int32 Qty)
 	{
@@ -1738,7 +1738,7 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 	};
 	if (bGem)
 	{
-		// Item à esquerda, gema à direita (a que entra ou a que sai); embaixo o efeito da gema e o custo de retirar.
+		// Item on the left, gem on the right (the one going in or out); below, the gem effect and the removal cost.
 		SliderRect = FBox2f(ForceInit);
 		const FName GemId = GemStack ? GemStack->ItemId : Item->Gem;
 		const float TY = Box.Min.Y + 86.f * S;
@@ -1748,7 +1748,7 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 		GemCopy.Quantity = 1;
 		const FNWItemDef* GD = FNWItemCatalog::Get().Find(GemId);
 		DrawItemTile(Canvas, FBox2f(FVector2f(C.X + 110.f * S - Tile * 0.5f, TY), FVector2f(C.X + 110.f * S + Tile * 0.5f, TY + Tile)), &GemCopy, GD && GD->bRound, 1.f, false, 1);
-		const float AX = Popup == EPopup::Socket ? 1.f : -1.f;   // seta: gema entra no item (socket) ou sai (retirar)
+		const float AX = Popup == EPopup::Socket ? 1.f : -1.f;   // arrow: gem goes in (socket) or out (remove)
 		FCanvasTriangleItem Tri(FVector2D(C.X - 12.f * S * AX, TY + 37.f * S), FVector2D(C.X + 8.f * S * AX, TY + 25.f * S),
 			FVector2D(C.X + 8.f * S * AX, TY + 49.f * S), GWhiteTexture);
 		Tri.SetColor(InvTanBody);
@@ -1774,7 +1774,7 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 	}
 	else if (bSplit)
 	{
-		// Fica (esquerda) e leva (direita), slider de 1 até a pilha.
+		// Keep (left) and take (right), slider from 1 to the stack.
 		TileAt(C.X - 110.f * S, Box.Min.Y + 86.f * S, PopupMax - PopupQty);
 		TileAt(C.X + 110.f * S, Box.Min.Y + 86.f * S, PopupQty);
 		FCanvasTriangleItem Tri(FVector2D(C.X + 12.f * S, Box.Min.Y + 123.f * S), FVector2D(C.X - 8.f * S, Box.Min.Y + 111.f * S),
@@ -1798,7 +1798,7 @@ void FNWInventoryMenu::DrawPopup(UCanvas* Canvas, const FVector2D& Mouse)
 		DrawGameText(Canvas, Name, C.X - GameTextWidth(Name, 25.f, TEXT("nimbus_medium")) * 0.5f, Box.Min.Y + 204.f * S, 25.f, InvTan, TEXT("nimbus_medium"));
 	}
 
-	// Botões 170x50 (buttonbg #2c251b + primarybuttonframe), centrados embaixo.
+	// 170x50 buttons (buttonbg #2c251b + primarybuttonframe), centered at the bottom.
 	const float BW = 170.f * S, BH = 50.f * S, Gap = 20.f * S;
 	float X = C.X - (PopupButtons.Num() * BW + (PopupButtons.Num() - 1) * Gap) * 0.5f;
 	for (FPopupButton& B : PopupButtons)
@@ -1820,7 +1820,7 @@ void FNWInventoryMenu::ShotPopup(int32 Kind, int32 Source, int32 Slot, int32 Qty
 	R.Container = Source == 1 ? ENWItemContainer::Equip : ENWItemContainer::Bag;
 	R.bStorage = Source == 2;
 	R.Slot = Slot;
-	// 3: acoplar (Qty = espaço da gema na bolsa); 4: retirar.
+	// 3: socket (Qty = gem slot in the bag); 4: remove.
 	if (Kind == 3)
 	{
 		PopupGemSlot = Qty;
@@ -1832,11 +1832,11 @@ void FNWInventoryMenu::ShotPopup(int32 Kind, int32 Source, int32 Slot, int32 Qty
 	}
 }
 
-// ------------------------------------------------------------------------------------------------------------ busca
+// ------------------------------------------------------------------------------------------------------------ search
 
 namespace
 {
-	// Dois campos de texto transparentes por cima dos fundos de busca do canvas (bolsa e armazém).
+	// Two transparent text fields over the canvas search backgrounds (bag and storage).
 	class SNWInventorySearch : public SCompoundWidget
 	{
 	public:
@@ -1877,7 +1877,7 @@ namespace
 							SAssignNew(Edit[i], SEditableText)
 							.Font(TAttribute<FSlateFontInfo>::CreateLambda([this, Menu, i]()
 							{
-								// Nimbus médio 25 da tela de 1080 (altura da linha ≈ 0,8 do tamanho em pontos do Slate).
+								// Nimbus medium 25 of the 1080 screen (line height ≈ 0.8 of the Slate point size).
 								const float Px = Menu->SearchRect(i).GetSize().Y * 25.f / 45.f;
 								return FSlateFontInfo(FNWUILayout::GameFont(7), FMath::Max(8, FMath::RoundToInt(Px / Scale() * 0.8f)));
 							}))
@@ -1887,7 +1887,7 @@ namespace
 						]
 					];
 			}
-			// Nome da aba do armazém (clique duplo): Enter ou sair do campo grava.
+			// Storage tab name (double click): Enter or leaving the field saves.
 			Canvas->AddSlot()
 				.Position(TAttribute<FVector2D>::CreateLambda([this, Menu]() { return FVector2D(Menu->RenameRect().Min) / Scale(); }))
 				.Size(TAttribute<FVector2D>::CreateLambda([this, Menu]() { return FVector2D(Menu->RenameRect().GetSize()) / Scale(); }))
@@ -1925,7 +1925,7 @@ void FNWInventoryMenu::ShowSearch()
 {
 	if (SearchHost.IsValid() || !GEngine || !GEngine->GameViewport || !FSlateApplication::IsInitialized())
 	{
-		return;   // já aberto, ou sem viewport (captura offline)
+		return;   // already open, or no viewport (offline capture)
 	}
 	TSharedRef<SNWInventorySearch> W = SNew(SNWInventorySearch).Menu(this).StorageShown([this]() { return bStorage; });
 	SearchEdit[0] = W->Edit[0];
@@ -1987,8 +1987,8 @@ TArray<FString> FNWInventoryMenu::Wrap(const FString& Text, float Width, float S
 
 FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse, bool bEquipped, float ForceX)
 {
-	// Tooltip do jogo (lyshineui/tooltip, DynamicTooltip): 360 de largura; cabeçalho de 104 com o fundo da raridade,
-	// moldura do ícone 90×90 e tier; nome, raridade e tipo à direita; divisor dourado; seções separadas por linha.
+	// Game tooltip (lyshineui/tooltip, DynamicTooltip): 360 wide; 104 header with the rarity background,
+	// 90×90 icon frame and tier; name, rarity and type on the right; golden divider; sections separated by a line.
 	const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
 	if (!D)
 	{
@@ -1999,8 +1999,8 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 	const FLinearColor Body(0.62f, 0.6f, 0.52f), Divider(0.61f, 0.58f, 0.25f), Line(0.2f, 0.2f, 0.2f);
 	const int32 Rarity = D->Type == TEXT("weapon") || D->Type == TEXT("armor") ? FMath::Min<int32>(Item.Rarity, 4) : FMath::Clamp(D->Tier - 1, 0, 4);
 
-	// Seções do corpo: gear score, atributos, descrição, peso.
-	// Icon: perk com ícone e o slot de gema (moldura do soquete, dynamictooltip_perk.lua) à esquerda do texto.
+	// Body sections: gear score, attributes, description, weight.
+	// Icon: perk with icon and the gem slot (socket frame, dynamictooltip_perk.lua) left of the text.
 	struct FRow { FString Text; FLinearColor Color; float Size; int32 Style; float Gap; FString Icon = FString(); };
 	TArray<FRow> Rows;
 	auto Section = [&Rows]() { Rows.Add({FString(), FLinearColor::Transparent, 0.f, -1, 0.f}); };
@@ -2012,10 +2012,10 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 	{
 		Rows.Add({FString::Printf(TEXT("+%.0f%%  %s"), (D->Efficiency - 1.f) * 100.f, *NWText::Get(TEXT("ui_tooltip_gatherspeed"))), FLinearColor(0.67f, 0.67f, 0.67f), 23.f, 0, 4.f});
 	}
-	// Item fabricado (docs/game/items.md): atributo, qualidade (entre resistências e perks), perks com o valor da qualidade e
-	// o slot de gema.
+	// Crafted item (docs/game/items.md): attribute, quality (between resistances and perks), perks with the quality value and
+	// the gem slot.
 	const FNWItemRules& IR = FNWItemRules::Get();
-	// Armadura: resistência física e mágica (iguais; docs/game/items.md "Armaduras e joias"), no lugar do dano base.
+	// Armor: physical and magic resistance (equal; docs/game/items.md "Armor and jewelry"), in place of base damage.
 	if (const float Res = IR.Resistance(*D, Item.Quality); Res > 0.f)
 	{
 		for (const TCHAR* Key : {TEXT("nw.item.res_physical"), TEXT("nw.item.res_magic")})
@@ -2047,8 +2047,8 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 			}
 		}
 	}
-	// Um slot em arma, escudo e armadura; joias e ferramentas não têm (docs/game/items.md). Com gema: ícone e nome dela e os
-	// efeitos (dynamictooltip_perk.lua mostra a gema como perk).
+	// One slot on weapon, shield and armor; jewelry and tools have none (docs/game/items.md). With a gem: its icon and name and
+	// the effects (dynamictooltip_perk.lua shows the gem as a perk).
 	if (FNWItemRules::HasSocket(*D, Item))
 	{
 		if (Item.Perks.Num() == 0)
@@ -2068,7 +2068,7 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 			Rows.Add({NWText::Get(TEXT("nw.item.gem_empty")), Muted, 23.f, 1, 4.f, TEXT("lyshineui/images/tooltip/frame_gemsocket.dds")});
 		}
 	}
-	// Gema ou vidro rúnico solto: os efeitos e onde encaixa.
+	// Loose gem or runeglass: the effects and where it fits.
 	if (IR.Gems.Contains(Item.ItemId))
 	{
 		Section();
@@ -2078,8 +2078,8 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 		}
 		Rows.Add({NWText::Get(IR.Gems[Item.ItemId].Class == TEXT("arma") ? TEXT("nw.item.gem_for_weapon") : TEXT("nw.item.gem_for_armor")), Muted, 21.f, 0, 2.f});
 	}
-	// Gemas: a descrição do jogo fala dos efeitos do jogo; vale a linha de efeitos do port acima.
-	// Joia fabricada: a descrição do jogo fala de soquete, e joia não tem slot no port.
+	// Gems: the game description talks about the game's effects; the port's effects line above is what counts.
+	// Crafted jewelry: the game description talks about a socket, and jewelry has no slot in the port.
 	const FString ItemClass = FNWItemRules::EquipClass(*D);
 	const bool bTrinket = ItemClass == TEXT("amuleto") || ItemClass == TEXT("anel") || ItemClass == TEXT("brinco");
 	if (!D->Description.IsEmpty() && !IR.Gems.Contains(Item.ItemId) && !bTrinket)
@@ -2112,7 +2112,7 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 	}
 	const float HeaderH = 106.f, TopH = bEquipped ? 40.f : 0.f;
 	const float H = HeaderH + BodyH + 8.f;
-	// Ao lado do item, para o lado com espaço; nunca para fora da tela.
+	// Next to the item, toward the side with room; never off screen.
 	const float PW = W * S, PH = (H + TopH) * S;
 	const float X = ForceX >= 0.f ? ForceX : Mouse.X > Canvas->ClipX * 0.5f ? Mouse.X - PW - 30.f * S : Mouse.X + 30.f * S;
 	const float Y0 = FMath::Clamp(float(Mouse.Y) - 40.f * S, 20.f * S, Canvas->ClipY - PH - 20.f * S);
@@ -2125,7 +2125,7 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 		DrawTexture(Canvas, FString(Dir) + TEXT("tooltip_bgframenew.dds"), Box(0.f, -TopH - 1.f, W, 0.f), FLinearColor(0.35f, 0.33f, 0.14f));
 		DrawText(Canvas, NWText::Get(TEXT("ui_equipped")), X + 8.f * S, Y - 37.f * S, 24.f, FLinearColor::White, 2);
 	}
-	// Cabeçalho.
+	// Header.
 	FCanvasTileItem Black(FVector2D(X, Y), FVector2D(PW, HeaderH * S), FLinearColor::Black);
 	Canvas->DrawItem(Black);
 	DrawTexture(Canvas, FString::Printf(TEXT("%stooltip_header_bg_%d.dds"), Dir, Rarity), Box(0.f, 0.f, W, 104.f));
@@ -2151,7 +2151,7 @@ FBox2f FNWInventoryMenu::DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const
 	DrawText(Canvas, D->TypeName, X + 106.f * S, Y + 75.f * S, 21.f, FLinearColor::White);
 	DrawTexture(Canvas, FString(Dir) + TEXT("tooltip_divider.dds"), Box(0.f, 103.f, W, 106.f), Divider);
 
-	// Corpo.
+	// Body.
 	float CY = HeaderH + 10.f;
 	if (Item.GearScore > 0)
 	{

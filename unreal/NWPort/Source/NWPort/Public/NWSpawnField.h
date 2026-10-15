@@ -7,9 +7,9 @@
 class ANWCreature;
 
 /**
- * Spawners de criaturas da região (G3, Data/World/<região>_spawns.json, tools/make_spawns.py). Só no servidor:
- * a cada segundo nasce o que está a até SpawnRadius de algum jogador (e já passou do tempo de renascer) e some o que
- * ficou longe de todos (fora de combate). Só criaturas com conjunto convertido (javali, lobo...).
+ * Creature spawners of the region (G3, Data/World/<region>_spawns.json, tools/make_spawns.py). Server only:
+ * every second, spawns what is within SpawnRadius of some player (and past its respawn time) and removes what
+ * is far from everyone (out of combat). Only creatures with a converted set (boar, wolf...).
  */
 UCLASS()
 class NWPORT_API ANWSpawnField : public AActor
@@ -21,7 +21,7 @@ public:
 	static FString DataFileFor(const UWorld* World);
 	virtual void BeginPlay() override;
 	static ANWSpawnField* Get(const UWorld* World);
-	/** Spawner com conjunto mais perto de From, a mais de MinDist (menu de dev: ir até uma criatura). */
+	/** Spawner with a set closest to From, farther than MinDist (dev menu: go to a creature). */
 	bool NearestSpawn(const FVector& From, float MinDist, FVector& Out) const;
 
 	UPROPERTY(EditAnywhere, Category = "NW|Spawn") float SpawnRadius = 6000.f;

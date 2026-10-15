@@ -11,9 +11,9 @@
 class ANWCharacter;
 
 /**
- * Algo que o jogador usa com a tecla de interagir (esteira 4: NPC, estação, armazém, posto de trocas). O
- * UNWInteractorComponent do jogador escolhe o foco e o NWHUD desenha o cartão do jogo (nome + [E] ação).
- * OnInteract roda no cliente dono; o sistema chama o servidor pelo próprio componente quando precisar.
+ * Something the player uses with the interact key (area 4: NPC, station, storage, Trading Post). The
+ * player's UNWInteractorComponent picks the focus and NWHUD draws the game card (name + [E] action).
+ * OnInteract runs on the owning client; the system calls the server through its own component when needed.
  */
 UCLASS(ClassGroup = (NW), meta = (BlueprintSpawnableComponent))
 class NWPORT_API UNWInteractableComponent : public UActorComponent
@@ -26,13 +26,13 @@ public:
 	virtual void OnUnregister() override;
 	static const TArray<TWeakObjectPtr<UNWInteractableComponent>>& All();
 
-	/** Nome na faixa do cartão. */
+	/** Name on the card strip. */
 	FText DisplayName;
-	/** Ação na linha da tecla (chave de texto: do jogo, ex. ui_talk, ou tools/strings). */
+	/** Action on the key line (text key: from the game, e.g. ui_talk, or tools/strings). */
 	FString ActionKey = TEXT("ui_talk");
-	/** Distância máxima (cm) do jogador ao ponto de foco. */
+	/** Maximum distance (cm) from the player to the focus point. */
 	float Radius = 250.f;
-	/** Altura do ponto de foco (anel do cartão) acima da origem do ator. */
+	/** Height of the focus point (card ring) above the actor origin. */
 	float FocusHeight = 0.f;
 	TFunction<void(ANWCharacter*)> OnInteract;
 
@@ -40,8 +40,8 @@ public:
 };
 
 /**
- * Do jogador: escolhe o interagível em foco (o mais perto à frente) e trata a tecla (cliente dono). No servidor,
- * entrega os brindes dos NPCs (FNWNpcRewards) e guarda o que já foi pego, replicado ao dono para o ícone do NPC.
+ * Player's: picks the interactable in focus (the closest in front) and handles the key (owning client). On the server,
+ * delivers the NPC gifts (FNWNpcRewards) and keeps what was already taken, replicated to the owner for the NPC icon.
  */
 UCLASS(ClassGroup = (NW))
 class NWPORT_API UNWInteractorComponent : public UActorComponent
@@ -52,102 +52,102 @@ public:
 	UNWInteractorComponent();
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	/** true se havia foco e a ação foi feita (a coleta não recebe a tecla). */
+	/** true if there was a focus and the action was done (gathering does not get the key). */
 	bool InteractPressed();
 
 	TWeakObjectPtr<UNWInteractableComponent> Focus;
 
-	/** Brinde do NPC (variante): o servidor confere distância, sorteio da semana e o que já foi pego. */
+	/** NPC gift (variant): the server checks distance, the week's draw and what was already picked up. */
 	UFUNCTION(Server, Reliable) void ServerNpcInteract(const FString& Variant);
-	/** Chaves "<kind>:<npc>:<period>" do que o personagem já pegou (nw-core; só o dono recebe). */
+	/** Keys "<kind>:<npc>:<period>" of what the character already picked up (nw-core; only the owner receives them). */
 	UPROPERTY(Replicated) TArray<FString> RewardClaims;
-	/** Bolsa no chão (NWLootBag.h): o servidor confere dono e distância e passa o que couber para a bolsa. */
+	/** Bag on the ground (NWLootBag.h): the server checks owner and distance and moves what fits into the bag. */
 	UFUNCTION(Server, Reliable) void ServerLootTake(class ANWLootBag* Bag);
-	/** Pega Quantity do item do espaço Slot da bolsa no chão (tela da bolsa: arrastar, clique direito, dividir). */
+	/** Takes Quantity of the item in slot Slot of the bag on the ground (bag screen: drag, right click, split). */
 	UFUNCTION(Server, Reliable) void ServerLootTakeItem(class ANWLootBag* Bag, int32 Slot, int32 Quantity);
-	/** Refino (NWCrafting.h): o servidor confere estação perto, nível, materiais e taxa; erro vira aviso ao dono. */
+	/** Refining (NWCrafting.h): server checks nearby station, level, materials and fee; an error warns the owner. */
 	UFUNCTION(Server, Reliable) void ServerRefine(const FString& StationType, FName Recipe, int32 Count);
-	/** Loja (NWShop.h): o servidor confere NPC perto, preço, limite semanal e peso; grava na hora (SavePlayer). */
+	/** Shop (NWShop.h): the server checks NPC nearby, price, weekly limit and weight; writes at once (SavePlayer). */
 	UFUNCTION(Server, Reliable) void ServerShopBuy(const FString& ShopId, FName Item, int32 Quantity);
-	/** Fabricar arma, escudo ou ferramenta (docs/game/crafting.md; FNWCrafting::Craft): na hora, item na bolsa; treino abaixo do
-	 *  nível de fabricar. */
+	/** Craft weapon, shield or tool (docs/game/crafting.md; FNWCrafting::Craft): instant, item in the bag; training below the
+	 *  crafting level. */
 	UFUNCTION(Server, Reliable) void ServerCraft(const FString& StationType, FName Recipe);
-	/** Melhoria do item da bolsa na mesa do ofício dele, pagando materiais (docs/game/items.md): Kind = ENWImprove, Mat =
-	 *  material escolhido (FNWCrafting::ImproveMaterials). */
+	/** Upgrade of the bag item at its trade skill station, paying materials (docs/game/items.md): Kind = ENWImprove, Mat =
+	 *  chosen material (FNWCrafting::ImproveMaterials). */
 	UFUNCTION(Server, Reliable) void ServerImprove(const FString& StationType, int32 BagSlot, uint8 Kind, uint8 Mat);
-	/** Resultado da última fabricação (Kind 255) ou melhoria (ENWImprove) para a tela da mesa: o item antes e depois. */
+	/** Result of the last craft (Kind 255) or upgrade (ENWImprove) for the station screen: the item before and after. */
 	UFUNCTION(Client, Reliable) void ClientCraftResult(const FNWItem& Before, const FNWItem& After, uint8 Kind);
 	struct FCraftResult { FNWItem Before, After; uint8 Kind = 255; int32 Seq = 0; };
-	/** Só no dono: Seq sobe a cada resultado (a tela espera um Seq maior que o do clique). */
+	/** Owner only: Seq goes up on every result (the screen waits for a Seq greater than the click's). */
 	FCraftResult CraftResult;
 
-	// ---- armazém compartilhado (esteira 4, docs/game/city.md "Armazém"): um por personagem, aberto em qualquer despensa,
-	// 5 abas; o servidor guarda e grava no nw-core (bolsa + armazém numa transação).
-	/** Aberto ("shared") ou fechado (vazio), os itens (Tab = aba), nomes das abas e capacidade; só o dono recebe. */
+	// ---- shared storage (area 4, docs/game/city.md "Storage"): one per character, opened at any pantry,
+	// 5 tabs; the server keeps it and writes to nw-core (bag + storage in one transaction).
+	/** Open ("shared") or closed (empty), the items (Tab = tab), tab names and capacity; only the owner receives it. */
 	UPROPERTY(Replicated) FString StorageLocation;
 	UPROPERTY(Replicated) TArray<FNWItem> StorageItems;
 	UPROPERTY(Replicated) TArray<FString> StorageTabNames;
 	UPROPERTY(Replicated) float StorageCapacity = 0.f;
 	float StorageWeight() const;
-	/** Capacidade pelas fontes: armazem_por_cidade × cidades conhecidas (casas e nível da cidade quando existirem). */
+	/** Capacity from the sources: armazem_por_cidade × known cities (houses and city level when they exist). */
 	float StorageCapacityNow() const;
-	/** Abre na despensa da cidade City (a cidade passa a ser conhecida). */
+	/** Opens at the pantry of city City (the city becomes known). */
 	UFUNCTION(Server, Reliable) void ServerStorageOpen(const FString& City);
 	UFUNCTION(Server, Reliable) void ServerStorageClose();
-	/** Depositar (Slot = espaço da bolsa, na aba Tab) ou retirar (Slot = espaço do armazém), Quantity da pilha. */
+	/** Deposit (Slot = bag slot, into tab Tab) or withdraw (Slot = storage slot), Quantity of the stack. */
 	UFUNCTION(Server, Reliable) void ServerStorageMove(bool bDeposit, int32 Slot, int32 Quantity, uint8 Tab);
-	/** Várias pilhas inteiras de uma vez, gravadas numa só transação: "Pegar tudo" (catcontainer ContainerTakeAll) e
-	 *  mover a seção inteira (catsection TransferAll). Slots da bolsa (guardar, na aba Tab) ou do armazém (retirar). */
+	/** Several whole stacks at once, written in a single transaction: "Pegar tudo" (catcontainer ContainerTakeAll) and
+	 *  move the whole section (catsection TransferAll). Bag slots (store, into tab Tab) or storage slots (withdraw). */
 	UFUNCTION(Server, Reliable) void ServerStorageMoveMany(bool bDeposit, const TArray<int32>& Slots, uint8 Tab);
-	/** Passa a pilha do espaço Slot do armazém para a aba Tab (junta com a igual que já estiver lá). */
+	/** Moves the stack in storage slot Slot to tab Tab (merges with the same item already there). */
 	UFUNCTION(Server, Reliable) void ServerStorageSetTab(int32 Slot, uint8 Tab);
-	/** Nome da aba (vazio = padrão; até 24 letras). */
+	/** Tab name (empty = default; up to 24 letters). */
 	UFUNCTION(Server, Reliable) void ServerStorageRenameTab(uint8 Tab, const FString& Name);
 
-	// ---- mercado (NWMarket.h, NWMarket.cpp): só perto do posto de trocas; o dono recebe as linhas do livro.
+	// ---- market (NWMarket.h, NWMarket.cpp): only near the Trading Post; the owner receives the order book rows.
 	UFUNCTION(Server, Reliable) void ServerMarketOpen();
 	UFUNCTION(Server, Reliable) void ServerMarketClose();
 	UFUNCTION(Server, Reliable) void ServerMarketRefresh();
-	/** Compra Quantity de uma ordem de venda (vai para o armazém). */
+	/** Buys Quantity from a sell order (goes to storage). */
 	UFUNCTION(Server, Reliable) void ServerMarketBuy(int32 Req, const FString& OrderId, int32 Quantity);
-	/** Vende Quantity do item do espaço BagSlot para uma ordem de compra. */
+	/** Sells Quantity of the item in slot BagSlot to a buy order. */
 	UFUNCTION(Server, Reliable) void ServerMarketSell(int32 Req, const FString& OrderId, int32 BagSlot, int32 Quantity);
-	/** Cria ordem de venda com Quantity do item do espaço BagSlot. */
+	/** Creates a sell order with Quantity of the item in slot BagSlot. */
 	UFUNCTION(Server, Reliable) void ServerMarketPostSell(int32 Req, int32 BagSlot, int32 Quantity, int64 UnitPrice, int32 Days);
-	/** Cria ordem de compra (o preço × quantidade sai das moedas na hora). */
+	/** Creates a buy order (price × quantity leaves the coins right away). */
 	UFUNCTION(Server, Reliable) void ServerMarketPostBuy(int32 Req, FName ItemId, int32 Quantity, int64 UnitPrice, int32 Days);
 	UFUNCTION(Server, Reliable) void ServerMarketCancel(int32 Req, const FString& OrderId);
 	UFUNCTION(Client, Reliable) void ClientMarketOrders(const TArray<FNWMarketRow>& Rows);
-	/** Fim do pedido Req do cliente (Req vem da tela; o livro novo chega antes, na mesma ordem). bOk = gravado. */
+	/** End of client request Req (from the screen; the new book arrives before it, in order). bOk = written. */
 	UFUNCTION(Client, Reliable) void ClientMarketDone(int32 Req, bool bOk);
-	/** Cliente: livro de ordens recebido e o número da última atualização (a tela redesenha quando muda). */
+	/** Client: order book received and the number of the last update (the screen redraws when it changes). */
 	TArray<FNWMarketRow> MarketRows;
 	int32 MarketSeq = 0;
-	/** Cliente: pedidos terminados (Req, gravado) que a tela ainda não leu. */
+	/** Client: finished requests (Req, written) the screen has not read yet. */
 	TArray<TPair<int32, bool>> MarketDone;
 
-	// ---- cidade (governança; NWCity.h, NWCity.cpp): perto do Quadro do Projeto de Vila (jogadores) ou do Quadro de
-	// Planejamento do Território (governador). Mesmo esquema do mercado: Req da tela, estado e fim do pedido.
+	// ---- city (governance; NWCity.h, NWCity.cpp): near the Town Project Board (players) or the Territory Planning
+	// Board (governor). Same scheme as the market: Req from the screen, state and end of the request.
 	UFUNCTION(Server, Reliable) void ServerCityOpen();
 	UFUNCTION(Server, Reliable) void ServerCityClose();
 	UFUNCTION(Server, Reliable) void ServerCityRefresh();
-	/** Vende Quantity de matéria-prima da bolsa à cidade pelo preço visto (UnitPrice). */
+	/** Sells Quantity of raw material from the bag to the city at the seen price (UnitPrice). */
 	UFUNCTION(Server, Reliable) void ServerCitySellRaw(int32 Req, FName Item, int32 Quantity, int64 UnitPrice);
-	/** Compra Quantity de um item da lista da cidade. */
+	/** Buys Quantity of an item from the city list. */
 	UFUNCTION(Server, Reliable) void ServerCityBuyItem(int32 Req, FName Item, int32 Quantity, int64 UnitPrice);
-	/** Compra a cidade pelo preço visto (inicial ou o pedido pelo dono). */
+	/** Buys the city at the seen price (starting or the one asked by the owner). */
 	UFUNCTION(Server, Reliable) void ServerCityBuy(int32 Req, int64 Price);
-	/** Governador: abre o leilão de 24 h com o lance inicial Price (> 0) ou cancela (0, só sem lance). */
+	/** Governor: opens the 24 h auction with starting bid Price (> 0) or cancels (0, only without a bid). */
 	UFUNCTION(Server, Reliable) void ServerCitySale(int32 Req, int64 Price);
-	/** Lance no leilão da cidade (sai das moedas; volta em crédito se alguém cobrir). */
+	/** Bid in the city auction (leaves the coins; comes back as credit if someone outbids). */
 	UFUNCTION(Server, Reliable) void ServerCityBid(int32 Req, int64 Amount);
-	/** Governador: preços (só os itens da lista) e imposto (< 0 = mantém). */
+	/** Governor: prices (only the list items) and tax (< 0 = keep). */
 	UFUNCTION(Server, Reliable) void ServerCityManage(int32 Req, const TArray<FNWCityPrice>& Buy, const TArray<FNWCityPrice>& Sell, float Tax);
-	/** Governador: "station" (evoluir ou consertar), "buff" ou "weapon". */
+	/** Governor: "station" (upgrade or repair), "buff" or "weapon". */
 	UFUNCTION(Server, Reliable) void ServerCityProject(int32 Req, const FString& Kind, const FString& Station, const FString& Buff);
 	UFUNCTION(Client, Reliable) void ClientCityState(const FNWCityState& State);
 	UFUNCTION(Client, Reliable) void ClientCityDone(int32 Req, bool bOk);
-	/** Cliente: cidade recebida, número da última atualização e pedidos terminados. */
+	/** Client: city received, number of the last update and finished requests. */
 	FNWCityState CityState;
 	int32 CitySeq = 0;
 	TArray<TPair<int32, bool>> CityDone;
@@ -158,37 +158,37 @@ private:
 	bool bClaimsLoading = false;
 	bool bClaimBusy = false;
 	FString ClaimsPeriod;
-	// Armazém no servidor.
+	// Storage on the server.
 	int64 StorageVersion = 0;
 	bool bStorageBusy = false;
-	TArray<FNWItem> MemStorage;   // sem backend (PIE)
+	TArray<FNWItem> MemStorage;   // without backend (PIE)
 	TArray<FString> MemTabNames;
 
-	/** Gravação de uma operação no armazém (NWOps): PUT storage com a versão; 409 relê e refaz, 208 só relê a versão. */
+	/** Storage operation write (NWOps): PUT storage with the version; 409 rereads and redoes, 208 rereads the version. */
 	NWOps::FCommit StorageCommit();
-	/** Roda uma mudança do armazém como operação gravada (NWOps::Run). */
+	/** Runs a storage change as a written operation (NWOps::Run). */
 	void RunStorageOp(TFunction<bool(UNWInteractorComponent&)> Apply);
-	// Cidade no servidor.
+	// City on the server.
 	bool bCityOpen = false;
 	FString CityRegion;
 	bool NearCityBoard() const;
-	/** Lê a cidade (ou usa Json, a resposta de uma ação), guarda a cópia e manda ao dono; depois Then. */
+	/** Reads the city (or uses Json, an action's response), keeps the copy and sends it to the owner; then Then. */
 	void CitySend(TSharedPtr<FJsonObject> Json = nullptr, TFunction<void()> Then = nullptr);
 	void CityFinish(int32 Req, bool bOk, TSharedPtr<FJsonObject> Json);
 	void CityGovernor(int32 Req, const FString& Verb, const FString& Sub, TSharedRef<FJsonObject> Body);
-	// Mercado no servidor.
+	// Market on the server.
 	bool bMarketOpen = false;
 	bool NearTradingPost() const;
 	void MarketSend(bool bForce);
-	/** Relê o livro, manda as linhas e depois o fim do pedido Req. */
+	/** Rereads the book, sends the rows and then the end of request Req. */
 	void MarketFinish(int32 Req, bool bOk);
 	void MarketClaimCredits();
-	/** Gravação de uma operação do mercado: Call grava e devolve status e código do erro do nw-core. */
+	/** Write of a market operation: Call writes and returns the status and the nw-core error code. */
 	NWOps::FCommit MarketCommit(TFunction<void(const FNWCharacterRecord&, TFunction<void(int32, const FString&)>)> Call);
-	/** Move uma pilha (inteira ou Quantity) sem gravar; devolve o que mudou (Quantity 0 = nada; Tab = aba no armazém). */
+	/** Moves a stack (whole or Quantity) without writing; returns what changed (Quantity 0 = nothing; Tab = storage tab). */
 	FNWItem StorageApply(bool bDeposit, int32 Slot, int32 Quantity, bool bWarn, uint8 Tab);
-	/** Junta na pilha igual da mesma aba (Item.Tab) ou ocupa um espaço novo nela. */
+	/** Merges into the same stack in the same tab (Item.Tab) or takes a new slot in it. */
 	static void StorageAdd(TArray<FNWItem>& Items, const FNWItem& Item);
-	/** Tira da pilha igual, de preferência da mesma aba. */
+	/** Takes from the same stack, preferably from the same tab. */
 	static bool StorageRemove(TArray<FNWItem>& Items, const FNWItem& Item);
 };

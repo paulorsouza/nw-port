@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Compila bin/nwbt e bin/dbgwater no Linux pela fila de trabalho pesado: commit base do fork + patches/nwbt.patch
-# (tools/build_nwbt.py, o mesmo do Windows; patches/README.md). Argumentos vão para o build_nwbt.py (ex.: --test).
+# Builds bin/nwbt and bin/dbgwater on Linux through the heavy-job queue: fork base commit + patches/nwbt.patch
+# (tools/build_nwbt.py, the same as on Windows; patches/README.md). Arguments go to build_nwbt.py (e.g. --test).
 #
 #     tools/linux/build_nwbt.sh [--test]
 set -euo pipefail

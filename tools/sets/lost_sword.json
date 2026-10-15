@@ -6,7 +6,7 @@
   "weapons": {
     "sword": {"file": "objects/weapons/melee/swords/1h/cutlassa/wep_me1h_sw_cutlassa_t2.cgf", "socket": "right_hand_attach"}
   },
-  "_comment": "Lost (damned) de espada. Clipes escolhidos à mão: os fragmentos do npc_damned_anims.adb tocam sequências dentro da mesma camada.",
+  "_comment": "Lost (damned) with sword. Clips picked by hand: the fragments in npc_damned_anims.adb play sequences inside the same layer.",
   "blendspaces": {
     "BS_Walk": ["mc_melee1h_damned_combat_walk_blend"]
   },

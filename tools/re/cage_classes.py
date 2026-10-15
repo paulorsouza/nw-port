@@ -1,13 +1,13 @@
-"""Mapa das classes CAGE (atividades e condições) do NewWorld.exe: nome -> vtable -> slots.
+"""Map of the CAGE classes (activities and conditions) in NewWorld.exe: name -> vtable -> slots.
 
-Padrão (C): cada classe tem um "GetName" no slot 1 da vtable que termina em `lea rax,[nome]; ret` (direto, ou
-depois de `test rdx,rdx; je; jmp [rax+8]`). O script acha esses `lea; ret` no .text, sobe ao início da função pela
-.pdata, acha os ponteiros para ela no .rdata (vtable = ponteiro - 8) e lista os slots. Fica com as funções da faixa
-CAGE, com os nomes `ActionCondition*` e com os tipos usados nas actionlists de extract/serverpak/client.
-Faixa CAGE e funções vazias compartilhadas (ret, falso, verdadeiro, zero) vêm de re-local/enderecos.json
-("cage_classes": {"faixa": [ini, fim], "stubs": {endereço: nome}}), achadas pelo agente nw-re para a build atual.
+Pattern (C): each class has a "GetName" in vtable slot 1 that ends in `lea rax,[name]; ret` (directly, or
+after `test rdx,rdx; je; jmp [rax+8]`). The script finds those `lea; ret` in .text, walks up to the function start via
+.pdata, finds the pointers to it in .rdata (vtable = pointer - 8) and lists the slots. Keeps the functions in the CAGE
+range, the `ActionCondition*` names and the types used in the actionlists of extract/serverpak/client.
+The CAGE range and the shared empty functions (ret, false, true, zero) come from re-local/enderecos.json
+("cage_classes": {"faixa": [start, end], "stubs": {address: name}}), found by the nw-re agent for the current build.
 
-    python3 -I tools/re/cage_classes.py [0xINI 0xFIM] > saida.tsv
+    python3 -I tools/re/cage_classes.py [0xSTART 0xEND] > out.tsv
 """
 import os, re, struct, sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -20,7 +20,7 @@ if len(sys.argv) > 2:
 elif "faixa" in _CFG:
     LO, HI = (int(x, 16) for x in _CFG["faixa"])
 else:
-    sys.exit("faixa CAGE: passe 0xINI 0xFIM ou grave re-local/enderecos.json")
+    sys.exit("CAGE range: pass 0xSTART 0xEND or write re-local/enderecos.json")
 STUB = {int(k, 16): v for k, v in _CFG.get("stubs", {}).items()}
 NSLOTS = 24
 
@@ -58,7 +58,7 @@ for m in re.finditer(rb"\x48\x8d\x05(....)\xc3", code, re.S):
     if not (LO <= f < HI or name.startswith("ActionCondition") or name in USED):
         continue
     seen.add(f)
-    # ponteiros para a função no .rdata
+    # pointers to the function in .rdata
     pat = struct.pack("<Q", f)
     i = rdata.find(pat)
     while i >= 0:
@@ -68,7 +68,7 @@ for m in re.finditer(rb"\x48\x8d\x05(....)\xc3", code, re.S):
             rows.append((name, vt, f, slots))
         i = rdata.find(pat, i + 1)
 
-print("nome\tvtable\tgetname\t" + "\t".join(f"s{k}" for k in range(NSLOTS)))
+print("name\tvtable\tgetname\t" + "\t".join(f"s{k}" for k in range(NSLOTS)))
 for name, vt, f, slots in sorted(rows, key=lambda r: (r[0], r[1])):
     cells = [STUB.get(x, hex(x)) if x else "-" for x in slots]
     print(f"{name}\t{vt:#x}\t{f:#x}\t" + "\t".join(cells))

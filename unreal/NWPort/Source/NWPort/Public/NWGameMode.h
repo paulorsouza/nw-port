@@ -9,8 +9,8 @@ class ANWPlayerController;
 class ANWPlayerState;
 
 /**
- * Com o nw-core ligado (ver UNWBackend), a conexão só entra com `?ticket=` válido: o passe é resgatado no
- * PreLoginAsync, o personagem nasce onde parou, e o estado é salvo a cada SaveInterval segundos e ao sair.
+ * With nw-core enabled (see UNWBackend), a connection only gets in with a valid `?ticket=`: the pass is redeemed in
+ * PreLoginAsync, the character spawns where it stopped, and the state is saved every SaveInterval seconds and on exit.
  */
 UCLASS()
 class NWPORT_API ANWGameMode : public AGameModeBase
@@ -26,13 +26,13 @@ public:
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
 
-	/** Copia o estado atual do jogador para o registro e manda para o backend; Reason vai para o log de itens. */
+	/** Copies the player's current state into the record and sends it to the backend; Reason goes to the item log. */
 	void SavePlayer(ANWPlayerController* PC, const FString& Reason = TEXT("save"));
 
-	/** Salvamento periódico (s): o que não é operação gravada na hora (posição, vida, XP; coleta e saque até a etapa 3). */
+	/** Periodic save (s): whatever is not an operation written on the spot (position, health, XP; gathering and loot until step 3). */
 	UPROPERTY(EditAnywhere, Category = "NW|Servidor") float SaveInterval = 5.f;
 
-	// Grupos (até MaxGroupSize). Comandos de chat: /convidar /aceitar /recusar /sair /g.
+	// Groups (up to MaxGroupSize). Chat commands: /convidar /aceitar /recusar /sair /g.
 	void GroupInvite(ANWPlayerController* From, const FString& TargetName);
 	void GroupAccept(ANWPlayerController* PC);
 	void GroupDecline(ANWPlayerController* PC);
@@ -40,7 +40,7 @@ public:
 	void GroupChat(ANWPlayerController* From, const FString& Text);
 	static constexpr int32 MaxGroupSize = 5;
 
-	/** Saque de um inimigo morto: quem matou e o grupo dele a até 60 m, cada um com o próprio sorteio. */
+	/** Loot from a dead enemy: the killer and their group within 60 m, each with their own roll. */
 	void GrantLoot(APawn* Killer, const AActor* Victim, FName Table);
 
 protected:
@@ -52,7 +52,7 @@ private:
 	bool IsCharacterOnline(const FString& CharacterId) const;
 	void SaveAll(const TCHAR* Reason);
 	void SavePeriodic() { SaveAll(TEXT("periodic")); }
-	/** Play do editor com backend (docs/tech/backend-testing.md): entra com a conta do editor e aplica o personagem salvo. */
+	/** Editor Play with backend (docs/tech/backend-testing.md): joins with the editor account and applies the saved character. */
 	void PieEnter(ANWPlayerController* PC);
 	void HandleTearDown(UWorld* World);
 	FDelegateHandle TearDownHandle;
@@ -61,10 +61,10 @@ private:
 	ANWPlayerState* FindPlayer(const FString& Name) const;
 	void GroupSystem(int32 GroupId, const FString& Message);
 	struct FInvite { TWeakObjectPtr<ANWPlayerState> From; double Expires = 0.0; };
-	TMap<TWeakObjectPtr<ANWPlayerState>, FInvite> Invites;   // chave = convidado
+	TMap<TWeakObjectPtr<ANWPlayerState>, FInvite> Invites;   // key = invitee
 	int32 NextGroupId = 1;
 
-	/** Passes resgatados esperando o Login (chave = passe). */
+	/** Redeemed passes waiting for Login (key = pass). */
 	TMap<FString, FNWCharacterRecord> Pending;
 	FTimerHandle SaveTimer;
 };

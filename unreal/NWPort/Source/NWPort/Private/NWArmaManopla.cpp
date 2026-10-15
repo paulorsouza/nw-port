@@ -1,4 +1,4 @@
-// Manopla de gelo (sub-esteira 1a): docs/game/weapons/ice-gauntlet.md.
+// Ice Gauntlet (sub-area 1a): docs/game/weapons/ice-gauntlet.md.
 #include "NWArmaManopla.h"
 #include "NWCharacter.h"
 #include "NWDevRegistry.h"
@@ -21,9 +21,9 @@ static const FName WeaponSkinName(TEXT("WeaponSkin"));
 
 void NWArmaManopla::AddWeaponSet(TArray<FNWWeaponSet>& Sets)
 {
-	// 1hElementalGauntlet_IceT2..T5 (javelindata_itemdefinitions_weapons): dano 67 (×100/64), crítico 9% ×1,3,
-	// stagger 43, bloqueio 43 / estabilidade 30. Luva com pele (SkinOverride1, .skin no antebraço e dedos) e cristal
-	// da palma (gauntletcore, rígido no handattach, como a rapieira).
+	// 1hElementalGauntlet_IceT2..T5 (javelindata_itemdefinitions_weapons): damage 67 (×100/64), crit 9% ×1.3,
+	// stagger 43, block 43 / stability 30. Skinned glove (SkinOverride1, .skin on forearm and fingers) and palm
+	// crystal (gauntletcore, rigid on handattach, like the Rapier).
 	FNWWeaponSet Ice;
 	Ice.Id = TEXT("IceGauntlet");
 	Ice.Mesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SM_icegauntlet_core.SM_icegauntlet_core")));
@@ -33,9 +33,9 @@ void NWArmaManopla::AddWeaponSet(TArray<FNWWeaponSet>& Sets)
 	Ice.HudIcon = TEXT("lyshineui/images/icons/items/drawing/icegauntlet.dds");
 	Ice.BaseDamage = 104.7f; Ice.CritChance = 0.09f; Ice.CritDamageMultiplier = 1.3f;
 	Ice.StaggerDamage = 43.f; Ice.BlockStaminaDamage = 43.f; Ice.BlockStability = 30.f;
-	// Attack_Start_Charge_UpperBody [MagicGauntlet+Ice]: soltar antes de 0,667 s = leve (Primary); 0,667 s = pesado.
+	// Attack_Start_Charge_UpperBody [MagicGauntlet+Ice]: release before 0.667 s = light (Primary); 0.667 s = heavy.
 	Ice.HeavyMinHold = 0.667f; Ice.HeavyFullCharge = 0.667f;
-	// As três primeiras da árvore de Tempestade (as outras se trocam na tela K).
+	// The first three of the Tempest tree (the others are swapped on the K screen).
 	Ice.Abilities = {TEXT("IceStorm"), TEXT("WindChill"), TEXT("Spikes")};
 	Sets.Add(Ice);
 }
@@ -77,7 +77,7 @@ void NWArmaManopla::ApplySkin(ANWCharacter* Character, const FNWWeaponSet& Set)
 	Skin->SetSkeletalMesh(Mesh);
 	Skin->SetLeaderPoseComponent(Body);
 	Skin->SetVisibility(true);
-	// Habilidades: componente só no servidor, criado na primeira vez que a manopla é equipada.
+	// Abilities: server-only component, created the first time the gauntlet is equipped.
 	if (Character->HasAuthority() && !Character->FindComponentByClass<UNWIceGauntletComponent>())
 	{
 		UNWIceGauntletComponent* Ice = NewObject<UNWIceGauntletComponent>(Character, TEXT("IceGauntlet"));
@@ -85,7 +85,7 @@ void NWArmaManopla::ApplySkin(ANWCharacter* Character, const FNWWeaponSet& Set)
 	}
 }
 
-// F10: par manopla de gelo + espada e escudo (o ciclo de pares do F10 não conhece a manopla).
+// F10: Ice Gauntlet + sword and shield pair (the F10 pair cycle does not know the gauntlet).
 NW_REGISTER_DEV(IceGauntletLoadout, TEXT("armas.icegauntlet_loadout"), TEXT("nw.dev.icegauntlet_loadout"),
 	[](ANWPlayerController* PC)
 	{
@@ -101,40 +101,40 @@ NW_REGISTER_DEV(IceGauntletLoadout, TEXT("armas.icegauntlet_loadout"), TEXT("nw.
 		}
 	});
 
-// ---------------------------------------------------------------- números do jogo
-// Fontes: playeractions_ability_icemagic.actionlist, player_magicgauntlet_ice.adb (procclips), spelltable,
-// statuseffects e slices items/weapons/* do jogo (extract/weapons_icegauntlet); docs/game/weapons/ice-gauntlet.md §3.
+// ---------------------------------------------------------------- game numbers
+// Sources: playeractions_ability_icemagic.actionlist, player_magicgauntlet_ice.adb (procclips), spelltable,
+// statuseffects and the game's items/weapons/* slices (extract/weapons_icegauntlet); docs/game/weapons/ice-gauntlet.md §3.
 namespace NWIce
 {
-	// Efeitos do jogo convertidos (tools/ue/import_fx.py): peças items/weapons/* e procclips do .adb.
+	// Converted game effects (tools/ue/import_fx.py): items/weapons/* pieces and procclips from the .adb.
 	static FString Fx(const TCHAR* Name) { return FString::Printf(TEXT("/Game/NW/FX/NS_%s.NS_%s"), Name, Name); }
-	// Estacas: IceMagic_Spell_Spikes NumToSpawn 7, SpawnRate 65 ms, CastDistance 1,1 m (passo entre estacas, H),
-	// CastSpell em 0,2 s; Ice_Spike_Spawn m_radius 0,8 m; Duration 2,5 s.
+	// Spikes: IceMagic_Spell_Spikes NumToSpawn 7, SpawnRate 65 ms, CastDistance 1.1 m (step between spikes, H),
+	// CastSpell at 0.2 s; Ice_Spike_Spawn m_radius 0.8 m; Duration 2.5 s.
 	constexpr int32 SpikeCount = 7;
 	constexpr float SpikeFirst = 0.2f, SpikeEvery = 0.065f, SpikeStep = 110.f, SpikeRadius = 80.f, SpikeLife = 2.5f;
-	// Estaca Poderosa: Spawn_End1..5 a 2,2/3,3/4,4/5,5/6,6 m, raio 1 m, Duration 1 s.
+	// Empowered Spike: Spawn_End1..5 at 2.2/3.3/4.4/5.5/6.6 m, radius 1 m, Duration 1 s.
 	constexpr float EndDistances[] = {220.f, 330.f, 440.f, 550.f, 660.f};
 	constexpr float EndRadius = 100.f, EndLife = 1.f;
-	// Vento Arrepiante (WindChill_Aim): CAGE-Damage em 0,067 e a cada 0,2 s até 2,0 s (11 tiques), sai em 2,0 s.
-	// Cápsulas no aim_direction: perto r 0,3 m de 0 a 4 m (meia-altura 2, UseEndAsCenter); longe r 0,4 m centrada a
-	// 5,5 m com meia-altura 0,7 (4,8 a 6,2 m).
+	// Wind Chill (WindChill_Aim): CAGE-Damage at 0.067 and every 0.2 s until 2.0 s (11 ticks), exits at 2.0 s.
+	// Capsules on aim_direction: near r 0.3 m from 0 to 4 m (half-height 2, UseEndAsCenter); far r 0.4 m centered at
+	// 5.5 m with half-height 0.7 (4.8 to 6.2 m).
 	constexpr float WindFirst = 0.067f, WindEvery = 0.2f, WindLength = 2.f;
-	// Tempestade: CastDistance 20 m, marcador SpellCastIceStorm em 0,2 s, esfera r 5 m altura 5 m, 5 s
-	// (spell_aoe_blizzard m_timedelayseconds 5), tique 0,33 s, IceMagic_IceStorm −25%.
+	// Ice Storm: CastDistance 20 m, SpellCastIceStorm marker at 0.2 s, sphere r 5 m height 5 m, 5 s
+	// (spell_aoe_blizzard m_timedelayseconds 5), tick 0.33 s, IceMagic_IceStorm −25%.
 	constexpr float StormAt = 0.2f, StormRange = 2000.f, StormRadius = 500.f, StormSeconds = 5.f, StormTick = 0.33f;
-	// Chuva: Shower1..5 em 0,4/0,467/0,533/0,6/0,667 s, CastDistance 2,8/2,25/2/2,25/2,8 m girados 60/35/0/−35/−60°
-	// (CharRelRotOffsetZ), caixa 0,5 × 0,5 × 3 m, 4 s (spell_aoe_shower). Congelamento −50%, 3 s ao sair; enraizado 1 s,
-	// imune 6 s depois (IceMagic_IceShower_Freeze / _Cooldown).
+	// Shower: Shower1..5 at 0.4/0.467/0.533/0.6/0.667 s, CastDistance 2.8/2.25/2/2.25/2.8 m rotated 60/35/0/−35/−60°
+	// (CharRelRotOffsetZ), box 0.5 × 0.5 × 3 m, 4 s (spell_aoe_shower). Frostbite −50%, 3 s after leaving; rooted 1 s,
+	// immune for 6 s afterwards (IceMagic_IceShower_Freeze / _Cooldown).
 	constexpr float ShowerAt[] = {0.4f, 0.467f, 0.533f, 0.6f, 0.667f};
 	constexpr float ShowerDist[] = {280.f, 225.f, 200.f, 225.f, 280.f};
 	constexpr float ShowerYaw[] = {60.f, 35.f, 0.f, -35.f, -60.f};
 	constexpr float ShowerSeconds = 4.f;
-	// Torre: CastSpell em 0,6 s, 2 m à frente (CharRelPosOffsetY), vida 15 s (m_lifetime), primeiro tiro em 1 s
-	// (m_initialcastdelay), depois a cada 1 s (m_cooldown 1, H), alcance 20 m; recarga de 10 s quando ela some.
+	// Pylon: CastSpell at 0.6 s, 2 m ahead (CharRelPosOffsetY), life 15 s (m_lifetime), first shot at 1 s
+	// (m_initialcastdelay), then every 1 s (m_cooldown 1, H), range 20 m; 10 s cooldown when it disappears.
 	constexpr float PylonAt = 0.6f, PylonAhead = 200.f, PylonLife = 15.f, PylonFirst = 1.f, PylonEvery = 1.f, PylonRange = 2000.f;
 	constexpr float PylonCooldown = 10.f;
-	// Sepultado: tumba 10 s, ManaRate 6 (IceMagic_Entombed_ManaRegen), quebrar = esfera 3 m em 0,033 s; recarga de
-	// 30 s ao sair (SetCooldownTimer OnExit).
+	// Entombed: tomb 10 s, ManaRate 6 (IceMagic_Entombed_ManaRegen), break = 3 m sphere at 0.033 s; 30 s
+	// cooldown on exit (SetCooldownTimer OnExit).
 	constexpr float TombSeconds = 10.f, TombManaPerSecond = 6.f, BreakAt = 0.033f, BreakRadius = 300.f, TombCooldown = 30.f;
 }
 
@@ -150,7 +150,7 @@ static UMaterialInstanceDynamic* IceMaterial(UObject* Outer, float Intensity)
 	return M;
 }
 
-// ---------------------------------------------------------------- área de gelo
+// ---------------------------------------------------------------- ice area
 
 ANWIceArea::ANWIceArea()
 {
@@ -196,7 +196,7 @@ void ANWIceArea::Build()
 		C->SetCastShadow(false);
 		C->SetupAttachment(RootComponent);
 		C->RegisterComponent();
-		// Malhas básicas de 100 cm; a área fica rente ao chão (disco fino ou caixa).
+		// 100 cm basic meshes; the area sits flush with the ground (thin disc or box).
 		C->SetWorldLocationAndRotation(S.Center, S.Rotation);
 		C->SetWorldScale3D(S.bBox ? FVector(S.Extent.X / 50.f, S.Extent.Y / 50.f, S.Extent.Z / 50.f)
 			: FVector(S.Extent.X / 50.f, S.Extent.X / 50.f, 0.05f));
@@ -270,7 +270,7 @@ void ANWIceArea::Tick(float DeltaSeconds)
 		}
 		if (!RootID.IsNone() && !InsideNow.Contains(Target) && T >= RootImmuneUntil.FindRef(Target))
 		{
-			// Enraizado: o port ainda não tem "sem andar" separado do atordoamento; usa a menor velocidade (−90%).
+			// Rooted: the port does not yet have "no walking" separate from stun; uses the lowest speed (−90%).
 			Target->ApplyStatus(RootID, RootSeconds, 1.f, 0.f, 1, -1.f, From);
 			RootImmuneUntil.Add(Target, T + RootSeconds + RootImmunity);
 		}
@@ -285,7 +285,7 @@ void ANWIceArea::Tick(float DeltaSeconds)
 	InsideNow = MoveTemp(Now);
 }
 
-// ---------------------------------------------------------------- malhas de gelo
+// ---------------------------------------------------------------- ice meshes
 
 ANWIceProp::ANWIceProp()
 {
@@ -370,7 +370,7 @@ void ANWIcePylon::Tick(float DeltaSeconds)
 		{
 			continue;
 		}
-		// Sem aliados: o boneco e os mobs são alvos; jogador do mesmo grupo não (ReceiveHit já ignora o dano).
+		// No allies: the dummy and mobs are targets; players in the same group are not (ReceiveHit already ignores the damage).
 		const float D = FVector::DistSquared(Muzzle, Other->GetActorLocation());
 		if (D < BestD)
 		{
@@ -388,7 +388,7 @@ void ANWIcePylon::Tick(float DeltaSeconds)
 		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 	if (P)
 	{
-		// Perfil IceMagic/Pylon (radb): 100 m/s, raio 0,15 m, alcance 50 m, sem queda.
+		// IceMagic/Pylon profile (radb): 100 m/s, radius 0.15 m, range 50 m, no drop.
 		FNWProjectileParams Pp;
 		Pp.Speed = 10000.f;
 		Pp.Radius = 15.f;
@@ -401,7 +401,7 @@ void ANWIcePylon::Tick(float DeltaSeconds)
 
 void ANWIcePylon::EndPlay(const EEndPlayReason::Type Reason)
 {
-	// SetCooldownTimer OnExit (IceMagic_IcePylon_Cooldown2): a recarga real começa quando a torre some.
+	// SetCooldownTimer OnExit (IceMagic_IcePylon_Cooldown2): the real cooldown starts when the pylon disappears.
 	if (HasAuthority() && Reason != EEndPlayReason::EndPlayInEditor && Source.IsValid())
 	{
 		Source->StartCooldown(TEXT("IcePylon"), NWIce::PylonCooldown);
@@ -409,7 +409,7 @@ void ANWIcePylon::EndPlay(const EEndPlayReason::Type Reason)
 	Super::EndPlay(Reason);
 }
 
-// ---------------------------------------------------------------- habilidades
+// ---------------------------------------------------------------- abilities
 
 UNWIceGauntletComponent::UNWIceGauntletComponent()
 {
@@ -423,7 +423,7 @@ UNWCombatComponent* UNWIceGauntletComponent::Combat() const
 
 FVector UNWIceGauntletComponent::Forward() const
 {
-	// Habilidades miram pela câmera (ApplyRotationDuringCameraLock / AlignToCamera): direção no plano.
+	// Abilities aim through the camera (ApplyRotationDuringCameraLock / AlignToCamera): direction on the plane.
 	const APawn* P = Cast<APawn>(GetOwner());
 	const FRotator R = P && P->GetController() ? P->GetController()->GetControlRotation() : GetOwner()->GetActorRotation();
 	return FRotator(0.f, R.Yaw, 0.f).Vector();
@@ -440,7 +440,7 @@ FVector UNWIceGauntletComponent::GroundAhead(float MaxCm) const
 	}
 	FHitResult Hit;
 	FCollisionQueryParams P(SCENE_QUERY_STAT(NWIceGround), false, GetOwner());
-	// Alcance contado do personagem (CastDistance); o raio sai da câmera.
+	// Range counted from the character (CastDistance); the ray comes from the camera.
 	const FVector End = ViewLoc + ViewRot.Vector() * (MaxCm + FVector::Dist(ViewLoc, GetOwner()->GetActorLocation()));
 	FVector Target = GetWorld()->LineTraceSingleByChannel(Hit, ViewLoc, End, ECC_Visibility, P) ? Hit.Location : End;
 	const FVector Me = GetOwner()->GetActorLocation();
@@ -488,8 +488,8 @@ void UNWIceGauntletComponent::SpawnSpike(float DistanceCm, bool bEnd)
 	{
 		Ground = Hit.Location;
 	}
-	// Ice_Spike_Spawn: IceSpike_sm (cristal, estilhaços, vapor, decalque); Ice_Spike_End: IceSpikeOnly_lg. O efeito traz o
-	// cristal: a malha estática fica escondida.
+	// Ice_Spike_Spawn: IceSpike_sm (crystal, shards, vapor, decal); Ice_Spike_End: IceSpikeOnly_lg. The effect brings the
+	// crystal: the static mesh stays hidden.
 	ANWIceProp::Spawn(GetWorld(), bEnd ? TEXT("/Game/NW/sword_shield/Mesh/SM_icespike_end.SM_icespike_end")
 		: TEXT("/Game/NW/sword_shield/Mesh/SM_icespike.SM_icespike"), FTransform(Dir.Rotation(), Ground), bEnd ? NWIce::EndLife : NWIce::SpikeLife,
 		{NWIce::Fx(bEnd ? TEXT("wfxo_IceGaunt_Tempest_IceSpikeOnly_lg") : TEXT("wfxo_IceGaunt_Tempest_IceSpike_sm"))}, true);
@@ -539,7 +539,7 @@ void UNWIceGauntletComponent::Enter(FName Action)
 	}
 	else if (A == TEXT("WindChillAim") || A == TEXT("EntombedLoop"))
 	{
-		// Fase com a montagem girando (NextAction dela mesma, UNWCombatComponent::StartAction): conta daqui.
+		// Phase with the montage looping (its own NextAction, UNWCombatComponent::StartAction): count from here.
 		PhaseStartedAt = T;
 	}
 	if (A == TEXT("EntombedLoop") && !Tomb.IsValid())
@@ -555,7 +555,7 @@ void UNWIceGauntletComponent::Exit(FName Action, FName Next)
 	UNWCombatComponent* C = Combat();
 	const FString A = Action.ToString();
 	const FString N = Next.ToString();
-	// Estacas: ao sair da conjuração (fim natural ou ataque básico), a Estaca Poderosa na frente da última estaca.
+	// Spikes: on leaving the cast (natural end or basic attack), the Empowered Spike in front of the last spike.
 	if (A == TEXT("Spikes") && (N == TEXT("SpikesOut") || N == TEXT("SpikesEnd")))
 	{
 		const float Last = NWIce::SpikeStep * FMath::Max(Done, 1);
@@ -573,7 +573,7 @@ void UNWIceGauntletComponent::Exit(FName Action, FName Next)
 		}
 		SpawnSpike(End, true);
 	}
-	// Sepultado: a tumba acaba ao sair do loop (fim, esquiva, quebra); recarga começa aqui.
+	// Entombed: the tomb ends when leaving the loop (end, dodge, break); the cooldown starts here.
 	if (A == TEXT("EntombedLoop") && N != TEXT("EntombedLoop"))
 	{
 		if (Tomb.IsValid())
@@ -608,7 +608,7 @@ void UNWIceGauntletComponent::Step(FName Action, float T)
 		const float P = GetWorld()->GetTimeSeconds() - PhaseStartedAt;
 		const ACharacter* Char = Cast<ACharacter>(GetOwner());
 		const FVector Joint = Char && Char->GetMesh() ? Char->GetMesh()->GetSocketLocation(TEXT("aim_direction")) : GetOwner()->GetActorLocation();
-		// Tiques em 0,067 s e depois 0,2; 0,4 … 2,0 s (11).
+		// Ticks at 0.067 s and then 0.2; 0.4 … 2.0 s (11).
 		while (Done < 11 && P >= (Done == 0 ? NWIce::WindFirst : NWIce::WindEvery * Done))
 		{
 			++Done;
@@ -651,7 +651,7 @@ void UNWIceGauntletComponent::Step(FName Action, float T)
 	{
 		if (Done < 5 && T >= NWIce::ShowerAt[Done])
 		{
-			// Uma área com as 5 caixas (cada uma nasce no seu tempo; o dano/status vale a partir da primeira).
+			// One area with the 5 boxes (each spawns at its own time; damage/status applies from the first one).
 			if (Done == 0)
 			{
 				ANWIceArea* Area = GetWorld()->SpawnActorDeferred<ANWIceArea>(ANWIceArea::StaticClass(), FTransform(Origin), nullptr, nullptr,
@@ -677,7 +677,7 @@ void UNWIceGauntletComponent::Step(FName Action, float T)
 					Area->RootSeconds = 1.f;
 					Area->RootImmunity = 6.f;
 					Area->LingerID = TEXT("IceMagic_Frostbite_Dur3");
-					// spell_aoe_shower: wfxo_IceGuant_Builder.IceShower_AOE em cada caixa.
+					// spell_aoe_shower: wfxo_IceGuant_Builder.IceShower_AOE on each box.
 					Area->FxPath = NWIce::Fx(TEXT("wfxo_IceGuant_Builder_IceShower_AOE"));
 					Area->LingerSeconds = 3.f;
 					Area->FinishSpawning(FTransform(Origin));
@@ -691,7 +691,7 @@ void UNWIceGauntletComponent::Step(FName Action, float T)
 		if (Done == 0 && T >= NWIce::PylonAt)
 		{
 			Done = 1;
-			// RemoveExcessAbilityInstances: uma torre por vez.
+			// RemoveExcessAbilityInstances: one pylon at a time.
 			if (Pylon.IsValid())
 			{
 				Pylon->Destroy();
@@ -728,7 +728,7 @@ void UNWIceGauntletComponent::Step(FName Action, float T)
 		}
 		if (C)
 		{
-			// NoNav do IceMagic_Entombed: parado dentro da tumba (−90%, o mínimo do port).
+			// IceMagic_Entombed NoNav: stopped inside the tomb (−90%, the port's minimum).
 			C->ApplyStatus(TEXT("IceMagic_Entombed"), 0.2f, 1.f, 0.f, 1, -1.f, C);
 		}
 		if (P >= NWIce::TombSeconds && C)

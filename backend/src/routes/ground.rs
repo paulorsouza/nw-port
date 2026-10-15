@@ -1,5 +1,6 @@
-//! Sacos no chão (migration 0012; etapa 2 das gravações). Soltar e pegar gravam a bolsa e o saco na mesma transação,
-//! com sessão e número (journal.rs); o saco volta no mesmo lugar se o servidor de jogo reiniciar antes de vencer.
+//! Bags on the ground (migration 0012; step 2 of the saves). Dropping and taking store the bag and the ground bag in the
+//! same transaction, with session and number (journal.rs); the ground bag comes back in the same place if the game
+//! server restarts before it expires.
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -24,10 +25,10 @@ const MAX_ITEMS: usize = 500;
 pub struct DropRequest {
     pub map: String,
     pub position: Position,
-    /// Segundos até sumir (o jogo usa 180).
+    /// Seconds until it disappears (the game uses 180).
     pub ttl_seconds: i64,
     pub items: Vec<StorageItem>,
-    /// Bolsa e moedas depois de soltar, com sessão, número e motivo.
+    /// Bag and coins after dropping, with session, number and reason.
     #[serde(flatten)]
     pub snapshot: Snapshot,
 }
@@ -35,7 +36,7 @@ pub struct DropRequest {
 #[derive(Deserialize, Debug)]
 pub struct TakeRequest {
     pub character_id: Uuid,
-    /// O que fica no saco depois de pegar (vazio = o saco some).
+    /// What stays in the ground bag after taking (empty = the ground bag disappears).
     pub items: Vec<StorageItem>,
     #[serde(flatten)]
     pub snapshot: Snapshot,
@@ -117,7 +118,7 @@ async fn write_items(tx: &mut sqlx::PgConnection, bag: Uuid, items: &[StorageIte
     Ok(())
 }
 
-/// Apaga os sacos vencidos (de um personagem ou de todos), com a saída no log.
+/// Deletes expired ground bags (of one character or of all), logging the removal.
 pub(crate) async fn expire(tx: &mut sqlx::PgConnection, character_id: Option<Uuid>) -> ApiResult<()> {
     let due: Vec<(Uuid, Uuid)> = sqlx::query_as(
         "select id, character_id from ground_bags where expires_at <= now() and ($1::uuid is null or character_id = $1)
@@ -134,7 +135,7 @@ pub(crate) async fn expire(tx: &mut sqlx::PgConnection, character_id: Option<Uui
     Ok(())
 }
 
-/// `POST /internal/characters/{id}/ground`: solta itens num saco novo; a bolsa sem eles vai junto.
+/// `POST /internal/characters/{id}/ground`: drops items into a new ground bag; the bag without them goes along.
 pub async fn drop_items(
     State(state): State<AppState>,
     _server: GameServer,
@@ -170,7 +171,8 @@ pub async fn drop_items(
     Ok((StatusCode::CREATED, Json(Bag { id: bag, map: d.map, position: d.position, expires_at, items: d.items })))
 }
 
-/// `POST /internal/ground/{bag}/take`: pega do saco (o que sobra fica nele; vazio, some); a bolsa com os itens vai junto.
+/// `POST /internal/ground/{bag}/take`: takes from the ground bag (what is left stays; empty, it disappears); the bag with
+/// the items goes along.
 pub async fn take(
     State(state): State<AppState>,
     _server: GameServer,
@@ -209,7 +211,7 @@ pub async fn take(
     Ok(Json(serde_json::json!({ "remaining": t.items.len() })))
 }
 
-/// `GET /internal/characters/{id}/ground`: sacos vivos do personagem (os vencidos são apagados aqui).
+/// `GET /internal/characters/{id}/ground`: the character's live ground bags (expired ones are deleted here).
 pub async fn list(State(state): State<AppState>, _server: GameServer, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Bag>>> {
     let mut tx = state.db.begin().await?;
     expire(&mut tx, Some(id)).await?;

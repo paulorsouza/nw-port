@@ -7,7 +7,7 @@
 
 namespace
 {
-	// Quem está atacando cada alvo agora (vez da matilha / dos duelistas) e quem está em volta dele.
+	// Who is attacking each target now (pack / duelist turn) and who is around it.
 	TMap<TWeakObjectPtr<AActor>, TArray<TWeakObjectPtr<UNWBrainComponent>>> GTokens;
 	TMap<TWeakObjectPtr<AActor>, TArray<TWeakObjectPtr<UNWBrainComponent>>> GAround;
 
@@ -62,7 +62,7 @@ ANWCharacter* UNWBrainComponent::FindTarget(float& OutDist) const
 	{
 		return nullptr;
 	}
-	// Mantém o alvo atual com folga de 50% (não troca de alvo a cada passo).
+	// Keeps the current target with a 50% margin (does not switch target on every step).
 	if (ANWCharacter* Cur = Target.Get(); Cur && Cur->Combat->State != ENWCombatState::Dead)
 	{
 		const float D = FVector::Dist2D(Cur->GetActorLocation(), Me->GetActorLocation());
@@ -212,7 +212,7 @@ void UNWBrainComponent::TickDefense(ANWCharacter* Me, ANWCharacter* T, float Dis
 		}
 		return;
 	}
-	// Golpe novo do alvo, de perto e virado para mim: decide uma vez se defende e reage depois do tempo de reação.
+	// New hit from the target, close and facing me: decides once whether to defend and reacts after the reaction time.
 	const int32 Serial = T->Combat->GetActionSerial();
 	if (Serial != SeenTargetAction)
 	{
@@ -236,7 +236,7 @@ void UNWBrainComponent::TickDefense(ANWCharacter* Me, ANWCharacter* T, float Dis
 	}
 	else if (bWillDodge)
 	{
-		// Para trás ou para um lado (X frente, Y direita no espaço do personagem).
+		// Backward or to one side (X forward, Y right in character space).
 		const int32 Pick = FMath::RandRange(0, 2);
 		C->RequestDodge(Pick == 0 ? FVector2D(-1.f, 0.f) : FVector2D(0.f, Pick == 1 ? 1.f : -1.f));
 	}
@@ -287,7 +287,7 @@ void UNWBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 	const FVector ToT = (T->GetActorLocation() - Me->GetActorLocation()).GetSafeNormal2D();
 	ModeTime += DeltaTime;
 
-	// Atordoado ou reagindo a golpe: a vez volta para a fila.
+	// Stunned or reacting to a hit: the turn goes back to the queue.
 	if (C->State == ENWCombatState::Stunned)
 	{
 		ReleaseToken();
@@ -308,7 +308,7 @@ void UNWBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 
 	if (Mode == EMode::Attack)
 	{
-		// Combo: o próximo pedido entra no buffer do combate e sai na janela certa.
+		// Combo: the next request goes into the combat buffer and comes out in the right window.
 		ChainTimer += DeltaTime;
 		if (ChainLeft > 0 && ChainTimer > 0.25f && Current)
 		{
@@ -347,7 +347,7 @@ void UNWBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 	}
 	if (Mode == EMode::Recover)
 	{
-		// Recuo curto depois de atacar (duelista, matilha) ou de levar golpe.
+		// Short retreat after attacking (duelist, pack) or after taking a hit.
 		if (Style == ENWBrainStyle::Duelist || Style == ENWBrainStyle::Pack)
 		{
 			Steer(Me, -ToT, true);
@@ -361,7 +361,7 @@ void UNWBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 		return;
 	}
 
-	// Escolhe o ataque quando a pausa acabou e (duelista/matilha) é a vez deste.
+	// Picks the attack when the pause is over and (duelist/pack) it is this one's turn.
 	if (Now >= NextAttackAt)
 	{
 		if (const FNWBrainAttack* A = PickAttack(Dist))
@@ -380,7 +380,7 @@ void UNWBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 		}
 	}
 
-	// Alcance para onde andar: o maior entre os ataques prontos; com todos em recarga, o mais curto.
+	// Range to walk to: the largest among the ready attacks; with all on cooldown, the shortest.
 	float MaxReach = 0.f, MinReach = TNumericLimits<float>::Max();
 	for (const FNWBrainAttack& A : Attacks)
 	{
@@ -399,7 +399,7 @@ void UNWBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 	{
 	case ENWBrainStyle::Archer:
 	{
-		// Faixa preferida: recua se chegou perto, aproxima se longe, senão anda de lado.
+		// Preferred band: backs off if too close, approaches if far, otherwise strafes.
 		if (Dist < HoldDistance * 0.55f)
 		{
 			Steer(Me, -ToT, false);
@@ -419,7 +419,7 @@ void UNWBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 	case ENWBrainStyle::Duelist:
 	case ENWBrainStyle::Pack:
 	{
-		// Sem a vez (ou esperando a pausa): rodeia na distância de espera; a matilha se espalha pelos flancos.
+		// No turn (or waiting for the pause): circles at the waiting distance; the pack spreads over the flanks.
 		FVector Want = T->GetActorLocation();
 		if (Style == ENWBrainStyle::Pack)
 		{
@@ -449,7 +449,7 @@ void UNWBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 	}
 	default:
 	{
-		// Brawler e Charger: vai direto até o alcance do golpe mais longo.
+		// Brawler and Charger: go straight to the range of the longest hit.
 		if (Dist > MaxReach * 0.8f || MaxReach <= 0.f)
 		{
 			Steer(Me, ToT, false);

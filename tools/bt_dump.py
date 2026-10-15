@@ -1,11 +1,11 @@
-"""Imprime uma .behaviortree.json (nwbt --x-objects json) como árvore compacta.
+"""Prints a .behaviortree.json (nwbt --x-objects json) as a compact tree.
 
-    python3 tools/bt_dump.py extract/serverpak/json/sharedassets/ai/behaviortrees/wolf/wolf_base.behaviortree.json [profundidade_de_subárvores]
+    python3 tools/bt_dump.py extract/serverpak/json/sharedassets/ai/behaviortrees/wolf/wolf_base.behaviortree.json [subtree_depth]
 
-Extração: Server.pak (depot 1063731) linkado em extract/serverpak/game/assets; nwbt unpack -g extract/serverpak/game
+Extraction: Server.pak (depot 1063731) linked at extract/serverpak/game/assets; nwbt unpack -g extract/serverpak/game
 --x-objects json --crc-file .nwbt/rtti/nwt-crc.json --uuid-file .nwbt/rtti/nwt-types.json "sharedassets/ai/**".
-TreeReference traz a subárvore embutida (serializedtree): cada *_base.behaviortree é a IA inteira da criatura.
-Condições: opN = operador do jogo ainda não decifrado (pelo uso: 1 ==, 3 <, 4 >, 5 <=?, 6 >=); LOG1 = OR?.
+TreeReference carries the embedded subtree (serializedtree): each *_base.behaviortree is the creature's whole AI.
+Conditions: opN = game operator not decoded yet (from usage: 1 ==, 3 <, 4 >, 5 <=?, 6 >=); LOG1 = OR?.
 """
 import json,sys
 SKIP={'__type','baseclass1','child','children','id','name','baseutility','interruptable','serializedtree'}
@@ -29,7 +29,7 @@ def cond(g):
     j=' AND ' if g.get('grouplogicaloperator',0)==0 else f" LOG{g['grouplogicaloperator']} "
     return '('+j.join(parts)+')'
 def flat(o,pre=''):
-    """campos não default, achatados"""
+    """non-default fields, flattened"""
     out={}
     if not isinstance(o,dict): return out
     for k,v in o.items():
@@ -49,7 +49,7 @@ def flat(o,pre=''):
             out[pre+k]=v
     return out
 def chain(e):
-    """tipos (concreto→base), TreeAsset, child, children, campos"""
+    """types (concrete→base), TreeAsset, child, children, fields"""
     types=[];fields={};ta=None;child=None;children=None;sub=None
     while isinstance(e,dict):
         t=e.get('__type');types.append(t)

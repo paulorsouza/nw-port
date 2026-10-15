@@ -1,10 +1,10 @@
 {
- "_comment": "Regras de item e de ofício do port (docs/game/items.md, docs/game/crafting.md). Números marcados como provisórios em docs/game/items.md 'Pendente' são de balanceamento e podem mudar. tools/make_itens.py gera unreal/NWPort/Data/Items/regras_itens.json.",
+ "_comment": "Item and trade skill rules of the port (docs/game/items.md, docs/game/crafting.md). Numbers marked as provisional in docs/game/items.md 'Open questions' are balancing values and may change. tools/make_itens.py generates unreal/NWPort/Data/Items/regras_itens.json.",
  "nivel_fabricar": 50,
  "assinatura_qualidade": 80,
  "qualidade_min_oficio_max": 20,
  "qualidade_min_tudo_max": 50,
- "_atributo": "provisório: atributo = GS × atributo_por_gs (GS 800 dá 40)",
+ "_atributo": "provisional: attribute = GS × atributo_por_gs (GS 800 gives 40)",
  "atributo_por_gs": 0.05,
  "atributos": [
   "strength",
@@ -16,7 +16,7 @@
  "perks_por_item": 3,
  "perks_por_item_anel": 2,
  "perks_habilidade_max": 1,
- "_gs": "provisório (balanceamento): teto de GS de qualquer item. Refinar GS: chance_sucesso_gs % de subir, senão desce; sobe de 1 a 'max' e desce de 1 a −'min', 1 mais provável que 2 e assim por diante (peso linear), sempre dentro da faixa da fabricação. O teto depende de quanto o GS está acima do mínimo da faixa (passo_gs: 'ate' = diferença máxima, sem 'ate' = o resto)",
+ "_gs": "provisional (balancing): GS cap of any item. Refining GS: chance_sucesso_gs % to go up, otherwise it goes down; goes up by 1 to 'max' and down by 1 to −'min', 1 more likely than 2 and so on (linear weight), always within the crafting range. The cap depends on how far the GS is above the range minimum (passo_gs: 'ate' = maximum difference, no 'ate' = the rest)",
  "chance_sucesso_gs": 51,
  "gs_maximo": 800,
  "passo_gs": [
@@ -24,7 +24,7 @@
   {"ate": 25, "min": -10, "max": 10},
   {"min": -20, "max": 10}
  ],
- "_custos": "provisório: sortear atributo = 2, sortear GS = 2, desvincular = 2 + qualidade/10 de um material da receita, à escolha na tela (materiais_melhoria: 'receita' = índice do ingrediente, ou 'item' = id; 'passo_gs' opcional troca o passo para aquele material); retirar gema = 1 gema bruta do mesmo tipo e tier",
+ "_custos": "provisional: reroll attribute = 2, reroll GS = 2, unbind = 2 + quality/10 of one recipe material, chosen on the screen (materiais_melhoria: 'receita' = ingredient index, or 'item' = id; optional 'passo_gs' changes the step for that material); removing a gem = 1 raw gem of the same type and tier",
  "custo_melhoria": {"atributo": 2, "gs": 2, "desvincular": 2, "desvincular_qualidade_por": 10},
  "materiais_melhoria": [
   {"receita": 0},
@@ -32,16 +32,16 @@
   {"receita": 2}
  ],
  "chance_critica_teto": 50,
- "_mercado": "dono 2026-10-14: mercado bem limitado. Sem taxas. Até max_ordens ordens abertas por personagem (compra e venda somadas). Só vai ao mercado: equipamento fabricado (arma, escudo, armadura, joia, ferramenta com qualidade), itens que casam com padroes (gemas lapidadas, vidro rúnico pronto) e os refinados finais com limite diário em itens (Asmódeo, Fio de Fênix, Couro Rúnico, Ébano Cintilante). Matéria-prima e refinados intermediários não; item vinculado não.",
+ "_mercado": "maintainer 2026-10-14: very limited market. No fees. Up to max_ordens open orders per character (buy and sell combined). Only these go to the market: crafted gear (weapon, shield, armor, jewelry, tool with quality), items matching padroes (cut gems, finished runeglass) and the final refined items with a daily limit (Asmodeum, Phoenixweave, Runic Leather, Glittering Ebony). Raw materials and intermediate refined items do not; bound items do not.",
  "mercado": {
   "max_ordens": 50,
   "padroes": ["CutT[0-9]+$", "^Runeglass_Gem_"],
   "itens": ["IngotT51", "ClothT51", "LeatherT51", "TimberT51"]
  },
- "_armazem": "dono 2026-10-14: armazém compartilhado (um por personagem, 5 abas); capacidade = armazem_por_cidade kg por cidade conhecida (sem base), mais os baús das casas e o nível da cidade quando existirem",
+ "_armazem": "maintainer 2026-10-14: shared Storage (one per character, 5 tabs); capacity = armazem_por_cidade kg per known city (no base), plus house chests and city level once they exist",
  "armazem_por_cidade": 1000,
  "armazem_abas": 5,
- "_gemas": "docs/game/items.md 'Slot': as 4 lapidações do jogo (<Gema>CutT1..T4, Tier de item 2..5) dão o % do tier; uma gema, um efeito; híbrida divide o total. Vidro rúnico = Runeglass_Gem_<Gema>_<Cápsula>: efeito da gema Pura mais a amplificação da cápsula (provisório: vidro_amplificacao). Retirar custa 1 gema bruta do mesmo tipo e tier (<Gema>T<n>; provisório).",
+ "_gemas": "docs/game/items.md 'Slot and gems': the game's 4 cuts (<Gema>CutT1..T4, item tier 2..5) give the tier's %; one gem, one effect; a hybrid splits the total. Runeglass = Runeglass_Gem_<Gema>_<Cápsula>: effect of the Pure gem plus the capsule's amplification (provisional: vidro_amplificacao). Removing costs 1 raw gem of the same type and tier (<Gema>T<n>; provisional).",
  "gema_pct_por_tier": {
   "2": 2,
   "3": 3,
@@ -95,7 +95,7 @@
    }
   }
  },
- "_gema_classes": "classe da gema -> equipamentos onde encaixa (escudo usa as gemas de armadura, como no jogo)",
+ "_gema_classes": "gem class -> gear it fits in (shields use the armor gems, as in the game)",
  "gema_classes": {
   "armadura": [
    "armadura",
@@ -110,7 +110,7 @@
   "Arcane": "AmpMagica"
  },
  "vidro_amplificacao": 3.0,
- "_resistencia": "provisório (docs/game/items.md 'Armaduras e joias'): resistência física = mágica do peito pela classe de peso (fatores do jogo 0,875 / 0,481 / 0,265 x 400), posicionada pela qualidade; outras peças pela fração do slot do jogo (ArmorRatingScaleFactor 0,20 e 0,15 sobre 0,35)",
+ "_resistencia": "provisional (docs/game/items.md 'Armor and jewelry'): physical resistance = chest's magic resistance by weight class (game factors 0.875 / 0.481 / 0.265 x 400), placed by quality; other pieces by the game's slot fraction (ArmorRatingScaleFactor 0.20 and 0.15 over 0.35)",
  "resistencia_peito": {
   "Heavy": [
    350,
@@ -206,7 +206,7 @@
    "ColetaExperiencia"
   ]
  },
- "_cura_causada": "cajado da vida e manopla do vácuo também rolam Cura causada",
+ "_cura_causada": "Life Staff and Void Gauntlet also roll Healing dealt",
  "arma_cura": [
   "LifeStaff",
   "VoidGauntlet"
@@ -369,5 +369,5 @@
    "icone": "lyshineui/images/icons/perks/bonusxp1.dds"
   }
  },
- "_icones": "ícones das perks do port: ícone do jogo da perk equivalente (javelindata_perks IconPath)"
+ "_icones": "icons of the port's perks: game icon of the equivalent perk (javelindata_perks IconPath)"
 }

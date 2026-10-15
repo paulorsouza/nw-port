@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Fontes do ooz (descompressão Oodle/Kraken do nwbt): powzix/ooz no commit BASE + patches/ooz.patch.
+"""ooz sources (Oodle/Kraken decompression for nwbt): powzix/ooz at commit BASE + patches/ooz.patch.
 
-    python3 tools/build_ooz.py      # imprime a pasta com as fontes prontas (.nwbt/build/ooz)
+    python3 tools/build_ooz.py      # prints the folder with the prepared sources (.nwbt/build/ooz)
 
-O checkout em vendor/ooz (clonado se faltar) não é alterado. Compilar: tools/linux/build_ooz.sh ou
-tools/windows/build_ooz.ps1. O ooz é GPL-3.0; o binário gerado fica fora do git.
+The checkout in vendor/ooz (cloned if missing) is not changed. To build: tools/linux/build_ooz.sh or
+tools/windows/build_ooz.ps1. ooz is GPL-3.0; the built binary stays out of git.
 """
 import shutil
 import subprocess
@@ -37,7 +37,7 @@ def prepare():
         data = subprocess.run(["git", "show", f"{BASE}:{name}"], cwd=checkout, check=True,
                               capture_output=True).stdout
         (out / name).write_bytes(data.replace(b"\r\n", b"\n"))
-    # Rodado da raiz: dentro do checkout do nw-port o git apply resolve os caminhos a partir dela.
+    # Run from the root: inside the nw-port checkout, git apply resolves the paths from it.
     git("apply", f"--directory={out.relative_to(ROOT).as_posix()}", "patches/ooz.patch", cwd=ROOT)
     return out
 

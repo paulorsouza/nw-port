@@ -1,5 +1,5 @@
 {
-  "_comment": "Textos de uso geral (menu de dev, menu do Esc, configurações, atalhos). Compartilhado: mudança mínima.",
+  "_comment": "General-purpose texts (dev menu, Esc menu, settings, shortcuts). Shared: keep changes minimal.",
   "textos": {
     "nw.dev.title": {
       "pt-br": "Dev",

@@ -27,8 +27,8 @@
 #include "NWBrainComponent.h"
 #include "HAL/IConsoleManager.h"
 
-// Ajuste do port sobre o c_shakeMult do jogo (camera.shake_mult).
-static TAutoConsoleVariable<float> CVarNWShakeScale(TEXT("nw.ShakeScale"), 1.f, TEXT("Multiplica as tremidas de câmera do jogo"));
+// Port adjustment on top of the game's c_shakeMult (camera.shake_mult).
+static TAutoConsoleVariable<float> CVarNWShakeScale(TEXT("nw.ShakeScale"), 1.f, TEXT("Multiplies the game's camera shakes"));
 
 // camera.shake_mult × nw.ShakeScale.
 static float ShakeScale()
@@ -60,7 +60,7 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 
 	GetCapsuleComponent()->InitCapsuleSize(34.f, 86.f);
 
-	// Strafe: o corpo segue a câmera (no Tick); no sprint passa a seguir o movimento.
+	// Strafe: the body follows the camera (in Tick); while sprinting it follows the movement instead.
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
@@ -69,13 +69,13 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Move->RotationRate = FRotator(0.f, 720.f, 0.f);
 	Move->MaxWalkSpeed = RunSpeed;
 	Move->JumpZVelocity = 450.f;
-	// Rampa máxima do jogo (CharacterComponent m_maxslope = 70) e controle no ar moderado.
+	// The game's maximum slope (CharacterComponent m_maxslope = 70) and moderate air control.
 	Move->SetWalkableFloorAngle(70.f);
 	Move->AirControl = 0.2f;
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	// Valores iniciais da DynamicCamera do jogo; UpdateCamera troca por estado (sprint, inventário).
+	// Initial values of the game's DynamicCamera; UpdateCamera swaps them per state (sprint, inventory).
 	CameraBoom->SetRelativeLocation(FVector(0.f, 0.f, 170.f - 86.f));
 	CameraBoom->TargetArmLength = 200.f;
 	CameraBoom->SocketOffset = FVector(0.f, 50.f, 0.f);
@@ -85,25 +85,25 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Camera->bUsePawnControlRotation = false;
 
 	USkeletalMeshComponent* Body = GetMesh();
-	// Malha exportada do Blender olhando para -Y; no Unreal o ator olha para +X. Ajustar aqui se vier girada.
+	// Mesh exported from Blender facing -Y; in Unreal the actor faces +X. Adjust here if it comes rotated.
 	Body->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -86.f), FRotator(0.f, -90.f, 0.f));
-	// Personagens não recebem decalques do chão (áreas de efeito das armas, como no jogo).
+	// Characters do not receive ground decals (weapon area effects, as in the game).
 	Body->SetReceivesDecals(false);
-	// O servidor precisa da pose (curvas das janelas, root motion e posição da lâmina) só com montagem tocando (golpe,
-	// esquiva, reação); parado ou andando, ninguém vê a pose no servidor (docs/tech/architecture.md, medições:
-	// animação era ~80 µs por personagem). No cliente vale para quem está fora da tela.
+	// The server needs the pose (window curves, root motion and blade position) only while a montage plays (hit,
+	// dodge, reaction); idle or walking, nobody sees the pose on the server (docs/tech/architecture.md, measurements:
+	// animation was ~80 µs per character). On the client it applies to whoever is off screen.
 	Body->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickMontagesAndRefreshBonesWhenPlayingMontages;
 
 	NockedArrow = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("NockedArrow"));
 	NockedArrow->SetupAttachment(Body, TEXT("right_hand_attach"));
 	NockedArrow->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	NockedArrow->SetVisibility(false);
-	NockedArrow->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));   // mesma correção das armas (ponta em +Z da malha)
+	NockedArrow->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));   // same correction as the weapons (tip at the mesh's +Z)
 	Sword = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Sword"));
 	Sword->SetupAttachment(Body, TEXT("right_hand_attach"));
 	Sword->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	// Rotação da arma no socket: o importador de glTF do Blender gira os ossos -90° no X local em relação
-	// à junta do jogo; no jogo a arma entra na junta sem rotação (ver tools/ue/grip_offsets.md).
+	// Weapon rotation on the socket: Blender's glTF importer rotates the bones -90° on local X relative
+	// to the game's joint; in the game the weapon goes into the joint without rotation (see tools/ue/grip_offsets.md).
 	Sword->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));
 	Shield = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Shield"));
 	Shield->SetupAttachment(Body, TEXT("left_hand_attach"));
@@ -114,7 +114,7 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Stowed->SetupAttachment(Body, TEXT("Hips"));
 	Stowed->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	// Armas do jogador (NWCharacterArmas.cpp, esteira de armas).
+	// Player weapons (NWCharacterArmas.cpp, weapons area).
 	AddPlayerWeaponSets();
 
 	Combat = CreateDefaultSubobject<UNWCombatComponent>(TEXT("Combat"));
@@ -128,7 +128,7 @@ ANWCharacter::ANWCharacter(const FObjectInitializer& ObjectInitializer)
 	Brain = CreateDefaultSubobject<UNWBrainComponent>(TEXT("Brain"));
 	Brain->bAutoActivate = false;
 
-	// Caminhos criados pelo tools/ue/import_nw.py (conjunto sword_shield).
+	// Paths created by tools/ue/import_nw.py (sword_shield set).
 	MeshAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SK_player_male.SK_player_male")));
 	AnimClass = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/ABP_NW.ABP_NW_C")));
 	SwordAsset = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SM_sword.SM_sword")));
@@ -169,14 +169,14 @@ void ANWCharacter::BeginPlay()
 {
 	LoadMissingAssets();
 	Super::BeginPlay();
-	// Cliente sem render (bots de teste, -nullrhi): a pose só anda quando desenhada, e as montagens com root motion
-	// e as curvas de janela paravam. O servidor dedicado já anima sempre.
+	// Client without rendering (test bots, -nullrhi): the pose only advances when drawn, and montages with root motion
+	// and window curves stopped. The dedicated server always animates.
 	if (!FApp::CanEverRender() && !IsRunningDedicatedServer())
 	{
 		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	}
-	// Servidor dedicado: a malha que não é alvo de golpe (o golpe varre o canal Pawn e acerta a cápsula; criaturas usam
-	// a malha) fica sem colisão, e os corpos de física dela deixam de seguir a animação a cada ciclo.
+	// Dedicated server: the mesh that is not a hit target (the hit sweeps the Pawn channel and hits the capsule; creatures use
+	// the mesh) has no collision, and its physics bodies stop following the animation every cycle.
 	if (GetNetMode() == NM_DedicatedServer && GetMesh()->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Ignore)
 	{
 		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -187,7 +187,7 @@ void ANWCharacter::BeginPlay()
 	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
 	if (HasAuthority() && bDummyBlocks && !IsPlayerControlled())
 	{
-		// Depois de um quadro, para a AnimInstance já estar de pé.
+		// After one frame, so the AnimInstance is already up.
 		GetWorldTimerManager().SetTimerForNextTick([this]() { Combat->RequestBlock(true); });
 	}
 }
@@ -203,7 +203,7 @@ void ANWCharacter::Tick(float DeltaSeconds)
 	{
 		AddMovementInput(FVector::UpVector, (bFlyUp ? 1.f : 0.f) - (bWalking ? 1.f : 0.f));
 	}
-	// Flecha na mão direita do jogo (CAGE-Attachment ActiveWeapon) enquanto mira e puxa; some no disparo e volta na recarga.
+	// Arrow in the game's right hand (CAGE-Attachment ActiveWeapon) while aiming and drawing; disappears on shot, returns on reload.
 	{
 		const FName A = Combat->GetCurrentAction();
 		const bool bShow = Combat->bAimWeapon && Combat->bAiming && A != TEXT("AimShot") && A != TEXT("ChargedShot") && A != TEXT("PenetratingShot")
@@ -216,8 +216,8 @@ void ANWCharacter::Tick(float DeltaSeconds)
 	}
 	UpdateAutoSprint();
 	ApplySprint();
-	// Braço da câmera (traçado de colisão a cada ciclo) só no personagem do jogador local; no servidor e nos outros
-	// personagens (inclusive criaturas, que no servidor são "controladas localmente" pela IA) fica parado.
+	// Camera arm (collision trace every cycle) only on the local player's character; on the server and on other
+	// characters (including creatures, which on the server are "locally controlled" by the AI) it stays still.
 	const bool bLocalView = IsLocallyControlled() && IsPlayerControlled();
 	if (CameraBoom && CameraBoom->IsComponentTickEnabled() != bLocalView)
 	{
@@ -230,8 +230,8 @@ void ANWCharacter::Tick(float DeltaSeconds)
 		TickDummy(DeltaSeconds);
 	}
 
-	// O corpo segue a câmera (strafe) fora de ataque/esquiva/sprint; em ataque só na janela Homing.
-	// Giro feito aqui, direto: o bUseControllerRotationYaw alternado a cada quadro não estava aplicando.
+	// The body follows the camera (strafe) outside attack/dodge/sprint; during an attack only in the Homing window.
+	// Rotation done here, directly: bUseControllerRotationYaw toggled every frame was not being applied.
 	bUseControllerRotationYaw = false;
 	const bool bBusy = Combat->IsBusy() || Traversal->IsTraversing();
 	if (Controller && IsPlayerControlled())
@@ -240,7 +240,7 @@ void ANWCharacter::Tick(float DeltaSeconds)
 		const ANWPlayerController* NWPC = Cast<ANWPlayerController>(Controller);
 		if (NWPC && NWPC->IsInventoryOpen() && !bBusy && GetVelocity().Size2D() < 10.f)
 		{
-			// Inventário aberto: o personagem vira de frente para a câmera (BlendLookDirection do jogo).
+			// Inventory open: the character turns to face the camera (the game's BlendLookDirection).
 			SetActorRotation(FMath::RInterpTo(GetActorRotation(), FRotator(0.f, Target.Yaw + 180.f, 0.f), DeltaSeconds, 8.f));
 		}
 		else if ((!bBusy || Combat->IsCharging() || Combat->bAiming) && !bSprinting)
@@ -249,8 +249,8 @@ void ANWCharacter::Tick(float DeltaSeconds)
 		}
 		else if (bBusy && Combat->GetCurve(TEXT("Homing")) > 0.5f)
 		{
-			// Homing do jogo: vira para o inimigo mais perto à frente da câmera (raio ~2,75 m, cone de 45°, janelas
-			// Homing do .adb); sem ninguém, para onde a câmera olha.
+			// The game's Homing: turns toward the nearest enemy in front of the camera (radius ~2.75 m, 45° cone, Homing
+			// windows from the .adb); with nobody there, toward where the camera looks.
 			FRotator Aim = Target;
 			float Best = 275.f;
 			const FVector CamFwd = Target.Vector();
@@ -275,11 +275,11 @@ void ANWCharacter::Tick(float DeltaSeconds)
 
 void ANWCharacter::ApplySprint()
 {
-	// Sobrecarregado (peso > máximo): só anda, como no jogo ("não é possível correr, se esquivar ou pular").
+	// Overloaded (weight > maximum): walk only, as in the game ("cannot run, dodge or jump").
 	const bool bEncumbered = Inventory && Inventory->IsEncumbered();
 	const bool bCanSprint = bSprinting && !bWalking && !bEncumbered && !Combat->IsBusy() && Combat->State != ENWCombatState::Blocking && !Combat->bAiming;
 	UCharacterMovementComponent* Move = GetCharacterMovement();
-	// Mirando com o arco anda a 1,65 m/s (AimCamera do jogo).
+	// Aiming with the Bow walks at 1.65 m/s (the game's AimCamera).
 	const float Speed = bWalking || bEncumbered || Combat->bAiming ? WalkSpeed
 		: bCanSprint ? SprintSpeed
 		: Combat->State == ENWCombatState::Blocking ? RunSpeed * 0.4f : RunSpeed;
@@ -298,9 +298,9 @@ void ANWCharacter::PlayCameraShake(FName Id)
 	{
 		ShakeTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/NW/Data/DT_NWCameraShake.DT_NWCameraShake"));
 	}
-	// Nomes das tabelas de dano às vezes têm espaço no fim ("Small "); ID inexistente = sem tremida (como no jogo).
+	// Damage table names sometimes have a trailing space ("Small "); nonexistent ID = no shake (as in the game).
 	const FNWCameraShakeRow* R = ShakeTable ? ShakeTable->FindRow<FNWCameraShakeRow>(FName(*Id.ToString().TrimStartAndEnd()), TEXT("shake"), false) : nullptr;
-	// camera.shake_min: escala total desprezível ignora a tremida (View.cpp do CryEngine).
+	// camera.shake_min: a negligible total scale ignores the shake (CryEngine's View.cpp).
 	if (!R || ShakeScale() < FNWRules::Num(TEXT("camera.shake_min"), 0.001))
 	{
 		return;
@@ -322,7 +322,7 @@ void ANWCharacter::ApplyDevFlying()
 	UCharacterMovementComponent* Move = GetCharacterMovement();
 	Move->BrakingDecelerationFlying = 6000.f;
 	Move->SetMovementMode(bDevFlying ? MOVE_Flying : MOVE_Falling);
-	// Atravessa terreno, rochas e construções; continua acertando e sendo acertado (Pawn segue bloqueando).
+	// Passes through terrain, rocks and buildings; still hits and gets hit (Pawn keeps blocking).
 	const ECollisionResponse R = bDevFlying ? ECR_Ignore : ECR_Block;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, R);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldDynamic, R);
@@ -335,7 +335,7 @@ void ANWCharacter::UpdateAutoSprint()
 	{
 		return;
 	}
-	// Indo para a frente da câmera (até ~45° para os lados), sem andar com Ctrl, sem ataque/bloqueio: sprint.
+	// Going toward the camera's front (up to ~45° to the sides), not walking with Ctrl, no attack/block: sprint.
 	const FVector Accel = GetCharacterMovement()->GetCurrentAcceleration().GetSafeNormal2D();
 	const FVector Forward = FRotator(0.f, Controller->GetControlRotation().Yaw, 0.f).Vector();
 	const bool bWant = !Accel.IsNearlyZero() && FVector::DotProduct(Accel, Forward) > 0.7f && !bWalking && !Combat->bAiming
@@ -385,7 +385,7 @@ void ANWCharacter::BuildInput()
 
 	IA_AutoRun = MakeAction(this, TEXT("IA_AutoRun"), EInputActionValueType::Boolean);
 	IA_Map = MakeAction(this, TEXT("IA_Map"), EInputActionValueType::Boolean);
-	// Teclas das esteiras (NWInputRegistry.h), na ordem do registro.
+	// Keys of the areas (NWInputRegistry.h), in registry order.
 	for (const FNWInputBinding& B : FNWInputRegistry::All())
 	{
 		IA_Registered.Add(MakeAction(this, *(TEXT("IA_") + B.Id.ToString()), EInputActionValueType::Boolean));
@@ -398,7 +398,7 @@ void ANWCharacter::MapKeys()
 	Mapping->UnmapAll();
 	const FNWOptions& O = FNWOptions::Get();
 	auto Key = [&O](const TCHAR* Id) { return O.KeyFor(Id); };
-	// Movimento -> eixo 2D (X = lado, Y = frente), como no template do Unreal.
+	// Movement -> 2D axis (X = side, Y = forward), as in the Unreal template.
 	auto MapMove = [this](FKey K, bool bSwizzle, bool bNegate)
 	{
 		FEnhancedActionKeyMapping& M = Mapping->MapKey(IA_Move, K);
@@ -507,10 +507,10 @@ void ANWCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 void ANWCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D V = Value.Get<FVector2D>();
-	LastMoveInput = FVector2D(V.Y, V.X); // (frente, direita) para a esquiva
+	LastMoveInput = FVector2D(V.Y, V.X); // (forward, right) for the dodge
 	if (!FMath::IsNearlyZero(V.Y))
 	{
-		bAutoRun = false;   // frente ou trás cancela a corrida automática, como no jogo
+		bAutoRun = false;   // forward or back cancels auto-run, as in the game
 	}
 	if (!Controller || V.IsNearlyZero())
 	{
@@ -534,7 +534,7 @@ void ANWCharacter::Zoom(const FInputActionValue& Value)
 	{
 		return;
 	}
-	// zoomAmount do jogo: 1 m por clique da roda; para cima aproxima.
+	// The game's zoomAmount: 1 m per wheel click; up zooms in.
 	CameraZoom = FMath::Clamp(CameraZoom - Value.Get<float>() * 100.f, CameraZoomMin, CameraZoomMax);
 }
 
@@ -546,7 +546,7 @@ void ANWCharacter::UpdateCamera(float DeltaSeconds)
 	}
 	const ANWPlayerController* PC = Cast<ANWPlayerController>(Controller);
 	const bool bInventory = PC && PC->IsInventoryOpen();
-	// Estados do gamecamera.xml: (direita, altura acima dos pés, distância, inclinação mín./máx.).
+	// gamecamera.xml states: (right, height above the feet, distance, min/max pitch).
 	float Right = 50.f, Height = 170.f, Distance = CameraZoom, PitchMin = -70.f, PitchMax = 60.f;
 	if (bInventory)
 	{
@@ -554,13 +554,13 @@ void ANWCharacter::UpdateCamera(float DeltaSeconds)
 	}
 	else if (Combat->bAiming)
 	{
-		Distance = 100.f;                                                                        // AimCamera (arco)
+		Distance = 100.f;                                                                        // AimCamera (Bow)
 	}
 	else if (bSprinting && GetVelocity().Size2D() > RunSpeed)
 	{
 		Right = 70.f; Distance = FMath::Max(Distance, 400.f);                                   // MidCameraSprint
 	}
-	// Transição de 0,2 s (SmoothTime do jogo).
+	// 0.2 s transition (the game's SmoothTime).
 	const float Speed = 1.f / 0.2f;
 	const float HalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	FVector Loc = CameraBoom->GetRelativeLocation();
@@ -576,7 +576,7 @@ void ANWCharacter::UpdateCamera(float DeltaSeconds)
 		Shake = FVector(0.f, FMath::Sin(CameraKickTime * 60.f) * A, FMath::Sin(CameraKickTime * 47.f + 1.f) * A * 0.7f);
 		CameraKick = FMath::Max(0.f, CameraKick - DeltaSeconds * 4.f);
 	}
-	// Tremida do jogo: alvo aleatório a cada período (sinal alternado), interpolado e no envelope suavizado.
+	// The game's shake: random target every period (alternating sign), interpolated and in the smoothed envelope.
 	FRotator ShakeRot = FRotator::ZeroRotator;
 	if (ActiveShake.bActive)
 	{
@@ -607,7 +607,7 @@ void ANWCharacter::UpdateCamera(float DeltaSeconds)
 			Env = Env * Env * (3.f - 2.f * Env);
 			const FVector Sh = FMath::Lerp(S.FromShift, S.ToShift, Sm) * Env * 100.f * ShakeScale();
 			const FVector An = FMath::Lerp(S.FromAngle, S.ToAngle, Sm) * Env * ShakeScale();
-			// Eixos do CryEngine na câmera: X direita, Y frente, Z cima → Unreal X frente, Y direita, Z cima.
+			// CryEngine camera axes: X right, Y forward, Z up → Unreal X forward, Y right, Z up.
 			Shake += FVector(Sh.Y, Sh.X, Sh.Z);
 			ShakeRot = FRotator(FMath::RadiansToDegrees(An.X), FMath::RadiansToDegrees(An.Z), FMath::RadiansToDegrees(An.Y));
 		}
@@ -619,14 +619,14 @@ void ANWCharacter::UpdateCamera(float DeltaSeconds)
 		PCM->ViewPitchMin = PitchMin;
 		PCM->ViewPitchMax = PitchMax;
 	}
-	// FOV do jogo é vertical; a Unreal usa horizontal: converte pela proporção da tela.
+	// The game's FOV is vertical; Unreal uses horizontal: converts by the screen aspect ratio.
 	FVector2D Viewport(16.f, 9.f);
 	if (GEngine && GEngine->GameViewport)
 	{
 		GEngine->GameViewport->GetViewportSize(Viewport);
 	}
 	const float Aspect = Viewport.Y > 0.f ? Viewport.X / Viewport.Y : 16.f / 9.f;
-	// Campo de visão da opção do jogador; no inventário o jogo ignora a opção (UseUserDefinedFov = false).
+	// Field of view from the player option; in the inventory the game ignores the option (UseUserDefinedFov = false).
 	const float Vertical = bInventory ? CameraFovVertical : FNWOptions::Get().FovVertical;
 	Camera->SetFieldOfView(FMath::RadiansToDegrees(2.f * FMath::Atan(FMath::Tan(FMath::DegreesToRadians(Vertical) * 0.5f) * Aspect)));
 }
@@ -665,7 +665,7 @@ void ANWCharacter::JumpPressed()
 	{
 		return;
 	}
-	// Como no jogo: pula fora de ataque/esquiva; com a guarda levantada, abaixa e pula.
+	// As in the game: jumps outside attack/dodge; with the guard up, lowers it and jumps.
 	if (Combat->IsBusy() || Traversal->IsTraversing())
 	{
 		return;
@@ -731,8 +731,8 @@ void ANWCharacter::DevMenuPressed()
 	}
 }
 
-// Escolha de habilidades gravada em Saved/Config/<plataforma>/GameUserSettings.ini; com nw-core, o servidor
-// guarda a escolha e manda de volta ao entrar (ANWPlayerController::OnRep_Progress).
+// Ability choice stored in Saved/Config/<platform>/GameUserSettings.ini; with nw-core, the server
+// keeps the choice and sends it back on join (ANWPlayerController::OnRep_Progress).
 
 void ANWCharacter::WalkPressed()
 {
@@ -756,10 +756,10 @@ void ANWCharacter::ServerSetSprinting_Implementation(bool bNew)
 	bSprinting = bNew;
 }
 
-static TAutoConsoleVariable<int32> CVarDebugCamera(TEXT("nw.DebugCamera"), 0, TEXT("Registra a câmera (pitch, braço, distância) a cada segundo."));
+static TAutoConsoleVariable<int32> CVarDebugCamera(TEXT("nw.DebugCamera"), 0, TEXT("Logs the camera (pitch, arm, distance) every second."));
 
-// Teto baixo/parede atrás: o braço da câmera encolhe até dentro do corpo. Nesse caso o próprio jogador deixa de
-// ver o personagem (os outros continuam vendo), como nos jogos em terceira pessoa.
+// Low ceiling/wall behind: the camera arm shrinks to inside the body. In that case the player stops
+// seeing their own character (others still see it), as in third-person games.
 void ANWCharacter::UpdateCameraClipHide()
 {
 	if (!IsLocallyControlled() || !IsPlayerControlled() || !Camera)
@@ -771,7 +771,7 @@ void ANWCharacter::UpdateCameraClipHide()
 	const bool bHide = Dist < CameraHideDistance;
 	if (CVarDebugCamera.GetValueOnGameThread() != 0 && GFrameCounter % 30 == 0)
 	{
-		UE_LOG(LogTemp, Display, TEXT("NW câmera: pitch %.1f  braço %.0f/%.0f  dist %.0f  pos %s  mov %d"), GetControlRotation().Pitch,
+		UE_LOG(LogTemp, Display, TEXT("NW camera: pitch %.1f  arm %.0f/%.0f  dist %.0f  pos %s  mov %d"), GetControlRotation().Pitch,
 			FVector::Dist(CameraBoom->GetComponentLocation(), Camera->GetComponentLocation()), CameraBoom->TargetArmLength, Dist,
 			*GetActorLocation().ToCompactString(), int32(GetCharacterMovement()->MovementMode));
 	}
@@ -844,7 +844,7 @@ void ANWCharacter::RefreshLocomotion()
 		BS = WeaponSets[ActiveWeapon].Locomotion.LoadSynchronous();
 		From = WeaponSets[ActiveWeapon].Id;
 	}
-	// Pelo nome: vale para a variável do C++ (NWAnimInstance) e para uma criada no próprio ABP.
+	// By name: works for the C++ variable (NWAnimInstance) and for one created in the ABP itself.
 	int32 Assigned = 0;
 	for (TFieldIterator<FObjectProperty> It(Anim->GetClass()); It; ++It)
 	{
@@ -854,6 +854,6 @@ void ANWCharacter::RefreshLocomotion()
 			++Assigned;
 		}
 	}
-	UE_LOG(LogTemp, Log, TEXT("NW locomoção %s -> %s (%d variável/is em %s)"), *From.ToString(),
-		BS ? *BS->GetName() : TEXT("nenhuma"), Assigned, *Anim->GetClass()->GetName());
+	UE_LOG(LogTemp, Log, TEXT("NW locomotion %s -> %s (%d variable(s) in %s)"), *From.ToString(),
+		BS ? *BS->GetName() : TEXT("none"), Assigned, *Anim->GetClass()->GetName());
 }

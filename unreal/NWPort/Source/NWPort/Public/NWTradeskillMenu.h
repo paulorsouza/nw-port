@@ -7,9 +7,9 @@ class ANWCharacter;
 class UCanvas;
 
 /**
- * Aba de ofícios de coleta da janela "Personagem" do jogo (TradeSkills > GatheringSection de
- * lyshineui/skills/skills.dynamicuicanvas, tools/ui_build_tradeskills.py): uma célula por ofício com o nível no
- * meio do círculo e o progresso até o próximo nível no anel. Abre pela aba no topo da janela K.
+ * Gathering trade skills tab of the game's "Personagem" window (TradeSkills > GatheringSection of
+ * lyshineui/skills/skills.dynamicuicanvas, tools/ui_build_tradeskills.py): one cell per trade skill with the level
+ * in the middle of the circle and progress to the next level on the ring. Opens via the tab at the top of window K.
  */
 class NWPORT_API FNWTradeskillMenu
 {
@@ -20,8 +20,8 @@ public:
 	void Draw(UCanvas* Canvas, const FVector2D& Mouse);
 
 	/**
-	 * Abas da janela K (Maestria em Armas / Hab. Mercantes / Atributos), desenhadas por cima da tela aberta; Active = aba
-	 * atual. Devolve a aba sob o mouse no clique (ou INDEX_NONE) por TabAt.
+	 * Tabs of the K window (Maestria em Armas / Hab. Mercantes / Atributos), drawn over the open screen; Active = current
+	 * tab. Returns the tab under the mouse on click (or INDEX_NONE) through TabAt.
 	 */
 	static void DrawTabs(UCanvas* Canvas, const FVector2D& Mouse, int32 Active);
 	static int32 TabAt(const FVector2D& Mouse);

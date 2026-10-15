@@ -1,5 +1,5 @@
 {
- "_comment": "Decisões das perks do jogo (docs/game/items.md), exportadas da página Corte de Perks em 2026-10-13. v: fica|sai; nova: perk do port que absorve esta; nota: ajuste do efeito.",
+ "_comment": "Decisions on the game's perks (docs/game/items.md), exported from the Perk Cut page on 2026-10-13. v: fica|sai (keep|drop); nova: port perk that absorbs this one; nota: effect adjustment.",
  "decisoes": {
   "PerkID_Ability_Blunderbuss_AzothShrapnelBlast": {
    "v": "fica"

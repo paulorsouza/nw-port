@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# Converte uma cidade do jogo (dynamicslice "*_complete") em glb limpo + terreno, sem Unreal.
+# Converts a game city (dynamicslice "*_complete") into a clean glb + terrain, without Unreal.
 #
-#     tools/linux/convert_city.sh <slice>        ex.: tools/linux/convert_city.sh settlement_reekwater_complete
+#     tools/linux/convert_city.sh <slice>        e.g. tools/linux/convert_city.sh settlement_reekwater_complete
 #
-# Etapas (cada uma pula se a saída já existe; dá para rodar de novo):
+# Steps (each one skips if its output already exists; safe to run again):
 #   1. nwbt models slices  → extract/cities/slices/structures/settlements/v2_settlements/<slice>.glb
 #   2. glb_strip_nodraw.py → extract/cities/limpa/<slice>.glb
-#   3. dados de terreno (capitals, heightmaps, roads_splat) em extract/terrain, extraídos só se faltarem
-#   4. make_terrain.py     → extract/cities/<curto>_terrain.glb + .json
-#      (<curto> = slice sem "_complete", "settlement_" e "_settlement"; ex. southwindsward)
+#   3. terrain data (capitals, heightmaps, roads_splat) in extract/terrain, extracted only if missing
+#   4. make_terrain.py     → extract/cities/<short>_terrain.glb + .json
+#      (<short> = slice without "_complete", "settlement_" and "_settlement"; e.g. southwindsward)
 #
-# Proteções: nwbt roda com cwd = raiz do repo (cache em .nwbt/, nunca em /tmp); tudo pesado com
-# nice/ionice; espera MemAvailable >= 12 GB (até 20 min) antes de começar e mata a conversão se
-# MemAvailable cair abaixo de 8 GB; para se algum disco envolvido tiver menos de 30 GB livres.
-# Log em extract/cities/logs/<slice>.log. Saídas são gravadas com nome temporário e renomeadas no fim.
+# Safeguards: nwbt runs with cwd = repo root (cache in .nwbt/, never in /tmp); everything heavy with
+# nice/ionice; waits for MemAvailable >= 12 GB (up to 20 min) before starting and kills the conversion if
+# MemAvailable drops below 8 GB; stops if any disk involved has less than 30 GB free.
+# Log in extract/cities/logs/<slice>.log. Outputs are written under a temporary name and renamed at the end.
 #
-# Códigos de saída: 0 ok (terreno pode ter sido pulado, ver log), 2 uso, 3 memória/disco, 4 falha na conversão.
+# Exit codes: 0 ok (terrain may have been skipped, see log), 2 usage, 3 memory/disk, 4 conversion failure.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 
@@ -28,7 +28,7 @@ GAME="${NW_GAME:-/mnt/jogos/Steam/steamapps/common/New World}"
 LEVEL=newworld_vitaeeterna
 TDIR=extract/terrain
 
-[ $# -eq 1 ] || { echo "uso: $0 <slice>  (ex.: settlement_reekwater_complete)" >&2; exit 2; }
+[ $# -eq 1 ] || { echo "usage: $0 <slice>  (e.g. settlement_reekwater_complete)" >&2; exit 2; }
 SLICE="${1##*/}"; SLICE="${SLICE%.dynamicslice}"
 SRC="slices/structures/settlements/v2_settlements/$SLICE.dynamicslice"
 RAW="extract/cities/slices/structures/settlements/v2_settlements/$SLICE.glb"
@@ -52,10 +52,10 @@ wait_mem() {
     for i in $(seq 0 20); do
         (( $(mem_avail_kb) >= MEM_START_KB )) && return 0
         (( i == 20 )) && break
-        echo "memória: $(( $(mem_avail_kb) / 1024 )) MB livres, esperando 60 s ($((i + 1))/20)"
+        echo "memory: $(( $(mem_avail_kb) / 1024 )) MB free, waiting 60 s ($((i + 1))/20)"
         sleep 60
     done
-    echo "ERRO: MemAvailable abaixo de 12 GB por 20 min"; exit 3
+    echo "ERROR: MemAvailable below 12 GB for 20 min"; exit 3
 }
 
 check_disk() {
@@ -63,20 +63,20 @@ check_disk() {
     for d in "$ROOT" "$GAME"; do
         free=$(df -Pk "$d" | awk 'NR==2 {print $4}')
         if (( free < DISK_MIN_KB )); then
-            echo "ERRO: menos de 30 GB livres em $d ($((free / 1024 / 1024)) GB)"; exit 3
+            echo "ERROR: less than 30 GB free on $d ($((free / 1024 / 1024)) GB)"; exit 3
         fi
     done
 }
 
-# Roda "$@" com nice/ionice num grupo de processos próprio; mata o grupo (e o texconv do wine)
-# se MemAvailable cair abaixo de 8 GB.
+# Runs "$@" with nice/ionice in its own process group; kills the group (and wine's texconv)
+# if MemAvailable drops below 8 GB.
 run_guarded() {
     setsid "${NICE[@]}" "$@" &
     local pid=$! peak=0 low
     while kill -0 "$pid" 2>/dev/null; do
         low=$(mem_avail_kb)
         if (( low < MEM_MIN_KB )); then
-            echo "ERRO: MemAvailable $((low / 1024)) MB < 8 GB; matando $1"
+            echo "ERROR: MemAvailable $((low / 1024)) MB < 8 GB; killing $1"
             kill -TERM -- "-$pid" 2>/dev/null || true
             pkill -f "texconv.*$ROOT/.nwbt" 2>/dev/null || true
             sleep 5
@@ -94,7 +94,7 @@ check_disk
 
 # 1. slice → glb
 if [ -s "$RAW" ]; then
-    echo "[1] já existe: $RAW"
+    echo "[1] already exists: $RAW"
 else
     echo "[1] nwbt models slices $SRC"
     TMPOUT="extract/cities/.tmp_$SLICE"
@@ -104,23 +104,23 @@ else
     run_guarded nwbt models slices -g "$GAME" -o "$TMPOUT" --binary --embed --ior 1.5 "$SRC" || rc=$?
     got=$(find "$TMPOUT" -name "$SLICE.glb" -size +0 | head -1)
     if (( rc != 0 )) || [ -z "$got" ]; then
-        echo "ERRO: nwbt falhou (rc=$rc); parcial em $TMPOUT"
+        echo "ERROR: nwbt failed (rc=$rc); partial output in $TMPOUT"
         (( rc == 99 )) && exit 3
         exit 4
     fi
     mv "$got" "$RAW"
-    # o nwbt também grava animations/ (adb dos mannequins); junta em extract/cities sem sobrescrever
+    # nwbt also writes animations/ (mannequin adb files); merge into extract/cities without overwriting
     [ -d "$TMPOUT/animations" ] && cp -rn "$TMPOUT/animations" extract/cities/
     rm -rf "$TMPOUT"
-    echo "[1] ok em $(( $(date +%s) - start )) s: $(du -h "$RAW" | cut -f1)"
+    echo "[1] ok in $(( $(date +%s) - start )) s: $(du -h "$RAW" | cut -f1)"
 fi
 
-# 2. remove NoDraw/efeitos
+# 2. remove NoDraw/effects
 if [ -s "$CLEAN" ]; then
-    echo "[2] já existe: $CLEAN"
+    echo "[2] already exists: $CLEAN"
 else
     echo "[2] glb_strip_nodraw"
-    run_guarded python3 tools/glb_strip_nodraw.py "$RAW" "$CLEAN.part" || { echo "ERRO: strip falhou"; exit 4; }
+    run_guarded python3 tools/glb_strip_nodraw.py "$RAW" "$CLEAN.part" || { echo "ERROR: strip failed"; exit 4; }
     mv "$CLEAN.part" "$CLEAN"
 fi
 
@@ -129,24 +129,24 @@ import json, struct, sys
 with open(sys.argv[1], "rb") as f:
     f.read(12); n, _ = struct.unpack("<II", f.read(8)); j = json.loads(f.read(n))
 nodes = j.get("nodes", [])
-print(f"[2] {sys.argv[1]}: nós {len(nodes)}, nós com malha {sum('mesh' in x for x in nodes)}, "
-      f"malhas {len(j.get('meshes', []))}, materiais {len(j.get('materials', []))}, imagens {len(j.get('images', []))}")
+print(f"[2] {sys.argv[1]}: nodes {len(nodes)}, nodes with mesh {sum('mesh' in x for x in nodes)}, "
+      f"meshes {len(j.get('meshes', []))}, materials {len(j.get('materials', []))}, images {len(j.get('images', []))}")
 EOF
 
-# 3. dados de terreno
+# 3. terrain data
 if [ -s "$TERRAIN" ]; then
-    echo "[3/4] já existe: $TERRAIN"
+    echo "[3/4] already exists: $TERRAIN"
     exit 0
 fi
 REG="$TDIR/sharedassets/coatlicue/$LEVEL/regions"
 if ! compgen -G "$REG/r_*/capitals/*/*.capitals.json" >/dev/null || ! compgen -G "$REG/r_*/region.heightmap" >/dev/null; then
-    echo "[3] extraindo capitals e heightmaps de $LEVEL"
+    echo "[3] extracting capitals and heightmaps of $LEVEL"
     run_guarded nwbt unpack -g "$GAME" -o "$TDIR" -e \
         "sharedassets/coatlicue/$LEVEL/regions/r_[^/]+/(capitals/[^/]+/[^/]+\.capitals\.json|mapsettings\.json|region\.heightmap)$" \
-        || { echo "ERRO: unpack de regiões falhou"; exit 4; }
+        || { echo "ERROR: region unpack failed"; exit 4; }
 fi
 
-# capitals.json com exatamente um capital cujo sliceName termina em /<slice>; e regiões que o quadrado cobre
+# capitals.json with exactly one capital whose sliceName ends in /<slice>; and the regions the square covers
 info=$(python3 - "$REG" "$SLICE" <<'EOF'
 import glob, json, math, sys
 reg, sl = sys.argv[1], sys.argv[2].lower()
@@ -163,7 +163,7 @@ if len(hits) != 1:
     print(f"NONE {len(hits)}"); sys.exit()
 f, c = hits[0]
 p = c["worldPosition"]
-r = 768 / 2 * math.sqrt(2) + 2          # meia-diagonal do quadrado padrão do make_terrain
+r = 768 / 2 * math.sqrt(2) + 2          # half-diagonal of make_terrain's default square
 xs = range(int((p["x"] - r) // 2048), int((p["x"] + r) // 2048) + 1)
 ys = range(int((p["y"] - r) // 2048), int((p["y"] + r) // 2048) + 1)
 print(f, " ".join(f"{x}_{y}" for x in xs for y in ys))
@@ -171,11 +171,11 @@ EOF
 )
 CAPS="${info%% *}"
 if [ "$CAPS" = NONE ]; then
-    echo "[3] terreno pulado: $(echo "$info" | cut -d' ' -f2) capitais com sliceName .../$SLICE (esperado 1)"
+    echo "[3] terrain skipped: $(echo "$info" | cut -d' ' -f2) capitals with sliceName .../$SLICE (expected 1)"
     exit 0
 fi
 REGIONS="${info#* }"
-echo "[3] capitals: $CAPS; regiões: $REGIONS"
+echo "[3] capitals: $CAPS; regions: $REGIONS"
 
 need_hm=() need_sp=()
 for xy in $REGIONS; do
@@ -185,27 +185,27 @@ for xy in $REGIONS; do
 done
 if (( ${#need_hm[@]} )); then
     pat=$(IFS='|'; echo "${need_hm[*]}")
-    echo "[3] extraindo heightmap: ${need_hm[*]}"
+    echo "[3] extracting heightmap: ${need_hm[*]}"
     run_guarded nwbt unpack -g "$GAME" -o "$TDIR" -e "sharedassets/coatlicue/$LEVEL/regions/($pat)/region\.heightmap$" \
-        || { echo "ERRO: unpack de heightmap falhou"; exit 4; }
+        || { echo "ERROR: heightmap unpack failed"; exit 4; }
 fi
 if (( ${#need_sp[@]} )); then
     pat=$(IFS='|'; echo "${need_sp[*]}")
-    echo "[3] extraindo roads_splat: ${need_sp[*]}"
+    echo "[3] extracting roads_splat: ${need_sp[*]}"
     run_guarded nwbt unpack -g "$GAME" -o "$TDIR" --x-dds png \
         -e "materials/terrain/$LEVEL/jav_${LEVEL}_($pat)/jav_${LEVEL}_[0-9]+\.[0-9]+\.roads_splat\.dds$" \
-        || echo "aviso: unpack de roads_splat falhou (terreno sai sem peso de estrada)"
+        || echo "warning: roads_splat unpack failed (terrain comes out without road weight)"
 fi
 for xy in $REGIONS; do
     x=${xy%_*}; y=${xy#*_}
-    [ -s "$(printf '%s/r_+%02d_+%02d/region.heightmap' "$REG" "$x" "$y")" ] || echo "aviso: região $xy sem heightmap (altura 0 nessa parte)"
-    [ -s "$TDIR/materials/terrain/$LEVEL/jav_${LEVEL}_${x}_${y}/jav_${LEVEL}_${x}.${y}.roads_splat.png" ] || echo "aviso: região $xy sem roads_splat"
+    [ -s "$(printf '%s/r_+%02d_+%02d/region.heightmap' "$REG" "$x" "$y")" ] || echo "warning: region $xy has no heightmap (height 0 in that part)"
+    [ -s "$TDIR/materials/terrain/$LEVEL/jav_${LEVEL}_${x}_${y}/jav_${LEVEL}_${x}.${y}.roads_splat.png" ] || echo "warning: region $xy has no roads_splat"
 done
 
-# 4. malha do terreno
+# 4. terrain mesh
 echo "[4] make_terrain"
 PART="extract/cities/${SHORT}_terrain.part.glb"
-run_guarded python3 tools/make_terrain.py "$TDIR" "$CAPS" "$SLICE" "$PART" || { echo "ERRO: make_terrain falhou"; exit 4; }
+run_guarded python3 tools/make_terrain.py "$TDIR" "$CAPS" "$SLICE" "$PART" || { echo "ERROR: make_terrain failed"; exit 4; }
 mv "${PART%.glb}.json" "${TERRAIN%.glb}.json"
 mv "$PART" "$TERRAIN"
 echo "[4] ok: $TERRAIN $(du -h "$TERRAIN" | cut -f1); $(cat "${TERRAIN%.glb}.json")"

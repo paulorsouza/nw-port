@@ -1,22 +1,22 @@
-"""Catálogo único: junta texturas, materiais e malhas repetidos entre camadas, cidades e coletáveis.
+"""Single catalog: merges textures, materials and meshes repeated across layers, cities and gatherables.
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/catalog.py [--dry-run]"
 
-Cada import (camada da região, cidade, coletável) traz cópias próprias do que já existe em outro: a mesma textura do
-jogo, o mesmo material, a mesma rocha. Aqui cada grupo de iguais fica com um original em /Game/NW/Catalogo
-(Texturas, Materiais, Malhas), as referências passam para ele e as cópias são apagadas.
+Each import (region layer, city, gatherable) brings its own copies of what already exists in another: the same game
+texture, the same material, the same rock. Here each group of equals keeps one original in /Game/NW/Catalogo
+(Texturas, Materiais, Malhas), references move to it and the copies are deleted.
 
-- Textura igual: mesmo nome de asset (o nome é o caminho do .dds no jogo) e mesmos ajustes de compressão.
-- Material igual: mesmo pai e mesmos parâmetros, já com as texturas trocadas pelas do catálogo.
-- Malha igual: mesma geometria no glb (tools/catalog_meshes.py → extract/ue/catalogo_malhas.json) e mesmos
-  materiais nos slots. Só cenário (Region, Cities); as malhas dos coletáveis ficam no lugar (ANWGatherField
-  carrega pelo caminho).
-- Regra do catálogo: o que está nele só referencia o catálogo ou /Game/NW/Materials. Apagar a pasta de uma camada
-  para reimportar não quebra outra.
-- Referências trocadas à mão nas instâncias de material, nos slots das malhas e nos componentes dos mapas. A cópia
-  só é apagada sem nenhuma referência forte de fora; senão vai pelo consolidate da engine.
+- Same texture: same asset name (the name is the .dds path in the game) and same compression settings.
+- Same material: same parent and same parameters, with the textures already swapped for the catalog ones.
+- Same mesh: same geometry in the glb (tools/catalog_meshes.py → extract/ue/catalogo_malhas.json) and same
+  materials in the slots. Scenery only (Region, Cities); gatherable meshes stay in place (ANWGatherField
+  loads them by path).
+- Catalog rule: what is in it only references the catalog or /Game/NW/Materials. Deleting a layer's folder
+  to reimport it does not break another.
+- References swapped by hand in the material instances, mesh slots and map components. A copy is deleted
+  only with no hard reference from outside; otherwise it goes through the engine's consolidate.
 
---dry-run: só conta grupos e o espaço que sai, sem mudar nada. Rodar de novo depois de importar uma região nova.
+--dry-run: only counts groups and the space freed, without changing anything. Run again after importing a new region.
 """
 import collections
 import hashlib
@@ -33,7 +33,7 @@ ROOT = os.path.abspath(os.path.join(unreal.Paths.project_dir(), "..", ".."))
 CONTENT_DIR = os.path.join(unreal.Paths.project_dir(), "Content")
 CAT = "/Game/NW/Catalogo"
 SCOPE = ["/Game/NW/Region", "/Game/NW/Cities", "/Game/NW/Gatherables", CAT]
-SKIP = ("/Terrain/", "/Region/Water/")  # terreno e água são de um mapa só
+SKIP = ("/Terrain/", "/Region/Water/")  # terrain and water belong to a single map
 MESH_SCOPE = ("/Game/NW/Region/", "/Game/NW/Cities/", CAT + "/")
 MAPS = ["/Game/NW/Maps/L_SouthWindsward", "/Game/NW/Maps/L_QuedaEterna", "/Game/NW/Maps/L_Arena"]
 MESH_NAME = re.compile(r"^(.+)_mesh_(\d+)$")
@@ -48,7 +48,7 @@ t0 = time.time()
 
 
 def log(msg):
-    unreal.log_warning(f"CATALOGO {msg} [{time.time() - t0:.0f}s]")
+    unreal.log_warning(f"CATALOG {msg} [{time.time() - t0:.0f}s]")
 
 
 def pkg(obj_or_path):
@@ -62,7 +62,7 @@ def disk_size(path):
 
 
 def listed(cls):
-    """Caminhos (pacote) dos assets da classe dentro do escopo, sem carregar."""
+    """Paths (package) of the class's assets within the scope, without loading them."""
     out = []
     for root in SCOPE:
         if not eal.does_directory_exist(root):
@@ -86,7 +86,7 @@ def canon_path(remap, obj):
 
 
 def pick(paths, rank=lambda p: 0):
-    """Original do grupo: o que já está no catálogo; senão o de maior rank; empate pelo caminho."""
+    """Group original: the one already in the catalog; otherwise the highest rank; ties broken by path."""
     inside = [p for p in paths if p.startswith(CAT + "/")]
     if inside:
         return sorted(inside)[0]
@@ -105,7 +105,7 @@ def groups_to_remap(keys, rank=lambda p: 0):
     return remap, by
 
 
-# ---------------------------------------------------------------- texturas
+# ---------------------------------------------------------------- textures
 def texture_key(t):
     parts = [t.get_name()]
     for prop in ("srgb", "compression_settings", "lod_group", "filter", "address_x", "address_y", "mip_gen_settings"):
@@ -130,10 +130,10 @@ for name, ps in by_name.items():
         m = t.get_editor_property("max_texture_size")
         tex_max[p] = m if m else 1 << 30
 T, tex_groups = groups_to_remap(tex_keys, rank=lambda p: tex_max.get(p, 0))
-log(f"texturas: {len(tex_paths)}, nomes repetidos {sum(1 for v in by_name.values() if len(v) > 1)}, "
-    f"cópias {len(T)} ({sum(map(disk_size, T)) / 1e9:.2f} GB)")
+log(f"textures: {len(tex_paths)}, repeated names {sum(1 for v in by_name.values() if len(v) > 1)}, "
+    f"copies {len(T)} ({sum(map(disk_size, T)) / 1e9:.2f} GB)")
 
-# ---------------------------------------------------------------- materiais
+# ---------------------------------------------------------------- materials
 mat_paths = listed("MaterialInstanceConstant")
 mats = {p: eal.load_asset(p) for p in mat_paths}
 
@@ -158,16 +158,16 @@ def material_key(mi):
     try:
         for n in mel.get_static_switch_parameter_names(mi):
             parts.append(f"w:{n}={mel.get_material_instance_static_switch_parameter_value(mi, n)}")
-    except Exception as e:  # sem a função: o pai + overrides já separam os casos do glTF
+    except Exception as e:  # without the function: parent + overrides already tell the glTF cases apart
         parts.append(f"w:?{type(e).__name__}")
     return "|".join(parts)
 
 
 mat_keys = {p: material_key(m) for p, m in mats.items()}
 M, mat_groups = groups_to_remap(mat_keys)
-log(f"materiais: {len(mat_paths)}, cópias {len(M)} ({sum(map(disk_size, M)) / 1e9:.2f} GB)")
+log(f"materials: {len(mat_paths)}, copies {len(M)} ({sum(map(disk_size, M)) / 1e9:.2f} GB)")
 
-# ---------------------------------------------------------------- malhas
+# ---------------------------------------------------------------- meshes
 geo = json.load(open(os.path.join(ROOT, "extract/ue/catalogo_malhas.json")))
 mesh_paths = [p for p in listed("StaticMesh") if p.startswith(MESH_SCOPE)]
 mesh_keys, mesh_label, bad = {}, {}, []
@@ -198,14 +198,14 @@ for p in mesh_paths:
     mesh_keys[p] = f"{h}|{slots}|{nanite}|{flag}"
     mesh_label[p] = (h, label)
 S, mesh_groups = groups_to_remap(mesh_keys)
-log(f"malhas: {len(mesh_paths)} no cenário, casadas {len(mesh_keys)}, extensão diferente {len(bad)} {bad[:3]}, "
-    f"cópias {len(S)} ({sum(map(disk_size, S)) / 1e9:.2f} GB)")
+log(f"meshes: {len(mesh_paths)} in the scenery, matched {len(mesh_keys)}, different extent {len(bad)} {bad[:3]}, "
+    f"copies {len(S)} ({sum(map(disk_size, S)) / 1e9:.2f} GB)")
 
 if DRY:
-    log("dry-run: nada mudou")
+    log("dry-run: nothing changed")
     raise SystemExit(0)
 
-# ---------------------------------------------------------------- troca das referências
+# ---------------------------------------------------------------- reference swap
 changed = set()
 for p, mi in mats.items():
     hit = False
@@ -217,7 +217,7 @@ for p, mi in mats.items():
     if hit:
         mel.update_material_instance(mi)
         changed.add(p)
-log(f"instâncias de material com textura trocada: {len(changed)}")
+log(f"material instances with swapped texture: {len(changed)}")
 
 n = 0
 for p in listed("StaticMesh"):
@@ -227,7 +227,7 @@ for p in listed("StaticMesh"):
             sm.set_material(i, eal.load_asset(M[pkg(s.material_interface)]))
             changed.add(p)
             n += 1
-log(f"slots de malha com material trocado: {n}")
+log(f"mesh slots with swapped material: {n}")
 for p in changed:
     eal.save_asset(p, only_if_is_dirty=False)
 
@@ -253,17 +253,17 @@ for mp in MAPS:
                 materials += 1
     if meshes or materials:
         if not les.save_current_level():
-            raise RuntimeError(f"não consegui salvar {mp}")
-    log(f"{mp}: {meshes} componentes com malha trocada, {materials} com material trocado")
+            raise RuntimeError(f"could not save {mp}")
+    log(f"{mp}: {meshes} components with swapped mesh, {materials} with swapped material")
 unreal.SystemLibrary.collect_garbage()
 
-# ---------------------------------------------------------------- apagar cópias
+# ---------------------------------------------------------------- delete copies
 reg.scan_paths_synchronous(["/Game/NW"], True)
 hard = unreal.AssetRegistryDependencyOptions(include_soft_package_references=False, include_hard_package_references=True,
                                              include_searchable_names=False, include_soft_management_references=False,
                                              include_hard_management_references=False)
 deleted = consolidated = 0
-for remap in (S, M, T):  # de cima para baixo: quem referencia sai antes
+for remap in (S, M, T):  # top down: referencers go first
     dups = set(remap)
     for p in sorted(remap):
         refs = [str(r) for r in reg.get_referencers(p, hard) or []]
@@ -272,16 +272,16 @@ for remap in (S, M, T):  # de cima para baixo: quem referencia sai antes
             eal.consolidate_assets(eal.load_asset(remap[p]), [eal.load_asset(p)])
             consolidated += 1
             if consolidated <= 10:
-                log(f"consolidate {p} (referências {refs[:3]})")
+                log(f"consolidate {p} (references {refs[:3]})")
         elif eal.delete_asset(p):
             deleted += 1
-log(f"cópias apagadas {deleted}, consolidadas {consolidated}")
+log(f"copies deleted {deleted}, consolidated {consolidated}")
 
-# ---------------------------------------------------------------- mover os originais para o catálogo
+# ---------------------------------------------------------------- move the originals to the catalog
 reg.scan_paths_synchronous(["/Game/NW"], True)
 move = {p for by in (tex_groups, mat_groups, mesh_groups) for ps in by.values() if len(ps) > 1 for p in ps
         if not p.startswith(CAT + "/") and eal.does_asset_exist(p)}
-# Fecho: o que vai para o catálogo leva junto o que referencia (malha → materiais → texturas).
+# Closure: what goes to the catalog takes along what it references (mesh → materials → textures).
 queue = list(move)
 while queue:
     p = queue.pop()
@@ -322,11 +322,11 @@ for p in sorted(move):
                                           new_name=dst.rsplit("/", 1)[1]))
 for i in range(0, len(renames), 200):
     tools.rename_assets(renames[i:i + 200])
-for dst, h in tags:  # a geometria vai junto: a próxima rodada casa as malhas novas com estas
+for dst, h in tags:  # the geometry goes along: the next run matches new meshes against these
     sm = eal.load_asset(dst)
     eal.set_metadata_tag(sm, "NWGeometria", h)
     eal.save_asset(dst, only_if_is_dirty=False)
-log(f"movidos para o catálogo: {len(renames)}")
+log(f"moved to the catalog: {len(renames)}")
 
 reg.scan_paths_synchronous(["/Game/NW"], True)
 redirs = [eal.load_asset(str(a.package_name)) for a in reg.get_assets_by_path("/Game/NW", recursive=True)
@@ -337,4 +337,4 @@ for root in SCOPE[:3]:
     for d in sorted(eal.list_assets(root, recursive=True, include_folder=True), key=len, reverse=True):
         if d.endswith("/") and not eal.list_assets(d, recursive=True):
             eal.delete_directory(d)
-log(f"redirecionadores resolvidos: {len(redirs)}; pronto")
+log(f"redirectors fixed up: {len(redirs)}; done")

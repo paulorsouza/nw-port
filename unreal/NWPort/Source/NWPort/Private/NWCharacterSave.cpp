@@ -1,4 +1,4 @@
-// Parte do ANWCharacter da esteira de sistemas (docs/workflow.md): salvar e restaurar o personagem (nw-core).
+// Part of ANWCharacter for the systems area (docs/workflow.md): save and restore the character (nw-core).
 #include "NWCharacter.h"
 #include "Misc/App.h"
 #include "NWRules.h"
@@ -76,14 +76,14 @@ void ANWCharacter::RestoreFrom(const FNWCharacterRecord& Record)
 	}
 	else
 	{
-		// Personagens de antes da F4: ferramentas de coleta que faltarem.
+		// Characters from before F4: gathering tools that are missing.
 		Inventory->GiveTools();
 	}
 }
 
 void ANWCharacter::CaptureTo(FNWCharacterRecord& Record) const
 {
-	// Só posição no chão: caindo (ou caído para fora do mapa) fica a última boa.
+	// Only a position on the ground: while falling (or fallen off the map) the last good one stays.
 	if (GetCharacterMovement()->IsMovingOnGround())
 	{
 		Record.bHasPosition = true;

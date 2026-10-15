@@ -1,5 +1,5 @@
 {
- "_comment": "Rodapé de atalhos das telas cheias (helpbar). O C++ desenha as ações com o modelo ActionDisplay (docs/game/ui/refining.md §7).",
+ "_comment": "Shortcut footer of the full screens (helpbar). The C++ draws the actions with the ActionDisplay model (docs/game/ui/refining.md §7).",
  "canvas": "lyshineui/helpbar/helpbar",
  "name": "helpbar",
  "keep": [],

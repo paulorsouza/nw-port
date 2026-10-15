@@ -1,7 +1,7 @@
-//! Número de série dos itens assinados (docs/game/items.md, Assinatura). O servidor de jogo pede o número ao fabricar; o
-//! item leva o número em `props.serial`. Toda gravação que leva item com número chama `verify` no fim da transação:
-//! o número tem que existir no registro e aparecer uma vez só (bolsa + armazém + ordens abertas), senão a gravação
-//! inteira é recusada. A linha do registro fica travada até o fim, então duas gravações com o mesmo item não passam juntas.
+//! Serial numbers of signed items (docs/game/items.md, Signature). The game server requests the number when crafting; the
+//! item carries it in `props.serial`. Every save that carries a numbered item calls `verify` at the end of the transaction:
+//! the number must exist in the registry and appear only once (bag + Storage + open orders), otherwise the whole
+//! save is rejected. The registry row stays locked until the end, so two saves with the same item cannot both go through.
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -19,7 +19,7 @@ pub struct Issued {
     pub serial: String,
 }
 
-/// Números de série nos `props` (repetidos ficam: a contagem pega a repetição).
+/// Serial numbers in the `props` (repeats are kept: the count catches the repeat).
 pub(crate) fn serials<'a>(props: impl IntoIterator<Item = &'a Value>) -> Vec<String> {
     props
         .into_iter()
@@ -27,7 +27,7 @@ pub(crate) fn serials<'a>(props: impl IntoIterator<Item = &'a Value>) -> Vec<Str
         .collect()
 }
 
-/// Emite o próximo número do artesão (o personagem que fabricou).
+/// Issues the crafter's next number (the character that crafted the item).
 pub async fn issue(State(state): State<AppState>, _server: GameServer, Path(id): Path<Uuid>) -> ApiResult<(StatusCode, Json<Issued>)> {
     let mut tx = state.db.begin().await?;
     let seq: Option<(i64,)> = sqlx::query_as(
@@ -48,7 +48,7 @@ pub async fn issue(State(state): State<AppState>, _server: GameServer, Path(id):
     Ok((StatusCode::CREATED, Json(Issued { serial })))
 }
 
-/// No fim da transação de quem grava: números conhecidos, um só de cada e dono/local atualizados.
+/// At the end of the writer's transaction: known numbers, one of each, and owner/location updated.
 pub(crate) async fn verify(tx: &mut sqlx::PgConnection, character_id: Uuid, location: &str, serials: &[String]) -> ApiResult<()> {
     if serials.is_empty() {
         return Ok(());
@@ -78,7 +78,7 @@ pub(crate) async fn verify(tx: &mut sqlx::PgConnection, character_id: Uuid, loca
     .fetch_optional(&mut *tx)
     .await?;
     if let Some((s,)) = dup {
-        tracing::warn!(serial = %s, character = %character_id, "item assinado duplicado: gravação recusada");
+        tracing::warn!(serial = %s, character = %character_id, "duplicate signed item: save rejected");
         return Err(ApiError::conflict("item_duplicate", "Item assinado já existe em outro lugar."));
     }
     sqlx::query("update item_serials set character_id = $2, location = $3, updated_at = now() where serial = any($1)")

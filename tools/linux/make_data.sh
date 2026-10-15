@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Regenera unreal/NWPort/Data/ (catálogo, saque, coletáveis, textos, telas) a partir do que já foi extraído em
-# extract/ (docs/setup.md, etapa 2). Leve: só Python, sem Unreal. Pode rodar de novo.
-# A lista de passos fica só em tools/make_data.py (a mesma no Windows); passo novo entra lá.
+# Regenerates unreal/NWPort/Data/ (catalog, loot, gatherables, texts, screens) from what was already extracted to
+# extract/ (docs/setup.md, step 2). Light: Python only, no Unreal. Safe to run again.
+# The list of steps lives only in tools/make_data.py (the same on Windows); a new step goes there.
 #
 #     tools/linux/make_data.sh [--dry-run]
 set -euo pipefail

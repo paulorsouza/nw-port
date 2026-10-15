@@ -1,11 +1,11 @@
-"""Coloca o terreno (glb do tools/make_terrain.py) no mapa de uma cidade já importada por import_city.py.
+"""Places the terrain (glb from tools/make_terrain.py) on the map of a city already imported by import_city.py.
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_terrain.py <terreno.glb> <Nome> <grama.png> <terra.png>"
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_terrain.py <terrain.glb> <Name> <grass.png> <soil.png>"
 
-- Malhas em /Game/NW/Cities/<Nome>/Terrain, atores "terreno_*" no mapa (removidos e recriados a cada execução).
-- Material M_NW_Terreno: grama e terra misturadas pela cor de vértice R (peso de estrada do jogo).
-- Nanite desligado e colisão por triângulo, como em fix_city.py.
-- PlayerStart no ponto do <terreno>.json; sobra só um chão de segurança.
+- Meshes in /Game/NW/Cities/<Name>/Terrain, "terreno_*" actors on the map (removed and recreated on every run).
+- M_NW_Terreno material: grass and soil blended by vertex color R (the game's road weight).
+- Nanite off and per-triangle collision, as in fix_city.py.
+- PlayerStart at the point from <terrain>.json; only one safety floor is kept.
 """
 import json
 import os
@@ -69,7 +69,7 @@ eas.destroy_actors(old)
 floors = sorted((a for a in eas.get_all_level_actors() if a.get_actor_label().startswith("ChaoSeguranca")),
                 key=lambda a: a.get_actor_location().z)
 eas.destroy_actors(floors[1:])
-log(f"TERRENO removidos {len(old)} atores antigos e {len(floors) - 1} chãos repetidos")
+log(f"TERRAIN removed {len(old)} old actors and {len(floors) - 1} duplicate floors")
 
 im = unreal.InterchangeManager.get_interchange_manager_scripted()
 params = unreal.ImportAssetParameters()
@@ -93,23 +93,23 @@ terrain = [a for a in eas.get_all_level_actors()
            if isinstance(a, unreal.StaticMeshActor) and a.get_actor_label().startswith("terreno_")]
 for a in terrain:
     a.static_mesh_component.set_editor_property("override_materials", [])
-log(f"TERRENO {len(meshes)} malhas, {len(terrain)} atores")
+log(f"TERRAIN {len(meshes)} meshes, {len(terrain)} actors")
 
-# Rede de segurança (ChaoSeguranca do fix_city) 10 m abaixo do ponto mais baixo do terreno: no lugar antigo (abaixo
-# da cidade) ela ficava acima dos vales e rios, e o personagem andava sobre ela "voando".
+# Safety net (ChaoSeguranca from fix_city) 10 m below the lowest point of the terrain: in the old spot (below the
+# city) it sat above the valleys and rivers, and the character walked on it "flying".
 if terrain:
     lowest = min(a.get_actor_bounds(False)[0].z - a.get_actor_bounds(False)[1].z for a in terrain)
     for a in eas.get_all_level_actors():
         if a.get_actor_label().startswith("ChaoSeguranca"):
             a.set_actor_location(unreal.Vector(0, 0, lowest - 1000), False, False)
-            log(f"TERRENO chão de segurança em {lowest - 1000:.0f}")
+            log(f"TERRAIN safety floor at {lowest - 1000:.0f}")
 
 spawn = json.load(open(os.path.splitext(GLB)[0] + ".json"))["spawn"]
 for a in eas.get_all_level_actors():
     if isinstance(a, unreal.PlayerStart):
         a.set_actor_location(unreal.Vector(*spawn), False, False)
-        log(f"TERRENO partida em {spawn}")
+        log(f"TERRAIN start at {spawn}")
 
 if not les.save_current_level():
-    raise RuntimeError("não consegui salvar o mapa")
-log(f"TERRENO pronto: {MAP}")
+    raise RuntimeError("could not save the map")
+log(f"TERRAIN ready: {MAP}")

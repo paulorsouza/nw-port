@@ -41,7 +41,7 @@ int32 UNWEditorTools::RebuildBlendSpace(UBlendSpace* BlendSpace)
 	int32 Valid = 0;
 	BlendSpace->ForEachImmutableSample([&Valid](const FBlendSample& S) { Valid += S.bIsValid ? 1 : 0; });
 	const FBlendSpaceData& Data = BlendSpace->GetBlendSpaceData();
-	UE_LOG(LogTemp, Display, TEXT("NW BlendSpace %s: %d amostras válidas, %d triângulos, %d segmentos, grade %d"),
+	UE_LOG(LogTemp, Display, TEXT("NW BlendSpace %s: %d valid samples, %d triangles, %d segments, grid %d"),
 		*BlendSpace->GetName(), Valid, Data.Triangles.Num(), Data.Segments.Num(), BlendSpace->GetGridSamples().Num());
 	return Data.Triangles.Num() + Data.Segments.Num();
 #else
@@ -57,7 +57,7 @@ int32 UNWEditorTools::MergeFolderToInstances(UObject* WorldContext, const FStrin
 	{
 		return 0;
 	}
-	// Grupo = malha + materiais da instância (malhas iguais com materiais trocados ficam separadas).
+	// Group = mesh + instance materials (equal meshes with swapped materials stay separate).
 	struct FGroup
 	{
 		UStaticMesh* Mesh = nullptr;
@@ -130,7 +130,7 @@ int32 UNWEditorTools::MergeFolderToInstances(UObject* WorldContext, const FStrin
 		World->EditorDestroyActor(A, true);
 	}
 	World->MarkPackageDirty();
-	UE_LOG(LogTemp, Warning, TEXT("NW juntar: %s: %d atores -> %d componentes instanciados"), *Folder, Merged.Num(), Groups.Num());
+	UE_LOG(LogTemp, Warning, TEXT("NW merge: %s: %d actors -> %d instanced components"), *Folder, Merged.Num(), Groups.Num());
 	return Merged.Num();
 #else
 	return 0;

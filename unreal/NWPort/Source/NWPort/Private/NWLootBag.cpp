@@ -17,7 +17,7 @@
 
 namespace
 {
-	// Saco do jogo já importado com a região (arc_sacks; roaddressing de Guardaventos). Sem ele, um cubo pequeno.
+	// The game's sack, already imported with the region (arc_sacks; Windsward roaddressing). Without it, a small cube.
 	const TCHAR* SackMesh = TEXT("/Game/NW/Region/roaddressing/windsward_roaddressing/StaticMeshes/windsward_roaddressing_mesh_20.windsward_roaddressing_mesh_20");
 }
 
@@ -25,7 +25,7 @@ ANWLootBag::ANWLootBag()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
-	bOnlyRelevantToOwner = true;   // só quem soltou vê
+	bOnlyRelevantToOwner = true;   // only whoever dropped it sees it
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	RootComponent = Mesh;
@@ -57,7 +57,7 @@ void ANWLootBag::BeginPlay()
 	TWeakObjectPtr<ANWLootBag> Self(this);
 	Interact->OnInteract = [Self](ANWCharacter* Who)
 	{
-		// Abre a tela da bolsa (cliente); pegar vai pelo servidor (ServerLootTake*).
+		// Opens the bag screen (client); taking goes through the server (ServerLootTake*).
 		ANWPlayerController* PC = Self.IsValid() && Who ? Cast<ANWPlayerController>(Who->GetController()) : nullptr;
 		if (ANWHUD* HUD = PC ? Cast<ANWHUD>(PC->GetHUD()) : nullptr)
 		{
@@ -74,7 +74,7 @@ void ANWLootBag::OnRep_Items()
 
 void ANWLootBag::UpdateLabel()
 {
-	// Cartão: "1 item" / "N itens" (ui_loot_bag_*), como o contêiner do jogo.
+	// Card: "1 item" / "N items" (ui_loot_bag_*), like the game's container.
 	int32 N = 0;
 	for (const FNWItem& I : Items)
 	{
@@ -125,7 +125,7 @@ bool ANWLootBag::CheckLimit(const ANWCharacter* Who, const TArray<FNWItem>& InIt
 
 FVector ANWLootBag::DropPoint(const ANWCharacter* Who)
 {
-	// Aos pés, um pouco à frente.
+	// At the feet, a little ahead.
 	const float Half = Who->GetSimpleCollisionHalfHeight();
 	return Who->GetActorLocation() + Who->GetActorForwardVector() * 60.f - FVector(0.f, 0.f, Half);
 }
@@ -220,7 +220,7 @@ void ANWLootBag::Take(ANWCharacter* Who, int32 Slot, int32 Quantity)
 	{
 		return;
 	}
-	// Operação gravada: a bolsa com o que entrou e o saco com o que sobra numa transação (NWOps; ground/take).
+	// Recorded operation: the bag with what came in and the sack with what is left, in one transaction (NWOps; ground/take).
 	TWeakObjectPtr<ANWLootBag> Self(this);
 	TSharedRef<TArray<FNWItem>> Left = MakeShared<TArray<FNWItem>>();
 	NWOps::Run(Who, TEXT("ground_take"),
@@ -252,14 +252,14 @@ void ANWLootBag::Take(ANWCharacter* Who, int32 Slot, int32 Quantity)
 			UNWBackend* B = Self.IsValid() && Self->GetGameInstance() ? Self->GetGameInstance()->GetSubsystem<UNWBackend>() : nullptr;
 			if (!B || Self->BagId.IsEmpty())
 			{
-				Fin(NWOps::EResult::Ok);   // saco só deste servidor
+				Fin(NWOps::EResult::Ok);   // sack only on this server
 				return;
 			}
 			B->TakeGround(After, Self->BagId, *Left, TEXT("ground_take"), [Self, Fin](int32 Status)
 			{
 				if (Status == 409 && Self.IsValid())
 				{
-					Self->Destroy();   // venceu ou já foi pego
+					Self->Destroy();   // expired or already taken
 				}
 				Fin(Status == 200 || Status == 208 ? NWOps::EResult::Ok : NWOps::EResult::Failed);
 			});

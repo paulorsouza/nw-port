@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Joga local: nw-core (Postgres do compose de dev) + servidor dedicado (UnrealEditor -server) + um cliente na
-# tela de entrada. Fechar o cliente encerra tudo.
-#   tools/linux/play_local.sh [mapa=L_SouthWindsward]
-# Logs em unreal/NWPort/Saved/Play/. Precisa do editor fechado (usa o mesmo binário).
+# Plays locally: nw-core (Postgres from the dev compose) + dedicated server (UnrealEditor -server) + one client at
+# the login screen. Closing the client shuts everything down.
+#   tools/linux/play_local.sh [map=L_SouthWindsward]
+# Logs in unreal/NWPort/Saved/Play/. Needs the editor closed (uses the same binary).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -27,9 +27,9 @@ until curl -sf "$NW_BACKEND/health" >/dev/null; do sleep 0.3; done
 pids+=($!)
 for _ in $(seq 300); do
   grep -q "listening on port" "$out/server.log" 2>/dev/null && break
-  kill -0 "${pids[-1]}" 2>/dev/null || { echo "servidor caiu:"; tail -20 "$out/server.log"; exit 1; }
+  kill -0 "${pids[-1]}" 2>/dev/null || { echo "server died:"; tail -20 "$out/server.log"; exit 1; }
   sleep 1
 done
-echo "servidor no ar; abrindo o cliente"
+echo "server up; opening the client"
 "$ue" "$uproject" -game -windowed -ResX=1600 -ResY=900 -nwbackend="$NW_BACKEND" -nwconnect=127.0.0.1:7777 \
   -abslog="$out/client.log" >/dev/null 2>&1

@@ -81,7 +81,7 @@ void ANWFxActor::Build()
 	};
 	if (Type == ENWFx::ArrowRain)
 	{
-		// Flechas caindo de ~15 m em pontos ao acaso do círculo, chegando juntas no fim (o acerto da Chuva).
+		// Arrows falling from ~15 m at random points in the circle, all landing at the end (the Rain's hit).
 		for (int32 i = 0; i < 24; ++i)
 		{
 			UStaticMeshComponent* A = Make(TEXT("/Game/NW/sword_shield/Mesh/SM_arrow.SM_arrow"));
@@ -105,7 +105,7 @@ void ANWFxActor::Tick(float DeltaSeconds)
 	const float T = FMath::Clamp(Age / FMath::Max(Seconds, 0.01f), 0.f, 1.f);
 	if (Shape)
 	{
-		// Esfera de 100 cm de diâmetro na escala 1.
+		// Sphere of 100 cm diameter at scale 1.
 		const float R = Type == ENWFx::Explosion ? Radius * FMath::Sqrt(FMath::Min(1.f, T * 2.f)) : Radius * (0.9f + 0.1f * FMath::Sin(Age * 3.f));
 		Shape->SetRelativeScale3D(FVector(R / 50.f, R / 50.f, (Type == ENWFx::PoisonCloud ? 0.45f : 1.f) * R / 50.f));
 		if (Mat)
@@ -116,12 +116,12 @@ void ANWFxActor::Tick(float DeltaSeconds)
 	}
 	for (int32 i = 0; i < Arrows.Num(); ++i)
 	{
-		// Cada flecha cai ao longo do tempo todo (todas tocam o chão no fim).
+		// Each arrow falls over the whole duration (all of them touch the ground at the end).
 		const float Lag = (i % 6) * 0.04f;
 		const float K = FMath::Clamp((T - Lag) / (1.f - Lag), 0.f, 1.f);
 		Arrows[i]->SetRelativeLocation(FMath::Lerp(ArrowStart[i], FVector(ArrowStart[i].X * 0.95f, ArrowStart[i].Y * 0.95f, 0.f), K * K));
 	}
-	// Nuvem de veneno: no servidor, a cada tique, envenena quem está dentro (menos quem atirou).
+	// Poison cloud: on the server, every tick, poisons whoever is inside (except the shooter).
 	if (Type == ENWFx::PoisonCloud && HasAuthority() && !StatusID.IsNone() && Age >= NextApply)
 	{
 		NextApply = Age + 0.5f;

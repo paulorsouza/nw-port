@@ -5,7 +5,7 @@
 
 class UWorld;
 
-/** Ação com tecla trocável (aba Atalhos). Rótulo e tecla padrão do jogo (libs/config/defaultprofile.xml). */
+/** Action with a rebindable key (Shortcuts tab). Label and default key from the game (libs/config/defaultprofile.xml). */
 struct FNWKeyAction
 {
 	FName Id;
@@ -14,43 +14,43 @@ struct FNWKeyAction
 };
 
 /**
- * Configurações do jogador (tela de configurações do jogo, `lyshineui/options`, docs/game/ui/original.md), salvas em
- * GameUserSettings.ini [NW.Options]. Só no cliente.
+ * Player settings (the game's settings screen, `lyshineui/options`, docs/game/ui/original.md), saved in
+ * GameUserSettings.ini [NW.Options]. Client only.
  */
 struct NWPORT_API FNWOptions
 {
-	// Vídeo
-	int32 Quality = 2;          // @ui_graphics_settings: 0 Baixa, 1 Média, 2 Alta, 3 Muito Alta (escalabilidade)
-	int32 WindowMode = 1;       // @ui_window_mode: 0 tela cheia, 1 em janela, 2 janela sem bordas
-	int32 MaxFps = 0;           // @ui_max_fps: 0 = ilimitado
+	// Video
+	int32 Quality = 2;          // @ui_graphics_settings: 0 Low, 1 Medium, 2 High, 3 Very High (scalability)
+	int32 WindowMode = 1;       // @ui_window_mode: 0 fullscreen, 1 windowed, 2 borderless window
+	int32 MaxFps = 0;           // @ui_max_fps: 0 = unlimited
 	bool bVSync = false;        // @ui_enable_vsync
-	float FovVertical = 50.f;   // @ui_options_fov: graus verticais, como o jogo (câmera padrão 50)
+	float FovVertical = 50.f;   // @ui_options_fov: vertical degrees, like the game (default camera 50)
 	bool bMotionBlur = false;   // @ui_enable_motionBlur
 	bool bShowFps = false;      // @ui_show_fps
-	float Brightness = 0.5f;    // @ui_options_brightness: 0..1, 0,5 = curva padrão
-	// Áudio (0..1)
+	float Brightness = 0.5f;    // @ui_options_brightness: 0..1, 0.5 = default curve
+	// Audio (0..1)
 	float MasterVolume = 1.f;   // @ui_mastervolume
 	float MusicVolume = 0.6f;   // @ui_musicvolume
 	float SfxVolume = 1.f;      // @ui_sfxvolume
 	float AmbienceVolume = 0.8f;// @ui_ambVolume
-	// Jogo
+	// Game
 	float SensitivityX = 1.f;   // @ui_looksensitivityhorizontal
 	float SensitivityY = 1.f;   // @ui_looksensitivityvertical
 	bool bInvertY = false;      // @ui_invertlook
-	int32 DamageNumbers = 0;    // @ui_options_damage_numbers_display_mode: 0 flutuando, 1 empilhado
-	// Atalhos (@ui_options_kbm_controls): só as teclas trocadas; o resto fica no padrão.
+	int32 DamageNumbers = 0;    // @ui_options_damage_numbers_display_mode: 0 floating, 1 stacked
+	// Shortcuts (@ui_options_kbm_controls): only the changed keys; the rest stays at the default.
 	TMap<FName, FKey> Keys;
 
 	static const TArray<FNWKeyAction>& KeyActions();
 	FKey KeyFor(FName Id) const;
-	/** Põe a tecla na ação; se outra ação já a usava, as duas trocam de tecla. */
+	/** Sets the key on the action; if another action already used it, the two swap keys. */
 	void SetKey(FName Id, const FKey& Key);
 	void ResetKeys() { Keys.Reset(); }
 
 	static FNWOptions& Get();
 	void Load();
 	void Save() const;
-	/** Aplica vídeo e volume geral (os outros valores são lidos por quem usa: câmera, sons, mouse). */
+	/** Applies video and master volume (the other values are read by whoever uses them: camera, sounds, mouse). */
 	void Apply(UWorld* World) const;
 
 private:

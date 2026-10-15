@@ -8,35 +8,35 @@ class USkeleton;
 class USkeletalMesh;
 class UBlendSpace;
 
-// Funções do editor que o Unreal não expõe ao Python e os scripts de import precisam.
+// Editor functions that Unreal does not expose to Python and that the import scripts need.
 UCLASS()
 class NWPORT_API UNWEditorTools : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
 public:
-	// Copia a pose de referência da malha para o esqueleto (reimportar a malha não atualiza o esqueleto).
+	// Copies the mesh's reference pose to the skeleton (reimporting the mesh does not update the skeleton).
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
 	static bool UpdateSkeletonRefPoseFromMesh(USkeleton* Skeleton, USkeletalMesh* Mesh);
 
-	// Monta a grade de interpolação depois de mudar as amostras por script (o editor só faz isso na interface).
-	// Devolve triângulos + segmentos da triangulação; 0 = falhou (detalhe no log, LogTemp "NW BlendSpace").
+	// Builds the interpolation grid after changing the samples by script (the editor only does it in the UI).
+	// Returns triangles + segments of the triangulation; 0 = failed (details in the log, LogTemp "NW BlendSpace").
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
 	static int32 RebuildBlendSpace(UBlendSpace* BlendSpace);
 
-	// Junta os StaticMeshActor de uma pasta do Outliner (e subpastas) num ator só, com um componente instanciado
-	// por malha + materiais, e apaga os originais. O cenário da região tinha 190 mil atores e o editor esgotava a
-	// memória ao abrir o mapa. Devolve quantos atores foram juntados.
+	// Merges the StaticMeshActors of an Outliner folder (and subfolders) into a single actor, with one instanced component
+	// per mesh + materials, and deletes the originals. The region's scenery had 190 thousand actors and the editor ran out
+	// of memory opening the map. Returns how many actors were merged.
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor", meta = (WorldContext = "WorldContext"))
 	static int32 MergeFolderToInstances(UObject* WorldContext, const FString& Folder);
 
-	// Troca o slot da montagem (ex.: "UpperBody" para os fragmentos de corpo superior do arco). O Python não
-	// enxerga SlotAnimTracks.
+	// Changes the montage slot (e.g. "UpperBody" for the bow's upper-body fragments). Python cannot
+	// see SlotAnimTracks.
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
 	static bool SetMontageSlot(class UAnimMontage* Montage, FName Slot);
 
-	// Acrescenta ao esqueleto os ossos da malha que ele não tem (NPC com osso a mais, ex. c_jaw_BND). Sem isso a
-	// Unreal acrescenta só na memória ao carregar e avisa "missing bones" toda vez. Devolve true se mudou.
+	// Adds to the skeleton the mesh bones it lacks (NPC with an extra bone, e.g. c_jaw_BND). Without this,
+	// Unreal adds them only in memory on load and warns "missing bones" every time. Returns true if it changed.
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
 	static bool MergeMeshBonesToSkeleton(USkeleton* Skeleton, USkeletalMesh* Mesh);
 };

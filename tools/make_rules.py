@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Fatos da engenharia reversa (re-local/valores/<área>.json) → unreal/NWPort/Data/regras.json, lido pelo
-FNWRules. Só os que têm valor numérico; as regras (valor null) entram no código com o id citado em comentário.
-Sem re-local/, mantém o regras.json que veio nos zips de assets (docs/tech/asset-sync.md) ou, sem ele, grava
-um vazio e o C++ usa os padrões.
-Conferir o que falta aplicar: python3 tools/re_check.py.
+"""Reverse-engineering facts (re-local/valores/<area>.json) → unreal/NWPort/Data/regras.json, read by
+FNWRules. Only those with a numeric value; the rules (null value) go into the code with the id cited in a comment.
+Without re-local/, keeps the regras.json that came in the asset zips (docs/tech/asset-sync.md) or, without it, writes
+an empty one and the C++ uses the defaults.
+To check what is still to be applied: python3 tools/re_check.py.
 
-Cada arquivo: {"valores": {"<área>.<nome>": {"valor", "unidade", "prova" (C/R/H), "endereco", "doc", "o_que"}}}.
-O id começa pela área do arquivo; o mesmo id em dois arquivos é erro.
+Each file: {"valores": {"<area>.<name>": {"valor", "unidade", "prova" (C/R/H), "endereco", "doc", "o_que"}}}.
+The id starts with the file's area; the same id in two files is an error.
 """
 import json
 import os
@@ -24,9 +24,9 @@ def load_values():
             continue
         for k, v in json.load(open(os.path.join(VALUES, name)))["valores"].items():
             if k in owner:
-                raise SystemExit(f"valor {k} em {owner[k]} e {name}")
+                raise SystemExit(f"value {k} in {owner[k]} and {name}")
             if not k.startswith(name[:-5] + "."):
-                raise SystemExit(f"valor {k} fora da área do arquivo {name}")
+                raise SystemExit(f"value {k} outside the area of file {name}")
             owner[k] = name
             out[k] = v
     return out
@@ -35,12 +35,12 @@ def load_values():
 def main():
     path = os.path.join(ROOT, "unreal", "NWPort", "Data", "regras.json")
     if not os.path.isdir(VALUES) and os.path.exists(path):
-        print(f"sem re-local/valores: mantido {os.path.relpath(path, ROOT)}")
+        print(f"no re-local/valores: kept {os.path.relpath(path, ROOT)}")
         return
     out = {k: v["valor"] for k, v in load_values().items() if isinstance(v.get("valor"), (int, float))}
     os.makedirs(os.path.dirname(path), exist_ok=True)
     json.dump(out, open(path, "w"), indent=1, sort_keys=True)
-    print(f"{len(out)} valores em {os.path.relpath(path, ROOT)}")
+    print(f"{len(out)} values in {os.path.relpath(path, ROOT)}")
 
 
 if __name__ == "__main__":

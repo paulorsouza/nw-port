@@ -1,5 +1,5 @@
-# blender -b -P tools/render_preview.py -- <entrada.glb> <saida.png> [frame]
-# Importa um glTF, enquadra a câmera de frente e renderiza com EEVEE.
+# blender -b -P tools/render_preview.py -- <input.glb> <output.png> [frame]
+# Imports a glTF, frames the camera from the front and renders with EEVEE.
 import sys
 import math
 import bpy
@@ -30,7 +30,7 @@ cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
 scene.collection.objects.link(cam)
 cam.data.lens = 50
 dist = size * 1.9
-# Personagens do jogo olham para -Y depois da importação glTF.
+# Game characters face -Y after the glTF import.
 cam.location = center + Vector((dist * 0.35, -dist, size * 0.1))
 cam.rotation_euler = (center - cam.location).to_track_quat("-Z", "Y").to_euler()
 scene.camera = cam

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tools/linux/gallery.sh <saida.png> <nome>...  — galeria de armaduras masculinas (nomes sem o prefixo male_)
+# tools/linux/gallery.sh <out.png> <name>...  — gallery of male armor (names without the male_ prefix)
 set -e
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 here="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$here"; source tools/linux/env.sh
@@ -9,7 +9,7 @@ out="$1"; shift
 files=(); 
 for n in "$@"; do
   p=$(grep -E "^objects/characters/player/male/[^/]+/male_$n\.cdf$" "$PATHS" | head -1)
-  if [ -n "$p" ]; then files+=("$p"); else echo "não achei: $n" >&2; fi
+  if [ -n "$p" ]; then files+=("$p"); else echo "not found: $n" >&2; fi
 done
 nwbt models files -g "$GAME" -o extract/gallery --binary --embed --ior 1.5 "${files[@]}" >/dev/null 2>&1
 glbs=(); for p in "${files[@]}"; do glbs+=("extract/gallery/$p.glb"); done

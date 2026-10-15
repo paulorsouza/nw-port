@@ -25,7 +25,7 @@ void FNWShops::Load()
 	const FString File = FPaths::ProjectDir() / TEXT("Data/World/shops.json");
 	if (!FFileHelper::LoadFileToString(Raw, *File) || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Raw), Root) || !Root.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Lojas: não li %s"), *File);
+		UE_LOG(LogTemp, Warning, TEXT("Shops: could not read %s"), *File);
 		return;
 	}
 	const TSharedPtr<FJsonObject>* Lojas = nullptr;

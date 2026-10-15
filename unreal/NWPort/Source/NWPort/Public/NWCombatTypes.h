@@ -6,7 +6,7 @@
 
 class UAnimMontage;
 
-// Linha de javelindata_damagetable (só as colunas usadas). Chave da linha = DamageID do jogo.
+// Row of javelindata_damagetable (only the columns used). Row key = the game's DamageID.
 USTRUCT(BlueprintType)
 struct FNWDamageRow : public FTableRowBase
 {
@@ -19,34 +19,34 @@ struct FNWDamageRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float BlockHitStun = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float PowerLevel = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float BlockPowerLevel = 0.f;
-	// Empurrão para trás do alvo, em metros (ImpactDistanceY do jogo).
+	// Push back of the target, in meters (the game's ImpactDistanceY).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ImpactDistance = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool Unblockable = false;
-	// Regras completas: docs/game/combat.md. Light/Heavy/Ability (limitador de reação da IA).
+	// Full rules: docs/game/combat.md. Light/Heavy/Ability (AI reaction limiter).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString AttackType;
-	// Empurrão lateral (m, + = direita de quem bate) e fator de decaimento por quadro de 1/30 s (0 = instantâneo).
+	// Side push (m, + = attacker's right) and decay factor per 1/30 s frame (0 = instant).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ImpactDistanceX = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ImpactDecayRate = 0.f;
-	// Colunas _AI: valem quando o alvo é IA; 0 = usa a normal.
+	// _AI columns: apply when the target is AI; 0 = uses the normal one.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float HitStun_AI = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float PowerLevel_AI = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ImpactDistance_AI = 0.f;
-	// Crítico: substitui as normais quando > 0 (DmgCoefCrit 0 = multiplicador da arma).
+	// Crit: replaces the normal ones when > 0 (DmgCoefCrit 0 = weapon multiplier).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float DmgCoefCrit = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float CritHitStun = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float CritPowerLevel = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float CritImpactDistance = 0.f;
-	// Acerto na cabeça (projéteis): multiplica o coeficiente.
+	// Headshot (projectiles): multiplies the coefficient.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float DmgCoefHead = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool NoBackstab = false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool NoHeadshot = false;
-	// Stagger: dano de stagger do golpe = BaseStaggerDamage da arma × StaggerDmgModifier; no alvo que está atacando,
-	// a resistência é multiplicada pelo StaggerResistModifier da linha do ataque dele.
+	// Stagger: the strike's stagger damage = weapon BaseStaggerDamage × StaggerDmgModifier; on a target that is attacking,
+	// the resistance is multiplied by the StaggerResistModifier of its attack's row.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StaggerDmgModifier = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StaggerResistModifier = 0.f;
-	// Bloqueio: fator da stamina perdida por quem bloqueia.
+	// Block: factor of the stamina lost by the blocker.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float BlockStaminaDmgMod = 0.f;
-	// Tremidas (javelindata_camerashake): de quem bate / de quem apanha; no bloqueio; no crítico.
+	// Shakes (javelindata_camerashake): of the attacker / of the one hit; on block; on crit.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName CameraShakeID;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName TargetCameraShakeID;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName BlockCameraShakeID;
@@ -55,8 +55,8 @@ struct FNWDamageRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName CritTargetCameraShakeID;
 };
 
-// Linha de javelindata_camerashake (SShakeParams do CryEngine): deslocamento em m e ângulo em rad nos eixos da
-// câmera (X direita, Y frente, Z cima); envelope em s; Frequency = período entre alvos aleatórios (s).
+// Row of javelindata_camerashake (CryEngine SShakeParams): displacement in m and angle in rad on the camera
+// axes (X right, Y forward, Z up); envelope in s; Frequency = period between random targets (s).
 USTRUCT(BlueprintType)
 struct FNWCameraShakeRow : public FTableRowBase
 {
@@ -75,17 +75,17 @@ struct FNWCameraShakeRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool FlipVec = true;
 };
 
-// Como a ação acerta: varredura da lâmina, ou área (no jogo, CAGE-Damage acerta uma área, não a arma).
+// How the action hits: blade sweep, or area (in the game, CAGE-Damage hits an area, not the weapon).
 UENUM(BlueprintType)
 enum class ENWHitShape : uint8
 {
-	Blade,   // lâmina da arma da mão principal
-	Front,   // cone à frente: HitRange (cm) e HitAngle (graus, abertura total)
-	Around,  // círculo em volta: HitRange (cm)
-	Projectile, // arremesso: projétil sai na janela de dano (HitRange = alcance em cm)
+	Blade,   // blade of the main-hand weapon
+	Front,   // cone in front: HitRange (cm) and HitAngle (degrees, total opening)
+	Around,  // circle around: HitRange (cm)
+	Projectile, // throw: the projectile leaves in the damage window (HitRange = range in cm)
 };
 
-// Uma ação de combate: montagem + linha de dano + custo de stamina. Chave = nome da ação (Light1, Heavy, Dodge_F...).
+// A combat action: montage + damage row + stamina cost. Key = action name (Light1, Heavy, Dodge_F...).
 USTRUCT(BlueprintType)
 struct FNWActionRow : public FTableRowBase
 {
@@ -94,81 +94,81 @@ struct FNWActionRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftObjectPtr<UAnimMontage> Montage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName DamageID;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StaminaCost = 0.f;
-	// Mana (javelindata_manacosts_player pelo CostID da ação; armas mágicas): só entra com mana ≥ custo.
+	// Mana (javelindata_manacosts_player by the action's CostID; magic weapons): only starts with mana ≥ cost.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ManaCost = 0.f;
-	// Ataque básico durante esta ação vira esta ação (quebrar a tumba, Estaca Poderosa antecipada), se a janela dela abrir.
+	// A basic attack during this action becomes this action (breaking the tomb, early final Ice Spike), if its window opens.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName AttackAction;
-	// Sistema Niagara do projétil (efeito do jogo convertido, docs/tech/particles.md); substitui a malha e o rastro.
+	// Niagara system of the projectile (converted game effect, docs/tech/particles.md); replaces the mesh and the trail.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString ProjectileFx;
-	// Próxima ação do combo (Light1 -> Light2 -> Light3).
+	// Next combo action (Light1 -> Light2 -> Light3).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName ComboNext;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) ENWHitShape HitShape = ENWHitShape::Blade;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float HitRange = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float HitAngle = 0.f;
-	// Recarga em segundos (javelindata_cooldowns_player); 0 = sem recarga.
+	// Cooldown in seconds (javelindata_cooldowns_player); 0 = no cooldown.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float Cooldown = 0.f;
-	// Efeitos das descrições do jogo: atordoar o alvo atingido (s); buff em si mesmo (s e redução de dano 0..1).
+	// Effects from the game descriptions: stun the hit target (s); buff on self (s and damage reduction 0..1).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float TargetStun = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float BuffSeconds = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float BuffDamageReduction = 0.f;
-	// Buff de dano causado (0..1), ex.: Berserk da machadinha.
+	// Damage dealt buff (0..1), e.g. the Hatchet's Berserk.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float BuffDamageBonus = 0.f;
-	// Efeito de status no alvo atingido (javelindata_statuseffects_<arma>): sangramento, veneno, lentidão.
-	// Dano por tique = fração do dano de arma de quem aplicou; MoveSpeed = modificador de velocidade (-0.3 = 30% mais lento).
+	// Status effect on the hit target (javelindata_statuseffects_<weapon>): bleed, poison, slow.
+	// Damage per tick = fraction of the applier's weapon damage; MoveSpeed = speed modifier (-0.3 = 30% slower).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName StatusID;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StatusSeconds = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StatusTick = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StatusDamage = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32 StatusMaxStacks = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StatusMoveSpeed = 0.f;
-	// Efeito em si mesmo ao começar a ação (pressa do Tiro Evasivo, Evasão da rapieira): só velocidade, por StatusSeconds.
+	// Effect on self when the action starts (Evade Shot haste, Rapier Evade): speed only, for StatusSeconds.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float SelfMoveSpeed = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float SelfMoveSeconds = 0.f;
-	// Consome os acúmulos deste status no alvo: cada acúmulo vira ConsumeDamage × dano de arma na hora (Floreio e
-	// Finalização da rapieira).
+	// Consumes this status's stacks on the target: each stack becomes ConsumeDamage × weapon damage immediately (the
+	// Rapier's Flourish and Finish).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName ConsumeStatusID;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ConsumeDamage = 0.f;
 
-	// ---- projéteis (arco; radb Bow e slice basic_arrow do jogo) ----
-	// Momentos do disparo (s, separados por ";"; vazio = quando a janela de dano abre) e a linha de dano de cada um.
+	// ---- projectiles (bow; the game's Bow radb and basic_arrow slice) ----
+	// Firing moments (s, separated by ";"; empty = when the damage window opens) and the damage row of each one.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString FireTimes;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString FireDamageIDs;
-	// cm/s (0 = arremesso padrão), raio (cm), reto antes da gravidade (cm), atravessa alvos.
+	// cm/s (0 = default throw), radius (cm), straight flight before gravity (cm), pierces targets.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ProjectileSpeed = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ProjectileRadius = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float GravityDelay = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool bPierce = false;
-	// Explosão ao acertar/bater (cm) com outra linha de dano (Flecha Explosiva).
+	// Explosion on hit/impact (cm) with another damage row (Explosive Arrow).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ExplodeRadius = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName ExplodeDamageID;
-	// Nuvem onde a flecha cai (Disparo Venenoso): raio (cm) e duração (s); envenena quem entra com o Status* da linha.
+	// Cloud where the arrow lands (Poison Shot): radius (cm) and duration (s); poisons whoever enters with the row's Status*.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float CloudRadius = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float CloudSeconds = 0.f;
-	// Área no chão no ponto mirado (Chuva de Flechas): raio (cm), alcance máximo da mira (cm), atraso do acerto (s).
+	// Ground area at the aimed point (Rain of Arrows): radius (cm), max aim range (cm), hit delay (s).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float GroundRadius = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float GroundRange = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float GroundDelay = 0.f;
-	// Ação que entra sozinha quando esta termina (tiro → recarga).
+	// Action that starts on its own when this one ends (shot → reload).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName NextAction;
-	// Começa a montagem nesta fração do clipe (golpe carregado da rapieira entra em 74% da estocada).
+	// Starts the montage at this fraction of the clip (the Rapier's charged strike starts at 74% of the thrust).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StartAt = 0.f;
-	// Reação: início do procclip HitStun no fragmento do .adb (s); a reação dura isso + HitStun/30.
+	// Reaction: start of the HitStun procclip in the .adb fragment (s); the reaction lasts this + HitStun/30.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float HitStunStart = 0.f;
-	// Recarga compartilhada (as quatro direções do Evadir usam "Evade").
+	// Shared cooldown (the four Evade directions use "Evade").
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName CooldownGroup;
-	// Pode ser usada no meio de qualquer ação (Evadir: CanAttack_Evasion desde 0 s).
+	// Can be used in the middle of any action (Evade: CanAttack_Evasion from 0 s).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool bCancelsAny = false;
-	// Ripostar: segundos em postura (sem dano, sem reação); golpe recebido nesse tempo dispara CounterAction.
+	// Riposte: seconds in stance (no damage, no reaction); a hit received during that time triggers CounterAction.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float CounterSeconds = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName CounterAction;
-	// Atordoamento do alvo termina no primeiro dano que ele recebe (Rapier_Riposte_Stun).
+	// The target's stun ends on the first damage it receives (Rapier_Riposte_Stun).
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool bStunBreaksOnDamage = false;
-	// Janela do jogo que libera esta ação no meio de outra (CAGE-TransitionInstant, ex.: CanAttack_ShieldBash,
-	// Charge_Bow). A curva "Buffer_<nome>" é o trecho em que o pedido fica guardado. Vazio = CanTransition.
+	// The game window that allows this action in the middle of another (CAGE-TransitionInstant, e.g. CanAttack_ShieldBash,
+	// Charge_Bow). The "Buffer_<name>" curve is the span in which the request stays buffered. Empty = CanTransition.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName TransitionCurve;
 };
 
-// Efeito de status em curso (servidor).
+// Status effect in progress (server).
 USTRUCT()
 struct FNWStatus
 {
@@ -183,7 +183,7 @@ struct FNWStatus
 	TWeakObjectPtr<class UNWCombatComponent> Source;
 };
 
-// Recarga em curso de uma ação (tempo do servidor).
+// Cooldown in progress of an action (server time).
 USTRUCT(BlueprintType)
 struct FNWCooldown
 {
@@ -214,7 +214,7 @@ enum class ENWHitResult : uint8
 	Ignored
 };
 
-// Nomes das curvas gravadas nas sequências pelo import_nw.py (janelas do ProcLayer do jogo).
+// Names of the curves written to the sequences by import_nw.py (the game's ProcLayer windows).
 namespace NWCurves
 {
 	static const FName WeaponTrail(TEXT("WeaponTrail"));

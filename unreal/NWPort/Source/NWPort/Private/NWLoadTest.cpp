@@ -23,9 +23,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogNWLoad, Log, All);
 
 namespace
 {
-	// ---------------------------------------------------------------- relatório de desempenho
+	// ---------------------------------------------------------------- performance report
 
-	/** Tempo de trabalho de cada ciclo do mundo (início → fim do UWorld::Tick, sem a espera do limite de ciclos). */
+	/** Work time of each world cycle (start → end of UWorld::Tick, without the wait of the cycle limit). */
 	struct FNWPerf
 	{
 		TWeakObjectPtr<UWorld> World;
@@ -67,7 +67,7 @@ namespace
 			});
 			CsvPath = FPaths::ProjectSavedDir() / TEXT("Perf") / FString::Printf(TEXT("perf_%s.csv"), *FDateTime::Now().ToString(TEXT("%Y%m%d_%H%M%S")));
 			FFileHelper::SaveStringToFile(TEXT("tempo_s,ciclos,trabalho_med_ms,trabalho_p95_ms,trabalho_max_ms,intervalo_med_ms,jogadores,simulados,criaturas,personagens,saida_kbps,memoria_mb\n"), *CsvPath);
-			UE_LOG(LogNWLoad, Display, TEXT("NWPerf ligado: %s"), *CsvPath);
+			UE_LOG(LogNWLoad, Display, TEXT("NWPerf on: %s"), *CsvPath);
 		}
 
 		void Off()
@@ -102,7 +102,7 @@ namespace
 			const float P95 = Sorted[FMath::Min(Sorted.Num() - 1, int32(Sorted.Num() * 0.95f))];
 			const float Max = Sorted.Last();
 			const float Frame = FrameMs.Num() ? FrameSum / FrameMs.Num() : 0.f;
-			// Contagens: varrer o mundo uma vez a cada 10 s é custo do relatório, não do jogo.
+			// Counts: scanning the world once every 10 s is a cost of the report, not of the game.
 			int32 Players = 0, Sims = 0, Creatures = 0, Chars = 0;
 			for (FConstPlayerControllerIterator It = Wd->GetPlayerControllerIterator(); It; ++It)
 			{
@@ -117,7 +117,7 @@ namespace
 			const UNetDriver* Net = Wd->GetNetDriver();
 			const float OutKbps = Net ? Net->OutBytesPerSecond * 8.f / 1000.f : 0.f;
 			const float MemMb = float(FPlatformMemory::GetStats().UsedPhysical) / (1024.f * 1024.f);
-			UE_LOG(LogNWLoad, Display, TEXT("NWPerf: %d ciclos em %.0f s | trabalho med %.2f p95 %.2f max %.2f ms | intervalo %.1f ms | jogadores %d simulados %d criaturas %d personagens %d | saída %.0f kbit/s | memória %.0f MB"),
+			UE_LOG(LogNWLoad, Display, TEXT("NWPerf: %d cycles in %.0f s | work avg %.2f p95 %.2f max %.2f ms | interval %.1f ms | players %d simulated %d creatures %d characters %d | out %.0f kbit/s | memory %.0f MB"),
 				WorkMs.Num(), Seconds, Avg, P95, Max, Frame, Players, Sims, Creatures, Chars, OutKbps, MemMb);
 			const FString Line = FString::Printf(TEXT("%.0f,%d,%.3f,%.3f,%.3f,%.2f,%d,%d,%d,%d,%.0f,%.0f\n"), Wd->GetTimeSeconds(), WorkMs.Num(), Avg, P95, Max, Frame,
 				Players, Sims, Creatures, Chars, OutKbps, MemMb);
@@ -128,7 +128,7 @@ namespace
 	};
 	FNWPerf Perf;
 
-	// ---------------------------------------------------------------- comandos
+	// ---------------------------------------------------------------- commands
 
 	UWorld* ServerWorld(UWorld* Given)
 	{
@@ -148,7 +148,7 @@ namespace
 	}
 
 	FAutoConsoleCommandWithWorldAndArgs SimCmd(TEXT("nw.sim"),
-		TEXT("Teste de carga: nw.sim <n> [raio_m=600] cria n jogadores simulados no servidor (0 remove)."),
+		TEXT("Load test: nw.sim <n> [raio_m=600] creates n simulated players on the server (0 removes)."),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
 		{
 			if (UWorld* W = ServerWorld(World))
@@ -158,7 +158,7 @@ namespace
 		}));
 
 	FAutoConsoleCommandWithWorldAndArgs PerfCmd(TEXT("nw.perf"),
-		TEXT("Relatório de desempenho do servidor a cada 10 s: nw.perf 1 | nw.perf 0."),
+		TEXT("Server performance report every 10 s: nw.perf 1 | nw.perf 0."),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
 		{
 			if (UWorld* W = ServerWorld(World))
@@ -167,8 +167,8 @@ namespace
 			}
 		}));
 
-	/** Linha de comando do servidor: -nwperf liga o relatório e -nwsim=<n> -nwsimraio=<m> cria os simulados 10 s depois
-	 *  de o mapa subir (o spawn de criaturas e o resto já começaram). */
+	/** Server command line: -nwperf turns on the report and -nwsim=<n> -nwsimraio=<m> creates the simulated players 10 s
+	 *  after the map comes up (creature spawning and the rest have already started). */
 	struct FNWLoadAuto
 	{
 		FNWLoadAuto()
@@ -196,7 +196,7 @@ namespace
 						if (UWorld* W2 = WeakW.Get())
 						{
 							ANWLoadTest::SetSims(W2, Count, RadiusM);
-							// -nwcsv=<ciclos>: perfil CSV da Unreal (tempo por categoria) 15 s depois, em Saved/Profiling/CSV.
+							// -nwcsv=<cycles>: Unreal CSV profile (time per category) 15 s later, in Saved/Profiling/CSV.
 							int32 Frames = 0;
 							float Delay = 15.f;
 							FParse::Value(FCommandLine::Get(), TEXT("-nwcsvdelay="), Delay);
@@ -220,7 +220,7 @@ namespace
 	FNWLoadAuto LoadAuto;
 }
 
-// ---------------------------------------------------------------- simulados
+// ---------------------------------------------------------------- simulated players
 
 ANWLoadTest::ANWLoadTest()
 {
@@ -340,20 +340,20 @@ void ANWLoadTest::Resize(int32 Count)
 		PickGoal(S);
 		Sims.Add(S);
 	}
-	// Experimentos só do teste de carga (-nwexp=anim,...): medem uma mudança antes de ela ir para o jogo.
+	// Load-test-only experiments (-nwexp=anim,...): they measure a change before it goes into the game.
 	FString Exp;
 	FParse::Value(FCommandLine::Get(), TEXT("-nwexp="), Exp);
 	for (TActorIterator<ANWCharacter> It(World); It; ++It)
 	{
 		if (Exp.Contains(TEXT("meshcol")))
 		{
-			// Malha sem colisão nem sobreposição no servidor (golpe e movimento usam a cápsula).
+			// Mesh without collision or overlap on the server (hit and movement use the capsule).
 			It->GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			It->GetMesh()->SetGenerateOverlapEvents(false);
 		}
 		if (Exp.Contains(TEXT("nooverlap")))
 		{
-			// Cápsula sem eventos de sobreposição: o movimento deixa de consultar sobreposições a cada passo.
+			// Capsule without overlap events: movement stops querying overlaps at every step.
 			It->GetCapsuleComponent()->SetGenerateOverlapEvents(false);
 		}
 		if (Exp.Contains(TEXT("floor")))
@@ -362,8 +362,8 @@ void ANWLoadTest::Resize(int32 Count)
 			It->GetCharacterMovement()->bUseFlatBaseForFloorChecks = true;
 		}
 	}
-	UE_LOG(LogNWLoad, Display, TEXT("nw.sim: %d simulados (raio %.0f m, início %s)%s"), Sims.Num(), Radius / 100.f, *Anchor.ToCompactString(),
-		Failed ? *FString::Printf(TEXT(", %d sem chão"), Failed) : TEXT(""));
+	UE_LOG(LogNWLoad, Display, TEXT("nw.sim: %d simulated (radius %.0f m, start %s)%s"), Sims.Num(), Radius / 100.f, *Anchor.ToCompactString(),
+		Failed ? *FString::Printf(TEXT(", %d without ground"), Failed) : TEXT(""));
 }
 
 void ANWLoadTest::Tick(float DeltaSeconds)
@@ -380,7 +380,7 @@ void ANWLoadTest::Tick(float DeltaSeconds)
 		const FVector Pos = P->GetActorLocation();
 		FVector To = S.Goal - Pos;
 		To.Z = 0.f;
-		// Como um jogador: segura a direção até chegar; parado 3 s (preso) ou chegou, outro destino.
+		// Like a player: holds the direction until arriving; stopped for 3 s (stuck) or arrived, another destination.
 		if (To.SizeSquared() < 200.f * 200.f || Now >= S.NextCheck)
 		{
 			if (Now >= S.NextCheck && FVector::DistSquared2D(Pos, S.LastPos) < 100.f * 100.f)
@@ -396,7 +396,7 @@ void ANWLoadTest::Tick(float DeltaSeconds)
 		}
 		if (Pos.Z < Anchor.Z - 50000.f)
 		{
-			// Caiu do mundo: volta.
+			// Fell off the world: comes back.
 			FVector G;
 			if (FindGround(Anchor, 2000.f, G))
 			{

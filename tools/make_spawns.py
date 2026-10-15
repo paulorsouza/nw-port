@@ -1,26 +1,26 @@
-"""Criaturas de Guardaventos (G3): spawners das camadas _ai da região → Data/World/guardaventos_spawns.json.
+"""Windsward creatures (G3): spawners of the region's _ai layers → Data/World/guardaventos_spawns.json.
 
     python3 tools/make_spawns.py
 
-Cada capital das camadas `06sw0*_ai` aponta para uma slice CoatGen/PointSpawner_*.dynamicslice (extract/spawners,
-nwbt --x-objects json, tools/linux/build_all.sh 12). Da slice saem:
-  - AIVariantProviderComponent: linha de javelindata_vitals (m_vitalstablerowid), categoria e nível;
-  - entidades wp1..wpN (AIWaypointComponent): posição local ao spawner, tarefa do jogo (POI_Graze_LOOP...) e duração.
-Das tabelas: basevitals_common (família, tipo, HealthMod, DamageMod, saque, escala, nome) e levelvariantvitals_common
-(nível). Posições no referencial do mapa (UE = (-x, y, z) × 100 em volta da cidade, como os coletáveis).
+Each capital of the `06sw0*_ai` layers points to a slice CoatGen/PointSpawner_*.dynamicslice (extract/spawners,
+nwbt --x-objects json, tools/linux/build_all.sh 12). From the slice come:
+  - AIVariantProviderComponent: javelindata_vitals row (m_vitalstablerowid), category and level;
+  - entities wp1..wpN (AIWaypointComponent): position local to the spawner, game task (POI_Graze_LOOP...) and duration.
+From the tables: basevitals_common (family, type, HealthMod, DamageMod, loot, scale, name) and levelvariantvitals_common
+(level). Positions in the map frame (UE = (-x, y, z) × 100 around the city, like the gatherables).
 
-Escala do port (mesmo número de golpes do jogo): o golpe leve do jogador (WeaponBaseDamage 100) vale o BaseDamage do
-nível da criatura em javelindata_vitalsleveldata e a vida do jogador (1000) vale o BaseMaxHealth desse nível. Então
+Port scale (same number of hits as the game): the player's light attack (WeaponBaseDamage 100) equals the BaseDamage of
+the creature's level in javelindata_vitalsleveldata and the player's health (1000) equals that level's BaseMaxHealth. So
   health = BaseMaxHealth · HealthMod · 100 / BaseDamage      damage = BaseDamage · DamageMod · 1000 / BaseMaxHealth
-(o DmgCoef de cada ataque vem da tabela de dano da criatura, no DT de ações).
+(the DmgCoef of each attack comes from the creature's damage table, in the actions DT).
 
-Conjunto (tools/sets/<set>.json) pela categoria: Boar → boar, Wolf → wolf (as outras ficam sem conjunto: não nascem).
-Carcaça: o personagem do jogo vira o coletável de mesmo nome da família (GatherableControllerComponent "Boar",
-"Wolf"): esfolar com a faca, saque e XP de ofício da linha de javelindata_gatherables.
+Set (tools/sets/<set>.json) by category: Boar → boar, Wolf → wolf (the others have no set: they do not spawn).
+Carcass: the game character becomes the gatherable with the family's name (GatherableControllerComponent "Boar",
+"Wolf"): skin it with the knife, loot and trade skill XP from the javelindata_gatherables row.
 
-Saída: {"creatures": {vitals_id: {...}}, "spawns": [[criatura, x, y, z, yaw, [[x, y, z, tarefa, min, max], ...]], ...]}
+Output: {"creatures": {vitals_id: {...}}, "spawns": [[creature, x, y, z, yaw, [[x, y, z, task, min, max], ...]], ...]}
 """
-SETS = {"Boar": ("boar", "Boar"), "Wolf": ("wolf", "Wolf")}   # categoria -> (conjunto, coletável da carcaça)
+SETS = {"Boar": ("boar", "Boar"), "Wolf": ("wolf", "Wolf")}   # category -> (set, carcass gatherable)
 import collections
 import glob
 import json
@@ -53,7 +53,7 @@ def find(o, t, out):
 
 
 def read_spawner(name):
-    """(vitals, categoria, nível, waypoints locais) da slice, ou None."""
+    """(vitals, category, level, local waypoints) of the slice, or None."""
     f = os.path.join(SPAWNERS, name + ".json")
     if not os.path.exists(f):
         return None
@@ -144,14 +144,14 @@ def main():
             path = []
             for _, wx, wy, wz, task, tmin, tmax in wps:
                 path.append([*to_map(p["x"] + cy * wx - sy * wy, p["y"] + sy * wx + cy * wy, p["z"] + wz), task, tmin, tmax])
-            # Giro no mapa: o do mundo menos o da cidade, espelhado em X (Cry → UE).
+            # Map rotation: the world one minus the city one, mirrored in X (Cry → UE).
             spawns.append([vid, x, y, z, round(180 - math.degrees(yaw - ang), 1), path])
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump({"creatures": creatures, "spawns": spawns}, open(OUT, "w"), separators=(",", ":"))
     fam = collections.Counter(creatures[s[0]]["family"] for s in spawns)
     with_set = collections.Counter(creatures[s[0]]["set"] for s in spawns if creatures[s[0]]["set"])
-    print(f"com conjunto: {dict(with_set)}")
-    print(f"{len(spawns)} spawns, {len(creatures)} criaturas {dict(fam)}; sem variante: {sum(missing.values())} {dict(missing)}")
+    print(f"with set: {dict(with_set)}")
+    print(f"{len(spawns)} spawns, {len(creatures)} creatures {dict(fam)}; without variant: {sum(missing.values())} {dict(missing)}")
 
 
 if __name__ == "__main__":

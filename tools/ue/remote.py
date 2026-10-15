@@ -1,11 +1,11 @@
-"""Roda Python no editor da Unreal aberto (execução remota do Python Editor Script Plugin).
+"""Runs Python in the open Unreal editor (remote execution of the Python Editor Script Plugin).
 
-    python3 tools/ue/remote.py arquivo.py          roda o arquivo no editor
-    python3 tools/ue/remote.py -c "print(1)"       roda o código
+    python3 tools/ue/remote.py file.py             runs the file in the editor
+    python3 tools/ue/remote.py -c "print(1)"       runs the code
 
-Requer no projeto: Configurações do Projeto > Plugins > Python > "Ativar execução remota?" (bRemoteExecution).
-Usa o cliente da própria engine (PythonScriptPlugin/Content/Python/remote_execution.py). Mostra a saída do print
-e os erros do editor.
+Requires in the project: Project Settings > Plugins > Python > "Enable Remote Execution?" (bRemoteExecution).
+Uses the engine's own client (PythonScriptPlugin/Content/Python/remote_execution.py). Shows the print output
+and the editor's errors.
 """
 import os
 import sys
@@ -25,8 +25,8 @@ def main():
     else:
         sys.exit(__doc__)
     cfg = remote_execution.RemoteExecutionConfig()
-    # Mesmo endereço de ligação do editor. No Linux um socket preso em 127.0.0.1 não recebe multicast: os dois lados
-    # usam 0.0.0.0 (TTL 0 = não sai da máquina) e a interface lo precisa de multicast (sudo ip link set lo multicast on).
+    # Same bind address as the editor. On Linux a socket bound to 127.0.0.1 does not receive multicast: both sides
+    # use 0.0.0.0 (TTL 0 = does not leave the machine) and the lo interface needs multicast (sudo ip link set lo multicast on).
     cfg.multicast_bind_address = os.environ.get("UE_REMOTE_BIND", "0.0.0.0")
     rx = remote_execution.RemoteExecution(cfg)
     rx.start()
@@ -36,13 +36,13 @@ def main():
                 break
             time.sleep(0.1)
         if not rx.remote_nodes:
-            sys.exit("nenhum editor encontrado (editor aberto com execução remota ligada?)")
+            sys.exit("no editor found (editor open with remote execution on?)")
         rx.open_command_connection(rx.remote_nodes[0]["node_id"])
         res = rx.run_command(code, unattended=True, exec_mode=remote_execution.MODE_EXEC_FILE)
         for o in res.get("output", []):
             print(o.get("output", "").rstrip())
         if not res.get("success"):
-            print("ERRO:", res.get("result"))
+            print("ERROR:", res.get("result"))
             sys.exit(1)
     finally:
         rx.stop()

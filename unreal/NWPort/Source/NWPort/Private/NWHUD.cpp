@@ -45,7 +45,7 @@
 #include "NWCombatComponent.h"
 #include "NWPlayerController.h"
 
-static TAutoConsoleVariable<int32> CVarHudDebug(TEXT("nw.HudDebug"), 0, TEXT("Mostra a linha de diagnóstico de movimento/animação na HUD."));
+static TAutoConsoleVariable<int32> CVarHudDebug(TEXT("nw.HudDebug"), 0, TEXT("Shows the movement/animation diagnostic line on the HUD."));
 
 static const TCHAR* VitalsCanvas = TEXT("vitals2024");
 static const TCHAR* WeaponCanvas = TEXT("weaponquickslots");
@@ -59,10 +59,10 @@ static const TCHAR* SlotKeys[3] = {TEXT("Q"), TEXT("R"), TEXT("F")};
 void ANWHUD::BeginPlay()
 {
 	Super::BeginPlay();
-	// Fora de Content: o editor vigia Content e tentaria importar o .json e os .otf como assets.
+	// Outside Content: the editor watches Content and would try to import the .json and the .otf as assets.
 	Layout.Load(NWText::DataPath(TEXT("Data/UI/hud_layout.json")));
 	Layout.ResolveTexture = [this](const FString& P) { return ResolveTexture(P); };
-	// Ícone e fundo de cada habilidade (tools/make_abilities.py), para as duas armas.
+	// Icon and background of each ability (tools/make_abilities.py), for both weapons.
 	FString Raw;
 	TSharedPtr<FJsonObject> Root;
 	if (FFileHelper::LoadFileToString(Raw, *NWText::DataPath(TEXT("Data/UI/abilities.json")))
@@ -89,7 +89,7 @@ void ANWHUD::BeginPlay()
 		{
 			GroupLayout.Fonts[i] = Fonts[i];
 		}
-		// A barra do jogo enche por recorte; aqui, preenchimento linear da esquerda.
+		// The game's bar fills by clipping; here, linear fill from the left.
 		if (FNWUIElement* Fill = GroupLayout.FindOne(TEXT("member"), TEXT("Health/Fill")))
 		{
 			Fill->FillType = 1;
@@ -124,17 +124,17 @@ void ANWHUD::SetupStatic()
 {
 	bStaticDone = true;
 	for (FNWUIElement* E : Layout.Find(WeaponCanvas, TEXT("WeaponQuickslots/SwapHint"))) E->Visible = false;
-	// Sem consumíveis por enquanto: molduras vazias.
+	// No consumables for now: empty frames.
 	for (FNWUIElement* E : Layout.Find(ConsumableCanvas, TEXT("ItemLayoutConsumable"))) E->Visible = false;
 	for (FNWUIElement* E : Layout.Find(ConsumableCanvas, TEXT("CooldownTimer"))) E->Visible = false;
-	// Teclas do jogo (libs/config/defaultprofile.xml: quickslot-consumable-1..4 = 3..6); sem ícone de controle.
+	// Game keys (libs/config/defaultprofile.xml: quickslot-consumable-1..4 = 3..6); no controller icon.
 	const TCHAR* ConsumableSlots[4] = {TEXT("ConsumableQuickslot"), TEXT("ConsumableQuickslot2"), TEXT("ConsumableQuickslot3"), TEXT("ConsumableQuickslot4")};
 	for (int32 i = 0; i < 4; ++i)
 	{
 		if (FNWUIElement* E = Layout.FindOne(ConsumableCanvas, FString(ConsumableSlots[i]) + TEXT("/Hint/HintText"))) E->TextOverride = FString::FromInt(3 + i);
 	}
 	for (FNWUIElement* E : Layout.Find(ConsumableCanvas, TEXT("ModifierDivider/HintModifier"))) E->Visible = false;
-	// Cores que o Lua aplicava nas barras.
+	// Colors the Lua applied to the bars.
 	auto Tint = [this](const TCHAR* Path, const FLinearColor& C) { for (FNWUIElement* E : Layout.Find(VitalsCanvas, Path)) E->Tint = C; };
 	Tint(TEXT("HealthMeter/MultiFillMeter/MainFill"), FLinearColor(0.70f, 0.13f, 0.10f));
 	Tint(TEXT("HealthMeter/MultiFillMeter/UnderFill"), FLinearColor(0.95f, 0.78f, 0.62f, 0.85f));
@@ -151,7 +151,7 @@ void ANWHUD::UpdateVitals(const UNWCombatComponent* C, float DeltaSeconds)
 {
 	const float H = C->MaxHealth > 0.f ? C->Health / C->MaxHealth : 0.f;
 	const float S = C->MaxStamina > 0.f ? C->Stamina / C->MaxStamina : 0.f;
-	// A barra de trás acompanha a da frente com atraso quando cai; quando sobe, junto.
+	// The back bar follows the front one with a delay when it drops; when it rises, together.
 	HealthLag = H >= HealthLag ? H : FMath::FInterpConstantTo(HealthLag, H, DeltaSeconds, 0.35f);
 	StaminaLag = S >= StaminaLag ? S : FMath::FInterpConstantTo(StaminaLag, S, DeltaSeconds, 0.6f);
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("HealthMeter/MultiFillMeter/MainFill"))) E->Fill = H;
@@ -165,7 +165,7 @@ void ANWHUD::UpdateVitals(const UNWCombatComponent* C, float DeltaSeconds)
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("StaminaMeter/MultiFillMeter/UnderFill"))) E->Fill = StaminaLag;
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("StaminaMeter/ValueText"))) E->Visible = false;
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/ValueText"))) E->Visible = false;
-	// Mana (UNWManaComponent, sub-esteira 1a): barra cheia sem atraso por enquanto.
+	// Mana (UNWManaComponent, sub-area 1a): full bar with no delay for now.
 	const UNWManaComponent* Mana = C->GetOwner()->FindComponentByClass<UNWManaComponent>();
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/MultiFillMeter/MainFill"))) E->Fill = Mana ? Mana->GetRatio() : 1.f;
 	for (FNWUIElement* E : Layout.Find(VitalsCanvas, TEXT("ManaMeter/MultiFillMeter/UnderFill"))) E->Fill = Mana ? Mana->GetRatio() : 1.f;
@@ -178,7 +178,7 @@ void ANWHUD::UpdateAbilities(const ANWCharacter* Me, float DeltaSeconds)
 	WasCooling.SetNumZeroed(6);
 	for (int32 Row = 0; Row < 2; ++Row)
 	{
-		// Linha 0 (embaixo, maior) = arma ativa; linha 1 = a outra, com o fundo "inativo" do jogo.
+		// Row 0 (bottom, larger) = active weapon; row 1 = the other one, with the game's "inactive" background.
 		const FString Set = SetNames[Row];
 		const int32 SetIndex = Me->WeaponSets.Num() > 0 ? (Row == 0 ? Me->ActiveWeapon : Me->OtherWeapon()) : INDEX_NONE;
 		const bool bShown = Row == 0 || Me->WeaponSets.Num() > 1;
@@ -235,7 +235,7 @@ void ANWHUD::UpdateAbilities(const ANWCharacter* Me, float DeltaSeconds)
 				Dim->Visible = bCooling || Row == 1;
 				Dim->Fill = 1.f;
 			}
-			// Brilho quando a recarga termina.
+			// Glow when the cooldown ends.
 			const int32 F = Row * 3 + i;
 			if (WasCooling[F] && !bCooling)
 			{
@@ -264,7 +264,7 @@ void ANWHUD::DrawHUD()
 	DrawGameHUD();
 	if (Canvas && FNWOptions::Get().bShowFps)
 	{
-		// FPS no canto superior direito (opção @ui_show_fps).
+		// FPS in the top-right corner (@ui_show_fps option).
 		const float Fps = 1.f / FMath::Max(GetWorld()->GetDeltaSeconds(), 0.001f);
 		if (UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr)
 		{
@@ -295,7 +295,7 @@ void ANWHUD::DrawGameHUD()
 	const float Dt = LastDrawTime > 0.0 ? FMath::Clamp(float(Now - LastDrawTime), 0.f, 0.1f) : 0.f;
 	LastDrawTime = Now;
 
-	// -nwshot[=arquivo]: depois de alguns segundos tira um print da tela e fecha (conferência sem pessoa).
+	// -nwshot[=file]: after a few seconds takes a screenshot and closes (check without a person).
 	static double FirstDraw = Now;
 	static int32 ShotState = 0;
 	FString ShotFile;
@@ -305,8 +305,8 @@ void ANWHUD::DrawGameHUD()
 		{
 			ShotFile = FPaths::ProjectSavedDir() / TEXT("nwshot.png");
 		}
-		// -nwmenu=skill|dev: abre o menu antes do print.
-		// Por HUD (reabre depois de entrar no servidor); 1,5 s depois de esta HUD começar a desenhar.
+		// -nwmenu=skill|dev: opens the menu before the screenshot.
+		// Per HUD (reopens after joining the server); 1.5 s after this HUD starts drawing.
 		if (HudFirstDraw <= 0.0)
 		{
 			HudFirstDraw = Now;
@@ -320,21 +320,21 @@ void ANWHUD::DrawGameHUD()
 				MenuName == TEXT("dev") ? PC->ToggleDevMenu() : MenuName == TEXT("inventory") ? PC->ToggleInventory() : PC->ToggleSkillMenu();
 			}
 		}
-		// -nwweapon=2: troca para a segunda arma antes.
-		// Repete até a troca valer (logo depois de nascer o personagem ainda está caindo).
+		// -nwweapon=2: swaps to the second weapon first.
+		// Repeats until the swap takes effect (right after spawning the character is still falling).
 		int32 WeaponArg = 0;
 		if (Now - FirstDraw > 1.0 && FParse::Value(FCommandLine::Get(), TEXT("-nwweapon="), WeaponArg) && Me->ActiveWeapon != WeaponArg - 1)
 		{
 			const_cast<ANWCharacter*>(Me)->SwitchWeapon(WeaponArg - 1);
 		}
-		// Usa Q e R aos 3 s para o print mostrar a recarga.
+		// Uses Q and R at 3 s so the screenshot shows the cooldown.
 		static bool bUsedAbilities = false;
 		if (!bUsedAbilities && Now - FirstDraw > 3.0 && Me->Abilities.Num() >= 2)
 		{
 			bUsedAbilities = true;
 			Me->Combat->RequestAction(Me->Abilities[0]);
 			FTimerHandle H;
-			// Ponteiro fraco: o mapa pode trocar (entrada no servidor) antes do timer.
+			// Weak pointer: the map may change (joining the server) before the timer.
 			GetWorldTimerManager().SetTimer(H, [Weak = TWeakObjectPtr<const ANWCharacter>(Me)]()
 			{
 				if (const ANWCharacter* C = Weak.Get(); C && C->Abilities.IsValidIndex(1))
@@ -343,7 +343,7 @@ void ANWHUD::DrawGameHUD()
 				}
 			}, 1.6f, false);
 		}
-		// -nwshotdelay=N: espera mais (cliente que conecta num servidor antes do print).
+		// -nwshotdelay=N: waits longer (client that connects to a server before the screenshot).
 		double ShotDelay = 6.0;
 		FParse::Value(FCommandLine::Get(), TEXT("-nwshotdelay="), ShotDelay);
 		if (ShotState == 0 && Now - FirstDraw > ShotDelay)
@@ -373,7 +373,7 @@ void ANWHUD::DrawGameHUD()
 		Login.Draw(Canvas, FVector2D(MX, MY));
 		return;
 	}
-	// Morto: só a tela de morte, com o mouse livre para o Renascer.
+	// Dead: only the death screen, with the mouse free for Respawn.
 	const bool bDead = C->State == ENWCombatState::Dead && Me->IsLocallyControlled();
 	if (bDead != bDeathScreen)
 	{
@@ -409,7 +409,7 @@ void ANWHUD::DrawGameHUD()
 		if (APlayerController* PC = GetOwningPlayerController())
 		{
 			PC->GetMousePosition(MX, MY);
-			// Arrastar e soltar: o soltar do botão chega aqui (o apertar vem pelo clique do controlador).
+			// Drag and drop: the button release arrives here (the press comes through the controller's click).
 			Inventory.Hold(FVector2D(MX, MY), PC->IsInputKeyDown(EKeys::LeftMouseButton));
 		}
 		Inventory.Draw(Canvas, FVector2D(MX, MY));
@@ -419,7 +419,7 @@ void ANWHUD::DrawGameHUD()
 	}
 	if (Mastery.IsOpen())
 	{
-		// Com a tela de maestria aberta, a HUD de combate sai (como no jogo).
+		// With the Weapon Mastery screen open, the combat HUD goes away (as in the game).
 		float MX = 0.f, MY = 0.f;
 		if (APlayerController* PC = GetOwningPlayerController())
 		{
@@ -460,7 +460,7 @@ void ANWHUD::DrawGameHUD()
 			PC->GetMousePosition(MX, MY);
 			if (Refining.IsOpen())
 			{
-				// Arrastar a barra e repetir −/+ segurando; Espaço é a ação tryskip do jogo (o pulo já para com tela aberta).
+				// Drag the bar and repeat −/+ while holding; Space is the game's tryskip action (jump already stops with a screen open).
 				Refining.Hold(FVector2D(MX, MY), PC->IsInputKeyDown(EKeys::LeftMouseButton));
 				if (PC->WasInputKeyJustPressed(EKeys::SpaceBar))
 				{
@@ -496,7 +496,7 @@ void ANWHUD::DrawGameHUD()
 		Layout.Draw(Canvas);
 	}
 
-	// Carga do pesado, perto da mira: marca do pesado normal; cheia = carregado.
+	// Heavy charge, near the reticle: normal heavy mark; full = charged.
 	if (C->IsCharging())
 	{
 		const float CW = 120.f;
@@ -528,8 +528,8 @@ void ANWHUD::DrawGameHUD()
 
 void ANWHUD::DrawGather(const APawn* Me)
 {
-	// Cartão de coleta do jogo (markers/unifiedinteract, Gatherable_UnifiedInteractCard): anel no objeto, nome numa
-	// faixa à direita e a linha com a tecla e a ação; durante a coleta o anel de progresso enche com o tempo no meio.
+	// The game's gathering card (markers/unifiedinteract, Gatherable_UnifiedInteractCard): ring on the object, name on a
+	// ribbon to the right and the line with the key and action; during gathering the progress ring fills with the time inside.
 	const ANWCharacter* Char = Cast<ANWCharacter>(Me);
 	const UNWGatherComponent* G = Char ? Char->Gather.Get() : nullptr;
 	UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
@@ -541,7 +541,7 @@ void ANWHUD::DrawGather(const APawn* Me)
 	}
 	if (!G->IsGathering() && Char->Interactor && Char->Interactor->Focus.IsValid())
 	{
-		return;   // o cartão do interagível (DrawInteract) vale; a tecla também vai para ele
+		return;   // the interactable's card (DrawInteract) takes over; the key also goes to it
 	}
 	FVector2D C;
 	World += FVector(0.f, 0.f, 90.f);
@@ -564,7 +564,7 @@ void ANWHUD::DrawGather(const APawn* Me)
 	Tex(TEXT("lyshineui/images/markers/marker_ringgather.dds"), C, 64.f * S, G->bFocusBlocked ? FLinearColor(1.f, 0.45f, 0.4f) : FLinearColor::White);
 	if (G->IsGathering())
 	{
-		// Anel de progresso: leque de triângulos com a textura do anel, do topo no sentido horário.
+		// Progress ring: fan of triangles with the ring texture, from the top clockwise.
 		if (UTexture2D* Ring = FNWUILayout::GameTexture(TEXT("lyshineui/images/markers/marker_ringgatherprogress.dds")))
 		{
 			const float R = 40.f * S, P = G->Progress();
@@ -595,7 +595,7 @@ void ANWHUD::DrawGather(const APawn* Me)
 	{
 		return;
 	}
-	// Linha de ação: [E] Minerar, ou o aviso em vermelho (Requer Picareta).
+	// Action line: [E] Mine, or the warning in red (Requires Pickaxe).
 	const FString Name = G->FocusName;
 	const FString Action = G->FocusText.Contains(TEXT("·")) ? G->FocusText.Mid(G->FocusText.Find(TEXT("·")) + 1).TrimStartAndEnd()
 		: G->FocusText.Left(G->FocusText.Len() - Name.Len()).TrimStartAndEnd();
@@ -611,7 +611,7 @@ void ANWHUD::DrawCardText(const FVector2D& C, const FString& Name, const FString
 	}
 	const float S = Canvas->ClipY / 1080.f;
 	const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6));
-	// Faixa do nome à direita do anel (TitleFrame: +185 da âncora do cartão; aqui colada ao anel) e a linha da tecla.
+	// Name ribbon to the right of the ring (TitleFrame: +185 from the card anchor; here attached to the ring) and the key line.
 	const float NameScale = 19.f * S / FMath::Max(1, Font->LegacyFontSize);
 	float NW = 0.f, NH = 0.f;
 	Canvas->TextSize(Font, Name, NW, NH, NameScale, NameScale);
@@ -647,7 +647,7 @@ void ANWHUD::DrawCardText(const FVector2D& C, const FString& Name, const FString
 
 void ANWHUD::DrawInteract(const APawn* Me)
 {
-	// Mesmo cartão da coleta (anel + faixa do nome + [E] ação) no ponto de foco do interagível.
+	// Same card as gathering (ring + name ribbon + [E] action) at the interactable's focus point.
 	const ANWCharacter* Char = Cast<ANWCharacter>(Me);
 	const UNWInteractableComponent* I = Char && Char->Interactor ? Char->Interactor->Focus.Get() : nullptr;
 	APlayerController* PC = GetOwningPlayerController();
@@ -668,7 +668,7 @@ void ANWHUD::DrawInteract(const APawn* Me)
 			Canvas->DrawItem(Item);
 		}
 	}
-	// NPC sorteado da semana com algo a receber: "Receber" (ui_claim) no lugar de "Conversar".
+	// The week's drawn NPC with something to claim: "Claim" (ui_claim) instead of "Talk".
 	FString Action = NWText::Get(I->ActionKey);
 	if (const ANWNpc* Npc = Cast<ANWNpc>(I->GetOwner());
 		Npc && FNWNpcRewards::Get().StateFor(Npc, Char->Interactor->RewardClaims) == FNWNpcRewards::EState::Available)
@@ -680,9 +680,9 @@ void ANWHUD::DrawInteract(const APawn* Me)
 
 void ANWHUD::DrawNpcNames(const APawn* Me)
 {
-	// Marcador do jogo sobre o NPC (markerdata.luac, tipo Conversation; staticworldmarker.luac): sem nome, só o ícone
-	// do estado. No port só o NPC sorteado da semana tem estado (brindes, NWNpcRewards.h): "!" com algo a receber,
-	// relógio depois. Altura 1,9 m, escala de 1 a 0,35 até 40 m, some de 125 a 250 m, aparece através de paredes.
+	// The game's marker over the NPC (markerdata.luac, Conversation type; staticworldmarker.luac): no name, only the
+	// state icon. In the port only the week's drawn NPC has a state (gifts, NWNpcRewards.h): "!" with something to claim,
+	// clock afterwards. Height 1.9 m, scale from 1 to 0.35 up to 40 m, fades from 125 to 250 m, shows through walls.
 	APlayerController* PC = GetOwningPlayerController();
 	const ANWCharacter* Char = Cast<ANWCharacter>(Me);
 	if (!PC || !Char || !Char->Interactor)
@@ -694,7 +694,7 @@ void ANWHUD::DrawNpcNames(const APawn* Me)
 	{
 		const ANWNpc* Npc = *It;
 		const FNWNpcRewards::EState State = FNWNpcRewards::Get().StateFor(Npc, Char->Interactor->RewardClaims);
-		// Mercador (tools/shops.json): eConversationState_HasShop, icon_npcshop (staticworldmarker.lua).
+		// Merchant (tools/shops.json): eConversationState_HasShop, icon_npcshop (staticworldmarker.lua).
 		const bool bShop = FNWShops::Get().ForNpc(Npc->Variant) != nullptr;
 		if (State == FNWNpcRewards::EState::None && !bShop)
 		{
@@ -717,7 +717,7 @@ void ANWHUD::DrawNpcNames(const APawn* Me)
 		}
 		const float Scale = FMath::GetMappedRangeValueClamped(FVector2D(0.f, 40.f), FVector2D(1.f, 0.35f), Dist);
 		const float Alpha = FMath::GetMappedRangeValueClamped(FVector2D(125.f, 250.f), FVector2D(1.f, 0.f), Dist);
-		const float Size = 160.f * 0.5f * UIScale * Scale;   // 160 px no canvas do jogo (staticworldmarker), meia escala
+		const float Size = 160.f * 0.5f * UIScale * Scale;   // 160 px on the game's canvas (staticworldmarker), half scale
 		FCanvasTileItem Item(Screen - FVector2D(Size * 0.5f, Size), T->GetResource(), FVector2D(Size), FLinearColor(1.f, 1.f, 1.f, Alpha));
 		Item.BlendMode = SE_BLEND_Translucent;
 		Canvas->DrawItem(Item);
@@ -799,7 +799,7 @@ FString ANWHUD::DisplayName(const AActor* Actor)
 	}
 	if (const ANWCreature* Creature = Cast<ANWCreature>(Actor); Creature && Creature->Def())
 	{
-		return NWText::Get(Creature->Def()->NameKey);   // nome do jogo ("Javali", "Lobo Grisalho")
+		return NWText::Get(Creature->Def()->NameKey);   // the game's name ("Javali", "Lobo Grisalho")
 	}
 	if (Actor && Actor->IsA<ANWCharacter>() && !Actor->IsA<ANWLost>())
 	{
@@ -812,7 +812,7 @@ FString ANWHUD::DisplayName(const AActor* Actor)
 #endif
 }
 
-// Nome e vida sobre os outros personagens até 40 m, menores e mais apagados com a distância.
+// Name and health over the other characters up to 40 m, smaller and fainter with distance.
 void ANWHUD::DrawNameplates(const APawn* Me)
 {
 	UFont* Font = Fonts.IsValidIndex(1) ? Fonts[1].Get() : nullptr;
@@ -907,7 +907,7 @@ void ANWHUD::DrawGroup(const APawn* Me)
 
 void ANWHUD::UpdateConsumables(const ANWCharacter* Me)
 {
-	// Atalho 3 = melhor poção de vida da bolsa (no jogo o jogador escolhe; aqui é automático por enquanto).
+	// Shortcut 3 = best health potion in the bag (in the game the player picks; here it is automatic for now).
 	const UNWInventoryComponent* Inv = Me->Inventory;
 	const int32 Slot = Inv ? Inv->BestPotionSlot() : INDEX_NONE;
 	const FNWItem* Item = Slot != INDEX_NONE ? Inv->At(ENWItemContainer::Bag, Slot) : nullptr;
@@ -946,7 +946,7 @@ void ANWHUD::ShowLoot(const TArray<FNWItem>& Gained, int64 Coins)
 			LootLines.Add({I.ItemId, I.Quantity, I.Rarity, 0, Now});
 		}
 	}
-	// No máximo 5 linhas, como o jogo (o resto vira "mais itens"; aqui as mais antigas saem).
+	// At most 5 lines, like the game (the rest becomes "more items"; here the oldest leave).
 	while (LootLines.Num() > 5)
 	{
 		LootLines.RemoveAt(0);
@@ -975,7 +975,7 @@ void ANWHUD::DrawLootTicker()
 	{
 		return;
 	}
-	// LootTicker2024: canto inferior direito (x de -802, y de -490 da tela 1080p), linhas de 58 px, a mais nova em cima.
+	// LootTicker2024: bottom-right corner (x from -802, y from -490 of the 1080p screen), 58 px lines, newest on top.
 	const float S = Canvas->ClipY / 1080.f;
 	const FVector2D O(Canvas->ClipX - 802.f * S, Canvas->ClipY - 490.f * S);
 	auto Tex = [&](const FString& Path, FVector2D Pos, FVector2D Size, float Alpha, FLinearColor Tint = FLinearColor::White)
@@ -1007,7 +1007,7 @@ void ANWHUD::DrawLootTicker()
 		Tex(TEXT("lyshineui/images/lootticker/progressiontickeritembg.dds"), Row + FVector2D(2.f, -12.f) * S, FVector2D(385.f, 68.f) * S, Alpha);
 		if (L.Trade >= 0)
 		{
-			// Progresso de ofício (progressiontickeritembg do jogo): ícone, "+N", nome e o nível com a barra.
+			// Trade skill progress (the game's progressiontickeritembg): icon, "+N", name and the level with the bar.
 			const ANWCharacter* Me = Cast<ANWCharacter>(GetOwningPawn());
 			const UNWProgressionComponent* P = Me ? Me->Progression.Get() : nullptr;
 			Tex(NWTradeskill::Icon(L.Trade), Row + FVector2D(52.f, 8.f) * S, FVector2D(42.f) * S, Alpha);
@@ -1038,7 +1038,7 @@ void ANWHUD::DrawLootTicker()
 		{
 			continue;
 		}
-		// Peça do item (ItemLayoutSimple) reduzida a 92 x 46: fundo, faixa de raridade, ícone e tier.
+		// Item piece (ItemLayoutSimple) reduced to 92 x 46: background, rarity ribbon, icon and tier.
 		const int32 Rarity = D->Type == TEXT("weapon") || D->Type == TEXT("armor") ? FMath::Min<int32>(L.Rarity, 4) : FMath::Clamp(D->Tier - 1, 0, 4);
 		const FVector2D Tile = Row + FVector2D(10.f, 6.f) * S;
 		const FVector2D TileSize = FVector2D(92.f, 46.f) * S;
@@ -1047,7 +1047,7 @@ void ANWHUD::DrawLootTicker()
 		Tex(D->Icon, Tile + FVector2D((TileSize.X - TileSize.Y) * 0.5f, 0.f), FVector2D(TileSize.Y), Alpha);
 		static const TCHAR* Roman[] = {TEXT(""), TEXT("I"), TEXT("II"), TEXT("III"), TEXT("IV"), TEXT("V")};
 		Text(Roman[FMath::Clamp(D->Tier, 0, 5)], Tile.X + 4.f * S, Tile.Y, 13.f, Tan, Alpha);
-		// "+N" e o nome à direita (ItemQuantity / ItemName), nome na cor da raridade das armas.
+		// "+N" and the name on the right (ItemQuantity / ItemName), name in the weapons' rarity color.
 		Text(FString::Printf(TEXT("+%d"), L.Quantity), Row.X + 112.f * S, Row.Y + 16.f * S, 18.f, FLinearColor(FColor(0xED, 0xC6, 0x3E)), Alpha);
 		Text(D->Name, Row.X + 160.f * S, Row.Y + 16.f * S, 18.f, D->Type == TEXT("weapon") || D->Type == TEXT("armor") ? NWRarityColor(L.Rarity) : Tan, Alpha);
 	}
@@ -1108,14 +1108,14 @@ void ANWHUD::DrawCompass()
 	}
 	const float S = Canvas->ClipY / 1080.f;
 	const float CX = Canvas->ClipX * 0.5f;
-	// Direção da câmera em graus de bússola (0 = norte, 90 = leste), -180..180.
+	// Camera direction in compass degrees (0 = north, 90 = east), -180..180.
 	const float Heading = FRotator::NormalizeAxis(PC->GetControlRotation().Yaw - CompassNorthYaw);
-	// Na tira: N em 1021,6 px, 4,592 px por grau; cobre de -180° (S à esquerda) até +222°. Escala 1:1 na tela 1080p.
+	// On the strip: N at 1021.6 px, 4.592 px per degree; covers from -180° (S on the left) to +222°. 1:1 scale on the 1080p screen.
 	constexpr float PxPerDeg = 4.592f, NorthPx = 1021.6f, TexW = 2048.f, Half = 386.f / PxPerDeg;
 	const float Y0 = 3.f * S, H = 64.f * S;
 	auto Piece = [&](float From, float To, float ScreenFrom)
 	{
-		// Fatias com alfa que some nas pontas (a máscara compassmask do jogo).
+		// Slices with alpha that fades at the ends (the game's compassmask).
 		constexpr int32 Slices = 24;
 		const float Step = (To - From) / Slices;
 		for (int32 i = 0; i < Slices; ++i)
@@ -1138,7 +1138,7 @@ void ANWHUD::DrawCompass()
 	}
 	else if (Left < -180.f)
 	{
-		// Passou do sul pela esquerda: o pedaço de antes de -180 vem do fim da volta (+180).
+		// Went past south on the left: the piece before -180 comes from the end of the turn (+180).
 		Piece(Left + 360.f, 180.f, -Half);
 		Piece(-180.f, Heading + Half, -180.f - Heading);
 	}
@@ -1147,7 +1147,7 @@ void ANWHUD::DrawCompass()
 		Piece(Left, 180.f, -Half);
 		Piece(-180.f, Heading + Half - 360.f, 180.f - Heading);
 	}
-	// POIs a até 400 m na tira, no rumo em que estão (o jogo mostra os pontos próximos na bússola).
+	// POIs up to 400 m on the strip, at their bearing (the game shows nearby points on the compass).
 	if (const APawn* Me = PC->GetPawn())
 	{
 		WorldMap.EnsureLoaded();
@@ -1175,7 +1175,7 @@ void ANWHUD::DrawCompass()
 			}
 		}
 	}
-	// Marcador do mapa na tira (waypoint_compass) com a distância embaixo; preso na ponta quando está atrás.
+	// Map marker on the strip (waypoint_compass) with the distance below; pinned to the edge when it is behind.
 	if (const APawn* Me = PC->GetPawn(); Me && WorldMap.Waypoint)
 	{
 		const FVector2D D = WorldMap.ToUnreal(*WorldMap.Waypoint) - FVector2D(Me->GetActorLocation());
@@ -1197,7 +1197,7 @@ void ANWHUD::DrawCompass()
 			DrawText(Dist, FLinearColor(FColor(0xEB, 0xE3, 0xD6)), SX - TW * 0.5f, 52.f * S, Font, Scale);
 		}
 	}
-	// Linha de base e agulha (CompassLines / Needle).
+	// Base line and needle (CompassLines / Needle).
 	if (UTexture2D* Line = FNWUILayout::GameTexture(TEXT("lyshineui/images/compass/compassbg.dds")))
 	{
 		FCanvasTileItem T(FVector2D(CX - 386.f * S, 45.f * S), Line->GetResource(), FVector2D(772.f * S, 8.f * S), FLinearColor(0.8f, 0.74f, 0.635f, 1.f));
@@ -1214,7 +1214,7 @@ void ANWHUD::DrawCompass()
 
 void ANWHUD::AddDamageNumber(const FVector& World, const FString& Text, const FLinearColor& Color, bool bBig)
 {
-	// Deslocamento lateral pequeno e aleatório: golpes seguidos não ficam um em cima do outro.
+	// Small random lateral offset: consecutive hits do not land on top of each other.
 	DamageNumbers.Add({World, Text, Color, bBig, FPlatformTime::Seconds(), FMath::FRandRange(-30.f, 30.f)});
 	if (DamageNumbers.Num() > 40)
 	{
@@ -1233,7 +1233,7 @@ void ANWHUD::DrawDamageNumbers()
 		return;
 	}
 	const float S = Canvas->ClipY / 1080.f;
-	// Empilhado (opção do jogo): lista fixa à direita da mira, o mais novo embaixo; flutuando: sobre o alvo.
+	// Stacked (game option): fixed list to the right of the reticle, newest at the bottom; floating: over the target.
 	const bool bStacked = FNWOptions::Get().DamageNumbers == 1;
 	int32 Row = DamageNumbers.Num();
 	for (const FDamageNumber& N : DamageNumbers)
@@ -1249,7 +1249,7 @@ void ANWHUD::DrawDamageNumbers()
 			continue;
 		}
 		const float T = float(Now - N.Time) / 1.2f;
-		// Entra grande e encolhe (0,15 s), sobe 70 px, some no último terço.
+		// Enters large and shrinks (0.15 s), rises 70 px, fades in the last third.
 		const float Pop = 1.f + 0.35f * FMath::Clamp(1.f - T / 0.125f, 0.f, 1.f);
 		const float Size = (N.bBig ? 30.f : 24.f) * Pop * S;
 		const float Scale = Size / FMath::Max(1, Font->LegacyFontSize);
@@ -1277,7 +1277,7 @@ void ANWHUD::DrawEncumbrance(const APawn* Me)
 	const float S = Canvas->ClipY / 1080.f;
 	const float Ratio = Inv->TotalWeight() / Inv->MaxWeight;
 	const bool bOver = Ratio > 1.f;
-	// EncumbranceLayoutElement: 60 x 60 no canto inferior direito (offsets -96..-36, -113..-53 da tela 1080p).
+	// EncumbranceLayoutElement: 60 x 60 in the bottom-right corner (offsets -96..-36, -113..-53 of the 1080p screen).
 	const FVector2D Slot(Canvas->ClipX - 96.f * S, Canvas->ClipY - 113.f * S);
 	const float Size = 60.f * S;
 	auto Tex = [&](const TCHAR* Path, FVector2D Pos, FVector2D Dim, FLinearColor Color)
@@ -1290,11 +1290,11 @@ void ANWHUD::DrawEncumbrance(const APawn* Me)
 		}
 	};
 	Tex(TEXT("lyshineui/images/hud2024/actionbar/actionbaritembg.dds"), Slot, FVector2D(Size), FLinearColor::White);
-	// Ícone da bolsa (100 x 72) centrado no espaço.
+	// Bag icon (100 x 72) centered in the space.
 	const FVector2D Icon(46.f * S, 33.f * S);
 	Tex(TEXT("lyshineui/images/inventory/icon_inventory.dds"), Slot + (FVector2D(Size) - Icon) * 0.5, Icon,
 		bOver ? FLinearColor(1.f, 0.45f, 0.4f) : FLinearColor(1.f, 1.f, 1.f, 0.9f));
-	// Porcentagem do peso no círculo (PercentageBg), a partir de 80% como aviso.
+	// Weight percentage in the circle (PercentageBg), from 80% on as a warning.
 	if (Ratio >= 0.8f)
 	{
 		const FVector2D Circle(34.f * S);
@@ -1309,7 +1309,7 @@ void ANWHUD::DrawEncumbrance(const APawn* Me)
 	}
 	if (bOver)
 	{
-		// Faixa de mensagem à esquerda (Message: encumbrance_messagebgside) com o aviso do jogo.
+		// Message ribbon on the left (Message: encumbrance_messagebgside) with the game's warning.
 		const FString Msg = NWText::Get(TEXT("inv_equiploadencumberednotification"));
 		const float Scale = 16.f * S / FMath::Max(1, Font->LegacyFontSize);
 		float W = 0.f, H = 0.f;
@@ -1323,7 +1323,7 @@ void ANWHUD::DrawEncumbrance(const APawn* Me)
 void ANWHUD::ShowXp(int64 Amount)
 {
 	const double Now = FPlatformTime::Seconds();
-	// Ganhos seguidos somam no mesmo aviso.
+	// Consecutive gains add up in the same notice.
 	XpShown = Now - XpShownAt < 2.5 ? XpShown + Amount : Amount;
 	XpShownAt = Now;
 }
@@ -1344,7 +1344,7 @@ void ANWHUD::UpdateXp(const ANWCharacter* Me)
 	const float Fill = P->LevelProgress();
 	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("LevelText"))) E->TextOverride = FString::FromInt(P->Level);
 	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("MeterFill"))) E->Fill = Fill;
-	// A ponta acompanha o preenchimento (no jogo o Lua move; largura da barra = 322).
+	// The tip follows the fill (in the game the Lua moves it; bar width = 322).
 	if (FNWUIElement* E = Layout.FindOne(XpCanvas, TEXT("MeterFillEdge")))
 	{
 		E->Translate = FVector2f(322.f * Fill, 0.f);
@@ -1371,7 +1371,7 @@ void ANWHUD::DrawLevelUp()
 	{
 		return;
 	}
-	// Entra em 0,3 s, fica, sai no último 0,8 s. Posições do bannerlevelup (tela 1080p, centro x = 960).
+	// Enters in 0.3 s, stays, leaves in the last 0.8 s. bannerlevelup positions (1080p screen, center x = 960).
 	const float Alpha = FMath::Clamp(float(FMath::Min(Age / 0.3, (4.5 - Age) / 0.8)), 0.f, 1.f);
 	const float S = Canvas->ClipY / 1080.f;
 	const float CX = Canvas->ClipX * 0.5f;
@@ -1407,7 +1407,7 @@ void ANWHUD::DrawLevelUp()
 
 void ANWHUD::AddHitIndicator(const FVector& From, float Fraction)
 {
-	// Até 5 ao mesmo tempo, como o HitIndicatorManager do jogo (EdgeIndicator1–5 / ArrowIndicator1–5).
+	// Up to 5 at the same time, like the game's HitIndicatorManager (EdgeIndicator1–5 / ArrowIndicator1–5).
 	HitIndicators.Add({From, Fraction, FPlatformTime::Seconds()});
 	if (HitIndicators.Num() > 5)
 	{
@@ -1441,14 +1441,14 @@ void ANWHUD::DrawHitIndicators()
 	for (const FHitIndicator& H : HitIndicators)
 	{
 		const float Alpha = FMath::Clamp(float(1.0 - (Now - H.Time)) / 0.6f, 0.f, 1.f);
-		// Ângulo do atacante em relação à câmera: 0 = à frente (em cima), positivo = à direita.
+		// Attacker angle relative to the camera: 0 = ahead (top), positive = to the right.
 		const FVector To = H.From - Me->GetActorLocation();
 		const float Angle = FRotator::NormalizeAxis(FMath::RadiansToDegrees(FMath::Atan2(To.Y, To.X)) - PC->GetControlRotation().Yaw);
 		const float Rad = FMath::DegreesToRadians(Angle);
-		// Seta (Arrow, 172 x 46 a 204 px do centro na tela 1080p).
+		// Arrow (Arrow, 172 x 46 at 204 px from the center on the 1080p screen).
 		Tex(TEXT("lyshineui/images/hitindicator/hitdirection.dds"), C + FVector2D(FMath::Sin(Rad), -FMath::Cos(Rad)) * 204.f * S,
 			FVector2D(172.f, 46.f) * S, Angle, Alpha);
-		// Brilho na borda mais perto da direção (EdgeImage): leve até 15% da vida, médio acima.
+		// Glow on the edge closest to the direction (EdgeImage): light up to 15% of health, medium above.
 		const float Side = FMath::RoundToFloat(Angle / 90.f) * 90.f;
 		const bool bVertical = FMath::Abs(FMath::Fmod(FMath::Abs(Side), 180.f)) > 1.f;
 		const float Len = (bVertical ? Canvas->ClipY : Canvas->ClipX) * 0.7f;
@@ -1470,7 +1470,7 @@ void ANWHUD::DrawWarning()
 	{
 		return;
 	}
-	// WarningBar: fundo background_warningbar (51 px) e texto amarelo 23; some no último meio segundo.
+	// WarningBar: background_warningbar background (51 px) and yellow text 23; fades in the last half second.
 	const float Alpha = FMath::Clamp(float(3.0 - Age) / 0.5f, 0.f, 1.f);
 	const float S = Canvas->ClipY / 1080.f;
 	const float Scale = 23.f * S / FMath::Max(1, Font->LegacyFontSize);
@@ -1504,7 +1504,7 @@ void ANWHUD::DrawNavbar(int32 Active, const FVector2D& Mouse)
 			Canvas->DrawItem(Item);
 		}
 	};
-	// Fundo navbar_bg_2023 (1920 x 104 na tela de referência) esticado na largura.
+	// navbar_bg_2023 background (1920 x 104 on the reference screen) stretched across the width.
 	Tex(TEXT("lyshineui/images/navbar/navbar_bg_2023.dds"), FVector2D::ZeroVector, FVector2D(Canvas->ClipX, 70.f * S));
 	static const TCHAR* Icons[3] = {TEXT("lyshineui/images/inventory/icon_inventory.dds"), TEXT("lyshineui/images/navbar/navbar_icon_character.dds"),
 		TEXT("lyshineui/images/navbar/navbar_icon_map.dds")};
@@ -1522,7 +1522,7 @@ void ANWHUD::DrawNavbar(int32 Active, const FVector2D& Mouse)
 		const bool bHover = NavTabs[i].IsInside(FVector2f(Mouse));
 		if (i == Active || bHover)
 		{
-			// highlight do jogo (392 x 88) atrás da aba ativa/sob o mouse.
+			// The game's highlight (392 x 88) behind the active/hovered tab.
 			Tex(TEXT("lyshineui/images/navbar/highlight.dds"), FVector2D(NavTabs[i].Min), FVector2D(NavTabs[i].GetSize()),
 				FLinearColor(1.f, 1.f, 1.f, i == Active ? 1.f : 0.5f));
 		}
@@ -1530,7 +1530,7 @@ void ANWHUD::DrawNavbar(int32 Active, const FVector2D& Mouse)
 		Tex(Icons[i], FVector2D(X + 14.f * S, 22.f * S), FVector2D(IconSz), i == Active ? FLinearColor(FColor(0xED, 0xC6, 0x3E)) : FLinearColor::White);
 		DrawText(Text, i == Active ? FLinearColor(FColor(0xED, 0xC6, 0x3E)) : FLinearColor(FColor(0xEB, 0xE3, 0xD6)),
 			X + 46.f * S, 34.f * S - H * 0.5f, Font, Scale);
-		// Pontos de atributo livres: o selo unspentpoints do jogo na aba Personagem.
+		// Free attribute points: the game's unspentpoints badge on the Character tab.
 		if (i == 1 && Me && Me->Progression && Me->Progression->UnspentPoints() > 0)
 		{
 			Tex(TEXT("lyshineui/images/navbar/unspentpoints.dds"), FVector2D(NavTabs[i].Max.X - 22.f * S, 6.f * S), FVector2D(26.f * S));
@@ -1586,9 +1586,9 @@ void ANWHUD::OpenStorage(ANWCharacter* Who, ANWStation* Station)
 		return;
 	}
 	PC->CloseMenus();
-	// Armazém compartilhado: o mesmo em qualquer despensa (nw-core: shared); a cidade da despensa passa a ser conhecida.
+	// Shared Storage: the same in any storehouse (nw-core: shared); the storehouse's city becomes known.
 	Who->Interactor->ServerStorageOpen(Station->City);
-	// Inventário com o armazém à esquerda (catcontainer.lua): arrastar entre os dois.
+	// Inventory with Storage on the left (catcontainer.lua): drag between the two.
 	Inventory.OpenStorage(Who, Station->Interact->DisplayName.ToString());
 	PC->EnterCanvasMenu();
 }
@@ -1600,7 +1600,7 @@ void ANWHUD::OpenMarket(ANWCharacter* Who, ANWStation* Station)
 	{
 		return;
 	}
-	// Entreposto: tela própria em Slate (SNWMarket); Esc e CloseMenus fecham como o menu F10.
+	// Trading Post: its own Slate screen (SNWMarket); Esc and CloseMenus close it like the F10 menu.
 	TSharedRef<SNWMarket> Menu = SNew(SNWMarket).Character(Who).Title(Station->Interact->DisplayName.ToString());
 	PC->ShowMenu(Menu, Menu);
 }
@@ -1635,7 +1635,7 @@ bool ANWHUD::StationMenuWheel(float Delta)
 		Refining.Wheel(Delta);
 		return true;
 	}
-	if (Inventory.IsOpen())   // bolsa sozinha (Tab) ou com o armazém
+	if (Inventory.IsOpen())   // bag alone (Tab) or with Storage
 	{
 		float MX = 0.f, MY = 0.f;
 		if (APlayerController* PC = GetOwningPlayerController())

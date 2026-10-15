@@ -73,7 +73,7 @@ float UNWGatherComponent::Remaining() const
 
 FName UNWGatherComponent::ToolType(FName Action)
 {
-	// Ação do coletável (gatherables.GatheringAction) = GatheringTypes da ferramenta, menos "None" (à mão).
+	// Gatherable action (gatherables.GatheringAction) = the tool's GatheringTypes, minus "None" (by hand).
 	return Action == TEXT("None") ? NAME_None : Action;
 }
 
@@ -124,7 +124,7 @@ void UNWGatherComponent::UpdateFocus()
 	{
 		return;
 	}
-	// Carcaça perto (criatura morta, ainda não esfolada): "Esfolar Javali"; pede a faca de esfolar.
+	// Carcass nearby (dead creature, not skinned yet): "Skin Boar"; requires the skinning knife.
 	for (TActorIterator<ANWCreature> It(GetWorld()); It; ++It)
 	{
 		const FNWCreatureDef* D = It->Def();
@@ -165,7 +165,7 @@ void UNWGatherComponent::UpdateFocus()
 		FocusText = FString::Printf(TEXT("%s  ·  %s"), *Name, *NWText::Get(TEXT("ui_notoolitem")).Replace(TEXT("{itemName}"), *NWText::Get(ToolGroupKey(V.Action))));
 		return;
 	}
-	// Nível mínimo do ofício (RequiredTradeskillLevel): "Requer o Nível 50" com o nome do ofício.
+	// Minimum trade skill level (RequiredTradeskillLevel): "Requires Level 50" with the trade skill name.
 	if (const int32 Need = Me->Progression ? Me->Progression->MissingTradeLevel(V.Tradeskill, V.RequiredLevel) : 0)
 	{
 		bFocusBlocked = true;
@@ -222,7 +222,7 @@ void UNWGatherComponent::ServerGather_Implementation(int32 Index)
 			return;
 		}
 	}
-	// Tempo do jogo: BaseGatherTime ÷ (eficiência da ferramenta + bônus do nível do ofício); à mão = tempo base.
+	// Game time: BaseGatherTime ÷ (tool efficiency + trade skill level bonus); by hand = base time.
 	const float SkillBonus = Me->Progression ? Me->Progression->TradeEfficiency(NWTradeskill::Index(V.Tradeskill)) : 0.f;
 	const float Time = FMath::Max(1.f, V.Time / FMath::Max(0.1f, (ToolDef ? ToolDef->Efficiency : 1.f) + SkillBonus));
 	GatherIndex = Index;
@@ -230,7 +230,7 @@ void UNWGatherComponent::ServerGather_Implementation(int32 Index)
 	GatherStart = ServerNow();
 	GatherEnd = GatherStart + Time;
 	GatherFrom = Me->GetActorLocation();
-	// Vira para o coletável.
+	// Turns toward the gatherable.
 	const FVector To = Field->GetActorTransform().TransformPosition(Field->Node(Index).Transform.GetLocation()) - GatherFrom;
 	Me->SetActorRotation(FRotator(0.f, To.Rotation().Yaw, 0.f));
 	OnRep_Gather();
@@ -287,7 +287,7 @@ void UNWGatherComponent::Finish(bool bComplete)
 	GetOwner()->ForceNetUpdate();
 	if (Index == SkinIndex)
 	{
-		// Carcaça: saque da linha de esfolar do jogo (BoarSkinning...) e XP de Esfolamento.
+		// Carcass: loot from the game's skinning row (BoarSkinning...) and Skinning XP.
 		const FNWCreatureDef* D = Corpse ? Corpse->Def() : nullptr;
 		if (Corpse)
 		{
@@ -304,7 +304,7 @@ void UNWGatherComponent::Finish(bool bComplete)
 		FNWItemCatalog::Get().RollGame(D->SkinLoot, Gained, Bonus);
 		if (Me->Inventory)
 		{
-			const NWOps::FReason Reason(TEXT("gather"));   // log de itens (NWOps)
+			const NWOps::FReason Reason(TEXT("gather"));   // item log (NWOps)
 			Me->Inventory->Grant(Gained, 0);
 		}
 		if (Me->Progression)
@@ -318,14 +318,14 @@ void UNWGatherComponent::Finish(bool bComplete)
 		return;
 	}
 	TArray<FNWItem> Gained;
-	// Nível do ofício soma no dado do saque (RollBonus) nas tabelas que aceitam (RollBonusSetting).
+	// The trade skill level adds to the loot roll (RollBonus) on tables that accept it (RollBonusSetting).
 	const int32 Bonus = Me->Progression ? Me->Progression->TradeRollBonus(NWTradeskill::Index(Field->VariantOf(Index).Tradeskill)) : 0;
 	FNWItemCatalog::Get().RollGame(Field->VariantOf(Index).Loot, Gained, Bonus);
 	const ANWGatherField::FVariant& V = Field->VariantOf(Index);
 	Field->Deplete(Index);
 	if (Me->Inventory)
 	{
-		const NWOps::FReason Reason(TEXT("gather"));   // log de itens (NWOps)
+		const NWOps::FReason Reason(TEXT("gather"));   // item log (NWOps)
 		Me->Inventory->Grant(Gained, 0);
 	}
 	if (Me->Progression)
@@ -344,7 +344,7 @@ void UNWGatherComponent::OnRep_Gather()
 	UAnimInstance* Anim = Me->GetMesh() ? Me->GetMesh()->GetAnimInstance() : nullptr;
 	if (IsGathering())
 	{
-		// Ferramenta na mão direita, escudo guardado; a animação do jogo em loop.
+		// Tool in the right hand, shield stowed; the game's animation, looping.
 		if (const TSoftObjectPtr<UStaticMesh>* Tool = ToolMeshes.Find(GatherAction))
 		{
 			if (UStaticMesh* M = Tool->LoadSynchronous())
@@ -387,8 +387,8 @@ void UNWGatherComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	{
 		return;
 	}
-	// Foco do [E] só no jogador local: no servidor, criaturas e IA contam como "controladas localmente" e procuravam
-	// coletável a cada ciclo (docs/tech/architecture.md, medições).
+	// [E] focus only on the local player: on the server, creatures and AI count as "locally controlled" and searched for
+	// a gatherable every cycle (docs/tech/architecture.md, measurements).
 	if (Me->IsLocallyControlled() && Me->IsPlayerControlled())
 	{
 		UpdateFocus();
@@ -397,7 +397,7 @@ void UNWGatherComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	{
 		return;
 	}
-	// Andar, sair do lugar, atacar/esquivar ou morrer cancela.
+	// Walking, moving away, attacking/dodging or dying cancels.
 	const bool bMoved = Me->GetVelocity().Size2D() > 30.f || FVector::Dist2D(Me->GetActorLocation(), GatherFrom) > 60.f;
 	if (bMoved || Me->Combat->State != ENWCombatState::Idle)
 	{

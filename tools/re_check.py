@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Confere o que a engenharia reversa (re-local) já entrou no port.
+"""Checks which reverse-engineering findings (re-local) have already made it into the port.
 
     python3 tools/re_check.py
 
-1. Valores (re-local/valores/<área>.json): cada id é procurado no código do port (C++ em unreal/NWPort/Source,
-   Python em tools/ e tools/ue/). Valor numérico entra pelo FNWRules (Data/regras.json); regra (valor null) entra
-   citando o id em comentário onde é aplicada. Sem uso = falta aplicar.
-2. Data/regras.json desatualizado em relação aos valores (rodar tools/make_rules.py).
-4. Perguntas (re-local/perguntas/<esteira>-NNN.md) respondidas e ainda não aplicadas.
-3. Colunas (re-local/colunas.json, tirado do executável por tools/re/colunas.py): colunas da damagetable que o
-   cliente do jogo lê e o port não exporta (make_datatables.DAMAGE_COLS), e as que o port exporta e o cliente não lê
-   (de servidor: o port, que é servidor e cliente, usa mesmo assim).
+1. Values (re-local/valores/<area>.json): each id is searched for in the port code (C++ in unreal/NWPort/Source,
+   Python in tools/ and tools/ue/). A numeric value goes in through FNWRules (Data/regras.json); a rule (null value)
+   goes in by citing the id in a comment where it is applied. Unused = still to be applied.
+2. Data/regras.json out of date relative to the values (run tools/make_rules.py).
+4. Questions (re-local/perguntas/<area>-NNN.md) answered and not applied yet.
+3. Columns (re-local/colunas.json, taken from the executable by tools/re/colunas.py): damagetable columns the
+   game client reads and the port does not export (make_datatables.DAMAGE_COLS), and those the port exports and the
+   client does not read (server-side: the port, being both server and client, uses them anyway).
 """
 import json
 import os
@@ -45,16 +45,16 @@ def check_values():
         (applied if where else pending).append((vid, v, where))
     print(f"== Valores do RE: {len(applied)} aplicados, {len(pending)} sem uso no port")
     for vid, v, where in applied:
-        warn = "  [hipótese]" if v.get("prova") == "H" else ""
+        warn = "  [hypothesis]" if v.get("prova") == "H" else ""
         print(f"  ok    {vid} = {fmt(v)}  ({', '.join(where)}){warn}")
     for vid, v, _ in pending:
-        print(f"  falta {vid} = {fmt(v)}  — {v.get('o_que', '')}")
+        print(f"  todo  {vid} = {fmt(v)}  — {v.get('o_que', '')}")
     return valores
 
 
 def fmt(v):
     val = v.get("valor")
-    return "regra" if val is None else f"{val}{(' ' + v['unidade']) if v.get('unidade') else ''}"
+    return "rule" if val is None else f"{val}{(' ' + v['unidade']) if v.get('unidade') else ''}"
 
 
 def check_rules(valores):
@@ -63,14 +63,14 @@ def check_rules(valores):
     have = json.load(open(path)) if os.path.exists(path) else None
     print("== Data/regras.json")
     if have == want:
-        print(f"  em dia ({len(want)} valores)")
+        print(f"  up to date ({len(want)} values)")
     else:
         diff = sorted(k for k in set(want) | set(have or {}) if (have or {}).get(k) != want.get(k))
-        print(f"  desatualizado ({', '.join(diff) if have is not None else 'ausente'}): python3 tools/make_rules.py")
+        print(f"  out of date ({', '.join(diff) if have is not None else 'missing'}): python3 tools/make_rules.py")
 
 
 def base(col):
-    """Nome que o parser do jogo usa: sem _AI e sem o eixo X/Y/Z (ImpactDistanceY_AI → ImpactDistance)."""
+    """Name the game parser uses: without _AI and without the X/Y/Z axis (ImpactDistanceY_AI → ImpactDistance)."""
     c = col[:-3] if col.endswith("_AI") else col
     return c[:-1] if re.search(r"Distance[XYZ]$", c) else c
 
@@ -78,12 +78,12 @@ def base(col):
 def check_columns():
     path = os.path.join(RE_DIR, "colunas.json")
     if not os.path.exists(path):
-        print("== Colunas: sem re-local/colunas.json (python3 -I tools/re/colunas.py)")
+        print("== Columns: no re-local/colunas.json (python3 -I tools/re/colunas.py)")
         return
     import make_datatables as md
     for sheet, info in json.load(open(path)).items():
         if sheet != "javelindata_damagetable":
-            print(f"== Colunas de {sheet}: sem exportação conhecida no port")
+            print(f"== Columns of {sheet}: no known export in the port")
             continue
         game = set(info["colunas"])
         table_file = os.path.join(DT, sheet + ".datasheet.json")
@@ -92,13 +92,13 @@ def check_columns():
         read = [h for h in headers if h in game or base(h) in game]
         missing = [h for h in read if h not in exported and h not in md.DAMAGE_IGNORED]
         server = sorted(c for c in exported if c in headers and c not in game and base(c) not in game)
-        print(f"== Colunas de {sheet} (parser {info['parser']}): {len(read)} lidas pelo cliente, "
-              f"{len(read) - len(missing)} no port")
+        print(f"== Columns of {sheet} (parser {info['parser']}): {len(read)} read by the client, "
+              f"{len(read) - len(missing)} in the port")
         for col, why in md.DAMAGE_IGNORED.items():
-            print(f"  fora de propósito: {col} ({why})")
-        print(f"  lidas pelo cliente e fora do port ({len(missing)}): {' '.join(missing)}")
+            print(f"  left out on purpose: {col} ({why})")
+        print(f"  read by the client and not in the port ({len(missing)}): {' '.join(missing)}")
         if server:
-            print(f"  no port e não lidas pelo cliente (servidor): {' '.join(server)}")
+            print(f"  in the port and not read by the client (server): {' '.join(server)}")
 
 
 def check_questions():
@@ -109,7 +109,7 @@ def check_questions():
         states.setdefault(m.group(1) if m else "?", []).append(name[:-3])
     print("== Perguntas: " + ", ".join(f"{len(v)} {k}" for k, v in sorted(states.items())))
     if states.get("respondida"):
-        print(f"  respondidas, falta aplicar: {' '.join(states['respondida'])}")
+        print(f"  answered, still to be applied: {' '.join(states['respondida'])}")
 
 
 def main():

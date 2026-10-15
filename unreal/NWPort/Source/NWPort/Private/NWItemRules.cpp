@@ -21,7 +21,7 @@ FNWItemRules::FNWItemRules()
 	const FString File = FPaths::ProjectDir() / TEXT("Data/Items/regras_itens.json");
 	if (!FFileHelper::LoadFileToString(Raw, *File) || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Raw), Root) || !Root.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Itens: não li %s"), *File);
+		UE_LOG(LogTemp, Warning, TEXT("Items: could not read %s"), *File);
 		return;
 	}
 	Root->TryGetNumberField(TEXT("nivel_fabricar"), CraftLevel);
@@ -244,14 +244,14 @@ float FNWItemRules::Resistance(const FNWItemDef& D, float Quality) const
 	{
 		return 0.f;
 	}
-	// Faixa do peito pela classe de peso × fração da peça, posicionada pela qualidade (uma casa decimal).
+	// Chest band by weight class × piece fraction, positioned by quality (one decimal place).
 	const float Q = FMath::Clamp(Quality, 0.f, 100.f) / 100.f;
 	return FMath::RoundToFloat((Chest->X + (Chest->Y - Chest->X) * Q) * *Frac * 10.f) / 10.f;
 }
 
 bool FNWItemRules::HasSocket(const FNWItemDef& D, const FNWItem& Item)
 {
-	// 1 slot por arma, escudo e armadura fabricados; joias e ferramentas não têm (docs/game/items.md).
+	// 1 slot per crafted weapon, shield and armor; jewelry and tools have none (docs/game/items.md).
 	const FString Class = EquipClass(D);
 	return Item.Quality >= 0.f && (Class == TEXT("arma") || Class == TEXT("escudo") || Class == TEXT("armadura"));
 }
@@ -276,7 +276,7 @@ TArray<FString> FNWItemRules::GemLines(FName GemId) const
 		const TMap<FString, FString>* T = GemEffectText.Find(E.Key);
 		const FString* L = T ? T->Find(NWText::Lang()) : nullptr;
 		FString Line = L ? *L : E.Key.ToString() + TEXT(" {v}");
-		// Uma casa decimal só quando precisa (2,5 / 5).
+		// One decimal place only when needed (2.5 / 5).
 		FString V = FMath::IsNearlyEqual(E.Value, FMath::RoundToFloat(E.Value)) ? FString::Printf(TEXT("%.0f"), E.Value) : FString::Printf(TEXT("%.1f"), E.Value);
 		if (NWText::Lang() == TEXT("pt-br"))
 		{
@@ -304,7 +304,7 @@ TArray<FName> FNWItemRules::PerkPool(const FNWItemDef& D) const
 	}
 	if (const TArray<FName>* A = Ability.Find(D.Set))
 	{
-		Pool.Append(*A);   // habilidade só na arma dela
+		Pool.Append(*A);   // ability only on its own weapon
 	}
 	if (HealWeapons.Contains(D.Set))
 	{
@@ -321,7 +321,7 @@ float FNWItemRules::PerkValue(FName Perk, float Quality) const
 		return 0.f;
 	}
 	const float Q = FMath::Clamp(Quality, 0.f, 100.f) / 100.f;
-	return FMath::RoundToFloat((P->Min + (P->Max - P->Min) * Q) * 10.f) / 10.f;   // uma casa decimal
+	return FMath::RoundToFloat((P->Min + (P->Max - P->Min) * Q) * 10.f) / 10.f;   // one decimal place
 }
 
 FString FNWItemRules::PerkText(FName Perk, float Quality, bool bName) const
@@ -348,7 +348,7 @@ int32 FNWItemRules::AttrValue(int32 GearScore) const
 
 float FNWItemRules::QualityMin(int32 SkillLevel, int32 MaxLevel) const
 {
-	// Roupas de ofício e troféus (até QualityMinAllMax) entram quando existirem.
+	// Trade skill clothing and trophies (up to QualityMinAllMax) come in when they exist.
 	const float Level = MaxLevel > 0 ? FMath::Clamp(float(SkillLevel) / MaxLevel, 0.f, 1.f) : 0.f;
 	return QualityMinCraftMax * Level;
 }
@@ -364,7 +364,7 @@ FNWItem FNWItemRules::Roll(FName ItemId, int32 RollMin, int32 RollMax, float Qua
 		return Out;
 	}
 	Out.GearScore = FMath::Min(FMath::RandRange(FMath::Min(RollMin, RollMax), FMath::Max(RollMin, RollMax)), GsMax);
-	// Um atributo por item; provisório: sorteado entre os 5 (docs/game/items.md).
+	// One attribute per item; provisional: rolled among the 5 (docs/game/items.md).
 	if (Attributes.Num() > 0 && EquipClass(*D) != TEXT("ferramenta"))
 	{
 		Out.Attr = uint8(FMath::RandRange(0, Attributes.Num() - 1));
@@ -372,7 +372,7 @@ FNWItem FNWItemRules::Roll(FName ItemId, int32 RollMin, int32 RollMax, float Qua
 	Out.Quality = FMath::RoundToFloat(FMath::FRandRange(FMath::Clamp(QualMin, 0.f, 100.f), 100.f) * 10.f) / 10.f;
 	TArray<FName> Pool = PerkPool(*D);
 	const int32 N = EquipClass(*D) == TEXT("anel") ? PerksPerRing : PerksPerItem;
-	// Sem repetir; no máximo AbilityPerksMax de habilidade (a da arma) por item.
+	// No repeats; at most AbilityPerksMax ability perks (the weapon's) per item.
 	const TArray<FName>* AbilityList = Ability.Find(D->Set);
 	int32 AbilityCount = 0;
 	for (int32 i = 0; i < N && Pool.Num() > 0; ++i)
@@ -386,12 +386,12 @@ FNWItem FNWItemRules::Roll(FName ItemId, int32 RollMin, int32 RollMax, float Qua
 			Pool.RemoveAll([AbilityList](FName X) { return AbilityList->Contains(X); });
 		}
 	}
-	Out.Bind = 1;   // vincula ao equipar
+	Out.Bind = 1;   // binds on equip
 	if (Out.Quality >= SignQuality)
 	{
 		Out.Signer = Crafter;
 	}
-	// Raridade pelo número de perks (o tooltip e a moldura da peça usam).
+	// Rarity by the number of perks (the tooltip and the piece frame use it).
 	Out.Rarity = uint8(FMath::Clamp(Out.Perks.Num(), 0, 4));
 	return Out;
 }
@@ -400,11 +400,11 @@ bool FNWItemRules::CanTrade(const FNWItemDef& D, const FNWItem& Item) const
 {
 	if (Item.Bind == 2)
 	{
-		return false;   // vinculado
+		return false;   // bound
 	}
 	if (Item.Quality >= 0.f && !EquipClass(D).IsEmpty())
 	{
-		return true;   // equipamento fabricado
+		return true;   // crafted equipment
 	}
 	if (MarketItems.Contains(Item.ItemId))
 	{

@@ -1,4 +1,4 @@
-//! API do servidor de jogo: resgatar o passe de entrada e salvar o estado do personagem.
+//! Game server API: redeem the entry ticket and save the character state.
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -22,12 +22,12 @@ pub struct RedeemRequest {
 pub struct RedeemResponse {
     pub account_id: Uuid,
     pub account_name: String,
-    /// Primeira entrada do personagem num servidor de jogo (o servidor dá o kit inicial).
+    /// Character's first entry into a game server (the server hands out the starter kit).
     pub first_join: bool,
     pub character: Character,
-    /// Sessão aberta por este resgate: toda gravação do personagem leva este número e um `seq` crescente.
+    /// Session opened by this redeem: every save of the character carries this number and an increasing `seq`.
     pub session: i64,
-    /// Conta admin (`nw-core admin <conta>`): só ela usa os comandos de teste (F10) no servidor.
+    /// Admin account (`nw-core admin <account>`): only it may use the test commands (F10) on the server.
     pub is_admin: bool,
 }
 
@@ -70,7 +70,7 @@ pub async fn redeem_ticket(State(state): State<AppState>, _server: GameServer, J
     character.state.inventory = Some(items);
     let session = journal::new_session(&mut tx, character_id).await?;
     tx.commit().await?;
-    tracing::info!(account = %account_name, character = %character.name, session, "entrou no servidor");
+    tracing::info!(account = %account_name, character = %character.name, session, "joined the server");
     Ok(Json(RedeemResponse { account_id, account_name, first_join: previous_seen.is_none(), character, session, is_admin }))
 }
 
@@ -148,7 +148,7 @@ pub async fn save_state(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Bolsa e equipado: item válido e sem slot repetido.
+/// Bag and equipped: valid items and no repeated slot.
 pub(crate) fn validate_inventory(items: &[ItemInstance]) -> ApiResult<()> {
     let mut seen = std::collections::HashSet::new();
     for it in items {
@@ -160,7 +160,7 @@ pub(crate) fn validate_inventory(items: &[ItemInstance]) -> ApiResult<()> {
     Ok(())
 }
 
-/// Substitui o inventário inteiro do personagem (dentro da transação de quem chama).
+/// Replaces the character's whole inventory (inside the caller's transaction).
 pub(crate) async fn write_inventory(tx: &mut sqlx::PgConnection, id: Uuid, items: &[ItemInstance]) -> ApiResult<()> {
     sqlx::query("delete from items where character_id = $1").bind(id).execute(&mut *tx).await?;
     for it in items {

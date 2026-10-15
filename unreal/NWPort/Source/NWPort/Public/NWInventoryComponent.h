@@ -6,9 +6,9 @@
 #include "NWInventoryComponent.generated.h"
 
 /**
- * Inventário do jogador: bolsa de BagSize espaços (pilhas pelo catálogo), equipamento (espada, machadinha,
- * escudo e as quatro ferramentas de coleta) e moedas. O servidor é autoritativo; o dono recebe a cópia replicada e pede as mudanças por RPC.
- * Salvo no nw-core junto com o estado do personagem (FNWCharacterRecord).
+ * Player inventory: bag of BagSize slots (stacks from the catalog), equipment (sword, hatchet,
+ * shield and the four gathering tools) and coins. The server is authoritative; the owner receives the replicated copy and requests changes via RPC.
+ * Saved in nw-core together with the character state (FNWCharacterRecord).
  */
 UCLASS(ClassGroup = (NW), meta = (BlueprintSpawnableComponent))
 class NWPORT_API UNWInventoryComponent : public UActorComponent
@@ -18,78 +18,78 @@ class NWPORT_API UNWInventoryComponent : public UActorComponent
 public:
 	UNWInventoryComponent();
 
-	// Espaços da bolsa (pilha única por espaço): 500, o teto do nw-core (MAX_BAG_SLOTS). Cheia, o que chega vai para o chão
-	// (ANWLootBag); o peso continua dando a sobrecarga.
+	// Bag slots (single stack per slot): 500, the nw-core ceiling (MAX_BAG_SLOTS). When full, what arrives goes to the ground
+	// (ANWLootBag); weight still causes overload.
 	static constexpr int32 BagSize = 500;
-	// Peso máximo sem sobrecarga (inventário base do jogo); acima disso não corre, não esquiva, não pula.
+	// Max weight without overload (the game's base inventory); above it, no running, dodging or jumping.
 	static constexpr float BaseMaxWeight = 1000.f;
-	// Peso máximo deste personagem: o base, ou 10.000.000 com a bolsa de dev (F10, não salva).
+	// This character's max weight: the base one, or 10,000,000 with the dev bag (F10, not saved).
 	UPROPERTY(Replicated) float MaxWeight = BaseMaxWeight;
-	// Vida máxima do jogo no nível 60, para escalar a cura das poções à nossa (MaxHealth).
+	// The game's max health at level 60, to scale potion heals to ours (MaxHealth).
 	static constexpr float GameMaxHealth = 7000.f;
 
 	UPROPERTY(Replicated) TArray<FNWItem> Items;
 	UPROPERTY(Replicated) int64 Coins = 0;
-	// Recarga das poções (tempo do servidor).
+	// Potion cooldown (server time).
 	UPROPERTY(Replicated) float PotionReadyAt = 0.f;
 
 	const FNWItem* At(ENWItemContainer Container, int32 Slot) const;
 	int32 CountOf(FName ItemId) const;
-	/** Servidor: tira até Quantity do item das pilhas da bolsa (refino, NWCrafting); devolve quanto tirou. */
+	/** Server: removes up to Quantity of the item from the bag stacks (refining, NWCrafting); returns how much it removed. */
 	int32 Take(FName ItemId, int32 Quantity);
-	/** Servidor: tira até Quantity da pilha no espaço BagSlot da bolsa (armazém); devolve o que saiu (Quantity 0 = nada). */
+	/** Server: removes up to Quantity from the stack in bag slot BagSlot (storage); returns what came out (Quantity 0 = nothing). */
 	FNWItem TakeAt(int32 BagSlot, int32 Quantity);
-	/** Poção de vida de maior tier na bolsa (espaço) ou INDEX_NONE. */
+	/** Highest-tier health potion in the bag (slot) or INDEX_NONE. */
 	int32 BestPotionSlot() const;
-	/** Multiplicador de dano da arma equipada do conjunto (Sword/Hatchet) pelo gear score; 1 sem arma. */
+	/** Damage multiplier of the set's equipped weapon (Sword/Hatchet) by gear score; 1 without a weapon. */
 	float DamageMultiplier(FName WeaponSet) const;
 	float GetPotionCooldown() const;
-	/** Peso total (bolsa + equipado), kg, pelo catálogo (Weight do jogo). Servidor e dono têm os itens. */
+	/** Total weight (bag + equipped), kg, from the catalog (the game's Weight). Server and owner have the items. */
 	float TotalWeight() const;
 	bool IsEncumbered() const { return TotalWeight() > MaxWeight; }
 
-	// ---- servidor
-	/** Põe na bolsa (junta pilhas, depois espaços livres). Devolve o que não coube. */
+	// ---- server
+	/** Puts into the bag (merges stacks, then free slots). Returns what did not fit. */
 	int32 AddItem(const FNWItem& Item);
 	void AddCoins(int64 Amount);
-	/** Moedas em centavos como no jogo (common.lua GetLocalizedCurrency: ÷100, 2 casas, separadores do idioma). */
+	/** Coins in cents as in the game (common.lua GetLocalizedCurrency: ÷100, 2 decimals, language separators). */
 	static FString FormatCoins(int64 Cents);
-	/** Entrega um saque: põe na bolsa; o que não couber vai para o chão (bolsa de saque) com aviso; mostra o saque ao dono. */
+	/** Delivers loot: puts it in the bag; what does not fit goes to the ground (loot bag) with a notice; shows the loot to the owner. */
 	void Grant(const TArray<FNWItem>& Gained, int64 Coins);
-	/** Grant sem operação (dentro de uma ou sem nw-core). */
+	/** Grant without an operation (inside one, or without nw-core). */
 	void GrantNow(const TArray<FNWItem>& Gained, int64 Coins);
 	void Load(const TArray<FNWItem>& InItems, int64 InCoins);
-	/** Marca a bolsa como mudada (replica no fim do ciclo). */
+	/** Marks the bag as changed (replicates at the end of the cycle). */
 	void Changed();
 	void GiveStarterKit();
-	/** Ferramentas T1 de coleta nos espaços vazios (kit inicial e menu de dev). */
+	/** T1 gathering tools in the empty slots (starter kit and dev menu). */
 	void GiveTools();
-	/** Ferramenta equipada para o tipo de coleta do jogo (Mining, Cutting, Chopping, Dressing). */
+	/** Equipped tool for the game's gathering type (Mining, Cutting, Chopping, Dressing). */
 	const FNWItemDef* ToolFor(FName GatherType) const;
 
-	// ---- dono -> servidor
+	// ---- owner -> server
 	UFUNCTION(Server, Reliable) void ServerMove(ENWItemContainer FromContainer, int32 FromSlot, ENWItemContainer ToContainer, int32 ToSlot);
 	UFUNCTION(Server, Reliable) void ServerUse(int32 BagSlot);
 	UFUNCTION(Server, Reliable) void ServerUseBestPotion();
-	/** Destrói Quantity da pilha. */
+	/** Destroys Quantity from the stack. */
 	UFUNCTION(Server, Reliable) void ServerDestroy(int32 BagSlot, int32 Quantity);
-	/** Solta Quantity da pilha no chão, numa bolsa (ANWLootBag; até 1000 kg no chão por jogador). */
+	/** Drops Quantity from the stack on the ground, in a bag (ANWLootBag; up to 1000 kg on the ground per player). */
 	UFUNCTION(Server, Reliable) void ServerDrop(int32 BagSlot, int32 Quantity);
 	/**
-	 * Encaixa a gema ou o vidro rúnico do espaço GemBagSlot da bolsa no item (bolsa ou equipado; docs/game/items.md "Slot").
-	 * Só em slot vazio: com gema, recusa e avisa (retirar antes, pagando).
+	 * Sockets the gem or runeglass from bag slot GemBagSlot into the item (bag or equipped; docs/game/items.md "Slot and gems").
+	 * Only into an empty slot: with a gem, refuses and warns (remove it first, paying).
 	 */
 	UFUNCTION(Server, Reliable) void ServerSocket(int32 GemBagSlot, ENWItemContainer Container, int32 Slot);
-	/** Retira a gema do item para a bolsa, pagando o custo (FNWItemRules::UnsocketCost). */
+	/** Removes the gem from the item into the bag, paying the cost (FNWItemRules::UnsocketCost). */
 	UFUNCTION(Server, Reliable) void ServerUnsocket(ENWItemContainer Container, int32 Slot);
-	/** Saque recebido (para o aviso na tela). */
+	/** Loot received (for the on-screen notice). */
 	UFUNCTION(Client, Reliable) void ClientLoot(const TArray<FNWItem>& Gained, int64 CoinsGained);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
 	FNWItem* Find(ENWItemContainer Container, int32 Slot);
-	/** Servidor: devolve a gema do item à bolsa pagando o custo; chave do erro ou vazio (nada muda no erro). */
+	/** Server: returns the gem from the item to the bag, paying the cost; error key or empty (nothing changes on error). */
 	FString Unsocket(ENWItemContainer Container, int32 Slot);
 	void Warn(const TCHAR* Key) const;
 	int32 FreeBagSlot() const;

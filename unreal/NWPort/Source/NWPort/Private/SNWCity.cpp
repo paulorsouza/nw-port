@@ -84,7 +84,7 @@ namespace
 		return SNew(SBox).HeightOverride(1.f)[SNew(SBorder).BorderImage(&St().Divider)];
 	}
 
-	/** Barra de progresso (fração 0..1), verde quando completa. */
+	/** Progress bar (fraction 0..1), green when complete. */
 	TSharedRef<SWidget> Bar(float Frac)
 	{
 		Frac = FMath::Clamp(Frac, 0.f, 1.f);
@@ -97,14 +97,14 @@ namespace
 			];
 	}
 
-	/** "6,0%" (pt-br) ou "6.0%". */
+	/** "6,0%" (pt-br) or "6.0%". */
 	FString Pct(float V)
 	{
 		FString S = FString::Printf(TEXT("%.1f%%"), V);
 		return NWText::Lang() == TEXT("pt-br") ? S.Replace(TEXT("."), TEXT(",")) : S;
 	}
 
-	/** Texto do buff com o valor inteiro ("+10% XP de ofício"). */
+	/** Buff text with the integer value ("+10% trade skill XP"). */
 	FString BuffLabel(const FString& Buff)
 	{
 		return NWText::Format(*(TEXT("nw.city.buff_") + Buff), {FString::FromInt(FMath::RoundToInt(NWCity::Rules().BuffValue.FindRef(Buff)))});
@@ -112,7 +112,7 @@ namespace
 
 }
 
-// ---------------------------------------------------------------- montagem
+// ---------------------------------------------------------------- construction
 
 void SNWCity::Construct(const FArguments& Args)
 {
@@ -316,7 +316,7 @@ void SNWCity::Rebuild()
 	Body->SetContent(W);
 }
 
-// ---------------------------------------------------------------- estado e previsão
+// ---------------------------------------------------------------- state and prediction
 
 const FNWCityState& SNWCity::State() const
 {
@@ -349,7 +349,7 @@ int32 SNWCity::BagCount(FName Item) const
 	{
 		if (P.Item == Item && !P.bDone)
 		{
-			N -= P.Qty;   // vendeu (+) sai da bolsa; comprou (−) entra
+			N -= P.Qty;   // sold (+) leaves the bag; bought (−) comes in
 		}
 	}
 	return FMath::Max(0, N);
@@ -427,7 +427,7 @@ void SNWCity::Consume()
 	const int32 Before = Pending.Num();
 	Pending.RemoveAll([Now](const FPending& P) { return P.bDone ? Now - P.At > KeepAfterDone : Now - P.At > GiveUp; });
 	(void)bChanged;
-	(void)Before;   // a previsão é lida pelas lambdas; nada a refazer
+	(void)Before;   // the prediction is read by the lambdas; nothing to rebuild
 }
 
 void SNWCity::Tick(const FGeometry& Geometry, const double CurrentTime, const float DeltaTime)
@@ -447,10 +447,10 @@ void SNWCity::Tick(const FGeometry& Geometry, const double CurrentTime, const fl
 	if (SeenSeq != Me->Interactor->CitySeq)
 	{
 		SeenSeq = Me->Interactor->CitySeq;
-		// Linhas que terminaram e já vieram do servidor saem da previsão.
+		// Rows that finished and already came from the server leave the prediction.
 		Pending.RemoveAll([](const FPending& P) { return P.bDone; });
-		// Refaz só se algo da cidade mudou (o servidor manda a cada 10 s, quase sempre igual). Nas abas de troca os
-		// números vêm de lambdas: só refaz se mudou quem é governador (troca as abas).
+		// Rebuilds only if something in the city changed (the server sends it every 10 s, almost always the same). In the trade
+		// tabs the numbers come from lambdas: only rebuilds if the governor changed (swaps the tabs).
 		const uint32 Sig = Signature();
 		if (Sig != StateSig)
 		{
@@ -533,7 +533,7 @@ FString SNWCity::StationName(const FString& Station) const
 		{
 			if (const FString* N = S.Name.Find(NWText::Lang()))
 			{
-				// O nome do jogo traz a escala da mesa ("Forja Escala 5"); a escala daqui é a da cidade.
+				// The game name carries the table's scale ("Forge Scale 5"); the scale here is the city's.
 				FString Name = *N;
 				for (const TCHAR* Word : {TEXT(" Escala "), TEXT(" Tier ")})
 				{
@@ -550,7 +550,7 @@ FString SNWCity::StationName(const FString& Station) const
 	return Station;
 }
 
-// ---------------------------------------------------------------- peças
+// ---------------------------------------------------------------- pieces
 
 TSharedRef<SWidget> SNWCity::ActionButton(const FString& Label, const FString& BusyKey, TFunction<bool()> Enabled, TFunction<void()> Do, bool bPrimary)
 {
@@ -591,7 +591,7 @@ TSharedRef<SWidget> SNWCity::ActionButton(const FString& Label, const FString& B
 		];
 }
 
-// ---------------------------------------------------------------- quadro do projeto de vila (jogadores)
+// ---------------------------------------------------------------- Town Project Board (players)
 
 const FNWCityPrice* SNWCity::PriceOf(FName Item, bool bSellRaw) const
 {
@@ -626,7 +626,7 @@ TSharedRef<SWidget> SNWCity::BuildBuyList()
 
 TSharedRef<SWidget> SNWCity::BuildTradeList(bool bSellRaw)
 {
-	// Lista montada uma vez por aba: números, cor e seleção vêm de lambdas (não pisca, não perde a rolagem).
+	// List built once per tab: numbers, color and selection come from lambdas (no flicker, keeps the scroll).
 	TSharedRef<SScrollBox> Rows0 = SNew(SScrollBox).Style(&St().ScrollBox).ScrollBarStyle(&St().Scroll);
 	TArray<FNWCityPrice> Rows = bSellRaw ? State().Buy : State().Sell;
 	if (bSellRaw)
@@ -854,7 +854,7 @@ FString SNWCity::LostName(const FString& Id) const
 
 TSharedRef<SWidget> SNWCity::Basket(const NWCity::FUp& Up, float Share, bool bCoins)
 {
-	// Cesta da obra: cada matéria-prima com estoque / pedido (vermelho se falta) e as moedas do balancete.
+	// Construction basket: each raw material with stock / order (red if missing) and the coins from the city's ledger.
 	const FNWCityState& S = State();
 	TSharedRef<SVerticalBox> V = SNew(SVerticalBox);
 	for (const TPair<FName, int64>& M : Up.Materials)
@@ -892,11 +892,11 @@ bool SNWCity::CanPay(const NWCity::FUp& Up, float Share, bool bCoins) const
 	return !bCoins || S.Treasury >= Up.Coins;
 }
 
-// ---------------------------------------------------------------- quadro de planejamento (governador)
+// ---------------------------------------------------------------- Territory Planning Board (governor)
 
 TSharedRef<SWidget> SNWCity::BuildSummary()
 {
-	// Resumo do governador; a meta da semana fica só no nw-core (dono 2026-10-15).
+	// Governor summary; the weekly target lives only in nw-core (maintainer 2026-10-15).
 	const FNWCityState& S = State();
 	auto LineRow = [](const FString& Label, TSharedRef<SWidget> Right)
 	{
@@ -1083,7 +1083,7 @@ TSharedRef<SWidget> SNWCity::BuildStations()
 		const FString Busy = TEXT("station:") + Station;
 		if (!Stn.Work.IsEmpty())
 		{
-			// Obra em andamento: o que vira e quanto falta.
+			// Construction in progress: what it turns into and how much is left.
 			const FString What = Stn.Work == TEXT("tier") ? NWText::Format(TEXT("nw.city.tier"), {FString::FromInt(Stn.WorkTarget)})
 				: NWText::Format(TEXT("nw.city.level"), {FString::FromInt(Stn.WorkTarget)});
 			Card->AddSlot().AutoHeight().Padding(0.f, 12.f, 0.f, 4.f)
@@ -1117,13 +1117,13 @@ TSharedRef<SWidget> SNWCity::BuildStations()
 				];
 			}
 		}
-		// Buffs da semana desta mesa.
+		// This table's weekly buffs.
 		TSharedRef<SHorizontalBox> Buffs = SNew(SHorizontalBox);
 		for (const TPair<FString, int64>& B : R.BuffCost)
 		{
 			if (B.Key == TEXT("economia"))
 			{
-				continue;   // ainda sem efeito no jogo
+				continue;   // no effect in the game yet
 			}
 			const FString Buff = B.Key;
 			const bool bActive = S.HasBuff(Station, Buff);
@@ -1151,7 +1151,7 @@ TSharedRef<SWidget> SNWCity::BuildStations()
 
 TSharedRef<SWidget> SNWCity::BuildDefense()
 {
-	// Armas do forte do jogo, cada uma com escala; a defesa da cidade é a soma.
+	// The game's fort weapons, each with a scale; the city's defense is the sum.
 	const FNWCityState& S = State();
 	TArray<FString> Lost;
 	for (const FString& X : S.LastAttackLost)
@@ -1242,7 +1242,7 @@ TSharedRef<SWidget> SNWCity::BuildGovernment()
 			];
 	};
 	Add(Txt(S.bHasOwner ? FString::Printf(TEXT("%s %s"), *NWText::Get(TEXT("nw.city.governor")), *S.OwnerName) : NWText::Get(TEXT("nw.city.no_governor")), 2, 18, Tan), 14.f);
-	// Moedas do jogador: só aqui, onde ele paga (o topo da tela mostra o balancete da cidade).
+	// Player coins: only here, where they pay (the top of the screen shows the city's ledger).
 	auto YourCoins = [this]()
 	{
 		return SNew(SHorizontalBox)
@@ -1252,7 +1252,7 @@ TSharedRef<SWidget> SNWCity::BuildGovernment()
 
 	if (!S.bHasOwner)
 	{
-		// Sem governador: preço fixo, quem pagar leva.
+		// No governor: fixed price, whoever pays takes it.
 		const int64 Ask = S.Price;
 		Add(SNew(SBox).HAlign(HAlign_Right)[Coins(Ask, 2, 20, ShownCoins() >= Ask ? Gold : Red)]);
 		Add(YourCoins(), 14.f);
@@ -1267,7 +1267,7 @@ TSharedRef<SWidget> SNWCity::BuildGovernment()
 	}
 	else if (S.bAuction)
 	{
-		// Leilão de 24 h: maior lance, quem deu, quanto falta; lance com o mínimo já preenchido.
+		// 24 h auction: highest bid, who placed it, time left; bid with the minimum already filled in.
 		Add(Txt(NWText::Get(S.bAuctionForced ? TEXT("nw.city.auction_forced") : TEXT("nw.city.auction")), 2, 16, S.bAuctionForced ? Red : Gold));
 		Add(Txt(NWText::Format(TEXT("nw.city.auction_ends"), {Days(S.AuctionEndsIn)}), 1, 14, Gray));
 		Add(SNew(SHorizontalBox)
@@ -1312,7 +1312,7 @@ TSharedRef<SWidget> SNWCity::BuildGovernment()
 	}
 	else if (S.bMine)
 	{
-		// Governador: leilão com o lance inicial que ele quiser, depois da carência.
+		// Governor: auction with whatever starting bid they want, after the grace period.
 		if (S.SaleGraceDays > 0.f)
 		{
 			Add(Txt(NWText::Format(TEXT("nw.city.grace"), {FString::FromInt(FMath::CeilToInt(S.SaleGraceDays))}), 1, 15, Gray), 0.f);
@@ -1337,7 +1337,7 @@ TSharedRef<SWidget> SNWCity::BuildGovernment()
 		];
 }
 
-// ---------------------------------------------------------------- captura offline
+// ---------------------------------------------------------------- offline capture
 
 void SNWCity::ShotTab(int32 InTab)
 {

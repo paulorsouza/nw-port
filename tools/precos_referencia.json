@@ -1,5 +1,5 @@
 {
-  "_comment": "Preço de referência dos itens (docs/game/economy.md), em centavos, do mercado do jogo original: mediana entre ~36 servidores das medianas diárias, nov/2024 a jul/2026, https://nwmp.gaming.tools/items/<id> (histórico em scdn.gaming.tools). Valores do jogo, sem escala; a escala para a renda do port (~40 mil por semana) entra no simulador. T5 cru mais barato que T4 é efeito do jogo tardio.",
+  "_comment": "Item reference price (docs/game/economy.md), in cents, from the original game's market: median across ~36 servers of the daily medians, Nov 2024 to Jul 2026, https://nwmp.gaming.tools/items/<id> (history at scdn.gaming.tools). Game values, unscaled; scaling to the port's income (~40 thousand per week) happens in the simulator. Raw T5 cheaper than T4 is a late-game effect.",
   "fonte": "https://nwmp.gaming.tools",
   "periodo": "2024-11..2026-07",
   "itens": {

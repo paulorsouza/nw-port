@@ -19,7 +19,7 @@ class UAnimInstance;
 class UBlendSpace;
 struct FNWCharacterRecord;
 
-// Locomoção base trocada por outra esteira (montaria, coleta) enquanto valer: ver SetLocomotionOverride.
+// Base locomotion replaced by another area (mount, gathering) while it applies: see SetLocomotionOverride.
 USTRUCT()
 struct FNWLocomotionOverride
 {
@@ -29,50 +29,50 @@ struct FNWLocomotionOverride
 	UPROPERTY() bool bNoSprint = true;
 };
 
-// Uma arma do jogador (troca no 1/2): malha, tabela de ações, locomoção e habilidades de Q/R/F.
+// One player weapon (swapped with 1/2): mesh, action table, locomotion and Q/R/F abilities.
 USTRUCT(BlueprintType)
 struct FNWWeaponSet
 {
 	GENERATED_BODY()
-	UPROPERTY(EditAnywhere) FName Id;                     // "Sword", "Hatchet" (chave do loadout e do abilities.json)
+	UPROPERTY(EditAnywhere) FName Id;                     // "Sword", "Hatchet" (key of the loadout and of abilities.json)
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<UStaticMesh> Mesh;
-	// Malha com pele no esqueleto do jogador (luva da manopla de gelo; NWArmaManopla.cpp).
+	// Skinned mesh on the player skeleton (Ice Gauntlet glove; NWArmaManopla.cpp).
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<USkeletalMesh> SkinMesh;
 	UPROPERTY(EditAnywhere) bool bUsesShield = false;
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<UDataTable> Actions;
 	UPROPERTY(EditAnywhere) TSoftObjectPtr<UBlendSpace> Locomotion;
-	UPROPERTY(EditAnywhere) FString HudIcon;              // ícone "drawing" do jogo
+	UPROPERTY(EditAnywhere) FString HudIcon;              // the game's "drawing" icon
 	UPROPERTY(EditAnywhere) TArray<FName> Abilities;
-	// Osso da mão que segura (o arco vai na esquerda).
+	// Bone of the holding hand (the Bow goes on the left).
 	UPROPERTY(EditAnywhere) FName Socket = TEXT("right_hand_attach");
-	// Números da arma (javelindata_itemdefinitions_weapons, T2). Dano na escala do port: espada 64 do jogo = 100.
+	// Weapon numbers (javelindata_itemdefinitions_weapons, T2). Damage on the port's scale: the game's sword 64 = 100.
 	UPROPERTY(EditAnywhere) float BaseDamage = 100.f;
 	UPROPERTY(EditAnywhere) float CritChance = 0.07f;
 	UPROPERTY(EditAnywhere) float CritDamageMultiplier = 1.3f;
 	UPROPERTY(EditAnywhere) float StaggerDamage = 36.f;
 	UPROPERTY(EditAnywhere) float BlockStaminaDamage = 36.f;
-	// Estabilidade de quem bloqueia com esta arma (com escudo, a do escudo).
+	// Stability of whoever blocks with this weapon (with a shield, the shield's).
 	UPROPERTY(EditAnywhere) float BlockStability = 30.f;
-	// Arma de mira (arco): botão direito mira, esquerdo atira.
+	// Aiming weapon (Bow): right button aims, left shoots.
 	UPROPERTY(EditAnywhere) bool bAims = false;
-	// Carga do pesado (Attack_Start_Charge): soltar antes de MinHold = leve; FullCharge = sai o carregado sozinho.
+	// Heavy charge (Attack_Start_Charge): release before MinHold = light; FullCharge = the charged attack fires by itself.
 	UPROPERTY(EditAnywhere) float HeavyMinHold = 0.333f;
 	UPROPERTY(EditAnywhere) float HeavyFullCharge = 0.667f;
 };
 
 /**
- * Personagem do jogador (e base do Lost e das criaturas). A implementação é dividida por esteira (docs/workflow.md):
- * NWCharacter.cpp (movimento, câmera, input, menus), NWCharacterArmas.cpp (armas, combate, habilidades, boneco),
- * NWCharacterSave.cpp (salvar/restaurar). Coleta e montaria ficam nos componentes (Gather, Mount); teclas novas pelo
- * NW_REGISTER_INPUT (NWInputRegistry.h), comandos do F10 pelo NW_REGISTER_DEV (NWDevRegistry.h).
+ * Player character (and base of the Lost and creatures). The implementation is split by area (docs/workflow.md):
+ * NWCharacter.cpp (movement, camera, input, menus), NWCharacterArmas.cpp (weapons, combat, abilities, dummy),
+ * NWCharacterSave.cpp (save/restore). Gathering and mount live in components (Gather, Mount); new keys through
+ * NW_REGISTER_INPUT (NWInputRegistry.h), F10 commands through NW_REGISTER_DEV (NWDevRegistry.h).
  *
- * Câmera por cima do ombro, strafe com a câmera (como no jogo com a arma Câmera por cima do ombro, strafe com a câmera (como no jogo com a arma
- * em mãos) e sprint orientado ao movimento. Sem controlador, serve de boneco de treino.
+ * Over-the-shoulder camera, strafe with the camera (as in the game with the weapon
+ * in hand) and sprint oriented to movement. Without a controller, it serves as a training dummy.
  *
- * Controles (padrão do jogo, libs/config/defaultprofile.xml): WASD, mouse, Espaço pula (ou sobe degrau,
- * vault, mantle), Shift esquiva, Alt esquerdo corre, botão esquerdo ataca (segurar = pesado), direito bloqueia,
- * Q/R/F habilidades, 1/2 troca de arma, E coleta, K menu de habilidades, F10 menu de dev. Corre sozinho para a
- * frente (sprint); Ctrl segurado anda.
+ * Controls (game default, libs/config/defaultprofile.xml): WASD, mouse, Space jumps (or steps up,
+ * vault, mantle), Shift dodges, left Alt runs, left button attacks (hold = heavy), right blocks,
+ * Q/R/F abilities, 1/2 swap weapon, E gathers, K abilities menu, F10 dev menu. Runs forward on its own
+ * (sprint); holding Ctrl walks.
  */
 UCLASS()
 class NWPORT_API ANWCharacter : public ACharacter
@@ -85,7 +85,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<USpringArmComponent> CameraBoom;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<UCameraComponent> Camera;
-	// Câmera mais perto que isto do peito (cm): o próprio jogador deixa de ver o personagem.
+	// Camera closer than this to the chest (cm): the player stops seeing their own character.
 	UPROPERTY(EditAnywhere, Category = "NW|Câmera") float CameraHideDistance = 75.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<UStaticMeshComponent> Sword;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<UStaticMeshComponent> Shield;
@@ -95,44 +95,44 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWGatherComponent> Gather;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWProgressionComponent> Progression;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWManaComponent> Mana;
-	// Montaria (esteira 3, NWMountComponent).
+	// Mount (area 3, NWMountComponent).
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWMountComponent> Mount;
-	/** Foco e tecla de interagir com NPC, estação, armazém (esteira 4, NWInteractable.h). */
+	/** Focus and key to interact with NPC, station, Storage (area 4, NWInteractable.h). */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWInteractorComponent> Interactor;
-	// IA de combate (inimigos). Criado desligado; ligado (UseBrain), substitui o TickDummy.
+	// Combat AI (enemies). Created disabled; once enabled (UseBrain), replaces TickDummy.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<class UNWBrainComponent> Brain;
-	/** Liga o cérebro com o estilo e os ataques dados (servidor). */
+	/** Turns on the brain with the given style and attacks (server). */
 	void UseBrain(uint8 Style, const TArray<struct FNWBrainAttack>& Attacks);
-	// Flecha na corda enquanto mira com o arco.
+	// Arrow on the string while aiming with the Bow.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<UStaticMeshComponent> NockedArrow;
-	// Arma guardada no quadril (a que não está em uso).
+	// Weapon stowed on the hip (the one not in use).
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NW") TObjectPtr<UStaticMeshComponent> Stowed;
 
-	// Armas do jogador (vazio = personagem de uma arma só, como o Lost).
+	// Player weapons (empty = single-weapon character, like the Lost).
 	UPROPERTY(EditAnywhere, Category = "NW|Armas") TArray<FNWWeaponSet> WeaponSets;
 	UPROPERTY(ReplicatedUsing = OnRep_ActiveWeapon, BlueprintReadOnly, Category = "NW|Armas") int32 ActiveWeapon = 0;
-	// As duas armas em uso (teclas 1 e 2), índices em WeaponSets; como no jogo, duas por vez.
+	// The two weapons in use (keys 1 and 2), indices into WeaponSets; as in the game, two at a time.
 	UPROPERTY(ReplicatedUsing = OnRep_ActiveWeapon, BlueprintReadOnly, Category = "NW|Armas") TArray<int32> Loadout = {0, 1};
-	/** A arma do par que não está na mão (INDEX_NONE com uma arma só). */
+	/** The weapon of the pair that is not in hand (INDEX_NONE with a single weapon). */
 	int32 OtherWeapon() const;
-	/** Servidor: troca o par de armas (menu de dev) e saca a primeira. */
+	/** Server: swaps the weapon pair (dev menu) and draws the first. */
 	void SetLoadout(int32 First, int32 Second);
-	// Troca de arma (1/2): toca o sacar da arma nova.
+	// Weapon swap (1/2): plays the draw of the new weapon.
 	void SwitchWeapon(int32 Index);
 	void SetWeaponAbilities(int32 SetIndex, const TArray<FName>& New);
 
 	/**
-	 * Troca a locomoção base do ABP (o pino Locomotion) sem mexer no grafo: montaria, coleta. Vale a de maior
-	 * prioridade; sem nenhuma, a da arma em uso. bNoSprint tira a animação de sprint enquanto valer. Local em cada
-	 * máquina: quem replica o estado (ex.: montado) chama nos clientes também.
+	 * Replaces the ABP's base locomotion (the Locomotion pin) without touching the graph: mount, gathering. The one with the
+	 * highest priority applies; with none, the one of the weapon in use. bNoSprint removes the sprint animation while it
+	 * applies. Local on each machine: whoever replicates the state (e.g. mounted) calls it on the clients too.
 	 */
 	void SetLocomotionOverride(FName OverrideOwner, UBlendSpace* Space, int32 Priority = 0, bool bNoSprint = true);
 	void ClearLocomotionOverride(FName OverrideOwner);
 	bool LocomotionBlocksSprint() const;
-	/** Menu aberto (maestria, inventário, dev): o personagem não age. */
+	/** Menu open (Weapon Mastery, inventory, dev): the character does not act. */
 	bool InMenu() const;
 
-	// Assets do personagem (o padrão é o jogador de espada e escudo; o Lost troca no construtor).
+	// Character assets (the default is the sword-and-shield player; the Lost swaps them in the constructor).
 	UPROPERTY(EditAnywhere, Category = "NW|Assets") TSoftObjectPtr<USkeletalMesh> MeshAsset;
 	UPROPERTY(EditAnywhere, Category = "NW|Assets") TSoftClassPtr<UAnimInstance> AnimClass;
 	UPROPERTY(EditAnywhere, Category = "NW|Assets") TSoftObjectPtr<UStaticMesh> SwordAsset;
@@ -140,61 +140,61 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NW|Assets") TSoftObjectPtr<UDataTable> DamageTableAsset;
 	UPROPERTY(EditAnywhere, Category = "NW|Assets") TSoftObjectPtr<UDataTable> ActionTableAsset;
 
-	// Velocidades das animações de locomoção do jogo: andar 1,65 m/s, correr (combate) 4 m/s, sprint.
+	// Speeds of the game's locomotion animations: walk 1.65 m/s, run (combat) 4 m/s, sprint.
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float WalkSpeed = 165.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float RunSpeed = 400.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float SprintSpeed = 650.f;
 
-	// Câmera do jogo (DynamicCamera): foco 1,7 m acima dos pés e 0,5 m à direita, 2 m atrás; zoom de 0,2 a 6 m
-	// (1 m por clique da roda); FOV 50° vertical. Opções do jogador mudam o FOV (NW.Options).
+	// Game camera (DynamicCamera): focus 1.7 m above the feet and 0.5 m to the right, 2 m behind; zoom from 0.2 to 6 m
+	// (1 m per wheel click); 50° vertical FOV. Player options change the FOV (NW.Options).
 	UPROPERTY(EditAnywhere, Category = "NW|Câmera") float CameraFovVertical = 50.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Câmera") float CameraZoom = 200.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Câmera") float CameraZoomMin = 20.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Câmera") float CameraZoomMax = 600.f;
-	// Velocidade de giro durante a janela Homing do ataque (graus/s).
+	// Turn speed during the attack's Homing window (degrees/s).
 	UPROPERTY(EditAnywhere, Category = "NW|Movimento") float HomingTurnRate = 540.f;
-	// Habilidades em Q, R e F (nomes de linha da tabela de ações).
+	// Abilities on Q, R and F (row names of the action table).
 	UPROPERTY(EditAnywhere, Category = "NW|Combate") TArray<FName> Abilities = {TEXT("ShieldBash"), TEXT("SpinAttack"), TEXT("SwipeStab")};
-	// Troca as habilidades de Q/R/F (menu de habilidades) e grava a escolha para a próxima sessão.
+	// Swaps the Q/R/F abilities (abilities menu) and stores the choice for the next session.
 	void SetAbilities(const TArray<FName>& New);
-	// Relê as escolhas de Q/R/F do GameUserSettings.ini.
+	// Re-reads the Q/R/F choices from GameUserSettings.ini.
 	void LoadAbilityLoadout();
 
-	// Servidor com nw-core: aplica arma, vida e habilidades salvas / copia o estado atual para salvar.
+	// Server with nw-core: applies saved weapon, health and abilities / copies the current state for saving.
 	void RestoreFrom(const FNWCharacterRecord& Record);
 	void CaptureTo(FNWCharacterRecord& Record) const;
 
-	// Sprint automático indo para a frente (como no jogo); Ctrl segurado anda.
+	// Automatic sprint when going forward (as in the game); holding Ctrl walks.
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW") bool bSprinting = false;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW") bool bWalking = false;
-	// Menu de dev: multiplica todas as velocidades (correr mais rápido para atravessar o mapa).
+	// Dev menu: multiplies all speeds (run faster to cross the map).
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW") float DevSpeedMultiplier = 1.f;
-	// Menu de dev: voo livre, atravessa o cenário. Frente segue a câmera (com inclinação); Espaço sobe, Ctrl desce.
+	// Dev menu: free flight, passes through the scenery. Forward follows the camera (with pitch); Space goes up, Ctrl down.
 	UPROPERTY(ReplicatedUsing = OnRep_DevFlying, BlueprintReadOnly, Category = "NW") bool bDevFlying = false;
 	void ApplyDevFlying();
-	/** Tremida do jogo (javelindata_camerashake, DT_NWCameraShake) na câmera deste personagem, se for local. */
+	/** Game camera shake (javelindata_camerashake, DT_NWCameraShake) on this character's camera, if local. */
 	void PlayCameraShake(FName Id);
-	// Tranco curto na câmera (golpe dado/recebido): 1 = ~5 cm por ~0,25 s.
+	// Short jolt on the camera (hit dealt/received): 1 = ~5 cm for ~0.25 s.
 	void AddCameraKick(float Amount) { CameraKick = FMath::Max(CameraKick, Amount); CameraKickTime = 0.f; }
 
-	// Boneco de treino (sem jogador): fica com o escudo levantado.
+	// Training dummy (no player): keeps its shield raised.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") bool bDummyBlocks = false;
-	// Boneco de treino: ataca o jogador mais próximo dentro do alcance, um combo a cada intervalo.
+	// Training dummy: attacks the nearest player within range, one combo per interval.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") bool bDummyAttacks = false;
-	/** Jogador simulado do teste de carga (ANWLoadTest): controle de IA, mas spawn de criaturas e IA o tratam como
-	 *  jogador. Use IsPlayerLike() onde a regra é "é um jogador?". */
+	/** Simulated player of the load test (ANWLoadTest): AI controller, but creature spawning and AI treat it as a
+	 *  player. Use IsPlayerLike() where the rule is "is it a player?". */
 	UPROPERTY(Transient) bool bSimPlayer = false;
 	bool IsPlayerLike() const { return bSimPlayer || IsPlayerControlled(); }
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") float DummyAttackInterval = 3.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") float DummyAttackRange = 260.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") int32 DummyComboHits = 3;
-	// Inimigo: persegue o jogador dentro deste raio (0 = fica parado) e escolhe um ataque da lista.
+	// Enemy: chases the player within this radius (0 = stays still) and picks an attack from the list.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") float AggroRange = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Boneco") TArray<FName> DummyAttackActions;
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-	/** Refaz o mapeamento com as teclas das opções (aba Atalhos). */
+	/** Rebuilds the mapping with the keys from the options (Shortcuts tab). */
 	void RebuildKeys();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -202,7 +202,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	// Assets importados depois de o editor abrir não entram pelo construtor; carrega aqui o que faltar.
+	// Assets imported after the editor opens do not come in through the constructor; loads whatever is missing here.
 	void LoadMissingAssets();
 
 	void Move(const FInputActionValue& Value);
@@ -215,17 +215,17 @@ protected:
 	void SkillMenuPressed();
 	void DevMenuPressed();
 	void UpdateCameraClipHide();
-	/** Câmera com os estados do jogo (libs/camera/gamecamera.xml, docs/game/ui/original.md): normal, sprint, inventário. */
+	/** Camera with the game's states (libs/camera/gamecamera.xml, docs/game/ui/original.md): normal, sprint, inventory. */
 	void UpdateCamera(float DeltaSeconds);
 	void Zoom(const FInputActionValue& Value);
 	bool bHiddenForCamera = false;
 	void JumpPressed();
 	void JumpReleased();
-	// Pulo, travessia ou ação de combate em curso: não aceita outra ação.
+	// Jump, traversal or combat action in progress: accepts no other action.
 	bool CanAct() const;
 	void WalkPressed();
 	void WalkReleased();
-	/** Dono: sprint quando o movimento pedido vai para a frente da câmera e nada impede. */
+	/** Owner: sprints when the requested movement goes toward the camera's front and nothing prevents it. */
 	void UpdateAutoSprint();
 	void Ability(int32 Index);
 	void Ability1() { Ability(0); }
@@ -240,7 +240,7 @@ protected:
 	UFUNCTION() void OnRep_DevFlying() { ApplyDevFlying(); }
 	float CameraKick = 0.f;
 	float CameraKickTime = 0.f;
-	// Tremida em curso (parâmetros da linha, tempo, alvo atual e anterior, próxima troca de alvo).
+	// Shake in progress (row parameters, time, current and previous target, next target change).
 	struct FShake
 	{
 		bool bActive = false;
@@ -252,9 +252,9 @@ protected:
 	UPROPERTY() TObjectPtr<UDataTable> ShakeTable;
 	bool bFlyUp = false;
 	void ApplyWeapon();
-	/** Preenche WeaponSets com as armas do jogador (NWCharacterArmas.cpp). */
+	/** Fills WeaponSets with the player's weapons (NWCharacterArmas.cpp). */
 	void AddPlayerWeaponSets();
-	/** Põe no ABP a locomoção que vale agora (override de maior prioridade ou a da arma). */
+	/** Puts into the ABP the locomotion that applies now (highest-priority override or the weapon's). */
 	void RefreshLocomotion();
 	UPROPERTY() TMap<FName, FNWLocomotionOverride> LocomotionOverrides;
 	void Weapon1() { if (Loadout.IsValidIndex(0)) SwitchWeapon(Loadout[0]); }
@@ -264,7 +264,7 @@ protected:
 private:
 	void BuildInput();
 	void MapKeys();
-	/** Corrida automática (tecla = do jogo): segue para a frente da câmera até apertar frente/trás. */
+	/** Auto-run (the game's = key): goes toward the camera's front until forward/back is pressed. */
 	void AutoRunPressed() { bAutoRun = !bAutoRun; }
 	bool bAutoRun = false;
 	UPROPERTY() TObjectPtr<UInputAction> IA_AutoRun;
@@ -291,7 +291,7 @@ private:
 	void InventoryPressed();
 	void InteractPressed();
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> IA_Abilities;
-	// Teclas das esteiras (FNWInputRegistry), na mesma ordem do registro.
+	// Keys of the areas (FNWInputRegistry), in the same order as the registry.
 	UPROPERTY() TArray<TObjectPtr<UInputAction>> IA_Registered;
 
 	void TickDummy(float DeltaSeconds);
@@ -300,7 +300,7 @@ private:
 	float DummyTimer = 0.f;
 	int32 DummyHitsLeft = 0;
 	bool bAttackFromSprint = false;
-	// O aperto do ataque não foi clique de menu: só então a soltura vai ao servidor. Soltar sem carga vira golpe
-	// leve no servidor (ServerAttackInput); um clique de menu não pode virar ataque na soltura.
+	// The attack press was not a menu click: only then does the release go to the server. Releasing without charge
+	// becomes a light hit on the server (ServerAttackInput); a menu click cannot become an attack on release.
 	bool bAttackPressAccepted = false;
 };

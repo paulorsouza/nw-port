@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Põe em bin/ as ferramentas da extração (fora do git): baixa texconv.exe e vgmstream-cli das releases oficiais e
-# compila nwbt, dbgwater (Go + vendor/nw-buddy) e libooz.so (g++ + powzix/ooz). Pula o que já existe;
-# --force refaz tudo. oggenc vem do apt (vorbis-tools).
+# Puts the extraction tools in bin/ (outside git): downloads texconv.exe and vgmstream-cli from the official
+# releases and builds nwbt, dbgwater (Go + vendor/nw-buddy) and libooz.so (g++ + powzix/ooz). Skips what already
+# exists; --force redoes everything. oggenc comes from apt (vorbis-tools).
 #
 #     tools/linux/get_tools.sh [--force]
 set -euo pipefail
@@ -35,5 +35,5 @@ if need bin/nwbt || need bin/dbgwater || ! python3 tools/build_nwbt.py --conferi
     PATH="$HOME/.local/go/bin:$PATH" tools/linux/build_nwbt.sh --test
 fi
 
-[ -x bin/oggenc ] || command -v oggenc >/dev/null || echo "falta oggenc: sudo apt install vorbis-tools"
-echo "ferramentas em bin/: $(ls bin | tr '\n' ' ')"
+[ -x bin/oggenc ] || command -v oggenc >/dev/null || echo "oggenc missing: sudo apt install vorbis-tools"
+echo "tools in bin/: $(ls bin | tr '\n' ' ')"

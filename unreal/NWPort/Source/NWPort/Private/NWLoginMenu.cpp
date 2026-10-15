@@ -28,7 +28,7 @@ static const FLinearColor LoginErrorRed(FColor(0xE8, 0x5A, 0x4A));
 static const float FieldWidth = 497.f;
 static const float FieldStep = 78.f;
 
-// ---------------------------------------------------------------- campos de texto (Slate sobre o Canvas)
+// ---------------------------------------------------------------- text fields (Slate over the Canvas)
 
 class SNWLoginFields : public SCompoundWidget
 {
@@ -69,11 +69,11 @@ public:
 				.Position(TAttribute<FVector2D>::CreateLambda([this, i]() { return FVector2D(Menu->FieldRect(i).Min) / Scale(); }))
 				.Size(TAttribute<FVector2D>::CreateLambda([this, i]() { return FVector2D(Menu->FieldRect(i).GetSize()) / Scale(); }))
 				[
-					// No SCanvas o alinhamento escolhe o ponto do filho que fica na posição; centralizar vai no SBox.
+					// In SCanvas the alignment picks the child's point that sits at the position; centering goes in the SBox.
 					SNew(SBox).VAlign(VAlign_Center)[Edit]
 				];
 		}
-		// Com a conta já preenchida, o cursor vai para a senha.
+		// With the account already filled in, the cursor goes to the password.
 		FocusField(Menu->NumFields() > 1 && !Menu->FieldValue(0).IsEmpty() ? 1 : 0);
 	}
 
@@ -87,7 +87,7 @@ public:
 
 	virtual FReply OnKeyDown(const FGeometry& Geometry, const FKeyEvent& Key) override
 	{
-		// Tab / Shift+Tab entre os campos.
+		// Tab / Shift+Tab between the fields.
 		if (Key.GetKey() == EKeys::Tab && Edits.Num() > 0)
 		{
 			int32 Current = Edits.IndexOfByPredicate([](const TSharedPtr<SEditableText>& E) { return E->HasKeyboardFocus(); });
@@ -106,7 +106,7 @@ private:
 	}
 	FSlateFontInfo FontFor() const
 	{
-		// Mesmo tamanho do texto do campo do jogo; Slate mede fonte em pontos (96/72 px).
+		// Same size as the game's field text; Slate measures fonts in points (96/72 px).
 		return FSlateFontInfo(FNWUILayout::GameFont(0), FMath::Max(8, FMath::RoundToInt(Menu->FontPixels() / Scale() * 1.05f)));
 	}
 
@@ -115,7 +115,7 @@ private:
 	TArray<TSharedPtr<SEditableText>> Edits;
 };
 
-// ---------------------------------------------------------------- tela
+// ---------------------------------------------------------------- screen
 
 bool FNWLoginMenu::Load()
 {
@@ -159,7 +159,7 @@ void FNWLoginMenu::Activate(APlayerController* PC, UNWBackend* InBackend)
 		bLoaded = Load();
 		if (!bLoaded)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("NW: tela de entrada sem dados (Data/UI/login_layout.json)"));
+			UE_LOG(LogTemp, Warning, TEXT("NW: login screen without data (Data/UI/login_layout.json)"));
 			return;
 		}
 	}
@@ -389,7 +389,7 @@ void FNWLoginMenu::SetButton(const FString& Button, const FString& Text, bool bH
 		T->TextOverride = Text;
 		T->FontSize = Button.EndsWith(TEXT("PlayButton")) ? 30.f : 24.f;
 	}
-	// Como na maestria: fundo escuro e sem a borda "hero"; o brilho é do foco.
+	// As in Weapon Mastery: dark background and no "hero" border; the glow comes from the focus.
 	if (FNWUIElement* Bg = E(Button + TEXT("/buttonBg")))
 	{
 		Bg->Tint = FLinearColor(0.10f, 0.13f, 0.20f);
@@ -474,7 +474,7 @@ void FNWLoginMenu::Apply(const FVector2D& Mouse)
 			const FString Prefix = FString::Printf(TEXT("CharacterCreateButton%d/CharacterInfoHolder/DeleteButton"), i + 1);
 			SetButton(Prefix, Str(TEXT("nw.login.delete")), Hit(Delete, Mouse), !bBusy);
 		}
-		// Brilhos que o Lua anima (fade 0 no arquivo): ligados na escolhida e no passar do mouse.
+		// Glows that the Lua animates (fade 0 in the file): on for the selected one and on mouse hover.
 		const bool bSel = bHas && i == Selected;
 		const bool bHot = Hover == i;
 		auto SetFade = [&](const TCHAR* Suffix, float Fade)
@@ -508,7 +508,7 @@ void FNWLoginMenu::Apply(const FVector2D& Mouse)
 			!HasPopup() && Hit(Play, Mouse), !bBusy && Chars.IsValidIndex(Selected) && !HasPopup());
 	}
 
-	// Janela (popup do jogo).
+	// Window (the game's popup).
 	if (FNWUIElement* Popup = E(TEXT("TwitchInfoPopup")))
 	{
 		Popup->Visible = HasPopup();
@@ -539,7 +539,7 @@ void FNWLoginMenu::DrawLabel(UCanvas* Canvas, const FString& Text, const FBox2f&
 		return;
 	}
 	const float Scale = Size * UIScale / Font->LegacyFontSize;
-	// Quebra simples por palavras na largura do retângulo.
+	// Simple word wrap at the rectangle width.
 	TArray<FString> Words;
 	Text.ParseIntoArrayWS(Words);
 	TArray<FString> Lines;
@@ -639,14 +639,14 @@ void FNWLoginMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 
 	if (!HasPopup())
 	{
-		// Mensagem acima do Jogar e conta/sair embaixo do painel.
+		// Message above Play, and account/sign out below the panel.
 		if (FNWUIElement* Play = E(TEXT("CharacterSelection/PlayButton")))
 		{
 			const FBox2f R = Layout.RectOf(Play);
 			DrawLabel(Canvas, Message, FBox2f(FVector2f(R.Min.X - 200.f * UIScale, R.Min.Y - 70.f * UIScale), FVector2f(R.Max.X, R.Min.Y - 8.f * UIScale)), LoginErrorRed, 22.f, false);
 		}
 		{
-			// Conta e sair no canto superior direito.
+			// Account and sign out in the top right corner.
 			UFont* Font = FNWUILayout::GameFont(0);
 			const float Scale = 20.f * UIScale / Font->LegacyFontSize;
 			const FString Account = B->GetAccountName() + TEXT("   ·   ");
@@ -677,7 +677,7 @@ void FNWLoginMenu::ReloadLanguage()
 
 void FNWLoginMenu::DrawLanguagePicker(UCanvas* Canvas, const FVector2D& Mouse)
 {
-	// "PT  EN" no canto superior direito; o idioma atual em destaque.
+	// "PT  EN" in the top right corner; the current language highlighted.
 	UFont* Font = FNWUILayout::GameFont(1);
 	if (!Font)
 	{

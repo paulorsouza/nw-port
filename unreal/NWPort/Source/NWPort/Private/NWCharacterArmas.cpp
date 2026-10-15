@@ -1,5 +1,5 @@
-// Parte do ANWCharacter da esteira de armas (docs/workflow.md): armas do jogador, troca e loadout, ataque, bloqueio,
-// esquiva, habilidades de Q/R/F, cérebro de IA e boneco de treino. O resto do personagem fica em NWCharacter.cpp.
+// Part of ANWCharacter for the weapons area (docs/workflow.md): player weapons, swap and loadout, attack, block,
+// dodge, Q/R/F abilities, AI brain and training dummy. The rest of the character is in NWCharacter.cpp.
 #include "NWCharacter.h"
 #include "Misc/App.h"
 #include "NWRules.h"
@@ -43,7 +43,7 @@
 
 void ANWCharacter::AddPlayerWeaponSets()
 {
-	// Armas do jogador: espada e escudo (1) e machadinha (2). Caminhos criados pelo import do conjunto sword_shield.
+	// Player weapons: sword and shield (1) and Hatchet (2). Paths created by the sword_shield set import.
 	FNWWeaponSet SwordSet;
 	SwordSet.Id = TEXT("Sword");
 	SwordSet.Mesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SM_sword.SM_sword")));
@@ -51,7 +51,7 @@ void ANWCharacter::AddPlayerWeaponSets()
 	SwordSet.Actions = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/NW/Data/DT_NWActions.DT_NWActions")));
 	SwordSet.Locomotion = TSoftObjectPtr<UBlendSpace>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Anims/BS_Strafe.BS_Strafe")));
 	SwordSet.HudIcon = TEXT("lyshineui/images/icons/items/drawing/1hsword.dds");
-	// SwordT2: dano 64 (= 100 do port), crítico 7% ×1,3, stagger 36; bloqueio com o escudo redondo (estabilidade 30).
+	// SwordT2: damage 64 (= 100 in the port), crit 7% ×1.3, stagger 36; block with the round shield (stability 30).
 	SwordSet.Abilities = {TEXT("ShieldBash"), TEXT("SpinAttack"), TEXT("SwipeStab")};
 	WeaponSets.Add(SwordSet);
 	FNWWeaponSet Hatchet;
@@ -60,12 +60,12 @@ void ANWCharacter::AddPlayerWeaponSets()
 	Hatchet.Actions = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/NW/Data/DT_HatchetActions.DT_HatchetActions")));
 	Hatchet.Locomotion = TSoftObjectPtr<UBlendSpace>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Anims/BS_Hatchet_Strafe.BS_Hatchet_Strafe")));
 	Hatchet.HudIcon = TEXT("lyshineui/images/icons/items/drawing/1hhatchet.dds");
-	// HatchetT2: dano 67 (×100/64), crítico 8% ×1,4, stagger 30, estabilidade 21.
+	// HatchetT2: damage 67 (×100/64), crit 8% ×1.4, stagger 30, stability 21.
 	Hatchet.BaseDamage = 105.f; Hatchet.CritChance = 0.08f; Hatchet.CritDamageMultiplier = 1.4f;
 	Hatchet.StaggerDamage = 30.f; Hatchet.BlockStaminaDamage = 30.f; Hatchet.BlockStability = 21.f;
 	Hatchet.Abilities = {TEXT("Berserk"), TEXT("RagingTorrent"), TEXT("RendingThrow")};
 	WeaponSets.Add(Hatchet);
-	// Arco (F10 > Trocar par de armas): BowT2 84 (×100/64), crítico 8% ×1,3, stagger 38; não bloqueia.
+	// Bow (F10 > Swap weapon pair): BowT2 84 (×100/64), crit 8% ×1.3, stagger 38; does not block.
 	FNWWeaponSet Bow;
 	Bow.Id = TEXT("Bow");
 	Bow.Mesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SM_bow.SM_bow")));
@@ -78,8 +78,8 @@ void ANWCharacter::AddPlayerWeaponSets()
 	Bow.StaggerDamage = 38.f; Bow.BlockStaminaDamage = 38.f; Bow.BlockStability = 0.f;
 	Bow.bAims = true;
 	WeaponSets.Add(Bow);
-	// Rapieira: RapierT2 61 (×100/64), crítico 9% ×1,4, stagger 28, estabilidade 17. Carga sem pesado intermediário:
-	// soltar antes de 0,667 s = leve, chegar a 0,667 s = carregado.
+	// Rapier: RapierT2 61 (×100/64), crit 9% ×1.4, stagger 28, stability 17. Charge without an intermediate heavy:
+	// release before 0.667 s = light, reaching 0.667 s = charged.
 	FNWWeaponSet Rapier;
 	Rapier.Id = TEXT("Rapier");
 	Rapier.Mesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/NW/sword_shield/Mesh/SM_rapier.SM_rapier")));
@@ -91,7 +91,7 @@ void ANWCharacter::AddPlayerWeaponSets()
 	Rapier.StaggerDamage = 28.f; Rapier.BlockStaminaDamage = 28.f; Rapier.BlockStability = 17.f;
 	Rapier.HeavyMinHold = 0.667f; Rapier.HeavyFullCharge = 0.667f;
 	WeaponSets.Add(Rapier);
-	// Manopla de gelo (sub-esteira 1a).
+	// Ice Gauntlet (sub-area 1a).
 	NWArmaManopla::AddWeaponSet(WeaponSets);
 }
 
@@ -104,7 +104,7 @@ void ANWCharacter::UseBrain(uint8 Style, const TArray<FNWBrainAttack>& Attacks)
 
 void ANWCharacter::AttackPressed()
 {
-	// Clique de menu: nem o aperto nem a soltura viram golpe.
+	// Menu click: neither the press nor the release becomes a hit.
 	bAttackPressAccepted = !InMenu();
 	if (!bAttackPressAccepted)
 	{
@@ -114,8 +114,8 @@ void ANWCharacter::AttackPressed()
 	{
 		return;
 	}
-	// Correndo: golpe de corrida no clique (Attack_Sprint); parado ou andando: começa a carga do pesado. Arma sem
-	// golpe de corrida (manopla de gelo) segue o clique normal.
+	// Running: sprint attack on click (Attack_Sprint); idle or walking: the heavy charge starts. A weapon without a
+	// sprint attack (Ice Gauntlet) follows the normal click.
 	if (bSprinting && GetVelocity().Size2D() > RunSpeed && Combat->ActionTable
 		&& Combat->ActionTable->FindRow<FNWActionRow>(TEXT("SprintAttack"), TEXT("sprint"), false))
 	{
@@ -131,7 +131,7 @@ void ANWCharacter::AttackReleased()
 {
 	if (!bAttackPressAccepted)
 	{
-		return;   // aperto foi clique de menu: a soltura não vira golpe leve no servidor
+		return;   // the press was a menu click: the release does not become a light hit on the server
 	}
 	bAttackPressAccepted = false;
 	if (bAttackFromSprint)
@@ -150,7 +150,7 @@ void ANWCharacter::BlockPressed()
 	}
 	if (Combat->bAimWeapon)
 	{
-		Combat->RequestAim(true);   // arco: o botão direito mira
+		Combat->RequestAim(true);   // Bow: the right button aims
 		return;
 	}
 	if (CanAct())
@@ -179,7 +179,7 @@ void ANWCharacter::Dodge()
 	{
 		return;
 	}
-	// Input em espaço da câmera -> espaço do personagem.
+	// Input in camera space -> character space.
 	if (!Controller || !CanAct())
 	{
 		return;
@@ -256,10 +256,10 @@ void ANWCharacter::LoadAbilityLoadout()
 	}
 }
 
-// ---------------------------------------------------------------- troca de arma
+// ---------------------------------------------------------------- weapon swap
 
-// Posição de uma peça guardada, dada no espaço da malha (a malha olha para +Y; +X é o lado esquerdo),
-// convertida para relativa ao osso na pose de referência.
+// Position of a stowed piece, given in mesh space (the mesh faces +Y; +X is the left side),
+// converted to relative to the bone in the reference pose.
 static FTransform StowRelative(const USkeletalMeshComponent* Body, FName Bone, const FTransform& InMesh)
 {
 	const USkeletalMesh* Mesh = Body ? Body->GetSkeletalMeshAsset() : nullptr;
@@ -310,7 +310,7 @@ void ANWCharacter::ApplyWeapon()
 	Combat->SetMainWeapon(Sword);
 	NWArmaManopla::ApplySkin(this, Set);
 
-	// Escudo: na mão com a espada; nas costas com a machadinha.
+	// Shield: in hand with the sword; on the back with the Hatchet.
 	if (Set.bUsesShield)
 	{
 		Shield->AttachToComponent(Body, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("left_hand_attach"));
@@ -318,8 +318,8 @@ void ANWCharacter::ApplyWeapon()
 	}
 	else
 	{
-		// Atrás (-Y da malha), face para fora. A postura de combate inclina o tronco ~29° para a frente
-		// (medido: o escudo tombava 29°); a frente do escudo já sai inclinada para cima para compensar.
+		// Behind (mesh -Y), face out. The combat stance tilts the torso ~29° forward
+		// (measured: the shield tipped 29°); the shield front already comes tilted up to compensate.
 		const float Lean = FMath::DegreesToRadians(29.f);
 		const FVector Out(0.f, -FMath::Cos(Lean), FMath::Sin(Lean));
 		const FVector Up(0.f, FMath::Sin(Lean), FMath::Cos(Lean));
@@ -328,7 +328,7 @@ void ANWCharacter::ApplyWeapon()
 		Shield->SetRelativeTransform(StowRelative(Body, TEXT("Spine2"), Back));
 	}
 
-	// Escudo só existe com espada e escudo no par de armas (no jogo é parte dessa arma); sem ela, some.
+	// The shield only exists with sword and shield in the weapon pair (in the game it is part of that weapon); without it, it disappears.
 	bool bShieldInPair = Set.bUsesShield;
 	for (const int32 I : Loadout)
 	{
@@ -336,8 +336,8 @@ void ANWCharacter::ApplyWeapon()
 	}
 	Shield->SetVisibility(bShieldInPair && (WeaponSets.Num() > 0));
 
-	// A outra arma: arco nas costas (attachment "bow" do jogo, na coluna); as outras no quadril esquerdo, cabo para
-	// cima e lâmina para baixo e para trás.
+	// The other weapon: Bow on the back (the game's "bow" attachment, on the spine); the others on the left hip, handle
+	// up and blade down and back.
 	const int32 Other = OtherWeapon();
 	if (Other != INDEX_NONE && WeaponSets[Other].bAims)
 	{
@@ -345,7 +345,7 @@ void ANWCharacter::ApplyWeapon()
 		const float Lean = FMath::DegreesToRadians(29.f);
 		const FVector Out(0.f, -FMath::Cos(Lean), FMath::Sin(Lean));
 		const FVector Up(0.f, FMath::Sin(Lean), FMath::Cos(Lean));
-		// Arco de pé nas costas, inclinado ~35° (ponta de cima para o ombro direito).
+		// Bow upright on the back, tilted ~35° (top tip toward the right shoulder).
 		const FVector Along = (Up * FMath::Cos(FMath::DegreesToRadians(35.f)) + FVector(1.f, 0.f, 0.f) * FMath::Sin(FMath::DegreesToRadians(35.f))).GetSafeNormal();
 		const FTransform Back(FRotationMatrix::MakeFromZX(Along, Out).Rotator(), FVector(0.f, -20.f, 128.f));
 		Stowed->AttachToComponent(Body, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("Spine2"));
@@ -368,7 +368,7 @@ void ANWCharacter::ApplyWeapon()
 	}
 
 	RefreshLocomotion();
-	UE_LOG(LogTemp, Log, TEXT("NW arma %s: escudo em %s rel %s | mundo %s | malha %s"), *Set.Id.ToString(),
+	UE_LOG(LogTemp, Log, TEXT("NW weapon %s: shield on %s rel %s | world %s | mesh %s"), *Set.Id.ToString(),
 		*Shield->GetAttachSocketName().ToString(), *Shield->GetRelativeTransform().ToString(),
 		*Shield->GetComponentRotation().ToString(), *Body->GetComponentRotation().ToString());
 	Abilities = Set.Abilities;
@@ -393,10 +393,10 @@ void ANWCharacter::ServerSwitchWeapon_Implementation(int32 Index)
 	{
 		return;
 	}
-	// Jogador com inventário: só troca para uma arma equipada.
+	// Player with inventory: only swaps to an equipped weapon.
 	if (Inventory && Inventory->Items.Num() > 0)
 	{
-		// Arco e rapieira ainda sem espaço próprio no equipamento: liberados (arena de testes).
+		// Bow and Rapier still have no slot of their own in the equipment: allowed (test arena).
 		const FName Id = WeaponSets[Index].Id;
 		const int32 Slot = Id == TEXT("Hatchet") ? NWEquip::Hatchet : NWEquip::Sword;
 		if ((Id == TEXT("Sword") || Id == TEXT("Hatchet")) && !Inventory->At(ENWItemContainer::Equip, Slot))
@@ -454,7 +454,7 @@ void ANWCharacter::Ability(int32 Index)
 	{
 		return;
 	}
-	// Evadir (rapieira): passo curto na direção do movimento (Evade_F/B/L/R), recarga única "Evade".
+	// Evade (Rapier): short step in the movement direction (Evade_F/B/L/R), single cooldown "Evade".
 	if (Abilities[Index] == TEXT("Evade") && Controller)
 	{
 		const FRotator CamYaw(0.f, Controller->GetControlRotation().Yaw, 0.f);
@@ -473,7 +473,7 @@ void ANWCharacter::TickDummy(float DeltaSeconds)
 		DummyHitsLeft = 0;
 		return;
 	}
-	// Alvo: jogador mais próximo dentro do alcance de perseguição (ou de ataque, se não persegue).
+	// Target: nearest player within chase range (or attack range, if it does not chase).
 	const ANWCharacter* Target = nullptr;
 	float Best = FMath::Max(AggroRange, DummyAttackRange);
 	for (TActorIterator<ANWCharacter> It(GetWorld()); It; ++It)
@@ -502,7 +502,7 @@ void ANWCharacter::TickDummy(float DeltaSeconds)
 		{
 			Controller->SetControlRotation(GetActorRotation());
 		}
-		// Persegue até ficar no alcance do golpe.
+		// Chases until within hit range.
 		if (AggroRange > 0.f && Best > DummyAttackRange * 0.8f)
 		{
 			AddMovementInput(ToTarget, 1.f);
@@ -515,7 +515,7 @@ void ANWCharacter::TickDummy(float DeltaSeconds)
 	DummyTimer += DeltaSeconds;
 	if (DummyAttackActions.Num() > 0)
 	{
-		// Inimigo: um ataque ao acaso da lista a cada intervalo.
+		// Enemy: one random attack from the list every interval.
 		if (DummyTimer >= DummyAttackInterval && !Combat->IsBusy())
 		{
 			Combat->RequestAction(DummyAttackActions[FMath::RandRange(0, DummyAttackActions.Num() - 1)]);
@@ -528,7 +528,7 @@ void ANWCharacter::TickDummy(float DeltaSeconds)
 		DummyHitsLeft = DummyComboHits;
 		DummyTimer = 0.f;
 	}
-	// Um pedido por vez; o buffer do componente encaixa o próximo golpe na janela do combo.
+	// One request at a time; the component's buffer fits the next hit into the combo window.
 	if (DummyHitsLeft > 0 && DummyTimer > 0.25f)
 	{
 		Combat->RequestLightAttack();

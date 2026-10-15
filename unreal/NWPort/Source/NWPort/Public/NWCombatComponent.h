@@ -13,12 +13,12 @@ class UPrimitiveComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FNWOnHitTaken, float, Damage, ENWHitResult, Result, AActor*, Attacker);
 
 /**
- * Regras de combate de um personagem: vida, stamina, ações (ataque, esquiva, bloqueio),
- * acerto por varredura da lâmina e reações. O servidor decide tudo; os clientes pedem por RPC
- * e recebem as montagens por multicast.
+ * Combat rules of a character: health, stamina, actions (attack, dodge, block),
+ * hits by blade sweep, and reactions. The server decides everything; clients request via RPC
+ * and receive the montages via multicast.
  *
- * As janelas de tempo vêm das curvas das sequências (WeaponTrail, CanTransition, Invulnerability...),
- * gravadas a partir dos ProcLayer do .adb do jogo.
+ * Time windows come from the sequences' curves (WeaponTrail, CanTransition, Invulnerability...),
+ * written from the ProcLayers of the game's .adb.
  */
 UCLASS(ClassGroup = (NW), meta = (BlueprintSpawnableComponent))
 class NWPORT_API UNWCombatComponent : public UActorComponent
@@ -28,86 +28,86 @@ class NWPORT_API UNWCombatComponent : public UActorComponent
 public:
 	UNWCombatComponent();
 
-	// ---- dados ----
+	// ---- data ----
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Dados") TObjectPtr<UDataTable> DamageTable;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Dados") TObjectPtr<UDataTable> ActionTable;
 
-	// ---- números ajustáveis (simplificação do jogo) ----
+	// ---- tunable numbers (game simplification) ----
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float MaxHealth = 1000.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float WeaponBaseDamage = 100.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números", meta = (ClampMin = 0, ClampMax = 0.95)) float ArmorMitigation = 0.3f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float MaxStamina = 100.f;
-	// StaminaComponent do jogador (docs/game/combat.md §7): 33,33/s; 10/s com a guarda levantada; 1 s de
-	// espera depois de gastar (esquiva) ou soltar a guarda; exausto em 0 até encher de novo.
+	// Player StaminaComponent (docs/game/combat.md §7): 33.33/s; 10/s with the guard up; 1 s
+	// wait after spending (dodge) or releasing the guard; exhausted at 0 until it fills again.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenPerSecond = 33.33f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenBlocking = 10.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenDelay = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float BlockArcDegrees = 180.f;
-	// Duração da reação, hit stop e empurrão: fatos da engenharia reversa (FNWRules).
+	// Reaction duration, hit stop and push: reverse engineering facts (FNWRules).
 
-	// ---- arma em uso e corpo (javelindata_itemdefinitions_weapons, slices do jogo; §4–§6) ----
+	// ---- weapon in use and body (javelindata_itemdefinitions_weapons, game slices; §4–§6) ----
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float CritChance = 0.03f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float CritDamageMultiplier = 1.3f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float BaseStaggerDamage = 36.f;
-	// Stamina que o golpe tira de quem bloqueia (arma de quem bate) e estabilidade de quem bloqueia (0..100).
+	// Stamina the strike takes from the blocker (attacker's weapon) and the blocker's stability (0..100).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float BlockStaminaDamage = 100.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float BlockStability = 15.f;
-	// Resistência a stagger do corpo (jogador 0, damned 20, javali e lobo 10) e escala do empurrão recebido.
+	// Body stagger resistance (player 0, damned 20, boar and wolf 10) and scale of the push received.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float StaggerResistRating = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float ImpactDistanceScale = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float RespawnDelay = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float BladeRadius = 16.f;
-	// Hit stop (combate.hit_stop_s, 0 no jogo): quanto atacante e alvo desaceleram enquanto dura.
+	// Hit stop (combate.hit_stop_s, 0 in the game): how much attacker and target slow down while it lasts.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float HitStopDilation = 0.05f;
-	// Último golpe recebido veio de criatura (mordida, chifrada): a reação não toca o impacto de arma da montagem.
+	// Last hit received came from a creature (bite, gore): the reaction does not play the montage's weapon impact.
 	bool bLastHitByCreature = false;
-	// Carga do pesado (Attack_Start_Charge do jogo): soltar antes de HeavyMinHold = leve; entre os dois = pesado;
-	// ao chegar em HeavyFullCharge o golpe carregado sai sozinho.
+	// Heavy charge (the game's Attack_Start_Charge): release before HeavyMinHold = light; between the two = heavy;
+	// on reaching HeavyFullCharge the charged strike goes off on its own.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float HeavyMinHold = 0.333f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float HeavyFullCharge = 0.667f;
-	// Arco com mira: soltar antes de AimFullCharge = tiro normal, depois = carregado (sem disparo automático).
+	// Bow with aim: release before AimFullCharge = normal shot, after = charged (no automatic firing).
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float AimFullCharge = 0.5f;
 
-	// ---- estado replicado ----
+	// ---- replicated state ----
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") float Health = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") float Stamina = 0.f;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") ENWCombatState State = ENWCombatState::Idle;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") bool bExhausted = false;
 	UPROPERTY(Replicated) TArray<FNWCooldown> Cooldowns;
-	// Opções do menu de dev (servidor decide; replicadas para a HUD).
+	// Dev menu options (the server decides; replicated to the HUD).
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Dev") bool bNoCooldowns = false;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Dev") bool bGodMode = false;
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Dev") bool bInfiniteStamina = false;
-	// Buff de redução de dano em curso (Determinação do Defensor).
+	// Damage reduction buff in effect (Defender's Resolve).
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") float DamageReductionUntil = 0.f;
 	float DamageReductionAmount = 0.f;
-	// Buff de dano causado em curso (Berserk).
+	// Damage dealt buff in effect (Berserk).
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") float DamageBonusUntil = 0.f;
 	float DamageBonusAmount = 0.f;
 	float GetDamageBonus() const { return ServerNow() < DamageBonusUntil ? DamageBonusAmount : 0.f; }
 
-	// Projétil arremessado atingiu um alvo (servidor). bHead: acertou o volume da cabeça.
+	// Thrown projectile hit a target (server). bHead: hit the head volume.
 	void ProjectileHit(UNWCombatComponent* Target, FName DamageID, const FVector& Point, bool bHead = false, float Falloff = 1.f);
-	// Projétil que explode (Flecha Explosiva): área com outra linha de dano.
+	// Exploding projectile (Explosive Arrow): area with another damage row.
 	void ExplodeAt(const FVector& Point, float Radius, FName DamageID, AActor* Skip);
 
-	// ---- efeitos de status (servidor; Statuses replica para a HUD) ----
+	// ---- status effects (server; Statuses replicates to the HUD) ----
 	UPROPERTY(Replicated) TArray<FNWStatus> Statuses;
 	void ApplyStatus(FName Id, float Seconds, float Tick, float DamagePerStack, int32 MaxStacks, float MoveSpeed, UNWCombatComponent* Source);
 	int32 GetStatusStacks(FName Id) const;
-	/** Tira o status e devolve o dano que ele ainda causaria (acúmulos × tique × tiques restantes). */
+	/** Removes the status and returns the damage it would still deal (stacks × tick × remaining ticks). */
 	float ConsumeStatus(FName Id);
-	/** Multiplicador de velocidade de movimento dos status (lentidão, pressa). */
+	/** Movement speed multiplier from statuses (slow, haste). */
 	float GetMoveSpeedMultiplier() const;
 
-	// Servidor: atordoa (loop de atordoado) por Seconds; cura total; limpa recargas.
+	// Server: stuns (stunned loop) for Seconds; full heal; clears cooldowns.
 	void ApplyStun(float Seconds, bool bBreakOnDamage = false);
 	void HealFull();
-	// Sacar a arma (linha Draw da tabela atual), usado na troca de arma.
+	// Draw the weapon (Draw row of the current table), used on weapon swap.
 	void PlayDraw();
 	void ClearCooldowns() { Cooldowns.Reset(); }
 	void Kill(AActor* Killer = nullptr) { if (State != ENWCombatState::Dead) { Health = 0.f; Die(Killer); } }
-	// Jogador morto: quem matou e quando o botão Renascer libera (tempo do servidor). NPC renasce sozinho.
+	// Dead player: who killed and when the Respawn button unlocks (server time). NPCs respawn on their own.
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") FString KilledBy;
 	UPROPERTY(Replicated) float RespawnAt = 0.f;
 	float GetRespawnRemaining() const { return FMath::Max(0.f, RespawnAt - ServerNow()); }
@@ -115,46 +115,46 @@ public:
 
 	UPROPERTY(BlueprintAssignable) FNWOnHitTaken OnHitTaken;
 
-	// Arma da mão principal: a varredura vai da base à ponta, calculadas pelos limites da malha.
+	// Main-hand weapon: the sweep goes from base to tip, computed from the mesh bounds.
 	UFUNCTION(BlueprintCallable, Category = "NW") void SetMainWeapon(UPrimitiveComponent* Weapon);
 
-	// ---- pedidos (chamar no cliente dono; vão para o servidor) ----
+	// ---- requests (call on the owning client; they go to the server) ----
 	UFUNCTION(BlueprintCallable, Category = "NW") void RequestAction(FName Action);
 	UFUNCTION(BlueprintCallable, Category = "NW") void RequestLightAttack() { RequestAction(LightComboStart); }
 	UFUNCTION(BlueprintCallable, Category = "NW") void RequestHeavyAttack() { RequestAction(TEXT("Heavy")); }
-	// Botão de ataque do jogador: apertar começa a carga; soltar decide leve/pesado.
+	// Player attack button: pressing starts the charge; releasing decides light/heavy.
 	UFUNCTION(BlueprintCallable, Category = "NW") void AttackPressed();
 	UFUNCTION(BlueprintCallable, Category = "NW") void AttackReleased();
 	UFUNCTION(BlueprintPure, Category = "NW") bool IsCharging() const { return State == ENWCombatState::Attacking && CurrentAction == ChargeAction; }
-	// 0..1 da carga (para HUD).
+	// 0..1 of the charge (for the HUD).
 	UFUNCTION(BlueprintPure, Category = "NW") float GetChargeRatio() const;
-	// Segundos que faltam de recarga (0 = pronta); OutDuration recebe a recarga total.
+	// Seconds of cooldown left (0 = ready); OutDuration receives the total cooldown.
 	float GetCooldownRemaining(FName Action, float* OutDuration = nullptr) const;
-	// Direção do input em espaço do personagem (X frente, Y direita).
+	// Input direction in character space (X forward, Y right).
 	UFUNCTION(BlueprintCallable, Category = "NW") void RequestDodge(FVector2D LocalInput);
-	// Ação direcional pelo input (X frente, Y direita): Prefix + F/B/L/R (Evade_F...).
+	// Directional action from the input (X forward, Y right): Prefix + F/B/L/R (Evade_F...).
 	void RequestDirectional(const FString& Prefix, FVector2D LocalInput);
-	// Arco: mira com o botão direito (estado de mira, câmera perto, anda devagar).
+	// Bow: aims with the right button (aim state, close camera, walks slowly).
 	void RequestAim(bool bAim);
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Estado") bool bAiming = false;
-	// A arma em uso mira (arco): o botão direito mira em vez de bloquear e o esquerdo atira.
+	// The weapon in use aims (bow): the right button aims instead of blocking and the left one shoots.
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "NW|Arma") bool bAimWeapon = false;
 	UFUNCTION(BlueprintCallable, Category = "NW") void RequestBlock(bool bBlock);
 
 	UFUNCTION(BlueprintPure, Category = "NW") bool IsInvulnerable() const;
 	UFUNCTION(BlueprintPure, Category = "NW") bool IsBusy() const { return State != ENWCombatState::Idle && State != ENWCombatState::Blocking; }
 	UFUNCTION(BlueprintPure, Category = "NW") float GetCurve(FName Curve) const;
-	// Curva só da montagem da ação atual (janela CAGE-Named do fragmento em curso). GetCurve mistura as montagens que
-	// ainda estão saindo: a janela aberta do golpe interrompido vazava por ~0,1 s e liberava o próximo clique.
+	// Curve only from the current action's montage (CAGE-Named window of the current fragment). GetCurve blends the montages
+	// still blending out: the open window of the interrupted strike leaked for ~0.1 s and allowed the next click.
 	float GetActionCurve(FName Curve) const;
 
 	UPROPERTY(EditAnywhere, Category = "NW|Dados") FName LightComboStart = TEXT("Light1");
 	FName GetCurrentAction() const { return CurrentAction; }
-	// Servidor: começa a ação sem checar janela (fases com tempo das habilidades, NWArmaManopla.cpp).
+	// Server: starts the action without checking the window (timed phases of abilities, NWArmaManopla.cpp).
 	bool ForceAction(FName Action);
-	// Servidor: recarga que começa fora do início da ação (Torre de Gelo ao morrer, Sepultado ao sair).
+	// Server: cooldown that starts outside the start of the action (Ice Pylon on death, Entombed on exit).
 	void StartCooldown(FName Key, float Seconds);
-	// Conta as ações começadas no servidor (a IA percebe "golpe novo" do alvo por aqui).
+	// Counts the actions started on the server (the AI notices the target's "new strike" here).
 	int32 GetActionSerial() const { return ActionSerial; }
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -163,18 +163,18 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	// Predição: o cliente dono toca a ação na hora e manda o número dela; o servidor valida, devolve o mesmo
-	// número no multicast (o dono não recomeça a montagem) ou recusa (o dono desfaz). 0 = sem predição.
+	// Prediction: the owning client plays the action immediately and sends its number; the server validates, returns the same
+	// number in the multicast (the owner does not restart the montage) or rejects (the owner undoes). 0 = no prediction.
 	UFUNCTION(Server, Reliable) void ServerRequestAction(FName Action, uint16 PredictionId);
 	UFUNCTION(Server, Reliable) void ServerRequestBlock(bool bBlock);
 	UFUNCTION(Server, Reliable) void ServerAttackInput(bool bPressed, uint16 PredictionId);
 	UFUNCTION(NetMulticast, Reliable) void MulticastPlayMontage(UAnimMontage* Montage, float Rate, uint16 PredictionId, float StartAt);
 	UFUNCTION(Client, Reliable) void ClientRejectPrediction(uint16 PredictionId);
-	// Montagem em loop (seção ligada nela mesma), ex.: guarda levantada enquanto o botão está pressionado.
+	// Looping montage (section linked to itself), e.g. guard up while the button is held.
 	UFUNCTION(NetMulticast, Reliable) void MulticastPlayLoop(UAnimMontage* Montage);
 	UFUNCTION(NetMulticast, Reliable) void MulticastStopMontages(float BlendOut);
-	/** Número de dano e, no alvo local, o indicador de direção do golpe (From = posição do atacante). */
-	/** Também toca as tremidas de câmera da linha de dano: ByShake na câmera de By, TargetShake na deste. */
+	/** Damage number and, on the local target, the hit direction indicator (From = attacker position). */
+	/** Also plays the damage row's camera shakes: ByShake on By's camera, TargetShake on this one's. */
 	UFUNCTION(NetMulticast, Unreliable) void MulticastShowHit(float Damage, ENWHitResult Result, FVector_NetQuantize From, bool bByCreature,
 		bool bCrit, AActor* By, FName ByShake, FName TargetShake);
 	UFUNCTION(NetMulticast, Unreliable) void MulticastHitStop(AActor* Other, float Seconds);
@@ -184,10 +184,10 @@ protected:
 	UFUNCTION() void HandleMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 
 private:
-	// Validação pura (cliente e servidor): estado, janelas das curvas, recarga, vigor; resolve o próximo do combo.
+	// Pure validation (client and server): state, curve windows, cooldown, stamina; resolves the next in the combo.
 	const FNWActionRow* CheckAction(FName& InOutAction) const;
 	bool TryStartAction(FName Action);
-	// Cliente dono: toca a ação prevista. Devolve o número da predição (0 = não previu).
+	// Owning client: plays the predicted action. Returns the prediction number (0 = did not predict).
 	uint16 PredictAction(FName Action);
 	bool IsLocalOwner() const;
 	uint16 NextPredictionId = 1;
@@ -197,10 +197,10 @@ private:
 	FName ActionBeforePrediction;
 	double LocalChargeStart = 0.0;
 	FName LocalChargeComboFrom;
-	uint16 ServerRequestId = 0;   // servidor: número da predição do pedido em processamento
+	uint16 ServerRequestId = 0;   // server: prediction number of the request being processed
 	void StartAction(FName Action, const FNWActionRow& Row);
 	void PlayReaction(FName Action, float StunSeconds);
-	/** Reação a golpe: dura início do procclip HitStun + HitStun/30 e estica o resto da montagem. Devolve a duração. */
+	/** Hit reaction: lasts the HitStun procclip start + HitStun/30 and stretches the rest of the montage. Returns the duration. */
 	float PlayHitReaction(FName Action, float HitStun, float ExtraSeconds);
 	void PlayBlockIdle();
 	void SweepWeapon();
@@ -209,7 +209,7 @@ private:
 	ENWHitResult ReceiveHit(UNWCombatComponent* Attacker, const FNWDamageRow& Damage, float& OutDamage, bool bHead = false);
 	void Push(const FVector& Dir, float Meters, float DecayRate, bool bNoDecay, float ReactionSeconds);
 	void TickStatuses(float Now);
-	// IA: depois de uma reação completa, 2 s em que golpe leve não interrompe (AI_Reaction_Limiter).
+	// AI: after a full reaction, 2 s during which a light strike does not interrupt (AI_Reaction_Limiter).
 	float ReactionLimiterUntil = 0.f;
 	float LastBlockRelease = -100.f;
 	void Die(AActor* Killer);
@@ -225,7 +225,7 @@ private:
 	UPROPERTY(Replicated) FName CurrentAction;
 	UPROPERTY(Replicated) float ChargeStartedAt = 0.f;
 	FName ChargeAction = TEXT("HeavyCharge");
-	// Ação leve que estava em curso quando a carga começou (soltar cedo continua o combo dela).
+	// Light action in progress when the charge started (releasing early continues its combo).
 	FName ChargeComboFrom;
 	bool bAttackHeld = false;
 	bool TryStartCharge();
@@ -234,16 +234,16 @@ private:
 	UFUNCTION(Server, Reliable) void ServerRequestAim(bool bAim);
 	void PlayAimIdle();
 	FName CooldownKey(FName Action, const FNWActionRow& Row) const { return Row.CooldownGroup.IsNone() ? Action : Row.CooldownGroup; }
-	// Disparos já feitos na ação (FireTimes) e ponto no chão mirado (Chuva de Flechas).
+	// Shots already fired in the action (FireTimes) and aimed ground point (Rain of Arrows).
 	int32 ShotsFired = 0;
-	// Janelas de dano abertas nesta ação (Rajada: a 3ª janela usa a 3ª linha de FireDamageIDs).
+	// Damage windows opened in this action (Flurry: the 3rd window uses the 3rd row of FireDamageIDs).
 	int32 DamageWindowIndex = 0;
 	bool bGroundFired = false;
 	FVector GroundTarget = FVector::ZeroVector;
 	bool bStunBreaksOnDamage = false;
 	float CounterUntil = 0.f;
 	bool bJustShot = false;
-	// Arco: clique dado antes da janela de tiro (vira tiro sem carga quando ela abrir).
+	// Bow: click made before the shot window (becomes an uncharged shot when it opens).
 	bool bAimClickBuffered = false;
 	FName ReactionNext;
 	float ActionStartedAt = 0.f;

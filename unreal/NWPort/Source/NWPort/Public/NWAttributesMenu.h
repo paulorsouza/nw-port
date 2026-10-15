@@ -7,10 +7,10 @@ class ANWCharacter;
 class UCanvas;
 
 /**
- * Aba de atributos da janela "Personagem" do jogo (Attributes de lyshineui/skills/skills.dynamicuicanvas,
- * tools/ui_build_attributes.py): runa com os pontos disponíveis, uma linha por atributo com valor, pendente
- * ("+N"), botões − e +, barra até 300 com marcas a cada 50, Confirmar e a barra de XP com o nível. Os pontos ficam
- * pendentes até Confirmar (o servidor confere em UNWProgressionComponent::ServerSpendPoints).
+ * Attributes tab of the game's "Character" window (Attributes from lyshineui/skills/skills.dynamicuicanvas,
+ * tools/ui_build_attributes.py): rune with the available points, one row per attribute with value, pending
+ * ("+N"), − and + buttons, bar up to 300 with marks every 50, Confirm and the XP bar with the level. Points stay
+ * pending until Confirm (the server checks in UNWProgressionComponent::ServerSpendPoints).
  */
 class NWPORT_API FNWAttributesMenu
 {

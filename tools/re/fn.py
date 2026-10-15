@@ -1,9 +1,9 @@
-"""Mostra a descompilação de funções já salvas em extract/ghidra/dec/*.c (saída do RangeDecompile.java).
+"""Shows the decompilation of functions already saved in extract/ghidra/dec/*.c (output of RangeDecompile.java).
 
-    python3 -I tools/re/fn.py 0x<endereço> [0x...] [-n 120] [--decl]
+    python3 -I tools/re/fn.py 0x<address> [0x...] [-n 120] [--decl]
 
-Mantém um índice endereço -> (arquivo, posição) em extract/ghidra/dec/.index.json, refeito quando algum .c muda.
-Sem --decl, esconde as linhas de declaração de variáveis locais.
+Keeps an index address -> (file, position) in extract/ghidra/dec/.index.json, rebuilt when any .c changes.
+Without --decl, hides the local variable declaration lines.
 """
 import glob, json, os, re, sys
 
@@ -34,7 +34,7 @@ def index():
 def show(a, n, decl):
     e = index().get(a)
     if not e:
-        print(f"######## {a}: não descompilada"); return
+        print(f"######## {a}: not decompiled"); return
     print(f"######## {a}  ({os.path.basename(e[0])})")
     with open(e[0], "rb") as h:
         h.seek(e[1]); h.readline()

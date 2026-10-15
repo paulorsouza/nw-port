@@ -1,5 +1,5 @@
 {
-  "_comment": "Regras da governança das cidades (docs/game/economy.md), lidas pelo nw-core (include_str) e pelo servidor de jogo. Moedas em centavos. Números 'proposta' do simulador (tools/sim_economia.py, tools/economia.json); faixas de preço em tools/precos_cidade.json.",
+  "_comment": "City governance rules (docs/game/economy.md), read by nw-core (include_str) and by the game server. Coins in cents. 'proposta' numbers come from the simulator (tools/sim_economia.py, tools/economia.json); price ranges in tools/precos_cidade.json.",
   "regioes": [
     {
       "id": "1",
@@ -82,7 +82,7 @@
   "moedas_max": 2000000000,
   "preco_item_max": 500000000,
   "mesa_escala": {
-    "_comment": "Escala da mesa da cidade (2 a 5): bônus pequeno e visual; não trava receita (no jogo atual a escala só dá desconto). Subir de escala custa uma cesta de todos os tipos, mais moedas (projetos do jogo: 100 / 5 mil / 10 mil) e tempo de obra.",
+    "_comment": "City station tier (2 to 5): small, visual bonus; does not gate recipes (in the current game the tier only gives a discount). Raising the tier costs a basket of every type, plus coins (game projects: 100 / 5,000 / 10,000) and work time.",
     "inicial": 2,
     "subir": [
       {
@@ -135,7 +135,7 @@
     }
   },
   "mesa_nivel": {
-    "_comment": "Níveis depois da escala 5: buff bem pequeno por nível, muito caros em material.",
+    "_comment": "Levels after tier 5: a very small buff per level, very expensive in materials.",
     "max": 5,
     "subir": [
       {
@@ -205,7 +205,7 @@
     }
   },
   "armas": {
-    "_comment": "Armas do forte do jogo (javelindata_territoryprogression, Fortress; nomes siege_turret_*). Escala 1 a 3; defesa da cidade = soma das escalas.",
+    "_comment": "Weapons of the game's fort (javelindata_territoryprogression, Fortress; names siege_turret_*). Tier 1 to 3; city defense = sum of the tiers.",
     "tipos": [
       "ballista",
       "repeater",

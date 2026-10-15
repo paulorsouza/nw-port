@@ -1,18 +1,18 @@
-"""Catálogo de itens do servidor do clã, tirado das tabelas do jogo (subconjunto da F3).
+"""Item catalog of the clan server, taken from the game tables (F3 subset).
 
     python3 tools/make_items.py
 
-Entra: espadas, machadinhas e escudos de uma mão (tiers 1 a 5, sem nomeados/sazonais/teste), poções de vida e os
-materiais que os Lost deixam. Lê extract/data (itemdefinitions_master_*, itemdefinitions_weapons,
-itemdefinitions_consumables, statuseffects_item) e os textos de extract/loc/localization/<idioma>.
+Included: one-handed swords, hatchets and shields (tiers 1 to 5, no named/seasonal/test), health potions and the
+materials the Lost drop. Reads extract/data (itemdefinitions_master_*, itemdefinitions_weapons,
+itemdefinitions_consumables, statuseffects_item) and the strings in extract/loc/localization/<language>.
 
-Também entram as ferramentas de coleta (picareta, foice, machado de lenhador, faca de esfolar, T1–T5) e todo item
-alcançável pelo saque dos coletáveis de Guardaventos (Data/World/guardaventos_gatherables.json, de
-tools/make_gatherables.py — rodar antes).
+Also included: the gathering tools (pick, sickle, logging axe, skinning knife, T1–T5) and every item
+reachable through the loot of the Windsward gatherables (Data/World/guardaventos_gatherables.json, from
+tools/make_gatherables.py — run it first).
 
-Gera unreal/NWPort/Data/Items/items.<idioma>.json (catálogo com nome e descrição), Data/Items/loot.json (saque
-dos Lost), Data/Items/loottables.json (tabelas do jogo usadas pelos coletáveis) e extract/ui/item_textures.txt
-(ícones a importar).
+Writes unreal/NWPort/Data/Items/items.<language>.json (catalog with name and description), Data/Items/loot.json (Lost
+loot), Data/Items/loottables.json (game tables used by the gatherables) and extract/ui/item_textures.txt
+(icons to import).
 """
 import glob
 import json
@@ -29,23 +29,23 @@ OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "Items")
 ICONS = {os.path.basename(p)[:-4]: p for p in open(os.path.join(ROOT, "extract", "ui", "item_icons.txt")).read().split()
          if os.path.basename(p)[:-4]}
 
-# Classe do jogo -> conjunto de arma do personagem (ANWCharacter::WeaponSets) ou escudo.
+# Game class -> character weapon set (ANWCharacter::WeaponSets) or shield.
 WEAPON_CLASSES = [("EquippableMainHand+Sword", "Sword"), ("EquippableMainHand+Hatchet", "Hatchet"), ("+Shield", "Shield")]
 SKIP = re.compile(r"Dagger|_Shop|_FTUE|Covenant|Syndicate|Marauder|Winter|Named|Debug|Legacy|Crassus|Test|_S\d|Season|Artifact|Quest|Faction|PvP|Unique|Omega|Skin|AI_", re.I)
-POTIONS = ["PotionHealthT5"]   # decisão do dono (2026-10-13): só a poção T5 existe no port
-# Materiais básicos (minério, madeira, fibra, couro cru, pedra), tiers 1 e 2.
+POTIONS = ["PotionHealthT5"]   # maintainer decision (2026-10-13): only the T5 potion exists in the port
+# Basic materials (ore, wood, fiber, rawhide, stone), tiers 1 and 2.
 RESOURCES = ["OreT1", "WoodT1", "FiberT1", "RawhideT1", "StoneT1", "WoodT2"]
-PER_TIER = 3   # armas por conjunto e tier no catálogo
-# Ferramentas de coleta: conjunto (espaço de equipamento) e IDs do jogo.
+PER_TIER = 3   # weapons per set and tier in the catalog
+# Gathering tools: set (equipment slot) and game IDs.
 TOOLS = [("Pick", ["2hPickT1", "2hPickT2", "2hPickT3", "2hPickT4", "2hPickT5"]),
          ("Sickle", ["1hSickleT1", "1hSickleT2", "1hSickleT3", "1hSickleT4", "1hSickleT5"]),
          ("LoggingAxe", ["1hHatchetT1", "2hAxeT2", "2hAxeT3", "2hAxeT4", "2hAxeT5"]),
          ("SkinningKnife", ["1hSkinningKnifeT1", "1hSkinningKnifeT2", "1hSkinningKnifeT3", "1hSkinningKnifeT4",
                             "1hSkinningKnifeT5"])]
-# Itens de saque que não entram (partituras, pesquisa de temporada).
+# Loot items left out (music sheets, season research).
 SKIP_LOOT = re.compile(r"_Page\d|^Gatherable_Research|_S\d+$")
 GATHERABLES = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "guardaventos_gatherables.json")
-# Receitas de refino (tools/make_crafting.py, rodar antes): saídas, ingredientes e itens das categorias entram no catálogo.
+# Refining recipes (tools/make_crafting.py, run it first): outputs, ingredients and category items go into the catalog.
 CRAFTING = os.path.join(ROOT, "unreal", "NWPort", "Data", "Crafting", "refining.json")
 
 
@@ -53,9 +53,9 @@ def rows(name):
     return json.load(open(glob.glob(os.path.join(DATA, "**", f"javelindata_{name}.datasheet.json"), recursive=True)[0]))["rows"]
 
 
-# Aparência das armaduras (javelindata_itemappearancedefinitions): o ícone da armadura vem dela, não do item.
+# Armor appearance (javelindata_itemappearancedefinitions): the armor icon comes from it, not from the item.
 APPEARANCE = {}
-# Espaço de equipamento do port pela classe do jogo (docs/game/items.md).
+# The port's equipment slot by game class (docs/game/items.md).
 ARMOR_SLOTS = (("EquippableHead", "Head"), ("EquippableChest", "Chest"), ("EquippableHands", "Hands"),
                ("EquippableLegs", "Legs"), ("EquippableFeet", "Feet"), ("EquippableAmulet", "Amulet"),
                ("EquippableRing", "Ring"), ("EquippableToken", "Earring"))
@@ -74,7 +74,7 @@ def text(loc, key, fallback=""):
     key = str(key or "").lstrip("@").lower()
     t = loc.get(key, fallback)
     t = re.sub(r"<[^>]+>", "", t.replace("\\n", "\n")).strip()
-    # Expressões que o jogo calcula ao mostrar: "{[0.100000 * 100]}" -> "10" (só números e + - * / ( )).
+    # Expressions the game evaluates when displaying: "{[0.100000 * 100]}" -> "10" (only numbers and + - * / ( )).
     def calc(m):
         expr = m.group(1)
         if not re.fullmatch(r"[\d.\s+\-*/()]+", expr):
@@ -85,11 +85,11 @@ def text(loc, key, fallback=""):
 
 
 def loot_tables(items, roots):
-    """Tabelas do jogo alcançáveis a partir de roots, no formato do C++ (FNWItemCatalog::RollGame).
+    """Game tables reachable from roots, in the C++ format (FNWItemCatalog::RollGame).
 
-    Cada tabela: and (todos os itens com limiar <= dado) ou or (um sorteado entre eles), max (dado 0..max) e
-    entradas {item|table, q: [mín, máx], t: limiar}. Tabelas com Conditions (temporada, PvP, eventos) e
-    baldes [LBID] ficam de fora.
+    Each table: and (all items with threshold <= roll) or or (one drawn among them), max (roll 0..max) and
+    entries {item|table, q: [min, max], t: threshold}. Tables with Conditions (season, PvP, events) and
+    [LBID] buckets are left out.
     """
     lt = rows("loottables")
     by_id = {r["LootTableID"]: (r, lt[i + 1], lt[i + 2]) for i, r in enumerate(lt)
@@ -102,7 +102,7 @@ def loot_tables(items, roots):
 
     def walk(t):
         if t in out:
-            return out[t] is None or bool(out[t])  # None = em andamento (ciclo)
+            return out[t] is None or bool(out[t])  # None = in progress (cycle)
         if t not in by_id or by_id[t][0].get("Conditions"):
             return False
         r, q, p = by_id[t]
@@ -122,8 +122,8 @@ def loot_tables(items, roots):
                 e["item"] = v
                 used.add(v)
             entries.append(e)
-        # RollBonusSetting: AddToRoll soma o bônus (sorte, nível do ofício) ao dado; ClampMax soma até o MaxRoll;
-        # IgnoreBonus/None não usam.
+        # RollBonusSetting: AddToRoll adds the bonus (luck, trade skill level) to the roll; ClampMax adds up to MaxRoll;
+        # IgnoreBonus/None do not use it.
         bonus = {"AddToRoll": "add", "ClampMax": "clamp"}.get(str(r.get("RollBonusSetting")), "")
         out[t] = {"and": r.get("AND/OR") == "AND", "max": int(float(p.get("MaxRoll") or 0)), "e": entries,
                   **({"bonus": bonus} if bonus else {})} if entries else {}
@@ -140,7 +140,7 @@ def main():
         for r in rows(name):
             items.setdefault(r["ItemID"], r)
             if r.get("Weight") not in (None, ""):
-                weights.setdefault(r["ItemID"], float(r["Weight"]) / 10)  # o jogo guarda em décimos
+                weights.setdefault(r["ItemID"], float(r["Weight"]) / 10)  # the game stores tenths
     weapons = {r["WeaponID"]: r for r in rows("itemdefinitions_weapons")}
     APPEARANCE.update({r["ItemID"]: r for r in rows("itemappearancedefinitions")})
     consumables = {r["ConsumableID"]: r for r in rows("itemdefinitions_consumables")}
@@ -155,7 +155,7 @@ def main():
             if not 1 <= int(r.get("Tier") or 0) <= 5 or not icon_for(r) or not str(r.get("Name") or "").startswith("@"):
                 continue
             found.append(r)
-        # Os mais "básicos" primeiro (IDs curtos: 1hSwordT2 antes de 1hSwordDropT2_Variant).
+        # The most "basic" first (short IDs: 1hSwordT2 before 1hSwordDropT2_Variant).
         found.sort(key=lambda r: (int(r["Tier"]), len(r["ItemID"]), r["ItemID"]))
         per_tier = {}
         for r in found:
@@ -172,10 +172,10 @@ def main():
         if rid in items:
             chosen.append((items[rid], ""))
         else:
-            print("material ausente:", rid)
+            print("missing material:", rid)
 
     gv = json.load(open(GATHERABLES))["variants"] if os.path.exists(GATHERABLES) else {}
-    # Saque das carcaças das criaturas (esfolar; tools/make_spawns.py).
+    # Creature carcass loot (skinning; tools/make_spawns.py).
     spawns = os.path.join(os.path.dirname(GATHERABLES), "guardaventos_spawns.json")
     skins = {c["skin"]["loot"] for c in json.load(open(spawns))["creatures"].values() if c.get("skin")} if os.path.exists(spawns) else set()
     game_loot, loot_items = loot_tables(items, sorted({v["loot"] for v in gv.values() if v["loot"]} | skins))
@@ -191,7 +191,7 @@ def main():
             if iid in items:
                 chosen.append((items[iid], ""))
             else:
-                print("item de receita ausente:", iid)
+                print("missing recipe item:", iid)
 
     catalog = []
     for r, weapon_set in chosen:
@@ -202,15 +202,15 @@ def main():
             "name_key": str(r.get("Name") or ""), "desc_key": str(r.get("Description") or ""),
             "type_key": str(r.get("ItemTypeDisplayName") or ""),
             "weight": weights.get(r["ItemID"], 0.0),
-            # Seção do inventário (dynamicitemlist.lua: eItemClass_UI_<classe>) e forma da peça (itemlayout.lua
-            # SetLayoutByItemType: redonda para Resource, Lore, Dye, HousingItem; quadrada no resto).
+            # Inventory section (dynamicitemlist.lua: eItemClass_UI_<class>) and tile shape (itemlayout.lua
+            # SetLayoutByItemType: round for Resource, Lore, Dye, HousingItem; square for the rest).
             "ui_class": str(r.get("UiItemClass") or "").removeprefix("UI_"),
             "round": str(r.get("ItemType")) in ("Resource", "Lore", "Dye", "HousingItem"),
         }
         if r.get("ItemType") == "Armor":
             cls = str(r.get("ItemClass"))
             e["set"] = next((slot for key, slot in ARMOR_SLOTS if key in cls), weapon_set)
-            # Classe de peso da peça (Heavy, Medium, Light); joias não têm.
+            # Weight class of the piece (Heavy, Medium, Light); jewelry has none.
             e["armor"] = next((w for w in ("Heavy", "Medium", "Light") if w in cls.split("+")), "")
         if r.get("ItemType") == "Weapon":
             w = weapons.get(r.get("ItemStatsRef"), {})
@@ -232,7 +232,7 @@ def main():
                     type_name=text(loc, e["type_key"])) for e in catalog]
         json.dump(out, open(os.path.join(OUT, f"items.{lang}.json"), "w"), ensure_ascii=False, indent=1)
 
-    # Saque dos Lost: moedas sempre, 1-2 materiais tier 1, poção às vezes, arma tier 2-3 rara.
+    # Lost loot: coins always, 1-2 tier 1 materials, potion sometimes, tier 2-3 weapon rarely.
     tier = lambda e, t: e["tier"] == t
     loot = {
         "lost": {
@@ -252,7 +252,7 @@ def main():
     counts = {}
     for e in catalog:
         counts[e["set"] or e["type"]] = counts.get(e["set"] or e["type"], 0) + 1
-    print(f"{len(catalog)} itens {counts}, {len(game_loot)} tabelas de saque do jogo -> {OUT}")
+    print(f"{len(catalog)} items {counts}, {len(game_loot)} game loot tables -> {OUT}")
 
 
 if __name__ == "__main__":

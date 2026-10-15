@@ -6,10 +6,10 @@ struct FNWItem;
 class ANWNpc;
 
 /**
- * Brindes dos NPCs (docs/game/city.md, "Brindes dos NPCs"; dados em Data/World/npc_rewards.json, tools/npc_rewards.json).
- * Um grupo por ofício: a cada semana um NPC do grupo, sorteado igual para todos (cidade + ofício + semana), entrega
- * naquela cidade. Itens iniciais uma vez por personagem por ofício; brinde semanal uma vez por semana, cidade e ofício.
- * Chave do que já foi pego (igual no servidor, no cliente e no nw-core): "<kind>:<npc>:<period>".
+ * NPC gifts (docs/game/city.md, "NPC gifts"; data in Data/World/npc_rewards.json, tools/npc_rewards.json).
+ * One group per trade skill: each week one NPC of the group, drawn the same for everyone (city + trade skill + week), delivers
+ * in that city. Starting items once per character per trade skill; weekly gift once per week, city and trade skill.
+ * Key of what was already claimed (same on the server, the client and nw-core): "<kind>:<npc>:<period>".
  */
 class NWPORT_API FNWNpcRewards
 {
@@ -18,19 +18,19 @@ public:
 
 	enum class EState : uint8 { None, Available, Claimed };
 
-	/** Terça da semana atual (renovação 08:00 UTC = 05:00 BRT), "AAAA-MM-DD". */
+	/** Tuesday of the current week (reset 08:00 UTC = 05:00 BRT), "YYYY-MM-DD". */
 	FString Period(const FDateTime& NowUtc = FDateTime::UtcNow()) const;
-	/** NPC do grupo que entrega nesta semana (variante), entre os NPCs do mesmo ofício no mapa. */
+	/** The group's NPC that delivers this week (variant), among the NPCs of the same trade skill on the map. */
 	FString Chosen(const UWorld* World, const FString& City, const FString& Type, const FString& InPeriod) const;
 	bool HasStarter(const FString& Type) const;
 	static FString Key(const FString& Kind, const FString& Npc, const FString& InPeriod) { return Kind + TEXT(":") + Npc + TEXT(":") + InPeriod; }
 	static FString StarterNpc(const FString& Type) { return Type; }
 	static FString WeeklyNpc(const FString& City, const FString& Type) { return City + TEXT("_") + Type; }
-	/** Estado do NPC para quem tem estas chaves: só o sorteado da semana tem algo; Claimed = já pegou tudo da semana. */
+	/** NPC state for whoever has these keys: only the week's drawn one has something; Claimed = already took everything this week. */
 	EState StateFor(const ANWNpc* Npc, const TArray<FString>& Claims) const;
-	/** Itens do inicial (faixas sorteadas) ou do semanal (1 de cada lista: material + argueiro). */
+	/** Items of the starting gift (rolled ranges) or of the weekly one (1 from each list: material + argueiro). */
 	void Starter(const FString& Type, TArray<FNWItem>& Out) const;
-	/** OutCoins: moedas do brinde semanal (centavos). */
+	/** OutCoins: coins of the weekly gift (cents). */
 	void Weekly(const FString& Type, TArray<FNWItem>& Out, int64* OutCoins = nullptr) const;
 
 private:
@@ -39,7 +39,7 @@ private:
 	struct FType
 	{
 		TArray<FRange> Starter;
-		/** Semanal: 1 item sorteado de cada lista (material, argueiro). */
+		/** Weekly: 1 item rolled from each list (material, argueiro). */
 		TArray<TArray<FRange>> WeeklyLists;
 		int64 WeeklyCoinsMin = 0, WeeklyCoinsMax = 0;
 	};

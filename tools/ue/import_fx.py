@@ -1,11 +1,11 @@
-"""Efeito de partículas do jogo → sistema Niagara (docs/tech/particles.md).
+"""Game particle effect → Niagara system (docs/tech/particles.md).
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_fx.py extract/fx/<Bib>.<Efeito>.json"
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_fx.py extract/fx/<Lib>.<Effect>.json"
 
-Lê o JSON do tools/make_particles.py, importa texturas (extract/fx/src/**.png) e malhas (extract/fx/glb/**.glb) em
-/Game/NW/FX, cria os materiais mestre de partícula (sprite translúcido/aditivo, malha, decalque) e uma instância por
-material do jogo, traduz cada emissor do CryEngine numa receita Niagara (modelo do motor, módulos, constantes, curvas,
-renderizador) e chama UNWNiagaraTools.build_effect. Relatório em extract/fx/<Bib>.<Efeito>.build.txt.
+Reads the JSON from tools/make_particles.py, imports textures (extract/fx/src/**.png) and meshes (extract/fx/glb/**.glb)
+into /Game/NW/FX, creates the particle master materials (translucent/additive sprite, mesh, decal) and one instance per
+game material, translates each CryEngine emitter into a Niagara recipe (engine template, modules, constants, curves,
+renderer) and calls UNWNiagaraTools.build_effect. Report in extract/fx/<Lib>.<Effect>.build.txt.
 """
 import json
 import os
@@ -25,7 +25,7 @@ eal = unreal.EditorAssetLibrary
 
 
 def existing(path):
-    """Carrega pelo caminho: no editor aberto o registro não vê o que o commandlet criou (does_asset_exist falso)."""
+    """Loads by path: in the open editor the registry does not see what the commandlet created (does_asset_exist false)."""
     name = path.rsplit("/", 1)[-1]
     try:
         return unreal.load_asset(f"{path}.{name}")
@@ -33,7 +33,7 @@ def existing(path):
         return None
 mel = unreal.MaterialEditingLibrary
 tools = unreal.AssetToolsHelpers.get_asset_tools()
-M = 100.0  # metro do jogo → cm
+M = 100.0  # game meter → cm
 
 
 def asset_name(path):
@@ -41,7 +41,7 @@ def asset_name(path):
 
 
 def texture(game_path, normal=None):
-    """textures/x/y.tif → /Game/NW/FX/Tex/T_y (png de extract/fx/src)."""
+    """textures/x/y.tif → /Game/NW/FX/Tex/T_y (png from extract/fx/src)."""
     if not game_path:
         return None
     png = os.path.join(SRC, os.path.splitext(game_path.lower())[0] + ".png")
@@ -67,7 +67,7 @@ def texture(game_path, normal=None):
 
 
 def mesh(game_path):
-    """Malha do efeito (glb do nwbt) em /Game/NW/FX/Mesh/SM_<nome>/ (a pasta do import; mover dentro do editor não salva)."""
+    """Effect mesh (glb from nwbt) in /Game/NW/FX/Mesh/SM_<name>/ (the import folder; moving it inside the editor does not save)."""
     name = "SM_" + asset_name(game_path)
     folder = f"{P_MESH}/{name}"
     found = [p for p in eal.list_assets(folder, recursive=True) if isinstance(eal.load_asset(p), unreal.StaticMesh)] \
@@ -83,14 +83,14 @@ def mesh(game_path):
     im.import_asset(folder, src, params)
     found = [p for p in eal.list_assets(folder, recursive=True) if isinstance(eal.load_asset(p), unreal.StaticMesh)]
     if not found:
-        unreal.log_warning(f"FX: malha não importada {glb}")
+        unreal.log_warning(f"FX: mesh not imported {glb}")
         return None
     for p in eal.list_assets(folder, recursive=True):
         eal.save_asset(p, only_if_is_dirty=False)
     return found[0].split(".")[0]
 
 
-# ---------------------------------------------------------------- materiais mestre
+# ---------------------------------------------------------------- master materials
 
 def node(mat, cls, x, y, **props):
     n = mel.create_material_expression(mat, cls, x, y)
@@ -100,7 +100,7 @@ def node(mat, cls, x, y, **props):
 
 
 def mask(mat, src, out, chans, x, y, rgba=False):
-    """RGB = saída padrão (float3); alpha = saída "A" (a saída padrão não tem alpha). rgba: nó de saída única (DecalColor)."""
+    """RGB = default output (float3); alpha = output "A" (the default output has no alpha). rgba: single-output node (DecalColor)."""
     m = node(mat, unreal.MaterialExpressionComponentMask, x, y, **{c: True for c in chans})
     mel.connect_material_expressions(src, "RGBA" if rgba else ("A" if chans == "a" else ""), m, "")
     return m
@@ -115,7 +115,7 @@ def mul(mat, a, b, x, y):
 
 def master(name, kind):
     path = f"{P_MAT}/{name}"
-    # Refeito a cada rodada (o grafo é deste script).
+    # Rebuilt on every run (the graph belongs to this script).
     mat = existing(path)
     if mat:
         mel.delete_all_material_expressions(mat)
@@ -125,11 +125,11 @@ def master(name, kind):
     if kind == "decal":
         mat.set_editor_property("material_domain", unreal.MaterialDomain.MD_DEFERRED_DECAL)
         mat.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
-        # Giro da textura (RotationRateY do jogo, voltas por segundo): rotaciona as UVs em volta do centro.
+        # Texture spin (the game's RotationRateY, turns per second): rotates the UVs around the center.
         uv = node(mat, unreal.MaterialExpressionTextureCoordinate, -1500, 0)
         spin = node(mat, unreal.MaterialExpressionScalarParameter, -1500, 150, parameter_name="Spin", default_value=0.0)
         tm = node(mat, unreal.MaterialExpressionTime, -1500, 250)
-        ang = mul(mat, spin, tm, -1300, 200)  # voltas (Rotator: 1 = uma volta inteira)
+        ang = mul(mat, spin, tm, -1300, 200)  # turns (Rotator: 1 = one full turn)
         rot = node(mat, unreal.MaterialExpressionRotator, -1100, 0, center_x=0.5, center_y=0.5, speed=6.2831853)
         mel.connect_material_expressions(uv, "", rot, "Coordinate")
         mel.connect_material_expressions(ang, "", rot, "Time")
@@ -137,15 +137,15 @@ def master(name, kind):
         mel.connect_material_expressions(rot, "", tex, "UVs")
         col = node(mat, unreal.MaterialExpressionDecalColor, -900, 300)
         rgb = mul(mat, mask(mat, tex, "", "rgb", -600, 0), col, -350, 0)
-        # Alpha só da textura: a ligação pelo Python não acha as saídas com nome do DecalColor (só a RGB).
+        # Alpha from the texture only: wiring from Python does not find DecalColor's named outputs (only RGB).
         a = mask(mat, tex, "", "a", -600, 150)
         em = node(mat, unreal.MaterialExpressionScalarParameter, -600, 600, parameter_name="Emissive", default_value=0.5)
         mel.connect_material_property(rgb, "", unreal.MaterialProperty.MP_BASE_COLOR)
         mel.connect_material_property(mul(mat, rgb, em, -150, 400), "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
         mel.connect_material_property(a, "", unreal.MaterialProperty.MP_OPACITY)
     elif kind == "mesh_lit":
-        # Malhas de gelo do jogo (Illum, Fxmeshadvanced): iluminada, normal, emissivo e borda ciano (Fresnel, Rim_Major_Color
-        # do gelo da tumba); o alpha da partícula vira recorte (dissolve).
+        # The game's ice meshes (Illum, Fxmeshadvanced): lit, normal, emissive and cyan rim (Fresnel, Rim_Major_Color
+        # of the tomb ice); the particle alpha becomes a cutout (dissolve).
         mat.set_editor_property("blend_mode", unreal.BlendMode.BLEND_MASKED)
         mat.set_editor_property("two_sided", True)
         mat.set_editor_property("used_with_niagara_mesh_particles", True)
@@ -178,8 +178,8 @@ def master(name, kind):
         pc = node(mat, unreal.MaterialExpressionParticleColor, -900, 300)
         em = node(mat, unreal.MaterialExpressionScalarParameter, -900, 500, parameter_name="Emissive", default_value=1.0)
         if kind == "mesh":
-            # Meshparticle do jogo: ruído com alpha (Diffuse) e emissivo (Emittance) rolando; borda mais visível
-            # (viewDependencyFactor) com Fresnel.
+            # The game's Meshparticle: scrolling noise with alpha (Diffuse) and emissive (Emittance); rim more visible
+            # (viewDependencyFactor) with Fresnel.
             uv = node(mat, unreal.MaterialExpressionTextureCoordinate, -1400, 0)
             p1 = node(mat, unreal.MaterialExpressionPanner, -1200, 0, speed_x=0.05, speed_y=0.1)
             p2 = node(mat, unreal.MaterialExpressionPanner, -1200, 200, speed_x=-0.07, speed_y=0.05)
@@ -192,7 +192,7 @@ def master(name, kind):
             fres = node(mat, unreal.MaterialExpressionFresnel, -600, 650, exponent=2.0)
             rgb = mul(mat, mul(mat, mask(mat, emit, "", "rgb", -600, 150), mask(mat, pc, "", "rgb", -600, 300), -400, 150), em, -200, 150)
             a = mul(mat, mul(mat, mask(mat, tex, "", "a", -600, 0), mask(mat, pc, "", "a", -600, 450), -400, 400), fres, -200, 400)
-            # Véu: no jogo a cúpula quase não aparece (print de referência do dono, 2026-10-15).
+            # Veil: in the game the dome barely shows (maintainer's reference screenshot, 2026-10-15).
             op = node(mat, unreal.MaterialExpressionScalarParameter, -400, 600, parameter_name="Opacity", default_value=0.2)
             a = mul(mat, a, op, -100, 450)
         else:
@@ -201,7 +201,7 @@ def master(name, kind):
             a = mul(mat, mask(mat, tex, "", "a", -600, 150), mask(mat, pc, "", "a", -600, 450), -400, 300)
             if kind == "sprite_add":
                 rgb = mul(mat, rgb, a, -100, 100)
-            # Partícula suave (SoftParticle do jogo).
+            # Soft particle (the game's SoftParticle).
             fade = node(mat, unreal.MaterialExpressionDepthFade, -300, 600)
             mel.connect_material_expressions(a, "", fade, "Opacity")
             a = fade
@@ -227,7 +227,7 @@ def instance(name, parent, textures, scalars):
     return f"{path}.{name}"
 
 
-# ---------------------------------------------------------------- tradução CryEngine → receita
+# ---------------------------------------------------------------- CryEngine → recipe translation
 
 def base(p, key, default):
     v = p.get(key, {})
@@ -243,7 +243,7 @@ def age(p, key):
 
 
 def split3_all(s):
-    """Divide por vírgulas fora de parênteses."""
+    """Splits on commas outside parentheses."""
     out, depth, cur = [], 0, ""
     for ch in s or "":
         depth += ch == "("
@@ -276,7 +276,7 @@ def split3(s):
 
 
 def recipe(e, mats):
-    """Um emissor do jogo → receita do UNWNiagaraTools.build_effect (modelo Fountain)."""
+    """One game emitter → recipe for UNWNiagaraTools.build_effect (Fountain template)."""
     p = e["params"]
     life = base(p, "ParticleLifeTime", 1.0)
     life_min = life * (1.0 - rnd(p, "ParticleLifeTime"))
@@ -297,7 +297,7 @@ def recipe(e, mats):
         r["add"].append({"usage": "EmitterUpdate", "script": "/Niagara/Modules/Emitter/SpawnBurst_Instantaneous.SpawnBurst_Instantaneous"})
         c["SpawnBurst_Instantaneous.Spawn Count"] = int(count)
 
-    # O efeito dura o que o ator ou o notify durar (torre 15 s, tumba 10 s): laço longo, a rajada sai uma vez só.
+    # The effect lasts as long as the actor or notify does (tower 15 s, tomb 10 s): long loop, the burst fires only once.
     c["EmitterState.Loop Duration"] = 1000.0
     c["InitializeParticle.Lifetime Min"] = life_min
     c["InitializeParticle.Lifetime Max"] = life
@@ -318,9 +318,9 @@ def recipe(e, mats):
     mat = mats.get(e["name"])
     if e["kind"] == "decal":
         r["params"].append({"usage": "ParticleSpawn", "name": "Particles.DecalSize", "type": "vec3",
-                            # Particles.DecalSize é o tamanho inteiro (não a metade); Size do jogo é o raio.
+                            # Particles.DecalSize is the full size (not half); the game's Size is the radius.
                             "value": f"{4 * M},{2 * size * M},{2 * size * M}"})
-        # Decalque da Unreal projeta no X local: gira 90° em Y para projetar para baixo (Facing=Decal do jogo, no chão).
+        # Unreal decals project along local X: rotate 90° on Y to project downward (the game's Facing=Decal, on the ground).
         r["params"].append({"usage": "ParticleSpawn", "name": "Particles.MeshOrientation", "type": "quat",
                             "value": "0,0.70710678,0,0.70710678"})
         r["renderer"] = {"kind": "decal", "material": mat}
@@ -335,10 +335,10 @@ def recipe(e, mats):
         if e["raw"].get("OrientToVelocity") == "true" or e["facing"] == "Shape" or "MotionBlur" in e["raw"]:
             r["renderer"]["alignment"] = "velocity"
         if e["kind"] == "sprite" and e["raw"].get("EmitterShape") == "CIRCLE":
-            # Anel do jogo (CIRCLE, Velocity Y tangencial): esfera achatada só na superfície + redemoinho.
+            # The game's ring (CIRCLE, tangential Velocity Y): flattened sphere, surface only + vortex.
             c["ShapeLocation.Non Uniform Scale"] = [1.0, 1.0, 0.02]
             c["ShapeLocation.Sphere Surface Distribution"] = 1.0
-            # Velocity X (radial), Y (tangente), Z (cima) do jogo: subida e redemoinho em volta do eixo vertical.
+            # The game's Velocity X (radial), Y (tangent), Z (up): rise and vortex around the vertical axis.
             def first_num(x):
                 import re
                 m = re.search(r"-?\d+(\.\d+)?", x.split("=", 1)[1]) if "=" in x else None
@@ -355,7 +355,7 @@ def recipe(e, mats):
 
 
 def material_for(e, info, masters):
-    """Instância de material do emissor: pelo shader do .mtl do jogo, ou pela textura do emissor (sprites)."""
+    """The emitter's material instance: by the shader of the game's .mtl, or by the emitter's texture (sprites)."""
     mname = e.get("material")
     raw = e["raw"]
     first = lambda k, d: float(str(raw.get(k, d)).split(",")[0] or d)
@@ -408,7 +408,7 @@ def main():
         json.dump(spec, open(out + ".recipe.json", "w"), indent=1)
         report = unreal.NWNiagaraTools.build_effect(json.dumps(spec), f"{P_FX}/{name}")
         open(out + ".build.txt", "w").write(report)
-        unreal.log(f"FX: {name}: {report.count('não')} avisos")
+        unreal.log(f"FX: {name}: {report.count('não')} warnings")
 
 
 main()

@@ -1,4 +1,4 @@
-"""Smoke da DLL compilada sem depender do fork privado do nw-buddy."""
+"""Smoke test of the compiled DLL without depending on the private nw-buddy fork."""
 import ctypes
 from pathlib import Path
 import sys
@@ -10,7 +10,7 @@ import nwplatform
 DLL = nwplatform.ROOT / "bin/ooz.dll"
 
 
-@unittest.skipUnless(nwplatform.WINDOWS and DLL.is_file(), "compile ooz.dll x64 no Windows")
+@unittest.skipUnless(nwplatform.WINDOWS and DLL.is_file(), "build ooz.dll x64 on Windows")
 class OozDllTests(unittest.TestCase):
     def test_stored_block_and_failure_preserve_buffer_bounds(self):
         library = ctypes.CDLL(str(DLL))

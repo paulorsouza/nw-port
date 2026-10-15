@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Sons da interface das estações -> unreal/NWPort/Data/Audio/ui_sounds.json (esteira 4, craftroll-equipamento.md §9).
+"""Crafting station UI sounds -> unreal/NWPort/Data/Audio/ui_sounds.json (area 4, craftroll-equipamento.md §9).
 
-    python3 tools/make_ui_sounds.py      (depois de tools/extract_audio.py, grupo "ui")
+    python3 tools/make_ui_sounds.py      (after tools/extract_audio.py, group "ui")
 
-Para cada evento de extract/audio/ui/crafting, as camadas que tocam juntas e, em cada camada, as variações sorteadas,
-lidas do .txtp do wwiser (extract/_raw/txtp/ui): "group = -R<n>" junta as n últimas entradas num sorteio, "-L<n>" num
-conjunto de camadas. Os nomes são os assets de tools/ue/import_ui_sounds.py (S_<arquivo>).
+For each event in extract/audio/ui/crafting, the layers that play together and, in each layer, the random variations,
+read from the wwiser .txtp (extract/_raw/txtp/ui): "group = -R<n>" joins the last n entries into a random pick, "-L<n>"
+into a set of layers. The names are the assets of tools/ue/import_ui_sounds.py (S_<file>).
 """
 import csv
 import json
@@ -32,7 +32,7 @@ def layers(txtp, by_wem):
             items, stack = stack[-n:], stack[:-n]
             stack.append(("rand" if g.group(1) == "R" else "layer", items))
 
-    def flat(node):   # variações de um sorteio (ou um arquivo só)
+    def flat(node):   # variations of a random pick (or a single file)
         kind, v = node
         return [v] if kind == "wem" else [x for c in v for x in flat(c)]
     if len(stack) == 1 and stack[0][0] == "layer":
@@ -40,7 +40,7 @@ def layers(txtp, by_wem):
     else:
         out = [x for node in stack for x in [flat(node)]] if len(stack) > 1 else [flat(stack[0])] if stack else []
         if len(stack) > 1:
-            out = [sum(out, [])]   # várias entradas soltas sem grupo: trata como sorteio
+            out = [sum(out, [])]   # several loose entries without a group: treat as a random pick
     return [[n for n in layer if n] for layer in out if any(layer)]
 
 
@@ -58,7 +58,7 @@ def main():
             out[event.removeprefix("play_")] = layers(path, by_wem)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(out, open(OUT, "w"), indent=1)
-    print(f"{OUT}: {len(out)} eventos, camadas {[(k, [len(l) for l in v]) for k, v in out.items()]}")
+    print(f"{OUT}: {len(out)} events, layers {[(k, [len(l) for l in v]) for k, v in out.items()]}")
 
 
 if __name__ == "__main__":

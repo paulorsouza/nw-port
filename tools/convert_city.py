@@ -1,4 +1,4 @@
-"""Converte cidade e terreno no Windows/Linux sem Bash; aceita --dry-run."""
+"""Converts a town and its terrain on Windows/Linux without Bash; accepts --dry-run."""
 import argparse
 import json
 import math
@@ -38,13 +38,13 @@ def find_capital(regions, name):
 
 
 def region_name(x, y):
-    # O formato original usa um '+' literal antes do inteiro (inclusive negativo).
+    # The original format uses a literal '+' before the integer (negative ones included).
     return f"r_+{x:02d}_+{y:02d}"
 
 
 def convert(name, game, dry_run=False):
     if not re.fullmatch(r"[A-Za-z0-9_]+", name):
-        raise ValueError("use o nome do slice, sem diretorio ou extensao")
+        raise ValueError("use the slice name, without directory or extension")
     root = nwplatform.ROOT
     cities = root / "extract/cities"
     terrain_data = root / "extract/terrain"
@@ -66,8 +66,8 @@ def convert(name, game, dry_run=False):
         wanted = nwprocess.memory_floor(12 * nwprocess.GIB)
         while nwprocess.available_memory() < wanted:
             if time.monotonic() >= deadline:
-                raise nwprocess.ResourceError(f"menos de {wanted / nwprocess.GIB:g} GiB disponiveis por 20 minutos")
-            print("memoria baixa; esperando para converter cidade", flush=True)
+                raise nwprocess.ResourceError(f"less than {wanted / nwprocess.GIB:g} GiB available for 20 minutes")
+            print("low memory; waiting to convert the town", flush=True)
             time.sleep(2)
         nwprocess.require_resources([root, game], disk=30 * nwprocess.GIB)
         clean.parent.mkdir(parents=True, exist_ok=True)
@@ -78,7 +78,7 @@ def convert(name, game, dry_run=False):
         if not dry_run:
             matches = [p for p in temporary.rglob(name + ".glb") if complete_glb(p)]
             if len(matches) != 1:
-                raise RuntimeError(f"esperado um GLB de cidade, encontrados {len(matches)} em {temporary}")
+                raise RuntimeError(f"expected one town GLB, found {len(matches)} in {temporary}")
             raw.parent.mkdir(parents=True, exist_ok=True)
             matches[0].replace(raw)
             for animation in (temporary / "animations").rglob("*"):
@@ -92,7 +92,7 @@ def convert(name, game, dry_run=False):
         run([sys.executable, "tools/glb_strip_nodraw.py", raw, part])
         if not dry_run:
             if not complete_glb(part):
-                raise RuntimeError(f"strip nao gerou {part}")
+                raise RuntimeError(f"strip did not produce {part}")
             part.replace(clean)
     if complete_glb(terrain) and nonempty(terrain.with_suffix(".json")):
         return
@@ -101,11 +101,11 @@ def convert(name, game, dry_run=False):
         nwbt("unpack", "-g", game, "-o", terrain_data, "-e",
              rf"sharedassets/coatlicue/{LEVEL}/regions/r_[^/]+/(capitals/[^/]+/[^/]+\.capitals\.json|mapsettings\.json|region\.heightmap)$")
     if dry_run:
-        print("== em execucao: localizar capital, extrair heightmaps/roads_splat faltantes e gerar terreno", flush=True)
+        print("== at run time: locate the capital, extract missing heightmaps/roads_splat and build the terrain", flush=True)
         return
     capital, coordinates, count = find_capital(regions, name)
     if capital is None:
-        raise RuntimeError(f"esperado um capital com slice {name}; encontrados {count}. Terreno pendente.")
+        raise RuntimeError(f"expected one capital with slice {name}; found {count}. Terrain pending.")
     missing_height = [re.escape(region_name(x, y)) for x, y in coordinates
                       if not nonempty(regions / region_name(x, y) / "region.heightmap")]
     missing_splat = [f"{x}_{y}" for x, y in coordinates if not nonempty(
@@ -114,19 +114,19 @@ def convert(name, game, dry_run=False):
         nwbt("unpack", "-g", game, "-o", terrain_data, "-e",
              rf"sharedassets/coatlicue/{LEVEL}/regions/({'|'.join(missing_height)})/region\.heightmap$")
     if missing_splat:
-        # A ausencia de estrada era tolerada no Bash: preserva terreno sem esse peso.
+        # Missing roads were tolerated in Bash: keep the terrain without that weight.
         try:
             nwbt("unpack", "-g", game, "-o", terrain_data, "--x-dds", "png", "-e",
                  rf"materials/terrain/{LEVEL}/jav_{LEVEL}_({'|'.join(missing_splat)})/jav_{LEVEL}_[0-9]+\.[0-9]+\.roads_splat\.dds$")
         except subprocess.CalledProcessError:
-            print("aviso: roads_splat nao convertido; terreno sem peso de estrada", flush=True)
+            print("warning: roads_splat not converted; terrain without road weight", flush=True)
     for x, y in coordinates:
         if not nonempty(regions / region_name(x, y) / "region.heightmap"):
-            raise RuntimeError(f"heightmap ausente: {region_name(x, y)}")
+            raise RuntimeError(f"missing heightmap: {region_name(x, y)}")
     part = terrain.with_suffix(".part.glb")
     run([sys.executable, "tools/make_terrain.py", terrain_data, capital, name, part])
     if not complete_glb(part) or not nonempty(part.with_suffix(".json")):
-        raise RuntimeError("make_terrain nao gerou GLB e JSON completos")
+        raise RuntimeError("make_terrain did not produce a complete GLB and JSON")
     part.with_suffix(".json").replace(terrain.with_suffix(".json"))
     part.replace(terrain)
 

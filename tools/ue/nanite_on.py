@@ -1,9 +1,9 @@
-"""Liga Nanite nas malhas estáticas de uma pasta (cidade, terreno).
+"""Turns Nanite on for the static meshes in a folder (city, terrain).
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/nanite_on.py /Game/NW/Cities /Game/NW/Terrain"
 
-Precisa do SM6 ligado (DefaultEngine.ini: SF_VULKAN_SM6 no Linux, PCD3D_SM6 no Windows). A colisão continua
-saindo da malha completa (complex as simple), não do proxy do Nanite.
+Needs SM6 on (DefaultEngine.ini: SF_VULKAN_SM6 on Linux, PCD3D_SM6 on Windows). Collision still comes from the
+full mesh (complex as simple), not from the Nanite proxy.
 """
 import sys
 
@@ -22,8 +22,8 @@ for folder in sys.argv[1:]:
             continue
         m.modify()
         ns.enabled = True
-        m.set_editor_property("nanite_settings", ns)  # dispara o rebuild da malha
-        # set_editor_property não marca o pacote como modificado: salvar sem depender disso.
+        m.set_editor_property("nanite_settings", ns)  # triggers the mesh rebuild
+        # set_editor_property does not mark the package dirty: save without relying on that.
         eal.save_loaded_asset(m, only_if_is_dirty=False)
         on += 1
-unreal.log(f"NANITE ligado em {on}/{total} malhas")
+unreal.log(f"NANITE on for {on}/{total} meshes")

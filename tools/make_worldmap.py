@@ -1,18 +1,18 @@
-"""Mapa do mundo (M) para Guardaventos: referencial e lista de tiles do jogo.
+"""World map (M) for Windsward: reference frame and list of game tiles.
 
     python3 tools/make_worldmap.py
 
-Os tiles ficam em lyshineui/worldtiles/newworld_vitaeeterna/map_l<z>_y<yyy>_x<xxx>.dds, 1024 px cada. No nível 1 cada
-tile cobre 256 m (4 px/m); no nível z cobre 256·2^(z-1) m e os índices andam de 2^(z-1) em 2^(z-1). O índice y cresce
-para o norte (y do mundo). O port usa os níveis 2 (512 m) e 3 (1024 m) em volta da região, com uma margem.
+The tiles are in lyshineui/worldtiles/newworld_vitaeeterna/map_l<z>_y<yyy>_x<xxx>.dds, 1024 px each. At level 1 each
+tile covers 256 m (4 px/m); at level z it covers 256·2^(z-1) m and the indices step by 2^(z-1). The y index grows
+to the north (world y). The port uses levels 2 (512 m) and 3 (1024 m) around the region, with a margin.
 
-Grava:
-  unreal/NWPort/Data/World/worldmap.json  referencial da cidade (mundo = origem + giro · local; UE = (-lx, ly) · 100),
-                                          limites da região e os tiles por nível
-  extract/ui/worldmap_textures.txt        texturas para tools/ue/import_ui.py (tiles e peças da tela magicmap)
-POIs: slices/pois/territories/r_+04_+01_pois.dynamicslice (extract/pois, nwbt --x-objects json) dá a posição de cada
-território (TerritoryDataProviderComponent + transform); pointofinterestdefinitions dá nome e ícone do mapa.
-Depois: nwbt unpack dos tiles em PNG (docs/tech/asset-pipeline.md) e tools/linux/ue_import_all.sh 09.
+Writes:
+  unreal/NWPort/Data/World/worldmap.json  city frame (world = origin + rotation · local; UE = (-lx, ly) · 100),
+                                          region bounds and the tiles per level
+  extract/ui/worldmap_textures.txt        textures for tools/ue/import_ui.py (tiles and pieces of the magicmap screen)
+POIs: slices/pois/territories/r_+04_+01_pois.dynamicslice (extract/pois, nwbt --x-objects json) gives each
+territory's position (TerritoryDataProviderComponent + transform); pointofinterestdefinitions gives map name and icon.
+Then: nwbt unpack of the tiles to PNG (docs/tech/asset-pipeline.md) and tools/linux/ue_import_all.sh 09.
 """
 import glob
 import json
@@ -25,7 +25,7 @@ CITY = "Settlement_SouthWindsward_Complete"
 REGION = (4, 1)
 REGION_SIZE = 2048
 TILE_L1 = 256
-MARGIN = 512   # metros além da borda da região
+MARGIN = 512   # meters beyond the region edge
 LEVEL = "newworld_vitaeeterna"
 SCREEN = ["map/icon/player.dds", "map/map_gradient.dds", "map/map_gradientside.dds", "map/scale_key.dds",
           "slices/button/buttonbg.dds", "slices/button/heroframedisabled2023.dds", "slices/button/focusnew.dds",
@@ -36,7 +36,7 @@ SCREEN = ["map/icon/player.dds", "map/map_gradient.dds", "map/map_gradientside.d
 def pois():
     src = os.path.join(ROOT, "extract", "pois", "slices", "pois", "territories", f"r_+{REGION[0]:02d}_+{REGION[1]:02d}_pois.dynamicslice.json")
     if not os.path.exists(src):
-        print("sem POIs (extract/pois): rode tools/linux/build_all.sh 12")
+        print("no POIs (extract/pois): run tools/linux/build_all.sh 12")
         return []
     defs = {}
     for f in glob.glob(os.path.join(ROOT, "extract", "data", "**", "pointofinterestdefinitions", "*.json"), recursive=True):
@@ -87,8 +87,8 @@ def main():
                "levels": levels, "pois": poi}, open(os.path.join(out, "worldmap.json"), "w"), indent=1)
     textures += ["lyshineui/images/" + t for t in SCREEN]
     open(os.path.join(ROOT, "extract", "ui", "worldmap_textures.txt"), "w").write("\n".join(textures) + "\n")
-    print(f"origem {T['x']:.1f},{T['y']:.1f} giro {math.degrees(ang):.1f}°; "
-          + ", ".join(f"nível {l['level']}: {len(l['tiles'])} tiles" for l in levels) + f"; {len(poi)} POIs")
+    print(f"origin {T['x']:.1f},{T['y']:.1f} rotation {math.degrees(ang):.1f}°; "
+          + ", ".join(f"level {l['level']}: {len(l['tiles'])} tiles" for l in levels) + f"; {len(poi)} POIs")
 
 
 if __name__ == "__main__":

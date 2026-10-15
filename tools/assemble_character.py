@@ -1,10 +1,10 @@
-# blender -b -P tools/assemble_character.py -- <personagem.glb> <arma.glb> <escudo.glb> <saida.blend> <pasta_previews>
+# blender -b -P tools/assemble_character.py -- <character.glb> <weapon.glb> <shield.glb> <out.blend> <preview_dir>
 #
-# Monta o personagem para conferência e exportação:
-#  1. uma cópia só do esqueleto (o glb traz uma cópia por malha, com sufixo .001, .002...);
-#  2. ações em camadas como o Mannequin do jogo: base desarmada + camada da arma por cima;
-#  3. espada em right_hand_attach e escudo em left_hand_attach;
-#  4. folha de quadros por ação em <pasta_previews>.
+# Assembles the character for checking and export:
+#  1. a single copy of the skeleton (the glb brings one copy per mesh, with suffix .001, .002...);
+#  2. layered actions like the game's Mannequin: unarmed base + weapon layer on top;
+#  3. sword on right_hand_attach and shield on left_hand_attach;
+#  4. contact sheet per action in <preview_dir>.
 import sys
 import os
 import re
@@ -19,7 +19,7 @@ char_glb, sword_glb, shield_glb, out_blend, preview_dir = args
 os.makedirs(preview_dir, exist_ok=True)
 
 FPS = 30
-# Ação final -> camadas, da base para cima (mesma composição do player_1h_melee.adb).
+# Final action -> layers, from the base up (same composition as player_1h_melee.adb).
 LAYERED = {
     "sword_idle": ["unarmed_idle", "rswrd_idle"],
     "sword_run": ["unarmed_run", "rswrd_run"],
@@ -55,7 +55,7 @@ def bone_of(fc):
     return m.group(1) if m else None
 
 
-# 1. Esqueleto único. A cópia mantida é a que as animações animam.
+# 1. Single skeleton. The copy kept is the one the animations animate.
 used = {}
 for act in bpy.data.actions:
     for fc in channelbag(act).fcurves:
@@ -101,7 +101,7 @@ for act in bpy.data.actions:
 print(f"bones: {len(arm.data.bones)}")
 
 
-# 2. Ações em camadas: curvas da camada de cima substituem as da base.
+# 2. Layered actions: curves of the top layer replace those of the base.
 def compose(name, layers):
     out = bpy.data.actions[layers[0]].copy()
     out.name = name
@@ -129,7 +129,7 @@ arm.animation_data_create()
 arm.animation_data.action = final[0]
 
 
-# 3. Armas nos sockets da mão.
+# 3. Weapons on the hand sockets.
 def attach(glb, bone):
     before = set(scene.objects)
     bpy.ops.import_scene.gltf(filepath=glb)
@@ -138,7 +138,7 @@ def attach(glb, bone):
         o.parent = arm
         o.parent_type = "BONE"
         o.parent_bone = bone
-        # parent_type BONE prende na ponta do osso; o socket é a cabeça.
+        # parent_type BONE attaches to the bone tail; the socket is the head.
         o.matrix_parent_inverse.identity()
         o.location = (0, -arm.data.bones[bone].length, 0)
     return roots
@@ -147,7 +147,7 @@ def attach(glb, bone):
 attach(sword_glb, "right_hand_attach")
 attach(shield_glb, "left_hand_attach")
 
-# Luz, câmera e mundo para as prévias.
+# Light, camera and world for the previews.
 cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
 scene.collection.objects.link(cam)
 cam.data.lens = 50
@@ -168,7 +168,7 @@ scene.render.resolution_x, scene.render.resolution_y = 360, 480
 bpy.ops.wm.save_as_mainfile(filepath=out_blend)
 
 
-# 4. Folha de quadros: 5 quadros por ação, lado a lado.
+# 4. Contact sheet: 5 frames per action, side by side.
 def contact_sheet(action, n=5):
     arm.animation_data.action = action
     arm.animation_data.action_slot = action.slots[0]
@@ -176,7 +176,7 @@ def contact_sheet(action, n=5):
     tiles = []
     for i in range(n):
         scene.frame_set(int(round(start + (end - start) * i / (n - 1))))
-        # A animação desloca o personagem (root motion); a câmera acompanha o quadril.
+        # The animation moves the character (root motion); the camera follows the hips.
         hips = arm.matrix_world @ arm.pose.bones["Hips"].head
         focus = Vector((hips.x, hips.y, 1.0))
         cam.location = focus + Vector((2.2, -4.2, 0.6))

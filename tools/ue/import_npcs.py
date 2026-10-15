@@ -1,13 +1,13 @@
-"""Importa as aparências dos NPCs (tools/convert_npcs.py) e põe o campo de NPCs no mapa da cidade.
+"""Imports the NPC appearances (tools/convert_npcs.py) and puts the NPC field on the city map.
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_npcs.py <extract/ue/npcs> <Conjunto> <Mapa>"
-    ex.: ... import_npcs.py /…/extract/ue/npcs NpcQuedaEterna L_QuedaEterna
-    Só materiais, no editor aberto (fora do Play):
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_npcs.py <extract/ue/npcs> <Set> <Map>"
+    e.g. ... import_npcs.py /…/extract/ue/npcs NpcQuedaEterna L_QuedaEterna
+    Materials only, in the open editor (outside Play):
     python3 tools/ue/remote.py -c "import sys; sys.argv=['', '<npcs>', 'NpcQuedaEterna', 'L_QuedaEterna', '--materials-only']; exec(open('tools/ue/import_npcs.py').read())"
 
-Antes: import_nw.py do conjunto das animações (tools/sets/npc_queda_eterna.json), que cria o esqueleto npc_skel e
-os materiais mestre em /Game/NW/<Conjunto>. Cada NPC vai para /Game/NW/<Conjunto>/NPCs/SK_<nome>/ no mesmo
-esqueleto (as animações servem para todos). O mapa ganha um ANWNpcField (removido e recriado a cada execução).
+Before: import_nw.py of the animation set (tools/sets/npc_queda_eterna.json), which creates the npc_skel skeleton and
+the master materials in /Game/NW/<Set>. Each NPC goes to /Game/NW/<Set>/NPCs/SK_<name>/ on the same
+skeleton (the animations work for all of them). The map gets an ANWNpcField (removed and recreated on every run).
 """
 import glob
 import json
@@ -24,7 +24,7 @@ tools = unreal.AssetToolsHelpers.get_asset_tools()
 eal = unreal.EditorAssetLibrary
 mel = unreal.MaterialEditingLibrary
 log = unreal.log
-# O importador Interchange ignora o FbxImportUI; o clássico respeita o esqueleto escolhido.
+# The Interchange importer ignores FbxImportUI; the classic one respects the chosen skeleton.
 unreal.SystemLibrary.execute_console_command(None, "Interchange.FeatureFlags.Import.FBX false")
 
 
@@ -46,14 +46,14 @@ def load(path):
 
 base = load(f"{ROOT}/Mesh/SK_{SET}")
 if not base:
-    raise RuntimeError(f"falta {ROOT}/Mesh/SK_{SET}: rode antes o import_nw.py do conjunto")
+    raise RuntimeError(f"missing {ROOT}/Mesh/SK_{SET}: run the set's import_nw.py first")
 skeleton = base.get_editor_property("skeleton")
 master = load(f"{ROOT}/Materials/M_NW_SpecGloss")
 master_masked = load(f"{ROOT}/Materials/M_NW_SpecGloss_Masked")
 
 
 def import_texture(png, folder, normal=False):
-    # Nome de asset só com letras, números e _ (há texturas do jogo com espaço, ex. "male_marauderfaction _chest").
+    # Asset name with only letters, digits and _ (some game textures have a space, e.g. "male_marauderfaction _chest").
     name = "T_" + re.sub(r"[^A-Za-z0-9_]", "_", os.path.splitext(os.path.basename(png))[0])
     path = f"{folder}/{name}"
     if not eal.does_asset_exist(path):
@@ -62,21 +62,21 @@ def import_texture(png, folder, normal=False):
     if normal and tex:
         tex.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
         tex.set_editor_property("srgb", False)
-        tex.set_editor_property("flip_green_channel", True)  # PNG em convenção OpenGL (como import_nw.py)
+        tex.set_editor_property("flip_green_channel", True)  # PNG in OpenGL convention (like import_nw.py)
         eal.save_loaded_asset(tex)
     return tex
 
 
 def slot_key(name):
-    # Material do glb "body_mat.001" vira slot "body_mat_001" no FBX; cada um tem textura própria (não juntar).
+    # glb material "body_mat.001" becomes slot "body_mat_001" in the FBX; each has its own texture (do not merge).
     n = str(name).lower().replace(".", "_")
     return re.sub(r"_skin\d*$", "", n)
 
 
-MATERIALS_ONLY = "--materials-only" in sys.argv  # só refaz instâncias e slots (dá para rodar no editor aberto)
+MATERIALS_ONLY = "--materials-only" in sys.argv  # only redoes instances and slots (can run in the open editor)
 fbxs = sorted(glob.glob(os.path.join(SRC, "SK_*", "SK_*.fbx")))
 
-# 1. Malhas no esqueleto do conjunto.
+# 1. Meshes on the set's skeleton.
 if not MATERIALS_ONLY:
     for fbx in fbxs:
         mesh_name = os.path.splitext(os.path.basename(fbx))[0]
@@ -92,10 +92,10 @@ if not MATERIALS_ONLY:
         ui.skeletal_mesh_import_data.set_editor_property("import_morph_targets", False)
         ui.skeletal_mesh_import_data.set_editor_property("use_t0_as_ref_pose", False)
         if not run_import(fbx, f"{ROOT}/NPCs/{mesh_name}", ui, mesh_name):
-            unreal.log_error(f"NPC falhou: {fbx}")
+            unreal.log_error(f"NPC failed: {fbx}")
 
-# 2. Materiais, numa passada depois de todas as malhas: atribuir logo após o import de cada uma perdia os slots
-# (a malha ainda compilava em segundo plano e voltava sem material; NPCs cinzas em 2026-10-12).
+# 2. Materials, in a pass after all the meshes: assigning right after each import lost the slots
+# (the mesh was still compiling in the background and came back without a material; gray NPCs on 2026-10-12).
 done = missing = 0
 for fbx in fbxs:
     mesh_name = os.path.splitext(os.path.basename(fbx))[0]
@@ -103,14 +103,14 @@ for fbx in fbxs:
     sk_path = f"{folder}/{mesh_name}"
     sk = load(sk_path)
     if not isinstance(sk, unreal.SkeletalMesh):
-        unreal.log_error(f"NPC sem malha: {sk_path}")
+        unreal.log_error(f"NPC without mesh: {sk_path}")
         continue
     chans_by_mat = json.load(open(os.path.join(os.path.dirname(fbx), "materials.json")))
     instances = {}
     for mat_name, chans in chans_by_mat.items():
         if "Base Color" not in chans:
             continue
-        asset = "MI_" + re.sub(r"[^A-Za-z0-9_]", "_", mat_name)  # nome de asset sem ponto nem espaço
+        asset = "MI_" + re.sub(r"[^A-Za-z0-9_]", "_", mat_name)  # asset name without dots or spaces
         mi_path = f"{folder}/{asset}"
         mi = load(mi_path) if eal.does_asset_exist(mi_path) else tools.create_asset(
             asset, folder, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
@@ -132,32 +132,32 @@ for fbx in fbxs:
             mats[i] = slot
         else:
             missing += 1
-            unreal.log_warning(f"NPC {mesh_name}: slot {slot.get_editor_property('material_slot_name')} sem material")
+            unreal.log_warning(f"NPC {mesh_name}: slot {slot.get_editor_property('material_slot_name')} without material")
     sk.set_editor_property("materials", mats)
     eal.save_asset(sk_path, only_if_is_dirty=False)
-    # Confere o que ficou gravado.
+    # Checks what was saved.
     got = sum(1 for m in load(sk_path).get_editor_property("materials") if m.get_editor_property("material_interface"))
     if got != len(mats):
-        unreal.log_warning(f"NPC {mesh_name}: {got}/{len(mats)} slots com material depois de salvar")
+        unreal.log_warning(f"NPC {mesh_name}: {got}/{len(mats)} slots with material after saving")
     done += 1
-unreal.log_warning(f"NPC materiais em {done} malhas; slots sem material: {missing}")
-# Malha com osso que o esqueleto base não tem (ex. c_jaw_BND do Ou Shen): a Unreal acrescenta o osso ao esqueleto
-# ao carregar a malha (passada 2), só na memória. Salvar o esqueleto depois de tudo, senão o editor avisa
-# "missing bones" ao abrir e o AssetCheck acusa esqueleto incompatível.
+unreal.log_warning(f"NPC materials on {done} meshes; slots without material: {missing}")
+# A mesh with a bone the base skeleton lacks (e.g. Ou Shen's c_jaw_BND): Unreal adds the bone to the skeleton
+# when loading the mesh (pass 2), in memory only. Save the skeleton after everything, otherwise the editor warns
+# "missing bones" on open and AssetCheck reports an incompatible skeleton.
 nw_tools = getattr(unreal, "NWEditorTools", None)
 if nw_tools:
-    # O Ou Shen tem rosto montado diferente (c_jaw_BND e 6 ossos de olho/sobrancelha presos na Head, não em
-    # bind_upper_face_a): a checagem de cadeia de pais recusa a fusão. As animações paradas não mexem no rosto.
+    # Ou Shen's face is rigged differently (c_jaw_BND and 6 eye/eyebrow bones attached to Head, not to
+    # bind_upper_face_a): the parent chain check refuses the merge. The idle animations do not move the face.
     unreal.SystemLibrary.execute_console_command(None, "a.Skeleton.AllowIncompatibleSkeletalMeshMerge 1")
     for fbx in fbxs:
         mesh_name = os.path.splitext(os.path.basename(fbx))[0]
         sk = load(f"{ROOT}/NPCs/{mesh_name}/{mesh_name}")
         if sk and nw_tools.merge_mesh_bones_to_skeleton(skeleton, sk):
-            log(f"NPC ossos de {mesh_name} acrescentados ao esqueleto")
+            log(f"NPC bones of {mesh_name} added to the skeleton")
     unreal.SystemLibrary.execute_console_command(None, "a.Skeleton.AllowIncompatibleSkeletalMeshMerge 0")
 eal.save_loaded_asset(skeleton, False)
 
-# 3. Campo de NPCs no mapa.
+# 3. NPC field on the map.
 if not MATERIALS_ONLY:
     les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
     eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
@@ -166,5 +166,5 @@ if not MATERIALS_ONLY:
     field = eas.spawn_actor_from_class(unreal.load_class(None, "/Script/NWPort.NWNpcField"), unreal.Vector(0, 0, 0))
     field.set_actor_label("NPCs")
     if not les.save_current_level():
-        raise RuntimeError("não consegui salvar o mapa")
-    log(f"NPC campo no mapa {MAP}")
+        raise RuntimeError("could not save the map")
+    log(f"NPC field on map {MAP}")

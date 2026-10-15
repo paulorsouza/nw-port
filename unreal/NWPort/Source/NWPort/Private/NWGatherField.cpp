@@ -51,7 +51,7 @@ ANWGatherField* ANWGatherField::Get(const UWorld* World)
 
 FString ANWGatherField::DataFileFor(const UWorld* World)
 {
-	// Mapa -> região. Por enquanto só Guardaventos (L_SouthWindsward).
+	// Map -> region. For now only Windsward (L_SouthWindsward).
 	const FString Map = World ? World->GetMapName() : FString();
 	if (Map.Contains(TEXT("SouthWindsward")))
 	{
@@ -79,17 +79,17 @@ void ANWGatherField::BeginPlay()
 	const FString File = DataFileFor(GetWorld());
 	if (File.IsEmpty() || !Load(File))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NW: sem coletáveis para %s"), *GetWorld()->GetMapName());
+		UE_LOG(LogTemp, Warning, TEXT("NW: no gatherables for %s"), *GetWorld()->GetMapName());
 		return;
 	}
-	// Cliente que entrou depois: o que já veio esgotado na replicação inicial.
+	// Client that joined later: what already came depleted in the initial replication.
 	for (const FNWDepletedNode& D : Depleted.Items)
 	{
 		SetDepletedVisual(D.Index, true);
 	}
 }
 
-// Onde a instância fica escondida: bem abaixo do terreno (troca de lugar é mais barata que remover/adicionar).
+// Where the instance is hidden: well below the terrain (moving it is cheaper than removing/adding).
 static const FVector HiddenOffset(0.f, 0.f, -200000.f);
 
 bool ANWGatherField::Load(const FString& File)
@@ -118,13 +118,13 @@ bool ANWGatherField::Load(const FString& File)
 		C->SetStaticMesh(Mesh);
 		C->SetCollisionProfileName(bCollides ? TEXT("BlockAll") : TEXT("NoCollision"));
 		C->SetCanEverAffectNavigation(false);
-		// Arbusto/planta/pedrinha somem com a distância (100 mil instâncias não cabem na VRAM de 8 GB todas à vista).
+		// Bush/plant/pebble fade with distance (100k instances do not all fit in 8 GB of VRAM when visible).
 		if (CullDistance > 0.f)
 		{
 			C->SetCullDistances(int32(CullDistance * 0.8f), int32(CullDistance));
 		}
-		// Vegetação baixa e pedrinhas fora da cena do Lumen (cartões e campo de distância de dezenas de milhares
-		// de instâncias): continuam iluminadas e com sombra, só não entram na iluminação global.
+		// Low vegetation and pebbles out of the Lumen scene (cards and distance field for tens of thousands
+		// of instances): they stay lit and cast shadows, they just do not enter global illumination.
 		if (bSmall)
 		{
 			C->bAffectDistanceFieldLighting = false;
@@ -163,10 +163,10 @@ bool ANWGatherField::Load(const FString& File)
 		const TArray<TSharedPtr<FJsonValue>>& R = O->GetArrayField(TEXT("respawn"));
 		V.RespawnMin = R.Num() > 0 ? R[0]->AsNumber() : 300.f;
 		V.RespawnMax = R.Num() > 1 ? R[1]->AsNumber() : V.RespawnMin;
-		// Bloqueiam o caminho: veios, pedregulhos e troncos (arbusto, planta e árvore não; árvore sem tronco simples ainda).
+		// They block the path: veins, boulders and trunks (bush, plant and tree do not; tree without a simple trunk still).
 		const FString Kind = O->GetStringField(TEXT("kind"));
 		V.bCollides = Kind == TEXT("minerals") || Kind == TEXT("logs");
-		// Distância de desenho (cm): árvores e minérios longe; o resto perto, como o jogo faz com vegetação baixa.
+		// Draw distance (cm): trees and ores far; the rest near, as the game does with low vegetation.
 		const bool bSmall = Kind != TEXT("trees") && Kind != TEXT("minerals") && Kind != TEXT("logs");
 		const float Cull = Kind == TEXT("trees") ? 60000.f : bSmall ? 9000.f : 25000.f;
 		if (bRender || V.bCollides)
@@ -185,7 +185,7 @@ bool ANWGatherField::Load(const FString& File)
 		}
 	}
 
-	// Instâncias: [variante, x, y, z, qx, qy, qz, qw, escala]; junta por variante e adiciona em lote.
+	// Instances: [variant, x, y, z, qx, qy, qz, qw, scale]; groups by variant and adds in batch.
 	const TArray<TSharedPtr<FJsonValue>>& List = Root->GetArrayField(TEXT("instances"));
 	Nodes.Reserve(List.Num());
 	TArray<TArray<FTransform>> FullXf, DepletedXf;
@@ -233,9 +233,9 @@ bool ANWGatherField::Load(const FString& File)
 			Variants[i].Depleted->AddInstances(DepletedXf[i], false);
 		}
 	}
-	// No servidor dedicado só os que colidem têm malha; "sem malha" só faz sentido no cliente.
-	UE_LOG(LogTemp, Log, TEXT("NW: %d coletáveis de %d variantes (%d sem malha%s) em %s"), Nodes.Num(), Variants.Num(), MissingMeshes,
-		bRender ? TEXT("") : TEXT(", servidor: só colisão"), *File);
+	// On the dedicated server only the colliding ones have a mesh; "no mesh" only makes sense on the client.
+	UE_LOG(LogTemp, Log, TEXT("NW: %d gatherables from %d variants (%d without mesh%s) in %s"), Nodes.Num(), Variants.Num(), MissingMeshes,
+		bRender ? TEXT("") : TEXT(", server: collision only"), *File);
 	return true;
 }
 
@@ -270,7 +270,7 @@ int32 ANWGatherField::FindNear(const FVector& Location, const FVector& Facing) c
 				{
 					continue;
 				}
-				// Mais perto e mais à frente do personagem primeiro.
+				// Closest and most in front of the character first.
 				const FVector To = GetActorTransform().TransformPosition(Nodes[I].Transform.GetLocation()) - Location;
 				const float Score = To.Size2D() * (1.5f - 0.5f * FVector::DotProduct(To.GetSafeNormal2D(), Facing.GetSafeNormal2D()));
 				if (Score < BestScore)
@@ -295,7 +295,7 @@ void ANWGatherField::SetDepletedVisual(int32 Index, bool bIsDepleted)
 	const FVariant& V = Variants[N.Variant];
 	FTransform Shown = N.Transform, Hidden = N.Transform;
 	Hidden.AddToTranslation(HiddenOffset);
-	// Esgotado: a cheia some (e a colisão junto), a de fragmentos do jogo aparece no lugar.
+	// Depleted: the full one disappears (and its collision with it), the game's fragments one appears in its place.
 	if (V.Full && N.FullInstance != INDEX_NONE)
 	{
 		V.Full->UpdateInstanceTransform(N.FullInstance, bIsDepleted ? Hidden : Shown, false, true, true);

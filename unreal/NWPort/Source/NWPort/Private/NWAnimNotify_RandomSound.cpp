@@ -14,7 +14,7 @@ void UNWAnimNotify_RandomSound::Notify(USkeletalMeshComponent* MeshComp, UAnimSe
 	{
 		return;
 	}
-	// Impacto de arma na reação a golpe: não toca se quem bateu foi uma criatura (a mordida/chifrada já soa no ataque).
+	// Weapon impact on the hit reaction: skipped if the attacker was a creature (the bite/gore already sounds in the attack).
 	if (Label == TEXT("impacto"))
 	{
 		const UNWCombatComponent* Combat = MeshComp->GetOwner() ? MeshComp->GetOwner()->FindComponentByClass<UNWCombatComponent>() : nullptr;

@@ -6,18 +6,18 @@ class AActor;
 class ANWCharacter;
 
 /**
- * Eventos de jogo no servidor, para sistemas que precisam saber o que aconteceu sem mexer em quem faz (esteira 4:
- * tutoriais de nível, docs/game/city.md). Quem dispara: abate em UNWCombatComponent::Die, XP de ofício em
- * UNWProgressionComponent::AddTradeXp (coleta e refino), refino em FNWCrafting::Refine.
+ * Game events on the server, for systems that need to know what happened without touching who does it (area 4:
+ * level tutorials, docs/game/city.md). Who fires them: kill in UNWCombatComponent::Die, trade skill XP in
+ * UNWProgressionComponent::AddTradeXp (gathering and refining), refining in FNWCrafting::Refine.
  */
 struct NWPORT_API FNWEvents
 {
 	static FNWEvents& Get();
 
-	/** Alguém morreu (Victim); Killer pode ser nulo. */
+	/** Someone died (Victim); Killer may be null. */
 	TMulticastDelegate<void(AActor* Killer, AActor* Victim)> OnKill;
-	/** Personagem ganhou XP num ofício (coleta, esfolar, refino). */
+	/** Character gained XP in a trade skill (gathering, skinning, refining). */
 	TMulticastDelegate<void(ANWCharacter* Who, FName Tradeskill, int32 Xp)> OnTradeXp;
-	/** Personagem refinou Count vezes uma receita numa estação (tipo: smelting, carpentry...). */
+	/** Character refined a recipe Count times at a station (type: smelting, carpentry...). */
 	TMulticastDelegate<void(ANWCharacter* Who, const FString& Station, FName Recipe, int32 Count)> OnRefine;
 };

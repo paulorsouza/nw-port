@@ -1,9 +1,9 @@
-"""Importa os sons da interface das estações (extract/audio/ui/crafting, tools/extract_audio.py) como SoundWave.
+"""Imports the station interface sounds (extract/audio/ui/crafting, tools/extract_audio.py) as SoundWaves.
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_ui_sounds.py"
 
-Saída /Game/NW/Audio/UI/S_<nome> (ex.: S_play_ui_crafting_rarity_3), tocada por FNWRefiningMenu (craftroll-equipamento.md
-§9). Um evento com variações aleatórias vira <evento>_01, _02...; o C++ sorteia entre elas.
+Output /Game/NW/Audio/UI/S_<name> (e.g. S_play_ui_crafting_rarity_3), played by FNWRefiningMenu (craftroll-equipamento.md
+§9). An event with random variations becomes <event>_01, _02...; the C++ picks one at random.
 """
 import glob
 import os
@@ -26,4 +26,4 @@ for f in sorted(glob.glob(os.path.join(ROOT, "**", "*.ogg"), recursive=True)):
     tools.import_asset_tasks([task])
     if eal.does_asset_exist(f"/Game/NW/Audio/UI/{name}"):
         n += 1
-unreal.log_warning(f"UI SONS {n} importados de {ROOT}")
+unreal.log_warning(f"UI SOUNDS {n} imported from {ROOT}")

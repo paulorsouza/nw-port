@@ -1,6 +1,6 @@
-"""Partes comuns de tools/assets_export.py e tools/assets_import.py (docs/tech/asset-sync.md).
+"""Shared parts of tools/assets_export.py and tools/assets_import.py (docs/tech/asset-sync.md).
 
-Os caminhos dos arquivos são relativos a unreal/NWPort (Content/..., Data/...), com barra normal.
+File paths are relative to unreal/NWPort (Content/..., Data/...), with forward slashes.
 """
 import datetime
 import hashlib
@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import nwplatform  # noqa: E402  (lê local.env antes do NW_ASSETS abaixo)
+import nwplatform  # noqa: E402  (reads local.env before NW_ASSETS below)
 
 ROOT = Path(__file__).resolve().parent.parent
 UPROJ = ROOT / "unreal" / "NWPort"
@@ -25,15 +25,15 @@ ETAPAS = EXTRACT / ".etapas"
 STATE = SAVED / "assets_state.json"
 HASHCACHE = SAVED / "assets_hashcache.json"
 BACKUP = SAVED / "assets_backup"
-# Pasta que espelha a do OneDrive (upload e download à mão).
+# Folder that mirrors the OneDrive one (manual upload and download).
 DEFAULT_DIR = Path(os.environ.get("NW_ASSETS") or Path.home() / "nw-port-assets")
 SCOPES = ("Content", "Data")
-BUNDLE_LIMIT = int(os.environ.get("NW_BUNDLE_LIMIT", 1 << 30))  # pasta acima disso vira um zip por subpasta
+BUNDLE_LIMIT = int(os.environ.get("NW_BUNDLE_LIMIT", 1 << 30))  # a folder above this becomes one zip per subfolder
 KEEP_BACKUP = 3
 WINDOWS = platform.system() == "Windows"
 JUNK = {"desktop.ini", "Thumbs.db", ".DS_Store"}
 
-# Nomes que o Windows ou o OneDrive não aceitam. O caminho é medido a partir de C:\nw-port\unreal\NWPort\.
+# Names Windows or OneDrive do not accept. The path is measured from C:\nw-port\unreal\NWPort\.
 WIN_PREFIX = len("C:\\nw-port\\unreal\\NWPort\\")
 MAX_PATH = 240
 BAD_CHARS = re.compile(r'[<>:"|?*\\\x00-\x1f]')
@@ -68,7 +68,7 @@ def ue_version():
     engine = nwplatform.ue_directory()
     version = engine and nwplatform.ue_version(engine)
     if not version:
-        die("Unreal não encontrada: aponte NW_UE (local.env) para a pasta da engine (a que tem Engine/Build/Build.version).")
+        die("Unreal not found: point NW_UE (local.env) to the engine folder (the one with Engine/Build/Build.version).")
     return version
 
 
@@ -91,10 +91,10 @@ _lock = None
 
 
 def preflight():
-    """Editor fechado; no Linux entra na fila do tools/linux/pesado.sh e fica com ela até o fim."""
+    """Editor closed; on Linux joins the tools/linux/pesado.sh queue and holds it until the end."""
     global _lock
     if editor_open():
-        die("O editor está aberto: feche antes.", 3)
+        die("The editor is open: close it first.", 3)
     if WINDOWS or os.environ.get("NW_PESADO"):
         return
     import fcntl
@@ -102,7 +102,7 @@ def preflight():
     try:
         fcntl.flock(_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        die("Tem trabalho pesado rodando (tools/linux/pesado.sh): espere terminar.", 3)
+        die("A heavy job is running (tools/linux/pesado.sh): wait for it to finish.", 3)
 
 
 def read_json(path, default):
@@ -125,7 +125,7 @@ def read_state():
 
 
 def write_state(m):
-    """Guarda qual publicação esta máquina tem (a que ela publicou ou baixou por último)."""
+    """Records which publication this machine has (the one it last published or downloaded)."""
     write_json(STATE, {"generation": m["generation"], "id": m["id"], "machine": machine(), "at": now()})
 
 
@@ -135,7 +135,7 @@ def git_tracked():
 
 
 def scan():
-    """{caminho: (tamanho, mtime_ns)} de Content e Data, sem o que está no git."""
+    """{path: (size, mtime_ns)} of Content and Data, without what is in git."""
     tracked = git_tracked()
     files = {}
     for scope in SCOPES:
@@ -164,7 +164,7 @@ def sha256_file(path):
 
 
 class Hasher:
-    """sha256 dos arquivos, guardado por (tamanho, mtime): só arquivo mexido é lido de novo."""
+    """sha256 of the files, cached by (size, mtime): only changed files are read again."""
 
     def __init__(self):
         self.cache = read_json(HASHCACHE, {})
@@ -185,8 +185,8 @@ class Hasher:
 
 
 def plan_bundles(files):
-    """Divide em zips: pasta até 1 GiB (ou sem subpasta) é um zip inteiro ("deep"); maior, um zip por subpasta e um
-    só com os arquivos soltos dela ("deep": false). Devolve {pasta: deep}."""
+    """Splits into zips: a folder up to 1 GiB (or with no subfolder) is one whole zip ("deep"); larger, one zip per
+    subfolder and one with just its loose files ("deep": false). Returns {folder: deep}."""
     size, subdirs, direct = {}, {}, {}
     for rel, (sz, _) in files.items():
         parts = rel.split("/")
@@ -227,7 +227,7 @@ def bundle_of(rel, bundles):
 
 
 def group(files, bundles):
-    """{pasta do zip: [caminhos]} e a lista dos arquivos que não cabem em zip nenhum."""
+    """{zip folder: [paths]} and the list of files that fit in no zip."""
     out, orphans = {b: [] for b in bundles}, []
     for rel in files:
         b = bundle_of(rel, bundles)
@@ -251,19 +251,19 @@ def check_names(rels):
     errors, seen = [], {}
     for rel in rels:
         if WIN_PREFIX + len(rel) > MAX_PATH:
-            errors.append(f"caminho longo demais no Windows ({WIN_PREFIX + len(rel)}): {rel}")
+            errors.append(f"path too long on Windows ({WIN_PREFIX + len(rel)}): {rel}")
         for part in rel.split("/"):
             if BAD_CHARS.search(part) or part.endswith((" ", ".")) or part.split(".")[0].upper() in RESERVED \
                     or part.startswith("~$") or "_vti_" in part or part == ".lock":
-                errors.append(f"nome inválido no Windows/OneDrive: {rel}")
+                errors.append(f"invalid name on Windows/OneDrive: {rel}")
                 break
         low = rel.lower()
         if low in seen and seen[low] != rel:
-            errors.append(f"só diferem por maiúscula/minúscula: {seen[low]} × {rel}")
+            errors.append(f"differ only by case: {seen[low]} × {rel}")
         seen[low] = rel
     if errors:
         print("\n".join(errors[:30]), file=sys.stderr)
-        die(f"{len(errors)} nome(s) não vão funcionar no Windows/OneDrive: corrija antes.")
+        die(f"{len(errors)} name(s) will not work on Windows/OneDrive: fix them first.")
 
 
 def etapas_markers():
@@ -274,9 +274,9 @@ def ask(question, yes):
     if yes:
         return
     if not sys.stdin.isatty():
-        die("Sem terminal para confirmar: use --yes.")
-    if input(f"{question} [s/N] ").strip().lower() not in ("s", "sim", "y", "yes"):
-        die("Cancelado.")
+        die("No terminal to confirm: use --yes.")
+    if input(f"{question} [y/N] ").strip().lower() not in ("s", "sim", "y", "yes"):
+        die("Cancelled.")
 
 
 def remove_empty_dirs(rels):

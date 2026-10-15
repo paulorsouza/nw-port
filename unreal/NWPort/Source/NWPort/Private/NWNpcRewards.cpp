@@ -23,7 +23,7 @@ FNWNpcRewards::FNWNpcRewards()
 	const FString File = FPaths::ProjectDir() / TEXT("Data/World/npc_rewards.json");
 	if (!FFileHelper::LoadFileToString(Raw, *File) || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Raw), Root) || !Root.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Brindes: não li %s"), *File);
+		UE_LOG(LogTemp, Warning, TEXT("Gifts: could not read %s"), *File);
 		return;
 	}
 	auto Ranges = [](const TArray<TSharedPtr<FJsonValue>>& In, TArray<FRange>& Out)
@@ -57,7 +57,7 @@ FNWNpcRewards::FNWNpcRewards()
 
 FString FNWNpcRewards::Period(const FDateTime& NowUtc) const
 {
-	// Semana começa terça 08:00 UTC: recua 8 h e volta até a terça (EDayOfWeek: segunda = 0).
+	// The week starts Tuesday 08:00 UTC: goes back 8 h and then back to Tuesday (EDayOfWeek: Monday = 0).
 	const FDateTime Shifted = NowUtc - FTimespan::FromHours(8.0);
 	const int32 Back = (int32(Shifted.GetDayOfWeek()) - int32(EDayOfWeek::Tuesday) + 7) % 7;
 	const FDateTime Start = Shifted.GetDate() - FTimespan::FromDays(Back);

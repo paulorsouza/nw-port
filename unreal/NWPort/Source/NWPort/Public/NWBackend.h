@@ -9,14 +9,14 @@
 
 class FJsonObject;
 
-/** Seções do GameUserSettings.ini com as escolhas do jogador (cache local do que o servidor guarda). */
+/** GameUserSettings.ini sections with the player's choices (local cache of what the server stores). */
 namespace NWIni
 {
 	inline const TCHAR* Loadout = TEXT("NW.Loadout");
 	inline const TCHAR* Mastery = TEXT("NW.Mastery");
 }
 
-/** Personagem como o nw-core devolve e recebe (posição em cm do Unreal). */
+/** Character as nw-core returns and receives it (position in Unreal cm). */
 struct FNWCharacterRecord
 {
 	FString Id;
@@ -26,22 +26,22 @@ struct FNWCharacterRecord
 	bool bHasPosition = false;
 	FVector Position = FVector::ZeroVector;
 	float Yaw = 0.f;
-	float Health = -1.f;          // < 0 = sem valor (nasce com vida cheia)
+	float Health = -1.f;          // < 0 = no value (spawns with full health)
 	FString ActiveWeapon;
 	TSharedPtr<FJsonObject> Loadout;  // { "Sword": ["ShieldBash", ...], ... }
 	TSharedPtr<FJsonObject> Mastery;  // { "sword": ["id", ...], ... }
 	TSharedPtr<FJsonObject> Progression;  // { "level": 3, "xp": 1200, "spent": [5], "trade": [4] } (UNWProgressionComponent)
-	float StorageCapacity = -1.f;         // armazém compartilhado (kg, soma das fontes); < 0 = não manda
+	float StorageCapacity = -1.f;         // shared storage (kg, sum of the sources); < 0 = not sent
 	int64 Coins = 0;
 	TArray<FNWItem> Items;
-	bool bFirstJoin = false;          // primeira entrada: o servidor dá o kit inicial
-	bool bAdmin = false;              // conta admin: comandos de teste (F10) no servidor
+	bool bFirstJoin = false;          // first join: the server gives the starter kit
+	bool bAdmin = false;              // admin account: test commands (F10) on the server
 
 	static TOptional<FNWCharacterRecord> FromJson(const TSharedPtr<FJsonObject>& Obj);
 	FString StateJson() const;
 };
 
-/** Personagem na lista da tela de entrada. */
+/** Character in the login screen list. */
 struct FNWCharacterSummary
 {
 	FString Id;
@@ -52,14 +52,14 @@ struct FNWCharacterSummary
 };
 
 /**
- * Conversa com o nw-core (backend Rust).
+ * Talks to nw-core (Rust backend).
  *
- * Servidor: `-nwbackend=<url>` e a variável NW_SERVER_SECRET ligam a exigência de passe na conexão; sem isso o
- * servidor aceita qualquer um e não salva nada (arena, testes locais).
+ * Server: `-nwbackend=<url>` and NW_SERVER_SECRET turn on the pass requirement on connect; without them the
+ * server accepts anyone and saves nothing (arena, local tests).
  *
- * Cliente: backend e endereço do servidor vêm de [NW.Server] Backend/Address no DefaultGame.ini (ou
- * `-nwbackend=` / `-nwconnect=`). Com backend configurado, o jogo abre na tela de entrada (FNWLoginMenu).
- * Testes sem tela: `-nwlogin=<conta> -nwchar=<personagem>` com a senha em NW_PASSWORD entra direto.
+ * Client: backend and server address come from [NW.Server] Backend/Address in DefaultGame.ini (or
+ * `-nwbackend=` / `-nwconnect=`). With a backend configured, the game opens on the login screen (FNWLoginMenu).
+ * Tests without a screen: `-nwlogin=<account> -nwchar=<character>` with the password in NW_PASSWORD joins directly.
  */
 UCLASS()
 class NWPORT_API UNWBackend : public UGameInstanceSubsystem
@@ -73,15 +73,15 @@ public:
 
 	bool IsServerEnabled() const { return !BaseUrl.IsEmpty() && !ServerSecret.IsEmpty(); }
 
-	// ---- cliente
+	// ---- client
 	using FDone = TFunction<void(bool bOk, const FString& Error)>;
-	/** Tela de entrada ativa: cliente com backend, fora de um servidor e sem entrada automática. */
+	/** Login screen active: client with backend, outside a server and without automatic join. */
 	bool WantsFrontEnd(const UWorld* World) const;
 	bool HasSession() const { return !SessionToken.IsEmpty(); }
 	bool IsBusy() const { return Busy > 0; }
 	const FString& GetAccountName() const { return AccountName; }
 	const TArray<FNWCharacterSummary>& GetCharacters() const { return Characters; }
-	/** Última falha de conexão com o servidor de jogo (mostrada e limpa pela tela de entrada). */
+	/** Last connection failure to the game server (shown and cleared by the login screen). */
 	FString TakeConnectionError() { FString E = MoveTemp(ConnectionError); ConnectionError.Reset(); return E; }
 
 	void Login(const FString& Name, const FString& Password, FDone Done);
@@ -89,19 +89,19 @@ public:
 	void RefreshCharacters(FDone Done);
 	void CreateCharacter(const FString& Name, FDone Done);
 	void DeleteCharacter(const FString& Id, FDone Done);
-	/** Pede o passe e conecta no servidor de jogo. */
+	/** Requests the pass and connects to the game server. */
 	void Play(const FString& CharacterId, FDone Done);
 	void Logout();
 
 	using FRedeemDone = TFunction<void(TOptional<FNWCharacterRecord> Record, const FString& Error)>;
 	void RedeemTicket(const FString& Ticket, FRedeemDone Done);
-	/** Salva o estado; Reason vai para o log de itens do nw-core ("periodic", "logout", "craft:<receita>"...). Done recebe
-	 *  o status (204 gravado, 208 já estava gravado). */
-	/** Extra: campos a mais no corpo (ex. `city_tax`, imposto de fabricação da cidade, na mesma transação). */
+	/** Saves the state; Reason goes to the nw-core item log ("periodic", "logout", "craft:<recipe>"...). Done receives
+	 *  the status (204 written, 208 already written). */
+	/** Extra: additional fields in the body (e.g. `city_tax`, the city's crafting tax, in the same transaction). */
 	void SaveState(const FNWCharacterRecord& Record, const FString& Reason = TEXT("save"), TFunction<void(int32 Status)> Done = nullptr,
 		TSharedPtr<FJsonObject> Extra = nullptr);
-	/** Saco no chão (etapa 2 das gravações): soltar grava a bolsa do Record e o saco numa transação; pegar grava a bolsa e
-	 *  o que sobra no saco (vazio = some; 409 ground_gone = venceu ou já foi pego); a lista traz os sacos vivos. */
+	/** Ground bag (step 2 of the writes): dropping writes the Record's bag and the ground bag in one transaction; picking up
+	 *  writes the bag and what is left (empty = gone; 409 ground_gone = expired or taken); the list has live bags. */
 	struct FGroundBag { FString Id; FString Map; FVector Position = FVector::ZeroVector; double ExpiresIn = 0.0; TArray<FNWItem> Items; };
 	void DropGround(const FNWCharacterRecord& Record, const FString& Map, const FVector& Position, int32 TtlSeconds, const TArray<FNWItem>& Items,
 		const FString& Reason, TFunction<void(int32 Status, const FGroundBag& Bag)> Done);
@@ -109,15 +109,15 @@ public:
 		TFunction<void(int32 Status)> Done);
 	void ListGround(const FString& CharacterId, TFunction<void(bool bOk, const TArray<FGroundBag>& Bags)> Done);
 
-	// Mercado (posto de trocas, docs/game/city.md §5): um só para todos (território "global"). Erro do nw-core em Code
+	// Market (docs/game/city.md "Trading Post"): one for everyone ("global" territory). nw-core error in Code
 	// (order_closed, storage_full, too_many_orders...).
 	struct FMarketOrder
 	{
 		FString Id;
 		bool bSell = true;
 		FString CharacterId;
-		FString Seller;          // nome do personagem dono
-		FNWItem Item;            // Quantity = o que falta negociar
+		FString Seller;          // name of the owning character
+		FNWItem Item;            // Quantity = what is left to trade
 		int64 UnitPrice = 0;
 		double ExpiresIn = 0.0;
 	};
@@ -128,56 +128,56 @@ public:
 		TFunction<void(int32 Status, const FString& Code)> Done);
 	void CancelOrder(const FString& CharacterId, const FString& OrderId, TFunction<void(int32 Status)> Done);
 
-	// ---- governança das cidades (backend/src/routes/city.rs). Done: status, código do erro, cidade (corpo).
+	// ---- city governance (backend/src/routes/city.rs). Done: status, error code, city (body).
 	using FCityDone = TFunction<void(int32 Status, const FString& Code, TSharedPtr<FJsonObject> City)>;
 	void GetCity(const FString& Region, const FString& CharacterId, FCityDone Done);
-	/** Vender matéria-prima à cidade (bSellRaw) ou comprar da lista; Record já com a bolsa e as moedas depois. */
+	/** Sell raw material to the city (bSellRaw) or buy from the list; Record already with the bag and coins after. */
 	void CityTrade(const FNWCharacterRecord& Record, const FString& Region, bool bSellRaw, FName Item, int32 Quantity, int64 UnitPrice,
 		const FString& Reason, FCityDone Done);
-	/** Comprar a cidade pelo preço visto; Record já sem as moedas. */
+	/** Buy the city at the seen price; Record already without the coins. */
 	void CityBuy(const FNWCharacterRecord& Record, const FString& Region, int64 Price, const FString& Reason, FCityDone Done);
-	/** Registra moedas que o personagem deixou de ganhar pelo teto (só o log; nada muda nas moedas). */
+	/** Records coins the character did not earn because of the cap (log only; the coins do not change). */
 	void CoinsCap(const FString& CharacterId, int64 Amount, const FString& Reason);
-	/** Lance no leilão da cidade; Record já sem as moedas do lance. */
+	/** Bid in the city auction; Record already without the bid coins. */
 	void CityBid(const FNWCharacterRecord& Record, const FString& Region, int64 Amount, const FString& Reason, FCityDone Done);
-	/** Ações do governador sem bolsa: Sub = "" (PUT preços/imposto), "sale", "projects". */
+	/** Governor actions without a bag: Sub = "" (PUT prices/tax), "sale", "projects". */
 	void CityAction(const FString& Verb, const FString& Region, const FString& Sub, TSharedRef<FJsonObject> Body, FCityDone Done);
-	/** Créditos de venda pendentes e o instante até onde valem (o resgate leva esse instante). */
+	/** Pending sale credits and the instant up to which they count (the claim carries that instant). */
 	void PendingCredits(const FString& CharacterId, TFunction<void(bool bOk, int64 Amount, const FString& Until)> Done);
 	void ClaimCredits(const FNWCharacterRecord& Record, const FString& Until, TFunction<void(int32 Status, int64 Amount)> Done);
 
-	// ---- Play do editor com o nw-core local de teste (docs/tech/backend-testing.md)
-	/** Só no editor: lê backend/dev.env (NW_BACKEND, NW_SERVER_SECRET, NW_PIE_ACCOUNT, NW_PIE_CHARACTER, NW_TEST_PASSWORD)
-	 *  e liga o backend no Play sozinho (standalone). Sem NW_PIE_ACCOUNT, devolve false e o Play segue sem backend. */
+	// ---- editor Play with the local test nw-core (docs/tech/backend-testing.md)
+	/** Editor only: reads backend/dev.env (NW_BACKEND, NW_SERVER_SECRET, NW_PIE_ACCOUNT, NW_PIE_CHARACTER, NW_TEST_PASSWORD)
+	 *  and enables the backend in standalone Play. No NW_PIE_ACCOUNT: returns false and Play runs without backend. */
 	bool EnablePie();
-	/** Volta a jogar sem backend (nw-core fora do ar). */
+	/** Back to playing without backend (nw-core down). */
 	void DisablePie();
 	bool IsPie() const { return bPie; }
-	/** Entra com a conta e o personagem do editor: login, passe e resgate, como um cliente no servidor dedicado. */
+	/** Joins with the editor account and character: login, pass and redeem, like a client on the dedicated server. */
 	void PieEnter(FRedeemDone Done);
-	// Brindes dos NPCs (esteira 4, NWNpcRewards.h): o que já foi pego ("<kind>:<npc>:<period>") e a coleta, gravada
-	// junto com a bolsa e as moedas do Record (Status 201 ok, 409 já pego).
+	// NPC gifts (area 4, NWNpcRewards.h): what was already picked up ("<kind>:<npc>:<period>") and the claim, written
+	// together with the Record's bag and coins (Status 201 ok, 409 already picked up).
 	void ListNpcRewards(const FString& CharacterId, const FString& Period, TFunction<void(bool bOk, const TArray<FString>& Keys)> Done);
 	void ClaimNpcReward(const FNWCharacterRecord& Record, const FString& Npc, const FString& Kind, const FString& Period,
 		TFunction<void(bool bOk, int32 Status)> Done);
-	// Armazém compartilhado (esteira 4, local "shared"): ler e gravar com a versão lida; a gravação leva junto a bolsa e
-	// as moedas do Record, o peso unitário de cada item (catálogo), os nomes das abas e a capacidade somada pelo
-	// servidor. Status 200 ok, 409 o armazém mudou (ler de novo).
-	/** Número de série de um item assinado; o personagem é o artesão (docs/game/items.md, Assinatura). */
+	// Shared storage (area 4, location "shared"): read and write with the version read; the write also carries the bag and
+	// the Record's coins, the unit weight of each item (catalog), the tab names and the capacity summed by the
+	// server. Status 200 ok, 409 the storage changed (read again).
+	/** Serial number of a signed item; the character is the crafter (docs/game/items.md, Signature). */
 	void IssueSerial(const FString& CharacterId, TFunction<void(bool bOk, const FString& Serial)> Done);
 	void GetStorage(const FString& CharacterId, const FString& Location,
 		TFunction<void(bool bOk, int64 Version, const TArray<FNWItem>& Items, const TArray<FString>& TabNames)> Done);
-	/** Status 208 = o nw-core já tinha aplicado esta gravação (reenvio depois de perder a resposta): ler de novo, sem
-	 *  refazer a mudança. */
+	/** Status 208 = nw-core had already applied this write (resent after losing the response): read again, without
+	 *  redoing the change. */
 	void PutStorage(const FNWCharacterRecord& Record, const FString& Location, int64 Version, const TArray<FNWItem>& Items,
 		const TArray<FString>& TabNames, float Capacity, const FString& Reason, TFunction<void(int32 Status, int64 NewVersion)> Done);
 
 private:
 	/**
-	 * Gravações de bolsa, moedas e armazém (docs/tech/server.md "Gravações"): uma fila por personagem, uma de cada
-	 * vez, na ordem. Cada uma leva a sessão aberta no resgate do passe e um número crescente; o nw-core recusa gravação
-	 * velha. Sem resposta (rede, nw-core reiniciando): tenta de novo com o mesmo número (até MaxWriteTries); o nw-core
-	 * responde 409 duplicate_write se já tinha aplicado, que vira 208 para quem chamou.
+	 * Bag, coins and storage writes (docs/tech/server.md "Recordings"): one queue per character, one at a time, in
+	 * order. Each carries the session opened when redeeming the pass and an increasing number; nw-core refuses an old
+	 * write. No response (network, nw-core restarting): retries with the same number (up to MaxWriteTries); nw-core
+	 * answers 409 duplicate_write if it had already applied it, which becomes 208 for the caller.
 	 */
 	void Write(const FString& CharacterId, const FString& Verb, const FString& Path, TSharedRef<FJsonObject> Body, const FString& Reason,
 		TFunction<void(int32 Status, TSharedPtr<FJsonObject> Body)> Done);
@@ -197,8 +197,8 @@ private:
 		TArray<FPendingWrite> Pending;
 	};
 	TMap<FString, FWriteQueue> Writes;
-	/** Última bolsa e equipado gravados de cada personagem: o salvamento manda só os espaços que mudaram
-	 *  (inventory_patch). Atualizada a cada gravação que leva a bolsa. */
+	/** Last written bag and equipment of each character: the save sends only the slots that changed
+	 *  (inventory_patch). Updated on every write that carries the bag. */
 	TMap<FString, TArray<FNWItem>> PersistedBag;
 	void RememberBag(const FNWCharacterRecord& Record) { PersistedBag.Add(Record.Id, Record.Items); }
 	static constexpr int32 MaxWriteTries = 6;

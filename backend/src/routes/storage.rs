@@ -1,7 +1,7 @@
-//! Armazém compartilhado (local `shared`, migration 0010): um por personagem, 5 abas, aberto em qualquer despensa. Fora
-//! do PUT state: o servidor de jogo grava a bolsa e o armazém juntos numa transação, com a versão do armazém que ele
-//! leu (o mercado entrega itens no armazém a qualquer momento). O peso unitário de cada item e a capacidade vêm do
-//! servidor de jogo; o nw-core só soma para recusar ordem de compra acima da capacidade (`used_weight`).
+//! Shared Storage (location `shared`, migration 0010): one per character, 5 tabs, opened at any storage shed. Outside
+//! the PUT state: the game server saves the bag and the Storage together in one transaction, with the Storage version
+//! it read (the market delivers items to Storage at any time). Each item's unit weight and the capacity come from the
+//! game server; nw-core only sums them to reject a buy order over the capacity (`used_weight`).
 
 use axum::extract::{Path, State};
 use axum::Json;
@@ -23,12 +23,12 @@ pub(crate) const SHARED: &str = "shared";
 pub(crate) const TABS: i16 = 5;
 const MAX_TAB_NAME: usize = 24;
 
-/// Bolsa, equipado e moedas do personagem depois da ação, aplicados na mesma transação da ação.
+/// Character's bag, equipped and coins after the action, applied in the same transaction as the action.
 #[derive(Deserialize, Debug)]
 pub struct Snapshot {
     pub inventory: Vec<ItemInstance>,
     pub coins: i64,
-    /// Sessão, número e motivo da gravação (journal.rs).
+    /// Session, number and reason of the save (journal.rs).
     #[serde(flatten)]
     pub write: WriteSeq,
 }
@@ -41,12 +41,12 @@ impl Snapshot {
         validate_inventory(&self.inventory)
     }
 
-    /// Números de série dos itens da bolsa (para `serials::verify` no fim da transação).
+    /// Serial numbers of the bag items (for `serials::verify` at the end of the transaction).
     pub(crate) fn serials(&self) -> Vec<String> {
         serials::serials(self.inventory.iter().map(|i| &i.props))
     }
 
-    /// Confere a ordem (`journal::claim`) e grava bolsa e moedas com a diferença no log.
+    /// Checks the ordering (`journal::claim`) and saves bag and coins with the difference in the log.
     pub(crate) async fn apply(&self, tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<Ctx> {
         let ctx = journal::claim(tx, character_id, &self.write).await?;
         journal::write_bag(tx, &ctx, Some(&self.inventory), Some(self.coins)).await?;
@@ -65,10 +65,10 @@ pub struct StorageItem {
     pub rarity: i16,
     #[serde(default = "empty_props")]
     pub props: Value,
-    /// Aba (0–4).
+    /// Tab (0–4).
     #[serde(default)]
     pub tab: i16,
-    /// Peso unitário em kg (do catálogo do servidor de jogo).
+    /// Unit weight in kg (from the game server's catalog).
     #[serde(default)]
     pub weight: f32,
 }
@@ -77,19 +77,19 @@ pub struct StorageItem {
 pub struct StorageView {
     pub version: i64,
     pub items: Vec<StorageItem>,
-    /// Nomes das abas dados pelo jogador (vazio = nome padrão).
+    /// Tab names set by the player (empty = default name).
     pub tab_names: Vec<String>,
     pub capacity: f32,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct StorageWrite {
-    /// Versão lida no GET; diferente da atual = 409 `storage_changed` (ler de novo e refazer).
+    /// Version read in the GET; different from the current one = 409 `storage_changed` (read again and redo).
     pub version: i64,
     pub items: Vec<StorageItem>,
-    /// Nomes das abas (ausente = mantém).
+    /// Tab names (missing = keeps).
     pub tab_names: Option<Vec<String>>,
-    /// Capacidade atual em kg, somada pelo servidor de jogo (ausente = mantém).
+    /// Current capacity in kg, summed by the game server (missing = keeps).
     pub capacity: Option<f32>,
     #[serde(flatten)]
     pub snapshot: Snapshot,
@@ -99,7 +99,7 @@ pub(crate) fn validate_location(location: &str) -> ApiResult<()> {
     if location == SHARED { Ok(()) } else { Err(ApiError::bad_request("invalid_location", format!("local inválido: {location}"))) }
 }
 
-/// Peso ocupado do armazém: itens guardados mais o que as ordens de compra abertas ainda vão entregar.
+/// Used Storage weight: stored items plus what the open buy orders will still deliver.
 pub(crate) async fn used_weight(tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<f64> {
     let (used,): (f64,) = sqlx::query_as(
         "select coalesce((select sum(quantity * weight)::float8 from storage_items where character_id = $1 and location = 'shared'), 0)
@@ -112,7 +112,7 @@ pub(crate) async fn used_weight(tx: &mut sqlx::PgConnection, character_id: Uuid)
     Ok(used)
 }
 
-/// Capacidade guardada pelo servidor de jogo.
+/// Capacity stored by the game server.
 pub(crate) async fn capacity(tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<f64> {
     let (cap,): (f32,) = sqlx::query_as("select storage_capacity from characters where id = $1")
         .bind(character_id)
@@ -122,7 +122,7 @@ pub(crate) async fn capacity(tx: &mut sqlx::PgConnection, character_id: Uuid) ->
     Ok(cap as f64)
 }
 
-/// Recusa (409 `storage_full`) uma compra de `extra` kg que passaria da capacidade do armazém.
+/// Rejects (409 `storage_full`) a purchase of `extra` kg that would exceed the Storage capacity.
 pub(crate) async fn check_room(tx: &mut sqlx::PgConnection, character_id: Uuid, extra: f64) -> ApiResult<()> {
     let used = used_weight(tx, character_id).await?;
     let cap = capacity(tx, character_id).await?;
@@ -136,7 +136,7 @@ pub(crate) fn is_territory(t: &str) -> bool {
     !t.is_empty() && t.len() <= 40 && t.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
 }
 
-/// Garante a linha do armazém e trava; devolve a versão atual.
+/// Ensures the Storage row exists and locks it; returns the current version.
 pub(crate) async fn lock_storage(tx: &mut sqlx::PgConnection, character_id: Uuid, location: &str) -> ApiResult<i64> {
     sqlx::query("insert into storages (character_id, location) values ($1, $2) on conflict do nothing")
         .bind(character_id)
@@ -161,8 +161,8 @@ async fn bump(tx: &mut sqlx::PgConnection, character_id: Uuid, location: &str) -
     Ok(version)
 }
 
-/// Entrega um item no armazém (mercado), mesmo acima da capacidade: soma na pilha igual (mesmos `props`, qualquer aba)
-/// ou ocupa o próximo slot na aba 1.
+/// Delivers an item to Storage (market), even over capacity: adds to the matching stack (same `props`, any tab)
+/// or takes the next slot on tab 1.
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn deliver(
     tx: &mut sqlx::PgConnection,

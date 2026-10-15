@@ -58,7 +58,7 @@ ANWPlayerController::ANWPlayerController()
 	Ambience = CreateDefaultSubobject<UNWAmbienceComponent>(TEXT("Ambience"));
 }
 
-// Opções do F10 lembradas entre sessões em desenvolvimento (GameUserSettings.ini, [NW.Dev]); no Shipping não grava nem lê.
+// F10 options remembered between sessions in development (GameUserSettings.ini, [NW.Dev]); Shipping neither writes nor reads.
 namespace NWDevPrefs
 {
 	static const TCHAR* Section = TEXT("NW.Dev");
@@ -122,7 +122,7 @@ void ANWPlayerController::BeginPlay()
 
 void ANWPlayerController::UpdateDevAllowed()
 {
-	// Sem nw-core (nada é salvo) ou Play do editor: liberado. Com nw-core: só conta admin.
+	// Without nw-core (nothing is saved) or editor Play: allowed. With nw-core: admin account only.
 	const UGameInstance* GI = GetGameInstance();
 	const UNWBackend* B = GI ? GI->GetSubsystem<UNWBackend>() : nullptr;
 	const bool bBackend = B && B->IsServerEnabled();
@@ -190,7 +190,7 @@ void ANWPlayerController::FinishUnstuck()
 	{
 		return;
 	}
-	// A última migalha pode ser o lugar onde prendeu: usa a anterior quando há.
+	// The last breadcrumb may be the place where it got stuck: uses the previous one when there is one.
 	const FVector To = Breadcrumbs[FMath::Max(0, Breadcrumbs.Num() - 2)] + FVector(0.f, 0.f, 50.f);
 	if (!Me->TeleportTo(To, Me->GetActorRotation()))
 	{
@@ -316,7 +316,7 @@ void ANWPlayerController::ToggleSkillMenu()
 	HUD->Mastery.Open(Cast<ANWCharacter>(GetPawn()));
 	if (HUD->Mastery.IsOpen())
 	{
-		// Sem widget Slate: os cliques chegam pelo InputComponent do controlador (OnMenuClick).
+		// No Slate widget: clicks arrive through the controller's InputComponent (OnMenuClick).
 		FInputModeGameAndUI Mode;
 		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 		Mode.SetHideCursorDuringCapture(false);
@@ -422,7 +422,7 @@ void ANWPlayerController::ToggleDevMenu()
 {
 	if (!bDevAllowed && !OpenMenu.IsValid())
 	{
-		return;   // conta sem admin: o servidor recusaria os comandos
+		return;   // account without admin: the server would refuse the commands
 	}
 	if (const ANWHUD* HUD = GetNWHUD(); HUD && HUD->Login.IsActive())
 	{
@@ -440,8 +440,8 @@ void ANWPlayerController::ToggleDevMenu()
 bool ANWPlayerController::InputKey(const FInputKeyEventArgs& Params)
 {
 	ANWHUD* HUD = GetNWHUD();
-	// Só o "apertar" vira a tecla nova; soltar e eixos seguem normais (senão o soltar do clique que abriu a espera
-	// nunca chega e o botão fica preso como apertado).
+	// Only the "press" becomes the new key; release and axes stay normal (otherwise the release of the click that opened the
+	// wait never arrives and the button stays stuck as pressed).
 	if (HUD && HUD->GameMenu.IsWaitingKey() && Params.Event == IE_Pressed
 		&& !Params.Key.IsAxis1D() && !Params.Key.IsAxis2D() && !Params.Key.IsGamepadKey())
 	{
@@ -474,7 +474,7 @@ void ANWPlayerController::ApplyKeyChanges()
 void ANWPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
-	// Sem consumir: com o menu fechado o clique segue para o ataque do personagem.
+	// Without consuming: with the menu closed the click goes on to the character's attack.
 	InputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &ANWPlayerController::OnMenuClick).bConsumeInput = false;
 	InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ANWPlayerController::OnEscape).bConsumeInput = false;
 	InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &ANWPlayerController::OpenChat).bConsumeInput = false;
@@ -499,7 +499,7 @@ void ANWPlayerController::OnMenuClick()
 	}
 	if (HUD && HUD->StationMenuClick(FVector2D(X, Y)))
 	{
-		return;   // telas da esteira 4 (refino, ...): NWHUD
+		return;   // area 4 screens (refining, ...): NWHUD
 	}
 	if (HUD && HUD->GameMenu.IsOpen())
 	{
@@ -520,7 +520,7 @@ void ANWPlayerController::OnMenuClick()
 		}
 		return;
 	}
-	// Barra de navegação do topo (inventário, personagem, mapa): troca de tela.
+	// Top navigation bar (inventory, character, map): switches screen.
 	if (HUD && (HUD->Inventory.IsOpen() || HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->Attributes.IsOpen() || HUD->WorldMap.IsOpen()))
 	{
 		const int32 Tab = HUD->NavTabAt(FVector2D(X, Y));
@@ -550,7 +550,7 @@ void ANWPlayerController::OnMenuClick()
 		}
 		return;
 	}
-	// Abas da janela K: Maestria em Armas / Hab. Mercantes / Atributos.
+	// K window tabs: Weapon Mastery / Trade Skills / Attributes.
 	if (HUD && (HUD->Mastery.IsOpen() || HUD->Tradeskills.IsOpen() || HUD->Attributes.IsOpen()))
 	{
 		const int32 Tab = FNWTradeskillMenu::TabAt(FVector2D(X, Y));
@@ -607,16 +607,16 @@ void ANWPlayerController::LocalConsole(const FString& Command)
 
 namespace
 {
-	/** F10 recusado (conta sem admin) ou registrado no log; depois de usar, salva com o motivo "dev:<comando>". */
+	/** F10 refused (account without admin) or logged; after use, saves with the reason "dev:<command>". */
 	bool DevGate(ANWPlayerController* PC, const FString& Name)
 	{
 		const FString Who = PC->Record ? PC->Record->AccountName + TEXT("/") + PC->Record->Name : PC->GetName();
 		if (!PC->bDevAllowed)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("F10 recusado: %s pediu %s"), *Who, *Name);
+			UE_LOG(LogTemp, Warning, TEXT("F10 refused: %s asked for %s"), *Who, *Name);
 			return false;
 		}
-		UE_LOG(LogTemp, Display, TEXT("F10: %s usou %s"), *Who, *Name);
+		UE_LOG(LogTemp, Display, TEXT("F10: %s used %s"), *Who, *Name);
 		return true;
 	}
 
@@ -636,7 +636,7 @@ void ANWPlayerController::ServerDevNamed_Implementation(FName Id)
 	{
 		return;
 	}
-	const NWOps::FReason Reason(TEXT("dev:") + Name);   // o que o F10 der vira operação com este motivo
+	const NWOps::FReason Reason(TEXT("dev:") + Name);   // whatever F10 gives becomes an operation with this reason
 	if (const FNWDevEntry* E = FNWDevRegistry::Find(Id); E && E->Server)
 	{
 		E->Server(this);
@@ -659,7 +659,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 	{
 		return;
 	}
-	// Invocação: 5 m à frente, virado para o jogador.
+	// Summon: 5 m ahead, facing the player.
 	auto Spawn = [&](TSubclassOf<ANWCharacter> Class, TFunction<void(ANWCharacter*)> Setup)
 	{
 		if (!Me)
@@ -679,7 +679,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 			New->FinishSpawning(Where);
 		}
 	};
-	// Arena: criatura do catálogo do jogo (vida e dano do nível) ou personagem, em volta do jogador a ~14 m.
+	// Arena: creature from the game's catalog (level health and damage) or character, around the player at ~14 m.
 	auto Around = [&](int32 Index, int32 Count) -> FTransform
 	{
 		const float Yaw = GetControlRotation().Yaw + (Count > 1 ? (Index - (Count - 1) * 0.5f) * 35.f : 0.f);
@@ -699,13 +699,13 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		C->Setup(*D, {}, {});
 		C->AggroRange = 3000.f;
 		C->FinishSpawning(Where);
-		// Onda da arena: já entra em combate com quem chamou (a visão do jogo é de 12 m; a onda nasce a 14 m).
+		// Arena wave: enters combat right away with whoever called it (the game's sight is 12 m; the wave spawns at 14 m).
 		if (C->Behavior && C->Behavior->IsActive())
 		{
 			C->Behavior->Aggro(Me);
 		}
 	};
-	// Personagem do jogador com outra arma (arco = 2, rapieira = 3 em WeaponSets) e o estilo de luta dela.
+	// Player character with another weapon (Bow = 2, Rapier = 3 in WeaponSets) and its fighting style.
 	auto SpawnArmed = [&](const FTransform& Where, int32 Weapon, ENWBrainStyle Style, TArray<FNWBrainAttack> Attacks, float Block, float Dodge)
 	{
 		ANWCharacter* New = World->SpawnActorDeferred<ANWCharacter>(ANWCharacter::StaticClass(), Where, nullptr, nullptr,
@@ -749,7 +749,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 			FNWBrainAttack R; R.Action = A; R.MinRange = Min; R.MaxRange = Max; R.Weight = W; R.Cooldown = Cd; R.Chain = Chain; R.bGapCloser = bGap;
 			return R;
 		};
-		// Espada e escudo como o jogador: combo de 1 a 3, pesado, golpe de escudo; levanta a guarda e esquiva.
+		// Sword and shield like the player: 1 to 3 combo, heavy, shield bash; raises the guard and dodges.
 		New->UseBrain(static_cast<uint8>(ENWBrainStyle::Duelist), {Atk(TEXT("Light1"), 0.f, 260.f, 2.f, 0.f, 3), Atk(TEXT("Light1"), 0.f, 260.f, 1.f, 0.f, 1),
 			Atk(TEXT("Heavy"), 0.f, 260.f, 1.f, 2.5f), Atk(TEXT("ShieldBash"), 0.f, 220.f, 0.6f, 9.f), Atk(TEXT("SprintAttack"), 400.f, 800.f, 0.6f, 6.f, 1, true)});
 		New->Brain->BlockChance = 0.35f;
@@ -789,13 +789,13 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		if (Me) for (int32 i = 0; i < 2; ++i) { const FTransform W = Around(i, 2); ANWCharacter* L = World->SpawnActorDeferred<ANWCharacter>(ANWLost::StaticClass(), W, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn); if (L) { L->Tags.Add(DevTag); L->AggroRange = 3000.f; L->FinishSpawning(W); } }
 		break;
 	case ENWDevCommand::ArenaArcher:
-		// Arqueiro: fica a ~14 m, recua se você chega perto, tiro rápido, Tiro Rápido e Tiro Penetrante; esquiva.
+		// Archer: stays at ~14 m, backs off if you get close, quick shot, Rapid Shot and Penetrating Shot; dodges.
 		if (Me) SpawnArmed(Around(0, 1), 2, ENWBrainStyle::Archer, {Atk2(TEXT("Light1"), 300.f, 3000.f, 3.f, 0.8f),
 			Atk2(TEXT("RapidShot"), 500.f, 3000.f, 1.f, 14.f), Atk2(TEXT("PenetratingShot"), 800.f, 4000.f, 1.f, 18.f),
 			Atk2(TEXT("EvadeShot"), 0.f, 450.f, 2.f, 15.f)}, 0.f, 0.35f);
 		break;
 	case ENWDevCommand::ArenaRapier:
-		// Duelista de rapieira: combos, Tondo (sangra), Brandir e Terminar, investida de longe; esquiva rápida, guarda.
+		// Rapier duelist: combos, Tondo (bleeds), Flourish and Finish, lunge from afar; quick dodge, guard.
 		if (Me) SpawnArmed(Around(0, 1), 3, ENWBrainStyle::Duelist, {Atk2(TEXT("Light1"), 0.f, 250.f, 3.f, 0.f, 3),
 			Atk2(TEXT("Tondo"), 0.f, 450.f, 1.f, 6.f), Atk2(TEXT("Flourish"), 0.f, 300.f, 1.f, 20.f), Atk2(TEXT("Light1"), 0.f, 250.f, 1.f, 0.f, 2),
 			Atk2(TEXT("Fleche"), 500.f, 1000.f, 1.f, 20.f, 1, true)}, 0.2f, 0.4f);
@@ -845,7 +845,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		{
 			if (!It->IsPlayerControlled())
 			{
-				It->Combat->Kill(Me);   // conta como morte pelo jogador (saque)
+				It->Combat->Kill(Me);   // counts as a kill by the player (loot)
 			}
 		}
 		break;
@@ -871,7 +871,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		if (Me) Me->Combat->Kill();
 		break;
 	case ENWDevCommand::ToggleFastRun:
-		// Atravessar o mapa: todas as velocidades × 4 (de novo volta ao normal).
+		// Cross the map: all speeds × 4 (again returns to normal).
 		if (Me) { Me->DevSpeedMultiplier = Me->DevSpeedMultiplier > 1.f ? 1.f : 4.f; NWDevPrefs::Set(TEXT("FastRun"), Me->DevSpeedMultiplier > 1.f); }
 		break;
 	case ENWDevCommand::ToggleFly:
@@ -885,7 +885,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		if (Me && Me->Inventory) Me->Inventory->GiveTools();
 		break;
 	case ENWDevCommand::GoToCreature:
-		// Spawner de criatura mais perto (a mais de 30 m): para ver javalis e lobos sem procurar.
+		// Nearest creature spawner (more than 30 m away): to see boars and wolves without searching.
 		if (const ANWSpawnField* Spawns = ANWSpawnField::Get(World); Spawns && Me)
 		{
 			FVector At;
@@ -906,7 +906,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		}
 		break;
 	case ENWDevCommand::GiveCraftLevels:
-		// +50 níveis nos ofícios de fabricar (testar fabricar e espectro, docs/game/crafting.md).
+		// +50 levels in the crafting trade skills (test crafting and spectrum, docs/game/crafting.md).
 		if (Me && Me->Progression)
 		{
 			for (const TCHAR* Skill : {TEXT("Weaponsmithing"), TEXT("Engineering"), TEXT("Arcana")})
@@ -920,7 +920,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		}
 		break;
 	case ENWDevCommand::GiveCraftMaterials:
-		// Materiais refinados T2–T5 das receitas de fabricar e moedas para a taxa (docs/game/crafting.md).
+		// Refined materials T2–T5 for the crafting recipes and coins for the fee (docs/game/crafting.md).
 		if (Me && Me->Inventory)
 		{
 			TArray<FNWItem> Gift;
@@ -939,11 +939,11 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		}
 		break;
 	case ENWDevCommand::GiveLevel:
-		// XP que falta para o próximo nível (testar a barra de XP e os pontos de atributo).
+		// XP missing to the next level (test the XP bar and the attribute points).
 		if (Me && Me->Progression) Me->Progression->AddXp(FMath::Max<int64>(1, UNWProgressionComponent::XpForLevel(Me->Progression->Level + 1) - Me->Progression->Xp));
 		break;
 	case ENWDevCommand::GoToOre:
-		// Veio de minério disponível mais perto: põe o personagem a 1,5 m, de frente para ele.
+		// Nearest available ore vein: puts the character 1.5 m away, facing it.
 		if (const ANWGatherField* Field = ANWGatherField::Get(World); Field && Me)
 		{
 			int32 Best = INDEX_NONE;
@@ -972,7 +972,7 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 	}
 }
 
-// ---------------------------------------------------------------- progresso salvo no nw-core
+// ---------------------------------------------------------------- progress saved in nw-core
 
 void ANWPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -1053,7 +1053,7 @@ void ANWPlayerController::ServerSetMastery_Implementation(const FString& Weapon,
 	Record->Mastery->SetArrayField(Weapon, Values);
 }
 
-// ---------------------------------------------------------------- bot de teste de carga
+// ---------------------------------------------------------------- load test bot
 
 void ANWPlayerController::PlayerTick(float DeltaTime)
 {
@@ -1075,19 +1075,19 @@ void ANWPlayerController::PlayerTick(float DeltaTime)
 	{
 		if (!TestChat.IsEmpty() && (TestChatIn -= DeltaTime) <= 0.f)
 		{
-			// Várias mensagens separadas por |, uma por vez.
+			// Several messages separated by |, one at a time.
 			FString First, Rest;
 			if (!TestChat.Split(TEXT("|"), &First, &Rest))
 			{
 				First = TestChat;
 			}
-			ServerSendChat(First.Replace(TEXT("_"), TEXT(" ")));   // _ = espaço (o script de teste separa argumentos por espaço)
+			ServerSendChat(First.Replace(TEXT("_"), TEXT(" ")));   // _ = space (the test script splits arguments by space)
 			TestChat = Rest;
 			TestChatIn = 1.5f;
 		}
 		if (!TestDev.IsEmpty() && (TestDevIn -= DeltaTime) <= 0.f)
 		{
-			// Comandos do menu de dev pelo nome do enum, separados por |, um a cada 2 s.
+			// Dev menu commands by enum name, separated by |, one every 2 s.
 			FString First, Rest;
 			if (!TestDev.Split(TEXT("|"), &First, &Rest))
 			{
@@ -1115,7 +1115,7 @@ void ANWPlayerController::PlayerTick(float DeltaTime)
 			UNWInventoryComponent* Inv = Cast<ANWCharacter>(GetPawn()) ? Cast<ANWCharacter>(GetPawn())->Inventory : nullptr;
 			if (Inv && P.Num() > 0)
 			{
-				UE_LOG(LogTemp, Display, TEXT("NW teste inventário: %s"), *First);
+				UE_LOG(LogTemp, Display, TEXT("NW inventory test: %s"), *First);
 				if (P[0] == TEXT("potion")) Inv->ServerUseBestPotion();
 				else if (P[0] == TEXT("move") && P.Num() == 3) Inv->ServerMove(ENWItemContainer::Bag, FCString::Atoi(*P[1]), ENWItemContainer::Bag, FCString::Atoi(*P[2]));
 				else if (P[0] == TEXT("unequip") && P.Num() == 3) Inv->ServerMove(ENWItemContainer::Equip, FCString::Atoi(*P[1]), ENWItemContainer::Bag, FCString::Atoi(*P[2]));
@@ -1128,8 +1128,8 @@ void ANWPlayerController::PlayerTick(float DeltaTime)
 			ANWCharacter* G = Cast<ANWCharacter>(GetPawn());
 			if (G && G->Gather && !G->Gather->IsGathering() && G->Gather->FocusIndex != INDEX_NONE)
 			{
-				UE_LOG(LogTemp, Display, TEXT("NW teste coleta: %s (%d)%s"), *G->Gather->FocusText, G->Gather->FocusIndex,
-					G->Gather->bFocusBlocked ? TEXT(" bloqueado") : TEXT(""));
+				UE_LOG(LogTemp, Display, TEXT("NW gathering test: %s (%d)%s"), *G->Gather->FocusText, G->Gather->FocusIndex,
+					G->Gather->bFocusBlocked ? TEXT(" blocked") : TEXT(""));
 				G->Gather->InteractPressed();
 				--TestGather;
 				TestGatherIn = 3.f;
@@ -1145,7 +1145,7 @@ void ANWPlayerController::PlayerTick(float DeltaTime)
 		{
 			if (const ANWHUD* HUD = GetNWHUD(); HUD && HUD->IsDeathScreen())
 			{
-				UE_LOG(LogTemp, Display, TEXT("NW teste: Renascer"));
+				UE_LOG(LogTemp, Display, TEXT("NW test: Respawn"));
 				Dead->Combat->ServerRequestRespawn();
 				bTestRespawn = false;
 			}
@@ -1176,7 +1176,7 @@ void ANWPlayerController::PlayerTick(float DeltaTime)
 		}
 		else if (Roll < 0.4f && BotReleaseIn <= 0.f)
 		{
-			// Segura o ataque (carga) e solta depois: leve ou pesado conforme o tempo.
+			// Holds the attack (charge) and releases later: light or heavy depending on the time.
 			Me->Combat->AttackPressed();
 			BotReleaseIn = FMath::FRandRange(0.1f, 0.6f);
 		}
@@ -1196,7 +1196,7 @@ void ANWPlayerController::PlayerTick(float DeltaTime)
 
 DEFINE_LOG_CATEGORY_STATIC(LogNWChat, Log, All);
 
-static constexpr int32 ChatMaxLength = 225;   // mesmo limite do jogo (RemainingTextCount)
+static constexpr int32 ChatMaxLength = 225;   // same limit as the game (RemainingTextCount)
 
 void ANWPlayerController::OpenChat()
 {
@@ -1222,7 +1222,7 @@ void ANWPlayerController::ServerSendChat_Implementation(const FString& InText)
 	{
 		return;
 	}
-	// Até 5 mensagens a cada 5 s.
+	// Up to 5 messages every 5 s.
 	const double Now = GetWorld()->GetTimeSeconds();
 	ChatTimes.RemoveAll([Now](double T) { return T < Now - 5.0; });
 	if (ChatTimes.Num() >= 5)
@@ -1237,7 +1237,7 @@ void ANWPlayerController::ServerSendChat_Implementation(const FString& InText)
 		return;
 	}
 	const FString Sender = PlayerState ? PlayerState->GetPlayerName() : TEXT("?");
-	UE_LOG(LogNWChat, Display, TEXT("[Área] %s: %s"), *Sender, *Text);
+	UE_LOG(LogNWChat, Display, TEXT("[Area] %s: %s"), *Sender, *Text);
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
 		if (ANWPlayerController* PC = Cast<ANWPlayerController>(It->Get()))
@@ -1266,7 +1266,7 @@ void ANWPlayerController::HandleChatCommand(const FString& Text)
 	{
 		return;
 	}
-	// Comandos em português e em inglês.
+	// Commands in Portuguese and in English.
 	if (Command == TEXT("convidar") || Command == TEXT("invite"))
 	{
 		GM->GroupInvite(this, Rest);

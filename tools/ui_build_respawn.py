@@ -1,10 +1,10 @@
-"""Tela de morte do jogo (lyshineui/respawn/respawn.dynamicuicanvas).
+"""The game's death screen (lyshineui/respawn/respawn.dynamicuicanvas).
 
-    python3 tools/ui_build_respawn.py [--preview prévia.png] [--background fundo.png]
+    python3 tools/ui_build_respawn.py [--preview preview.png] [--background background.png]
 
-Fica: vinheta, "Morto Por" com o nome, contador e o botão Renascer com o título dos pontos de renascimento.
-Sai: Twitch, câmera da morte, estatísticas, mapa, itens perdidos e o tutorial. Gera
-unreal/NWPort/Data/UI/respawn_layout.<idioma>.json e extract/ui/respawn_textures.txt.
+Kept: vignette, "Slain By" with the name, timer and the Respawn button with the respawn points title.
+Removed: Twitch, death camera, stats, map, lost items and the tutorial. Writes
+unreal/NWPort/Data/UI/respawn_layout.<language>.json and extract/ui/respawn_textures.txt.
 """
 import argparse
 import json
@@ -37,7 +37,7 @@ def main():
     lay = convert(os.path.join(UI, "lyshineui", "respawn", "respawn.dynamicuicanvas.json"), KEEP, EXCLUDE, [])
     for e in lay["elements"]:
         if e["path"] == "_root":
-            # A raiz do canvas sai como caixa de 100x100 no centro; a tela inteira é o pai da vinheta e do canto.
+            # The canvas root comes out as a 100x100 box in the center; the whole screen is the parent of the vignette and corner.
             e["anchors"], e["offsets"] = [0, 0, 1, 1], [0, 0, 0, 0]
         if e["path"].endswith("FrameMultiBg/FrameBg") and e.get("image") and not e["image"]["texture"]:
             set_image(e, FRAME_BG)
@@ -52,7 +52,7 @@ def main():
         json.dump({"canvases": [{"name": "respawn", "size": lay["size"], "elements": elements}]}, open(out, "w"), separators=(",", ":"))
     textures = sorted({e["image"]["texture"].lower() for e in lay["elements"] if e.get("image") and e["image"]["texture"]})
     open(os.path.join(UI, "respawn_textures.txt"), "w").write("\n".join(textures))
-    print(f"{len(lay['elements'])} elementos, {len(textures)} texturas -> {out}")
+    print(f"{len(lay['elements'])} elements, {len(textures)} textures -> {out}")
     if a.preview:
         import ui_canvas
         relayout(lay["elements"], lay["size"])

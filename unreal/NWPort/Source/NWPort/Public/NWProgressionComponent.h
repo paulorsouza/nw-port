@@ -4,7 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "NWProgressionComponent.generated.h"
 
-/** Atributos do jogo, na ordem da tela (FOR, DES, INT, FOC, CON). */
+/** The game's attributes, in screen order (FOR, DES, INT, FOC, CON). */
 UENUM()
 enum class ENWAttribute : uint8
 {
@@ -16,28 +16,28 @@ enum class ENWAttribute : uint8
 	Num UMETA(Hidden),
 };
 
-/** Ofícios de coleta do jogo (CategoricalProgressionId). */
+/** The game's gathering trade skills (CategoricalProgressionId). */
 namespace NWTradeskill
 {
 	constexpr int32 Num = 14;
-	/** Ofícios de coleta (0..3); os de refino vêm depois (4..8). */
+	/** Gathering trade skills (0..3); the refining ones come after (4..8). */
 	constexpr int32 NumGathering = 4;
 	/** Mining, Logging, Harvesting, Skinning -> 0..3; Smelting, Woodworking, Leatherworking, Weaving, Stonecutting
-	 *  -> 4..8 (refino, esteira 4); Weaponsmithing, Engineering, Arcana -> 9..11 (fabricar, docs/game/crafting.md); Jewelcrafting -> 12, Armoring -> 13; outro ->
+	 *  -> 4..8 (refining, area 4); Weaponsmithing, Engineering, Arcana -> 9..11 (crafting, docs/game/crafting.md); Jewelcrafting -> 12, Armoring -> 13; other ->
 	 *  INDEX_NONE. */
 	NWPORT_API int32 Index(FName Tradeskill);
 	NWPORT_API FName Name(int32 Index);
-	/** Chave do texto do jogo (ui_mining...) e ícone (icons/tradeskills/icon_tradeskill_<ofício>). */
+	/** Key of the game's text (ui_mining...) and icon (icons/tradeskills/icon_tradeskill_<tradeskill>). */
 	NWPORT_API FString TextKey(int32 Index);
 	NWPORT_API FString Icon(int32 Index);
 }
 
 /**
- * Nível do personagem, XP e atributos, com as tabelas do jogo (Data/Progression/progression.json,
- * tools/make_progression.py): XP total por nível (javelindata_xpamountsbylevel), pontos de atributo ganhos a cada
- * nível e o efeito de cada valor de atributo (javelindata_attribute*). Cada atributo começa em 5.
- * O servidor é autoritativo e salva no nw-core (coluna progression). XP de personagem vem dos tutoriais de nível
- * (níveis inteiros por missão) e, depois deles, dos abates; XP de ofício vem da coleta e do refino.
+ * Character level, XP and attributes, with the game's tables (Data/Progression/progression.json,
+ * tools/make_progression.py): total XP per level (javelindata_xpamountsbylevel), attribute points gained at each
+ * level and the effect of each attribute value (javelindata_attribute*). Each attribute starts at 5.
+ * The server is authoritative and saves to nw-core (progression column). Character XP comes from the level tutorials
+ * (whole levels per quest) and, after them, from kills; trade skill XP comes from gathering and refining.
  */
 UCLASS(ClassGroup = (NW), meta = (BlueprintSpawnableComponent))
 class NWPORT_API UNWProgressionComponent : public UActorComponent
@@ -48,78 +48,78 @@ public:
 	UNWProgressionComponent();
 
 	UPROPERTY(Replicated) int32 Level = 1;
-	/** XP total acumulado. */
+	/** Total accumulated XP. */
 	UPROPERTY(Replicated) int64 Xp = 0;
-	/** Pontos distribuídos por atributo (além da base 5). */
+	/** Points spent per attribute (on top of the base 5). */
 	UPROPERTY(Replicated) TArray<int32> Spent;
-	/** XP total de cada ofício de coleta (NWTradeskill). */
+	/** Total XP of each gathering trade skill (NWTradeskill). */
 	UPROPERTY(Replicated) TArray<int32> TradeXp;
 	/**
-	 * Progressão veio do nw-core (personagem salvo): vale o nível mínimo de ofício dos coletáveis
-	 * (RequiredTradeskillLevel). No Play do editor, sem backend, fica livre para testar.
+	 * Progression came from nw-core (saved character): the gatherables' minimum trade skill level applies
+	 * (RequiredTradeskillLevel). In the editor's Play, without backend, it is free for testing.
 	 */
 	UPROPERTY(Replicated) bool bFromBackend = false;
-	/** Nível de ofício que falta para coletar (0 = pode). */
+	/** Trade skill level missing to gather (0 = can). */
 	int32 MissingTradeLevel(FName Tradeskill, int32 Required) const;
 
-	/** Nível do ofício pela tabela do jogo (javelindata_tradeskill<ofício>, InfluenceCost acumulado). */
+	/** Trade skill level from the game's table (javelindata_tradeskill<tradeskill>, accumulated InfluenceCost). */
 	int32 TradeLevel(int32 Skill) const;
 	int32 TradeMaxLevel(int32 Skill) const;
-	/** 0..1 do nível do ofício até o próximo. */
+	/** 0..1 of the trade skill level toward the next. */
 	float TradeProgress(int32 Skill) const;
-	/** Bônus de velocidade de coleta do nível (GatheringEfficiency: 0,05 por nível no começo). */
+	/** Gathering speed bonus of the level (GatheringEfficiency: 0.05 per level at the start). */
 	float TradeEfficiency(int32 Skill) const;
-	/** Bônus no dado do saque do nível (RollBonus: +10 por nível). */
+	/** Loot die bonus of the level (RollBonus: +10 per level). */
 	int32 TradeRollBonus(int32 Skill) const;
-	/** Servidor: XP de ofício da coleta (CategoricalProgressionReward do evento do coletável). */
+	/** Server: gathering trade skill XP (CategoricalProgressionReward of the gatherable's event). */
 	void AddTradeXp(FName Tradeskill, int32 Amount);
-	/** XP que falta para o próximo nível do ofício (menu de dev). */
+	/** XP missing to the next trade skill level (dev menu). */
 	int32 TradeXpToNext(int32 Skill) const;
 	UFUNCTION(Client, Reliable) void ClientTradeXpGained(uint8 Skill, int32 Amount, int32 NewLevel);
 
 	int32 MaxLevel() const;
-	/** XP total para chegar ao nível (1 = 0). */
+	/** Total XP to reach the level (1 = 0). */
 	static int64 XpForLevel(int32 InLevel);
-	/** 0..1 do nível atual até o próximo (1 no nível máximo). */
+	/** 0..1 from the current level toward the next (1 at max level). */
 	float LevelProgress() const;
 	int32 Attribute(ENWAttribute A) const;
-	/** Pontos ganhos até o nível atual menos os distribuídos. */
+	/** Points gained up to the current level minus the spent ones. */
 	int32 UnspentPoints() const;
-	/** Vida extra da constituição (coluna Health da tabela do jogo). */
+	/** Extra health from constitution (Health column of the game's table). */
 	float ConstitutionHealth() const;
 
-	// ---- servidor
-	/** Estado salvo no nw-core (FNWCharacterRecord::Progression). */
+	// ---- server
+	/** State saved in nw-core (FNWCharacterRecord::Progression). */
 	void Load(const TSharedPtr<class FJsonObject>& Json);
 	TSharedRef<class FJsonObject> Save() const;
-	/** Soma XP e sobe de nível pela tabela; avisa o dono. */
+	/** Adds XP and levels up through the table; notifies the owner. */
 	void AddXp(int64 Amount);
 
-	// ---- dono -> servidor
+	// ---- owner -> server
 	UFUNCTION(Server, Reliable) void ServerSpendPoint(ENWAttribute A);
-	/** Vários pontos de uma vez (aba Atributos: Confirmar), na ordem FOR, DES, INT, FOC, CON. */
+	/** Several points at once (Attributes tab: Confirm), in the order FOR, DES, INT, FOC, CON. */
 	UFUNCTION(Server, Reliable) void ServerSpendPoints(const TArray<int32>& Points);
 
 	UFUNCTION(Client, Reliable) void ClientXpGained(int64 Amount, int32 NewLevel);
 
-	// ---- tutoriais de nível (esteira 4, tools/tutorials.json; docs/game/city.md)
-	/** Progresso de cada missão (índice do tools/tutorials.json); -1 = concluída. Só o dono recebe. */
+	// ---- level tutorials (area 4, tools/tutorials.json; docs/game/city.md)
+	/** Progress of each quest (index into tools/tutorials.json); -1 = completed. Only the owner receives it. */
 	UPROPERTY(Replicated) TArray<int32> TutorialCount;
-	/** Receitas já confeccionadas (bônus de primeira confecção; salvo em progression.crafted). Só o dono recebe. */
+	/** Recipes already crafted (first-craft bonus; saved in progression.crafted). Only the owner receives it. */
 	UPROPERTY(Replicated) TArray<FName> Crafted;
 	bool HasCrafted(FName Recipe) const { return Crafted.Contains(Recipe); }
 	void MarkCrafted(FName Recipe);
-	/** Cidades conhecidas (id da cidade, ex. queda_eterna; salvo em progression.cities): cada uma soma capacidade ao
-	 *  armazém compartilhado. Só o dono recebe. */
+	/** Known cities (city id, e.g. queda_eterna; saved in progression.cities): each one adds capacity to the
+	 *  shared Storage. Only the owner receives it. */
 	UPROPERTY(Replicated) TArray<FString> Cities;
-	/** Servidor: marca a cidade como conhecida; true se é nova. */
+	/** Server: marks the city as known; true if it is new. */
 	bool DiscoverCity(const FString& City);
-	/** Compras da semana nas lojas (limite semanal; salvo em progression.shop). Período = FNWNpcRewards::Period. */
+	/** Weekly shop purchases (weekly limit; saved in progression.shop). Period = FNWNpcRewards::Period. */
 	UPROPERTY(Replicated) FString ShopPeriod;
 	UPROPERTY(Replicated) TArray<FName> ShopBoughtIds;
 	UPROPERTY(Replicated) TArray<int32> ShopBoughtQty;
 	int32 ShopBought(FName Item, const FString& Period) const;
-	/** Bônus de GS do artesão (mínimo, máximo) no nível atual do ofício para um item do tier (2..5). */
+	/** Crafter GS bonus (min, max) at the current trade skill level for an item of the tier (2..5). */
 	FIntPoint TradeGsBonus(int32 Skill, int32 ItemTier) const;
 	void AddShopBought(FName Item, int32 Quantity, const FString& Period);
 	int32 TutorialNum() const;

@@ -1,13 +1,13 @@
-"""Converte uma tela LyShine do jogo (.dynamicuicanvas em JSON do `nwbt unpack --x-objects json`) em layout plano.
+"""Converts a game LyShine screen (.dynamicuicanvas as JSON from `nwbt unpack --x-objects json`) into a flat layout.
 
-    python3 tools/ui_canvas.py <tela.dynamicuicanvas.json> <saida.json> [--preview prévia.png] [--tex <dir das texturas png>]
+    python3 tools/ui_canvas.py <screen.dynamicuicanvas.json> <output.json> [--preview preview.png] [--tex <png dir>]
 
-Saída: elementos em ordem de desenho, cada um com retângulo absoluto na tela de referência (canvassize, 1920x1080),
-imagem (textura, cor, tipo, preenchimento, bordas do 9-slice), texto, opacidade e visibilidade.
+Output: elements in draw order, each with an absolute rectangle on the reference screen (canvassize, 1920x1080),
+image (texture, color, type, fill, 9-slice borders), text, opacity and visibility.
 
-Regras do LyShine (UiTransform2dComponent): no espaço do pai,
-    esquerda = pai.esq + ancora.esq * largura_pai + desloc.esq   (idem direita/cima/baixo)
-Pivô, rotação e escala giram/escalam em torno do pivô; aqui só a escala entra no retângulo (rotação fica anotada).
+LyShine rules (UiTransform2dComponent): in the parent's space,
+    left = parent.left + anchor.left * parent_width + offset.left   (same for right/top/bottom)
+Pivot, rotation and scale rotate/scale around the pivot; here only scale goes into the rectangle (rotation is noted).
 """
 import argparse
 import json
@@ -30,7 +30,7 @@ def walk(o):
 
 
 def as_list(v):
-    """O JSON do nwbt grava lista de um item só como o próprio objeto."""
+    """nwbt JSON writes a single-item list as the object itself."""
     if v is None:
         return []
     return v if isinstance(v, list) else [v]
@@ -46,7 +46,7 @@ def find(ent, type_name):
 
 
 def sprite_borders(tex_dir, texture):
-    """Linhas do 9-slice no .sprite ao lado da textura: frações 0..1 a partir da esquerda/topo."""
+    """9-slice lines in the .sprite next to the texture: fractions 0..1 from the left/top."""
     if not tex_dir or not texture:
         return None
     path = os.path.join(tex_dir, os.path.splitext(texture)[0] + ".sprite")
@@ -67,11 +67,11 @@ def main():
     ap.add_argument("canvas")
     ap.add_argument("out")
     ap.add_argument("--preview")
-    ap.add_argument("--tex", help="pasta onde as texturas foram extraídas em png (mesma árvore do pak)")
-    ap.add_argument("--keep", default="", help="caminhos (separados por vírgula) cujas subárvores ficam; o resto sai (os ancestrais ficam)")
-    ap.add_argument("--enable", default="", help="nomes de elementos forçados a ligado (o Lua liga em jogo)")
+    ap.add_argument("--tex", help="folder where the textures were extracted as png (same tree as the pak)")
+    ap.add_argument("--keep", default="", help="paths (comma-separated) whose subtrees are kept; the rest is dropped (ancestors are kept)")
+    ap.add_argument("--enable", default="", help="element names forced on (the Lua enables them in game)")
     ap.add_argument("--exclude", default="HudLayoutElementDraggable",
-                    help="nomes (separados por vírgula) cujas subárvores ficam de fora (ex.: alças do modo de edição)")
+                    help="names (comma-separated) whose subtrees are left out (e.g. edit-mode handles)")
     a = ap.parse_args()
 
     d = json.load(open(a.canvas))
@@ -81,8 +81,8 @@ def main():
         cw, ch = canvas["canvassize"]
         roots = [str(canvas["rootelement"]["id"])]
     else:
-        # Slice de tela (.dynamicslice, ex.: banners): sem canvas; tela de referência 1920x1080 e raiz = elemento que
-        # não é filho de nenhum outro.
+        # Screen slice (.dynamicslice, e.g. banners): no canvas; reference screen 1920x1080 and root = element that
+        # is no other element's child.
         cw, ch = 1920, 1080
         children = {str(k["childentityid"]["id"]) for o in walk(d) if isinstance(o, dict) and "childentityid" in o
                     for k in [o]}
@@ -130,14 +130,14 @@ def main():
         item = {"id": eid, "name": ent.get("name"), "path": path, "depth": depth, "parent": parent_index,
                 "rect": [round(l, 2), round(t, 2), round(r, 2), round(b, 2)],
                 "rotation": rot, "alpha": round(alpha, 4), "visible": visible,
-                # Para refazer o layout em outra resolução (C++): valores locais do elemento.
+                # To redo the layout at another resolution (C++): the element's local values.
                 "anchors": [an["left"], an["top"], an["right"], an["bottom"]] if tr else [0, 0, 1, 1],
                 "offsets": [of["left"], of["top"], of["right"], of["bottom"]] if tr else [0, 0, 0, 0],
                 "pivot": tr.get("pivot", [0.5, 0.5]) if tr else [0.5, 0.5], "scale": [sx, sy] if tr else [1, 1],
                 "fade": fader["fade"] if fader else 1.0, "enabled": on}
         mask = find(ent, "UiMaskComponent")
         if mask and mask.get("enablemasking", True):
-            # Máscara: recorta os filhos; a imagem dela só aparece com drawbehind/drawinfront.
+            # Mask: clips the children; its image only shows with drawbehind/drawinfront.
             item["mask"] = True
             item["mask_draw"] = bool(mask.get("drawbehind") or mask.get("drawinfront"))
         img = find(ent, "UiImageComponent")
@@ -146,7 +146,7 @@ def main():
             item["image"] = {
                 "texture": tex, "color": img.get("color"), "alpha": img.get("alpha", 1),
                 "type": IMAGE_TYPES.get(img.get("imagetype", 0), "stretched"),
-                "blend": img.get("blendmode", 0),  # 0 normal, 1 aditiva, 2 screen, 3 escurecer, 4 clarear
+                "blend": img.get("blendmode", 0),  # 0 normal, 1 additive, 2 screen, 3 darken, 4 lighten
                 "fill": FILL_TYPES.get(img.get("filltype", 0), "none"), "fill_amount": img.get("fillamount", 1),
                 "fill_start_angle": img.get("fillstartangle", 0), "fill_clockwise": img.get("fillclockwise", True),
                 "fill_edge_origin": img.get("filledgeorigin", 0), "fill_center": img.get("fillcenter", True),
@@ -154,7 +154,7 @@ def main():
             }
         fitter = find(ent, "UiLayoutFitterComponent")
         if fitter and fitter.get("horizontalfit"):
-            item["fit_w"] = True   # largura = a do texto (UiLayoutFitter); filhos ancorados na borda acompanham
+            item["fit_w"] = True   # width = the text's (UiLayoutFitter); children anchored to the edge follow
         txt = find(ent, "UiTextComponent")
         if txt:
             item["text"] = {"text": txt.get("text", ""), "font": (txt.get("fontfilename") or {}).get("baseclass1", {}).get("assetpath", ""),
@@ -172,21 +172,21 @@ def main():
             kids = sorted(as_list((el.get("childentityidorder") or {}).get("element")), key=lambda k: int(k.get("sortindex", 0)))
             for k in kids:
                 visit(str(k["childentityid"]["id"]), (l, t, r, b), depth + 1, alpha, visible, path, my_index)
-        # Índice do último descendente (para recortar a subárvore de uma máscara).
+        # Index of the last descendant (to clip a mask's subtree).
         out[my_index]["end"] = len(out) - 1
 
     for root in roots:
         visit(root, (0, 0, cw, ch), 0, 1.0, True)
     json.dump({"canvas": a.canvas, "size": [cw, ch], "elements": out}, open(a.out, "w"), indent=1)
     textures = sorted({e["image"]["texture"] for e in out if e.get("image") and e["image"]["texture"]})
-    print(f"{len(out)} elementos, {len(textures)} texturas, tela {cw}x{ch}")
+    print(f"{len(out)} elements, {len(textures)} textures, screen {cw}x{ch}")
 
     if a.preview:
         preview(out, (cw, ch), a.tex, a.preview)
 
 
 def nine_slice(src, w, h, b):
-    """Cantos no tamanho original da textura, bordas e centro esticados."""
+    """Corners at the texture's original size, edges and center stretched."""
     from PIL import Image
     sw, sh = src.size
     xs = [0, int(b["left"] * sw), int(b["right"] * sw), sw]
@@ -221,7 +221,7 @@ def preview(elements, size, tex_dir, path, background=None):
             cache[p] = Image.open(f).convert("RGBA") if tex_dir and os.path.exists(f) else None
         return cache[p]
 
-    clips = []  # (fim da subárvore, retângulo)
+    clips = []  # (end of subtree, rectangle)
     for i, e in enumerate(elements):
         while clips and i > clips[-1][0]:
             clips.pop()
@@ -261,7 +261,7 @@ def preview(elements, size, tex_dir, path, background=None):
                 mask = Image.new("L", (w, h), 0); ImageDraw.Draw(mask).rectangle([0, 0, cut, h], fill=255)
                 tile.putalpha(Image.composite(tile.getchannel("A"), mask, mask))
             if im.get("blend") == 1:
-                # Aditiva: soma a cor (com o alfa como peso) ao que já está desenhado.
+                # Additive: adds the color (weighted by alpha) to what is already drawn.
                 from PIL import ImageChops
                 x0, y0 = int(round(l)), int(round(t))
                 region = img.crop((x0, y0, x0 + w, y0 + h)).convert("RGB")
@@ -281,7 +281,7 @@ def preview(elements, size, tex_dir, path, background=None):
             col = tuple(int(c * 255) for c in (tx.get("color") or [1, 1, 1])[:3])
             draw.text((l + 2, t + (b - t) / 2 - 6), tx["text"][:40], fill=col)
     img.save(path)
-    print("prévia:", path)
+    print("preview:", path)
 
 
 if __name__ == "__main__":

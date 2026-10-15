@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""IA das criaturas como no jogo: árvore de comportamento do Server.pak + perfil do slice → Data/AI/<conjunto>.json.
+"""Creature AI as in the game: behavior tree from Server.pak + slice profile → Data/AI/<set>.json.
 
     python3 tools/make_ai.py
 
-Fontes (docs/game/creatures-ai.md, docs/tech/reverse-engineering.md):
-- árvore: extract/serverpak/json/sharedassets/ai/behaviortrees/**/<x>_base.behaviortree.json (nwbt --x-objects json);
-  TreeReference já traz a subárvore embutida;
-- slice da criatura: extract/serverpak/client/slices/characters/<x>.dynamicslice.json — BehaviorTreeComponent (árvore,
-  replanejamento), BlackboardComponent (m_configparams: leash, velocidades), PerceptionComponent (visão ambiente e de
-  combate, aggro de grupo), PathingComponent (NavConfiguration por tipo: velocidade, giro, chegada), AITargetSelector
-  (perfil de alvo: default_melee, passive...).
+Sources (docs/game/creatures-ai.md, docs/tech/reverse-engineering.md):
+- tree: extract/serverpak/json/sharedassets/ai/behaviortrees/**/<x>_base.behaviortree.json (nwbt --x-objects json);
+  TreeReference already carries the embedded subtree;
+- creature slice: extract/serverpak/client/slices/characters/<x>.dynamicslice.json — BehaviorTreeComponent (tree,
+  replanning), BlackboardComponent (m_configparams: leash, speeds), PerceptionComponent (ambient and combat vision,
+  group aggro), PathingComponent (NavConfiguration per type: speed, turn, arrival), AITargetSelector
+  (targeting profile: default_melee, passive...).
 
-Saída por conjunto:
-  {"profile": {...}, "tasks": {tarefa CAGE: {...}}, "tree": nó}
-  nó = {"t": tipo, "n": nome, "u": utilidade?, "ni": true se não interrompível, "p": {parâmetros}, "c": [filhos]}
-  parâmetro de blackboard = "$Chave"; grupo de condições = {"or": bool, "c": [[esq, op, dir], ...]} com operandos
-  {"k": chave} ou {"v": valor}; op do jogo: 1 ==, 2 !=, 3 <, 4 >, 5 <=, 6 >=.
-Interpretado por UNWBehaviorTreeComponent (C++).
+Output per set:
+  {"profile": {...}, "tasks": {CAGE task: {...}}, "tree": node}
+  node = {"t": type, "n": name, "u": utility?, "ni": true if not interruptible, "p": {parameters}, "c": [children]}
+  blackboard parameter = "$Key"; condition group = {"or": bool, "c": [[left, op, right], ...]} with operands
+  {"k": key} or {"v": value}; game op: 1 ==, 2 !=, 3 <, 4 >, 5 <=, 6 >=.
+Interpreted by UNWBehaviorTreeComponent (C++).
 
-As tarefas CAGE viram ações do port pela tabela TASKS (montagem da criatura) ou comportamentos genéricos (esperar,
-virar para o alvo, levantar-se do atordoamento).
+CAGE tasks become port actions through the TASKS table (creature montage) or generic behaviors (wait,
+turn to the target, get up from a stun).
 """
 import json
 import os
@@ -30,15 +30,15 @@ BT = os.path.join(ROOT, "extract", "serverpak", "json")
 SLICES = os.path.join(ROOT, "extract", "serverpak", "client", "slices", "characters")
 OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "AI")
 
-# conjunto do port -> slice da criatura (a árvore sai do BehaviorTreeComponent do slice)
+# port set -> creature slice (the tree comes from the slice's BehaviorTreeComponent)
 CREATURES = {"wolf": "wolf_grey", "boar": "boar"}
-# Tag de variante do Mannequin que o actionlist do jogo marca no spawn (não está no TagComponent do slice): a árvore do
-# lobo escolhe o combate pelo tipo (Grey/Timber/White). Lobos timber do port usam o combate do cinza por enquanto.
+# Mannequin variant tag the game's actionlist sets on spawn (not in the slice's TagComponent): the wolf tree
+# picks combat by type (Grey/Timber/White). The port's timber wolves use the grey one's combat for now.
 VARIANT_TAGS = {"wolf": ["Grey"]}
 
-# Tarefa CAGE -> o que o port faz. action = linha da tabela de ações da criatura; wait = espera (s, min-max);
-# turn = vira para o alvo; stun = espera sair do atordoamento; tag = tag do Mannequin que o actionlist marca ao
-# terminar (Alert marca "Alerted", que libera a árvore de combate).
+# CAGE task -> what the port does. action = row of the creature's action table; wait = wait (s, min-max);
+# turn = turn to the target; stun = wait until the stun ends; tag = Mannequin tag the actionlist sets when it
+# finishes (Alert sets "Alerted", which unlocks the combat tree).
 TASKS = {
     "wolf": {
         "Bite_CAGE_Task": {"action": "Attack1"}, "Bite_Combo_CAGE_Task": {"action": "Attack2"},
@@ -55,7 +55,7 @@ TASKS = {
         "Alert_CAGE_Task": {"action": "Aggro", "tag": "Alerted"}, "Combat_Turn_CAGE_Task": {"turn": True},
     },
 }
-# Comuns a todos: idle e fidget esperam; atordoamento espera o combate; reset/despawn voltam para casa.
+# Common to all: idle and fidget wait; stun waits for combat; reset/despawn return home.
 COMMON_TASKS = {
     "Idle_CAGE_Task": {"wait": [2, 4]}, "Fidget_CAGE_Task": {"wait": [1, 2]}, "Combat_Idle_CAGE_Task": {"wait": [0.5, 1.0]},
     "Combat_Fidget_CAGE_Task": {"wait": [0.5, 1.0]}, "Reset_Idle_CAGE_Task": {"wait": [0.5, 1.0]},
@@ -87,7 +87,7 @@ def group(g):
 
 
 def flat(o, pre="", out=None):
-    """Parâmetros não padrão do nó, achatados com ponto (selectpositionparams.rangemax...)."""
+    """Non-default node parameters, flattened with dots (selectpositionparams.rangemax...)."""
     out = {} if out is None else out
     if not isinstance(o, dict):
         return out
@@ -169,7 +169,7 @@ def find(o, t, out):
 
 
 def profile(slice_json):
-    """Perfil do slice: visão, aggro de grupo, alvo, replanejamento, blackboard inicial, navegação por tipo."""
+    """Slice profile: vision, group aggro, targeting, replanning, initial blackboard, navigation per type."""
     p = {}
     perc = find(slice_json, "PerceptionComponentServerFacet", [])
     if perc:
@@ -199,7 +199,7 @@ def profile(slice_json):
     for c in (nav[0]["m_navigationprofile"]["m_navconfigs"]["element"] if nav else []):
         p["nav"][c["m_navconfigtype"]] = {"max": c.get("m_maxspeed"), "min": c.get("m_minspeed"), "turn": c.get("m_turnratedegs"),
                                          "arrive": c.get("m_arrivalthreshold"), "repath": c.get("m_targetrepathdistance"),
-                                         # destino padrão do tipo (nó sem SelectPositionParams próprios)
+                                         # default destination of the type (node without its own SelectPositionParams)
                                          "select": flat(c.get("m_selectpositionparams", {}))}
     return p
 
@@ -211,7 +211,7 @@ def main():
         prof = profile(sl)
         tree_path = os.path.join(BT, prof["tree"].lower() + ".json")
         tree = node(json.load(open(tree_path))["root"])
-        # Tags do personagem (TagComponent do slice, CRC32 do nome em minúsculas): resolve pelos nomes que a árvore testa.
+        # Character tags (slice TagComponent, CRC32 of the lowercase name): resolved by the names the tree tests.
         used = set()
 
         def tags_of(x):
@@ -234,7 +234,7 @@ def main():
             for c in x.get("c", []):
                 count(c)
         count(tree)
-        print(f"{set_name}: {n[0]} nós, tags {prof['tags']}, alvo {prof.get('targeting')}, visão {prof.get('ambient_vision')}"
+        print(f"{set_name}: {n[0]} nodes, tags {prof['tags']}, target {prof.get('targeting')}, vision {prof.get('ambient_vision')}"
               f" / {prof.get('combat_vision')}, nav {sorted(prof['nav'])}")
 
 

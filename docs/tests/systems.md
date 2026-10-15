@@ -101,7 +101,7 @@ Testing with the backend: [tech/backend-testing.md](../tech/backend-testing.md).
 
 ## Play with backend
 
-61. With `tools/linux/backend_dev.sh` running, Play: the log says "Play com backend: Exilado (editor)". Pick up items, walk, stop Play and Play again: same bag, same levels and same position. With nw-core stopped, "Playing without backend" shows and Play continues with the starting kit.
+61. With `tools/linux/backend_dev.sh` running, Play: the log says "Playing with backend: Exilado (editor)". Pick up items, walk, stop Play and Play again: same bag, same levels and same position. With nw-core stopped, "Playing without backend" shows and Play continues with the starting kit.
 
 ## Crafting screen
 

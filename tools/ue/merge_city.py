@@ -1,9 +1,9 @@
-"""Junta as peças soltas da cidade (import antigo, sem pasta) em componentes instanciados e tira os atores vazios.
+"""Merges the city's loose pieces (old import, no folder) into instanced components and removes the empty actors.
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/merge_city.py"
 
-Põe os StaticMeshActor sem pasta (menos terreno e chão de segurança) em "Cidade/Construcoes", junta com
-UNWEditorTools.MergeFolderToInstances e remove os atores vazios da hierarquia do glb (luzes e o resto ficam).
+Puts the StaticMeshActors without a folder (except terrain and safety floor) in "Cidade/Construcoes", merges them with
+UNWEditorTools.MergeFolderToInstances and removes the empty actors of the glb hierarchy (lights and the rest stay).
 """
 import time
 
@@ -28,6 +28,6 @@ empty = [a for a in eas.get_all_level_actors() if type(a) is unreal.Actor and no
          and not a.get_components_by_class(unreal.PrimitiveComponent)]
 eas.destroy_actors(empty)
 if not les.save_current_level():
-    raise RuntimeError("não consegui salvar o mapa")
-unreal.log_warning(f"CIDADE juntada: {moved} peças → {merged} juntadas, {len(empty)} vazios removidos, "
-                   f"{len(eas.get_all_level_actors())} atores no mapa, {time.time() - t0:.0f}s")
+    raise RuntimeError("could not save the map")
+unreal.log_warning(f"CITY merged: {moved} pieces → {merged} merged, {len(empty)} empty removed, "
+                   f"{len(eas.get_all_level_actors())} actors on the map, {time.time() - t0:.0f}s")

@@ -16,7 +16,7 @@
 
 namespace
 {
-	// Árvore do JSON para a lista de nós (índice = id do nó no estado de execução).
+	// Tree from the JSON to the node list (index = node id in the execution state).
 	int32 Flatten(const TSharedPtr<FJsonObject>& J, TArray<FNWBTNode>& Out)
 	{
 		const int32 Index = Out.AddDefaulted();
@@ -117,7 +117,7 @@ bool UNWBehaviorTreeComponent::Start(FName Set, const FVector& Home, const TArra
 	SetName = Set;
 	HomePos = Home;
 	Path = Waypoints;
-	// Blackboard inicial: m_configparams do slice + o que o servidor do jogo preencheria no spawn.
+	// Initial blackboard: m_configparams from the slice + what the game server would fill in on spawn.
 	for (const auto& Pair : Asset->Profile->GetObjectField(TEXT("blackboard"))->Values)
 	{
 		FNWBBValue& B = BB.FindOrAdd(FName(*Pair.Key));
@@ -128,7 +128,7 @@ bool UNWBehaviorTreeComponent::Start(FName Set, const FVector& Home, const TArra
 		B.Num = JsonNumber(Pair.Value);
 	}
 	SetVec(TEXT("Spawn_Pos"), Home);
-	// Tags do personagem (TagComponent do slice): variante do bicho (Grey...), que a árvore testa.
+	// Character tags (slice TagComponent): creature variant (Grey...), which the tree tests.
 	const TArray<TSharedPtr<FJsonValue>>* InitTags = nullptr;
 	if (Asset->Profile->TryGetArrayField(TEXT("tags"), InitTags))
 	{
@@ -138,7 +138,7 @@ bool UNWBehaviorTreeComponent::Start(FName Set, const FVector& Home, const TArra
 	{
 		SetVec(TEXT("Waypoint_Pos"), Path[0]);
 	}
-	SetNum(TEXT("Difficulty_Tier"), 2.0);   // sem fonte do valor por mob: 2 = médio (libera bote e combos)
+	SetNum(TEXT("Difficulty_Tier"), 2.0);   // no per-mob source for the value: 2 = medium (enables pounce and combos)
 	SetNum(TEXT("DoesLeash"), 1.0);
 	SetNum(TEXT("Leash_Opt_Out"), 0.0);
 	SetNum(TEXT("Enable_Wander"), Path.Num() ? 0.0 : 1.0);
@@ -151,7 +151,7 @@ bool UNWBehaviorTreeComponent::Start(FName Set, const FVector& Home, const TArra
 	return true;
 }
 
-// ---------------------------------------------------------------- parâmetros e condições
+// ---------------------------------------------------------------- parameters and conditions
 
 double UNWBehaviorTreeComponent::Operand(const TSharedPtr<FJsonObject>& O, bool bDistance) const
 {
@@ -165,7 +165,7 @@ double UNWBehaviorTreeComponent::Operand(const TSharedPtr<FJsonObject>& O, bool 
 		}
 		if (B->bVec)
 		{
-			// Chave de posição numa condição: distância (m) até ela.
+			// Position key in a condition: distance (m) to it.
 			return FVector::Dist(GetOwner()->GetActorLocation(), B->Vec) / 100.0;
 		}
 		return B->Num;
@@ -190,7 +190,7 @@ bool UNWBehaviorTreeComponent::CheckGroup(const FNWBTNode& N, const TCHAR* Group
 	const TArray<TSharedPtr<FJsonValue>>* Conds = nullptr;
 	if (!(*G)->TryGetArrayField(TEXT("c"), Conds) || Conds->Num() == 0)
 	{
-		return true;   // grupo vazio passa
+		return true;   // empty group passes
 	}
 	const bool bDist = N.Type == TEXT("DistanceCondition");
 	for (const TSharedPtr<FJsonValue>& C : *Conds)
@@ -201,7 +201,7 @@ bool UNWBehaviorTreeComponent::CheckGroup(const FNWBTNode& N, const TCHAR* Group
 		const TSharedPtr<FJsonValue> RV = T[2]->AsObject()->TryGetField(TEXT("v"));
 		if (RV.IsValid() && RV->Type == EJson::Boolean && T[0]->AsObject()->TryGetStringField(TEXT("k"), LeftKey))
 		{
-			// "Last_Damage_Pos == True": a chave existe (posição) ou é verdadeira (número).
+			// "Last_Damage_Pos == True": the key exists (position) or is true (number).
 			const FNWBBValue* B = BB.Find(FName(*LeftKey));
 			L = B && (B->bVec || B->Num != 0.0) ? 1.0 : 0.0;
 		}
@@ -283,8 +283,8 @@ double UNWBehaviorTreeComponent::NumIn(const TSharedPtr<FJsonObject>& Obj, const
 
 bool UNWBehaviorTreeComponent::SelectPosition(const TSharedPtr<FJsonObject>& Params, const FString& Px, FVector& Out) const
 {
-	// SelectPositionParams do jogo: ponto a [rangemin, rangemax] m da origem, num arco [startangle, stopangle] em
-	// volta da direção origem→âncora (0), âncora→origem (1) ou da orientação da origem (2).
+	// Game's SelectPositionParams: point at [rangemin, rangemax] m from the origin, in an arc [startangle, stopangle]
+	// around the direction origin→anchor (0), anchor→origin (1) or the origin's facing (2).
 	auto F = [&](const TCHAR* Key, double Def) { return NumIn(Params, Px + Key, Def); };
 	const int32 OriginType = int32(F(TEXT("origin.positiontype"), 0));
 	const int32 AnchorType = int32(F(TEXT("anchor.positiontype"), 0));
@@ -317,7 +317,7 @@ bool UNWBehaviorTreeComponent::SelectPosition(const TSharedPtr<FJsonObject>& Par
 	return true;
 }
 
-// ---------------------------------------------------------------- recargas
+// ---------------------------------------------------------------- cooldowns
 
 bool UNWBehaviorTreeComponent::CooldownActive(FName Name) const
 {
@@ -328,12 +328,12 @@ bool UNWBehaviorTreeComponent::CooldownActive(FName Name) const
 void UNWBehaviorTreeComponent::StartCooldown(const FNWBTNode& N)
 {
 	const FName Name(*Str(N, TEXT("cooldownname")));
-	// Sem tempo (SetCooldownAction "ResetAttackCooldown"): zera a recarga.
+	// No time (SetCooldownAction "ResetAttackCooldown"): clears the cooldown.
 	const double T = FMath::FRandRange(Num(N, TEXT("timemin"), 0.0), FMath::Max(Num(N, TEXT("timemin"), 0.0), Num(N, TEXT("timemax"), 0.0)));
 	const double End = GetWorld()->GetTimeSeconds() + T;
 	double& Cur = Cooldowns.FindOrAdd(Name);
 	const bool bActive = Cur > GetWorld()->GetTimeSeconds();
-	// Override do jogo: 0 sempre, 1 nunca (mantém a ativa), 2 a mais longa, 3 a mais curta.
+	// Game override: 0 always, 1 never (keeps the active one), 2 the longest, 3 the shortest.
 	switch (int32(Num(N, TEXT("override"), 0)))
 	{
 	case 1: if (!bActive) Cur = End; break;
@@ -343,7 +343,7 @@ void UNWBehaviorTreeComponent::StartCooldown(const FNWBTNode& N)
 	}
 }
 
-// ---------------------------------------------------------------- planejar
+// ---------------------------------------------------------------- plan
 
 TSharedPtr<UNWBehaviorTreeComponent::FPlan> UNWBehaviorTreeComponent::Evaluate(int32 Index)
 {
@@ -414,7 +414,7 @@ TSharedPtr<UNWBehaviorTreeComponent::FPlan> UNWBehaviorTreeComponent::Evaluate(i
 		{
 			return nullptr;
 		}
-		// Mantém a escolha anterior enquanto ela ainda avaliar (AlwaysPreserveExecutingPlan).
+		// Keeps the previous choice while it still evaluates (AlwaysPreserveExecutingPlan).
 		TSharedPtr<FPlan> Pick;
 		if (Bool(N, TEXT("alwayspreserveexecutingplan"), false) || Bool(N, TEXT("preserveexecutingplanifnochange"), false))
 		{
@@ -430,7 +430,7 @@ TSharedPtr<UNWBehaviorTreeComponent::FPlan> UNWBehaviorTreeComponent::Evaluate(i
 		{
 			if (int32(Num(N, TEXT("selectionmethod"), 0)) == 1)
 			{
-				// Sorteio proporcional à utilidade entre os candidatos (o lobo usa N = todos).
+				// Draw weighted by utility among the candidates (the wolf uses N = all).
 				float Total = 0.f;
 				for (const TSharedPtr<FPlan>& K : Cands) Total += FMath::Max(K->Utility, 1e-4f);
 				float Roll = FMath::FRandRange(0.f, Total);
@@ -452,7 +452,7 @@ TSharedPtr<UNWBehaviorTreeComponent::FPlan> UNWBehaviorTreeComponent::Evaluate(i
 		P->Utility = FMath::Max(N.Utility, Pick->Utility);
 		return P;
 	}
-	// Condições (decoradores com grupo de entrada).
+	// Conditions (decorators with an entry group).
 	if (T == TEXT("BlackboardCondition") || T == TEXT("DistanceCondition"))
 	{
 		return CheckGroup(N, TEXT("entry"), true) && FirstChild() != INDEX_NONE ? WithChild(FirstChild()) : nullptr;
@@ -469,7 +469,7 @@ TSharedPtr<UNWBehaviorTreeComponent::FPlan> UNWBehaviorTreeComponent::Evaluate(i
 	}
 	if (T == TEXT("MannequinTagCondition"))
 	{
-		// Tags: atordoado vem do combate; as outras, das tarefas e do SetMannequinTag (Alerted, ChainAttack...).
+		// Tags: stunned comes from combat; the others from tasks and SetMannequinTag (Alerted, ChainAttack...).
 		const ANWCharacter* Me = Cast<ANWCharacter>(GetOwner());
 		const FName Tag(*Str(N, TEXT("tag")));
 		const bool bTag = Tag == TEXT("Stunned") ? Me && Me->Combat->State == ENWCombatState::Stunned : Tags.Contains(Tag);
@@ -497,17 +497,17 @@ TSharedPtr<UNWBehaviorTreeComponent::FPlan> UNWBehaviorTreeComponent::Evaluate(i
 	}
 	if (N.Children.Num() > 0)
 	{
-		// Decoradores sem condição: Timer, StatusEffectDecorator, SetMannequinTag, TreeReference, Decorator.
+		// Decorators without a condition: Timer, StatusEffectDecorator, SetMannequinTag, TreeReference, Decorator.
 		return WithChild(FirstChild());
 	}
-	// Folhas.
+	// Leaves.
 	if (T == TEXT("CAGEAction"))
 	{
 		const FString Task = Str(N, TEXT("actionname"));
 		const TSharedPtr<FJsonObject>* Map = nullptr;
 		if (Asset->Tasks->TryGetObjectField(Task, Map) && (*Map)->HasField(TEXT("action")))
 		{
-			// Ataque precisa de alvo (ação com alvo de ação no jogo).
+			// Attack needs a target (action with an action target in the game).
 			return Target.IsValid() ? P : nullptr;
 		}
 		return P;
@@ -535,7 +535,7 @@ void UNWBehaviorTreeComponent::Signature(const FPlan& Plan, TArray<int32>& Out) 
 
 bool UNWBehaviorTreeComponent::RunningPathNonInterruptable(const FPlan& Plan) const
 {
-	// Algum nó começado (em execução) no caminho atual é não interrompível?
+	// Is any started (running) node on the current path non-interruptible?
 	if (!Plan.bStarted)
 	{
 		return false;
@@ -554,7 +554,7 @@ bool UNWBehaviorTreeComponent::RunningPathNonInterruptable(const FPlan& Plan) co
 	return false;
 }
 
-// ---------------------------------------------------------------- executar
+// ---------------------------------------------------------------- execute
 
 void UNWBehaviorTreeComponent::Abort(FPlan& Plan)
 {
@@ -567,7 +567,7 @@ void UNWBehaviorTreeComponent::Abort(FPlan& Plan)
 		Abort(*K);
 	}
 	const FNWBTNode& N = Asset->Nodes[Plan.Node];
-	// Recarga começa também quando o filho é abortado.
+	// Cooldown also starts when the child is aborted.
 	if (N.Type == TEXT("CooldownDecorator"))
 	{
 		StartCooldown(N);
@@ -611,7 +611,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::Execute(FPlan& Plan,
 	}
 	if (T == TEXT("BlackboardCondition") || T == TEXT("DistanceCondition"))
 	{
-		// Continuação falhou: termina com sucesso; interrupção falhou: falha.
+		// Continuation failed: ends with success; interruption failed: fails.
 		if (!bFirst && HasGroup(N, TEXT("continuation")) && !CheckGroup(N, TEXT("continuation"), true))
 		{
 			for (const TSharedPtr<FPlan>& K : Plan.Kids) Abort(*K);
@@ -654,7 +654,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::Execute(FPlan& Plan,
 			return Bool(N, TEXT("succeedontimeout"), true) ? EStatus::Success : EStatus::Failure;
 		}
 		const EStatus S = Child();
-		// Folha que já acabou antes do tempo (ex.: espera curta) repete até o Timer encerrar.
+		// Leaf that finished early (e.g. a short wait) repeats until the Timer ends.
 		if (S == EStatus::Success && Plan.Kids.Num() && Asset->Nodes[Plan.Kids[0]->Node].Children.Num() == 0)
 		{
 			Plan.Kids[0]->bStarted = false;
@@ -668,7 +668,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::Execute(FPlan& Plan,
 		const bool bReset = Id.StartsWith(TEXT("ResetAI"));
 		if (bFirst && bReset)
 		{
-			// Volta para casa: larga o alvo; ResetAI recupera a vida ao terminar.
+			// Return home: drops the target; ResetAI restores health when it ends.
 			bResetting = true;
 			Target.Reset();
 		}
@@ -690,7 +690,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::Execute(FPlan& Plan,
 	}
 	if (T == TEXT("SetMannequinTag"))
 	{
-		// Tag ligada enquanto o filho roda (ChainAttack encadeia as mordidas no jogo).
+		// Tag on while the child runs (ChainAttack chains the bites in the game).
 		const FName Tag(*Str(N, TEXT("tag")));
 		Tags.Add(Tag);
 		const EStatus S = Child();
@@ -702,7 +702,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::Execute(FPlan& Plan,
 	}
 	if (N.Children.Num() > 0)
 	{
-		// Selector, UtilitySelector, TreeReference, SetMannequinTag, condições sem grupo de execução...
+		// Selector, UtilitySelector, TreeReference, SetMannequinTag, conditions without an execution group...
 		return Child();
 	}
 	return ExecuteLeaf(Plan, N, Dt);
@@ -759,7 +759,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::ExecuteLeaf(FPlan& P
 		const int32 Origin = int32(Num(N, TEXT("selectpositionparams.origin.positiontype"), 1));
 		auto Pick = [&]()
 		{
-			// Parâmetros do nó ou, sem eles, os do tipo de navegação no slice (ex.: 1–2 m do alvo, arco de 120°).
+			// Node parameters or, without them, the slice's navigation type ones (e.g. 1–2 m from the target, 120° arc).
 			const TSharedPtr<FJsonObject>* Default = nullptr;
 			if (bSel)
 			{
@@ -778,12 +778,12 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::ExecuteLeaf(FPlan& P
 		if (Elapsed <= 0.0)
 		{
 			Pick();
-			// Desiste se não chegar a tempo (GiveUpBehavior 2 = falha).
+			// Gives up if it does not arrive in time (GiveUpBehavior 2 = failure).
 			Plan.Duration = 2.0 + 2.0 * FVector::Dist2D(Me->GetActorLocation(), Plan.Dest) / FMath::Max(Speed, 50.0);
 		}
 		else if ((Origin == 1 || Origin == 12) && Target.IsValid() && FVector::Dist2D(Target->GetActorLocation(), Plan.LastTargetPos) > Repath)
 		{
-			Pick();   // o alvo andou mais que TargetRepathDistance: recalcula o destino
+			Pick();   // the target moved more than TargetRepathDistance: recomputes the destination
 		}
 		if (FVector::Dist2D(Me->GetActorLocation(), Plan.Dest) <= FMath::Max(Arrive, 30.0))
 		{
@@ -802,7 +802,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::ExecuteLeaf(FPlan& P
 		const FString Task = Str(N, TEXT("actionname"));
 		if (Elapsed <= 0.0)
 		{
-			SetNum(FName(*(TEXT("CAGE_") + Task)), 1.0);   // a árvore testa isso com VariableExistsCondition
+			SetNum(FName(*(TEXT("CAGE_") + Task)), 1.0);   // the tree tests this with VariableExistsCondition
 		}
 		const TSharedPtr<FJsonObject>* MapPtr = nullptr;
 		const TSharedPtr<FJsonObject> Map = Asset->Tasks->TryGetObjectField(Task, MapPtr) ? *MapPtr : nullptr;
@@ -812,7 +812,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::ExecuteLeaf(FPlan& P
 			UNWCombatComponent* C = Me->Combat;
 			if (!Plan.bActionRequested)
 			{
-				// Vira para o alvo e pede o golpe; se o combate estiver ocupado, tenta de novo até 1 s.
+				// Turns to the target and requests the hit; if combat is busy, retries for up to 1 s.
 				FaceTarget(1080.f, Dt * 4.f);
 				const int32 Before = C->GetActionSerial();
 				C->RequestAction(FName(*Action));
@@ -830,7 +830,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::ExecuteLeaf(FPlan& P
 			Map->TryGetBoolField(TEXT("advance"), bAdvance);
 			if (bAdvance && C->IsBusy())
 			{
-				// Investida: continua avançando enquanto a montagem toca.
+				// Charge: keeps moving forward while the montage plays.
 				Me->RunSpeed = 700.f;
 				Me->AddMovementInput(Me->GetActorForwardVector(), 1.f);
 			}
@@ -854,7 +854,7 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::ExecuteLeaf(FPlan& P
 		const TArray<TSharedPtr<FJsonValue>>* Step = nullptr;
 		if (Map && Map->TryGetArrayField(TEXT("step"), Step))
 		{
-			// Esquiva sem animação própria no conjunto: passo rápido (0,35 s) para trás/lado.
+			// Dodge without its own animation in the set: quick step (0.35 s) back/sideways.
 			const FVector Local((*Step)[0]->AsNumber(), (*Step)[1]->AsNumber(), 0.0);
 			Me->RunSpeed = 600.f;
 			Me->AddMovementInput(Me->GetActorTransform().TransformVectorNoScale(Local), 1.f);
@@ -877,13 +877,13 @@ UNWBehaviorTreeComponent::EStatus UNWBehaviorTreeComponent::ExecuteLeaf(FPlan& P
 			}
 			return Elapsed >= Plan.Duration ? EStatus::Success : EStatus::Running;
 		}
-		// Tarefa sem equivalente no port (ex.: movimento CAGE solto): espera curta.
+		// Task with no equivalent in the port (e.g. loose CAGE movement): short wait.
 		return Elapsed > 0.3 ? EStatus::Success : EStatus::Running;
 	}
-	return EStatus::Success;   // LockTargetSelection e outras folhas sem efeito no port
+	return EStatus::Success;   // LockTargetSelection and other leaves with no effect in the port
 }
 
-// ---------------------------------------------------------------- movimento
+// ---------------------------------------------------------------- movement
 
 void UNWBehaviorTreeComponent::FaceTarget(float TurnRate, float Dt)
 {
@@ -938,7 +938,7 @@ void UNWBehaviorTreeComponent::Aggro(ANWCharacter* Who)
 	{
 		return;
 	}
-	// Aggro de grupo (PerceptionComponent: distância e limite de quantos).
+	// Group aggro (PerceptionComponent: distance and limit on how many).
 	const TArray<TSharedPtr<FJsonValue>>* G = nullptr;
 	if (!Asset->Profile->TryGetArrayField(TEXT("group_aggro"), G) || G->Num() < 2)
 	{
@@ -962,7 +962,7 @@ void UNWBehaviorTreeComponent::Aggro(ANWCharacter* Who)
 
 ANWCharacter* UNWBehaviorTreeComponent::LookForTarget() const
 {
-	// Perfil passivo (javali): só briga se apanhar ou se o grupo brigar.
+	// Passive profile (boar): only fights if hit or if the group fights.
 	FString Targeting;
 	Asset->Profile->TryGetStringField(TEXT("targeting"), Targeting);
 	if (Targeting == TEXT("passive"))
@@ -984,7 +984,7 @@ ANWCharacter* UNWBehaviorTreeComponent::LookForTarget() const
 	{
 		return nullptr;
 	}
-	// Só os jogadores perto (grade), não o mundo inteiro (docs/tech/architecture.md, regra 1).
+	// Only nearby players (grid), not the whole world (docs/tech/architecture.md, rule 1).
 	Grid->ForEachNear(Self->GetActorLocation(), Dist, [&](ANWCharacter* It)
 	{
 		if (It->Combat->State == ENWCombatState::Dead)
@@ -1002,7 +1002,7 @@ ANWCharacter* UNWBehaviorTreeComponent::LookForTarget() const
 		P.AddIgnoredActor(It);
 		if (GetWorld()->LineTraceSingleByChannel(Hit, Self->GetActorLocation() + FVector(0, 0, 50), It->GetActorLocation() + FVector(0, 0, 50), ECC_Visibility, P))
 		{
-			return;   // sem linha de visão
+			return;   // no line of sight
 		}
 		BestD = D;
 		Best = It;
@@ -1049,16 +1049,16 @@ void UNWBehaviorTreeComponent::UpdateSensor(float Dt)
 	const FVector To = T->GetActorLocation() - Self->GetActorLocation();
 	SetVec(TEXT("Target_Pos"), T->GetActorLocation());
 	SetNum(TEXT("Target_Dist"), To.Size() / 100.0);
-	// Ângulo até o alvo em graus, positivo com o alvo à esquerda (Target_Angle do jogo).
+	// Angle to the target in degrees, positive with the target on the left (game's Target_Angle).
 	const float Yaw = FRotator::NormalizeAxis(To.Rotation().Yaw - Self->GetActorRotation().Yaw);
 	SetNum(TEXT("Target_Angle"), -Yaw);
-	// Diferença entre a frente do alvo e a minha (alvo de costas para mim = perto de 0).
+	// Difference between the target's front and mine (target with its back to me = near 0).
 	SetNum(TEXT("Orientation_Delta"), FRotator::NormalizeAxis(T->GetActorRotation().Yaw - Self->GetActorRotation().Yaw));
 	SetNum(TEXT("Target_Vitals_State"), 4.0);
 	SetNum(TEXT("Target_Reachable"), 1.0);
 	SetNum(TEXT("Target_Directly_Reachable"), 1.0);
 	SetNum(TEXT("Time_Since_Target_Reachable"), 0.0);
-	// Visão de combate: perde o alvo depois de 15 s fora dela (LastKnownPosition do jogo).
+	// Combat vision: loses the target after 15 s outside it (game's LastKnownPosition).
 	const TArray<TSharedPtr<FJsonValue>>* V = nullptr;
 	const float CombatDist = Asset->Profile->TryGetArrayField(TEXT("combat_vision"), V) && V->Num() > 1 ? float((*V)[1]->AsNumber()) * 100.f : 3000.f;
 	const bool bVisible = To.Size() <= CombatDist;
@@ -1074,7 +1074,7 @@ void UNWBehaviorTreeComponent::UpdateSensor(float Dt)
 	}
 }
 
-// ---------------------------------------------------------------- laço
+// ---------------------------------------------------------------- loop
 
 void UNWBehaviorTreeComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -1086,13 +1086,13 @@ void UNWBehaviorTreeComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	}
 	UpdateSensor(DeltaTime);
 	const double Now = GetWorld()->GetTimeSeconds();
-	// Reagindo a golpe (atordoado): o plano espera; a reação é do combate.
+	// Reacting to a hit (stunned): the plan waits; the reaction belongs to combat.
 	if (Me->Combat->State == ENWCombatState::Stunned)
 	{
 		return;
 	}
 
-	// Replanejar: a cada replan_seconds, quando muda uma chave observada ou quando o plano acabou.
+	// Replan: every replan_seconds, when an observed key changes or when the plan has ended.
 	double ReplanEvery = 1.0;
 	Asset->Profile->TryGetNumberField(TEXT("replan_seconds"), ReplanEvery);
 	bool bChanged = false;

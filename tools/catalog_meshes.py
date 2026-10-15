@@ -1,11 +1,11 @@
-"""Hash da geometria de cada malha dos glb de cenário, para o catálogo único (tools/ue/catalog.py).
+"""Geometry hash of each mesh in the scenery glb files, for the single catalog (tools/ue/catalog.py).
 
-    python3 tools/catalog_meshes.py [glb...]   # sem argumentos: extract/cities/chunks/*.glb e extract/cities/limpa/*.glb
+    python3 tools/catalog_meshes.py [glb...]   # no arguments: extract/cities/chunks/*.glb and extract/cities/limpa/*.glb
 
-Saída: extract/ue/catalogo_malhas.json = {stem do glb: [[hash, extensão xyz, nome do nó], ...] na ordem das malhas do glb}.
-O Interchange nomeia a malha i do glb como <stem>_mesh_<i>; a extensão confere o casamento com a malha importada.
-Hash = atributos (POSITION, NORMAL, TEXCOORD...) + índices de cada primitiva, na ordem. Materiais ficam de fora:
-a Unreal compara os slots depois de juntar os materiais.
+Output: extract/ue/catalogo_malhas.json = {glb stem: [[hash, xyz extent, node name], ...] in the glb's mesh order}.
+Interchange names mesh i of the glb <stem>_mesh_<i>; the extent confirms the match with the imported mesh.
+Hash = attributes (POSITION, NORMAL, TEXCOORD...) + indices of each primitive, in order. Materials are left out:
+Unreal compares the slots after merging the materials.
 """
 import glob
 import hashlib
@@ -62,13 +62,13 @@ def main():
     for p in paths:
         stem = os.path.splitext(os.path.basename(p))[0]
         data[stem] = meshes(p)
-        print(f"{stem}: {len(data[stem])} malhas", file=sys.stderr)
+        print(f"{stem}: {len(data[stem])} meshes", file=sys.stderr)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(data, f)
     total = sum(len(v) for v in data.values())
     uniq = len({m[0] for v in data.values() for m in v})
-    print(f"{OUT}: {total} malhas em {len(data)} glb, {uniq} geometrias distintas")
+    print(f"{OUT}: {total} meshes in {len(data)} glb, {uniq} distinct geometries")
 
 
 if __name__ == "__main__":

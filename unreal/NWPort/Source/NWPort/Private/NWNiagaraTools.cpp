@@ -25,18 +25,18 @@ FString UNWNiagaraTools::ProbeNiagara(const FString& PackagePath, const FString&
 	UNiagaraEmitter* Template = LoadObject<UNiagaraEmitter>(nullptr, *TemplatePath);
 	if (!Template)
 	{
-		return TEXT("modelo não encontrado: ") + TemplatePath;
+		return TEXT("template not found: ") + TemplatePath;
 	}
 	UPackage* Package = CreatePackage(*PackagePath);
 	const FName Name(*FPackageName::GetShortName(PackagePath));
 	UNiagaraSystem* System = NewObject<UNiagaraSystem>(Package, Name, RF_Public | RF_Standalone | RF_Transactional);
 	UNiagaraSystemFactoryNew::InitializeSystem(System, true);
 	FNiagaraEditorUtilities::AddEmitterToSystem(*System, *Template, Template->GetExposedVersion().VersionGuid);
-	Log += FString::Printf(TEXT("emissores: %d\n"), System->GetEmitterHandles().Num());
+	Log += FString::Printf(TEXT("emitters: %d\n"), System->GetEmitterHandles().Num());
 	for (const FNiagaraEmitterHandle& H : System->GetEmitterHandles())
 	{
 		FVersionedNiagaraEmitterData* Data = H.GetEmitterData();
-		Log += FString::Printf(TEXT("emissor %s\n"), *H.GetUniqueInstanceName());
+		Log += FString::Printf(TEXT("emitter %s\n"), *H.GetUniqueInstanceName());
 		if (!Data)
 		{
 			continue;
@@ -47,12 +47,12 @@ FString UNWNiagaraTools::ProbeNiagara(const FString& PackagePath, const FString&
 			{
 				if (const UNiagaraNodeFunctionCall* Call = Cast<UNiagaraNodeFunctionCall>(Node))
 				{
-					Log += FString::Printf(TEXT("  módulo %s (%s)\n"), *Call->GetFunctionName(),
+					Log += FString::Printf(TEXT("  module %s (%s)\n"), *Call->GetFunctionName(),
 						Call->FunctionScript ? *Call->FunctionScript->GetPathName() : TEXT("-"));
 				}
 			}
 		}
-		// Curvas: o DataInterface dos nós de entrada (classe não exportada; propriedade por reflexão).
+		// Curves: the DataInterface of the input nodes (class not exported; property via reflection).
 		if (UNiagaraScriptSource* Source = Cast<UNiagaraScriptSource>(Data->GraphSource))
 		{
 			for (UEdGraphNode* Node : Source->NodeGraph->Nodes)
@@ -61,7 +61,7 @@ FString UNWNiagaraTools::ProbeNiagara(const FString& PackagePath, const FString&
 				UObject* DI = Prop ? Prop->GetObjectPropertyValue_InContainer(Node) : nullptr;
 				if (UNiagaraDataInterfaceCurve* Curve = Cast<UNiagaraDataInterfaceCurve>(DI))
 				{
-					Log += FString::Printf(TEXT("  curva %s: %d chaves -> 0:1, 1:0\n"), *Node->GetName(), Curve->Curve.GetNumKeys());
+					Log += FString::Printf(TEXT("  curve %s: %d keys -> 0:1, 1:0\n"), *Node->GetName(), Curve->Curve.GetNumKeys());
 					Curve->Modify();
 					Curve->Curve.Reset();
 					Curve->Curve.AddKey(0.f, 1.f);
@@ -105,10 +105,10 @@ FString UNWNiagaraTools::ProbeNiagara(const FString& PackagePath, const FString&
 	Args.TopLevelFlags = RF_Public | RF_Standalone;
 	const FString File = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
 	const bool bSaved = UPackage::SavePackage(Package, System, *File, Args);
-	Log += FString::Printf(TEXT("salvo: %s %s\n"), bSaved ? TEXT("sim") : TEXT("NÃO"), *File);
+	Log += FString::Printf(TEXT("saved: %s %s\n"), bSaved ? TEXT("yes") : TEXT("NO"), *File);
 	return Log;
 #else
-	return TEXT("só no editor");
+	return TEXT("editor only");
 #endif
 }
 
@@ -160,7 +160,7 @@ namespace NWNiagara
 		return Out;
 	}
 
-	// Grava a constante no parâmetro de iteração rápida com o tipo dele.
+	// Writes the constant to the rapid iteration parameter, with its type.
 	static bool SetConstant(FNiagaraParameterStore& Store, const FNiagaraVariable& P, const TArray<double>& V)
 	{
 		const FNiagaraTypeDefinition& T = P.GetType();
@@ -189,7 +189,7 @@ namespace NWNiagara
 		}
 	}
 
-	// Nós de entrada com interface de dados ligados a uma chamada de função com esse nome, em ordem do grafo.
+	// Input nodes with a data interface linked to a function call with this name, in graph order.
 	static TArray<UNiagaraDataInterface*> CurvesOf(UNiagaraGraph* G, const FString& Function)
 	{
 		TArray<UNiagaraDataInterface*> Out;
@@ -201,7 +201,7 @@ namespace NWNiagara
 			{
 				continue;
 			}
-			// A curva liga no módulo por um nó de override (ParameterMapSet): segue até duas ligações.
+			// The curve links to the module through an override node (ParameterMapSet): follows up to two links.
 			bool bMatch = Function == TEXT("*");
 			for (UEdGraphPin* Pin : Node->Pins)
 			{
@@ -240,7 +240,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 	{
 		return TEXT("receita inválida");
 	}
-	// Refazer: carrega o pacote inteiro (salvar pacote parcial derruba o editor) e tira o sistema antigo do caminho.
+	// Redo: loads the whole package (saving a partial package crashes the editor) and moves the old system out of the way.
 	UPackage* Package = FPackageName::DoesPackageExist(PackagePath) ? LoadPackage(nullptr, *PackagePath, LOAD_None) : nullptr;
 	if (Package)
 	{
@@ -286,7 +286,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 		const FString EName = H->GetUniqueInstanceName();
 		Built.Add({Id, E, EName});
 		Log += TEXT("emissor ") + EName + TEXT("\n");
-		// Módulos a desligar.
+		// Modules to disable.
 		const TArray<TSharedPtr<FJsonValue>>* Disable;
 		if (E->TryGetArrayField(TEXT("disable"), Disable))
 		{
@@ -305,7 +305,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 				}
 			}
 		}
-		// Módulos a acrescentar.
+		// Modules to add.
 		const TArray<TSharedPtr<FJsonValue>>* Add;
 		if (E->TryGetArrayField(TEXT("add"), Add))
 		{
@@ -325,7 +325,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 				}
 			}
 		}
-		// Parâmetros de partícula direto (Particles.DecalSize...).
+		// Particle parameters directly (Particles.DecalSize...).
 		const TArray<TSharedPtr<FJsonValue>>* Params;
 		if (E->TryGetArrayField(TEXT("params"), Params))
 		{
@@ -345,7 +345,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 				}
 			}
 		}
-		// Renderizador.
+		// Renderer.
 		const TSharedPtr<FJsonObject>* R;
 		if (E->TryGetObjectField(TEXT("renderer"), R))
 		{
@@ -368,7 +368,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 						FString Align;
 						if ((*R)->TryGetStringField(TEXT("alignment"), Align) && Align == TEXT("velocity"))
 						{
-							// OrientToVelocity/Facing=Shape do jogo: o sprite deita na direção do movimento (risco).
+							// The game's OrientToVelocity/Facing=Shape: the sprite lies along the direction of motion (streak).
 							S->Alignment = ENiagaraSpriteAlignment::VelocityAligned;
 						}
 					}
@@ -405,7 +405,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 			Log += TEXT("  renderizador ") + Kind + TEXT(" ") + (Mat ? Mat->GetName() : FString(TEXT("(sem material)"))) + TEXT("\n");
 		}
 	}
-	// Compila uma vez para os módulos novos criarem as entradas; depois as constantes e as curvas.
+	// Compiles once so the new modules create their inputs; then the constants and the curves.
 	System->RequestCompile(false);
 	System->WaitForCompilationComplete(true, false);
 	for (const FBuilt& B : Built)
@@ -421,7 +421,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 		{
 			TArray<UNiagaraScript*> Scripts;
 			Data->GetScripts(Scripts, false);
-			// Módulos de emissor (EmitterState, SpawnRate, SpawnBurst) rodam compilados nos scripts do sistema: grava lá também.
+			// Emitter modules (EmitterState, SpawnRate, SpawnBurst) run compiled in the system scripts: writes there too.
 			Scripts.Add(System->GetSystemSpawnScript());
 			Scripts.Add(System->GetSystemUpdateScript());
 			for (const auto& KV : (*Consts)->Values)
@@ -447,7 +447,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 				Log += FString::Printf(TEXT("  %s %s\n"), bSet ? TEXT("=") : TEXT("? (não achado)"), *FString(*KV.Key));
 				if (!bSet)
 				{
-					// Lista as entradas do módulo, para acertar o nome na receita.
+					// Lists the module's inputs, to fix the name in the recipe.
 					FString Module;
 					FString(*KV.Key).Split(TEXT("."), &Module, nullptr);
 					for (UNiagaraScript* Script : Scripts)
@@ -510,7 +510,7 @@ FString UNWNiagaraTools::BuildEffect(const FString& SpecJson, const FString& Pac
 			}
 		}
 	}
-	// Estado do sistema (SystemState): constantes "system_constants" da receita, com a lista do que existe no relatório.
+	// System state (SystemState): the recipe's "system_constants" constants, with the list of what exists in the report.
 	const TSharedPtr<FJsonObject>* SysConsts = nullptr;
 	Spec->TryGetObjectField(TEXT("system_constants"), SysConsts);
 	for (UNiagaraScript* Script : {System->GetSystemSpawnScript(), System->GetSystemUpdateScript()})

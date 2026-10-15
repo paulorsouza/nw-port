@@ -1,12 +1,12 @@
-"""Deixa o L_SouthWindsward mais leve sem tirar nada do lugar.
+"""Makes L_SouthWindsward lighter without moving anything.
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/optimize_region.py"
 
-- Componentes instanciados do cenário (atores Instancias_* das pastas Regiao/*): distância de desenho pelo tamanho
-  da malha (pequenos somem antes) e, nos pequenos, sem sombra e fora da iluminação global (Lumen).
-- Luzes importadas dos arquivos do jogo: sem sombra (centenas de luzes com sombra dinâmica derrubam o quadro) e
-  com alcance limitado.
-- Registra no log quantos atores há por classe.
+- Instanced scenery components (Instancias_* actors in the Regiao/* folders): draw distance by mesh size (small
+  ones disappear first) and, for the small ones, no shadow and out of global illumination (Lumen).
+- Lights imported from the game files: no shadow (hundreds of lights with dynamic shadows tank the frame rate) and
+  limited range.
+- Logs how many actors there are per class.
 """
 import collections
 import time
@@ -19,9 +19,9 @@ les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 t0 = time.time()
 les.load_level(MAP)
 actors = eas.get_all_level_actors()
-unreal.log_warning("OTIMIZAR classes: " + str(collections.Counter(type(a).__name__ for a in actors).most_common(12)))
+unreal.log_warning("OPTIMIZE classes: " + str(collections.Counter(type(a).__name__ for a in actors).most_common(12)))
 
-# Distância de desenho (cm) pelo raio da malha.
+# Draw distance (cm) by mesh radius.
 def cull_for(radius):
     if radius < 60:
         return 6000
@@ -29,7 +29,7 @@ def cull_for(radius):
         return 15000
     if radius < 600:
         return 40000
-    return 0  # grandes (penhascos, ruínas) sempre
+    return 0  # large ones (cliffs, ruins) always
 
 
 ism = small = 0
@@ -60,6 +60,6 @@ for a in actors:
         lights += 1
 
 if not les.save_current_level():
-    raise RuntimeError("não consegui salvar o mapa")
-unreal.log_warning(f"OTIMIZAR {ism} componentes instanciados ({small} pequenos sem sombra/Lumen), {lights} luzes sem sombra, "
-                   f"{len(actors)} atores, {time.time() - t0:.0f}s")
+    raise RuntimeError("could not save the map")
+unreal.log_warning(f"OPTIMIZE {ism} instanced components ({small} small without shadow/Lumen), {lights} lights without shadow, "
+                   f"{len(actors)} actors, {time.time() - t0:.0f}s")

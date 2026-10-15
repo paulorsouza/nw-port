@@ -6,13 +6,13 @@
 class ANWCharacter;
 
 /**
- * Teclas registradas por cada esteira no próprio arquivo (docs/workflow.md), sem mexer no ANWCharacter nem no
- * FNWOptions. Entram na aba Atalhos (trocáveis) e são ligadas no SetupPlayerInputComponent do personagem.
+ * Keys registered by each area in its own file (docs/workflow.md), without touching ANWCharacter or
+ * FNWOptions. They go into the Shortcuts tab (rebindable) and are bound in the character's SetupPlayerInputComponent.
  *
  *     NW_REGISTER_INPUT(MountSummon, TEXT("MountSummon"), TEXT("ui_mount_summon"), EKeys::T,
  *         [](ANWCharacter* C) { C->Mount->Summon(); });
  *
- * O id é o da tecla nas opções; o rótulo é uma chave de texto (tools/strings/<esteira>.json ou do jogo).
+ * The id is the key's id in the options; the label is a text key (tools/strings/<area>.json or from the game).
  */
 struct NWPORT_API FNWInputBinding
 {

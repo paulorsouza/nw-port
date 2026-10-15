@@ -1,5 +1,5 @@
 {
-  "_comment": "Esteira 1 (armas): armas do jogador, locomoção por arma, golpes, habilidades, reações. Junta-se ao sword_shield.json (tools/setspec.py).",
+  "_comment": "Area 1 (weapons): player weapons, locomotion per weapon, attacks, abilities, reactions. Merged with sword_shield.json (tools/setspec.py).",
   "weapons": {
     "sword": {
       "file": "objects/weapons/melee/swords/1h/cutlassa/wep_me1h_sw_cutlassa_t5.cgf",

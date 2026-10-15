@@ -1,4 +1,4 @@
-// Cria as funções listadas (uma por linha, 0x...) e grava o C descompilado de cada uma.
+// Creates the listed functions (one per line, 0x...) and writes the decompiled C of each one.
 import ghidra.app.script.GhidraScript;
 import ghidra.app.decompiler.*;
 import ghidra.app.cmd.disassemble.DisassembleCommand;
@@ -29,14 +29,14 @@ public class RangeDecompile extends GhidraScript {
                 f = createFunction(addr, null);
             }
             out.println("//==== " + s);
-            if (f == null) { out.println("// sem funcao"); continue; }
+            if (f == null) { out.println("// no function"); continue; }
             DecompileResults r = d.decompileFunction(f, 60, monitor);
             if (r != null && r.decompileCompleted()) out.println(r.getDecompiledFunction().getC());
-            else out.println("// falhou: " + (r == null ? "null" : r.getErrorMessage()));
-            if (++n % 200 == 0) { out.flush(); println("progresso " + n + "/" + lines.size()); }
+            else out.println("// failed: " + (r == null ? "null" : r.getErrorMessage()));
+            if (++n % 200 == 0) { out.flush(); println("progress " + n + "/" + lines.size()); }
         }
         out.close();
         d.dispose();
-        println("fim " + n);
+        println("done " + n);
     }
 }

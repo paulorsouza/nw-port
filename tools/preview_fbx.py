@@ -1,5 +1,5 @@
-# blender -b -P tools/preview_fbx.py -- extract/ue/<conjunto>/manifest.json <pasta_saida> <A_nome>...
-# Confere os FBX exportados: SK + armas nos sockets + cada animação, folha de 5 quadros por animação.
+# blender -b -P tools/preview_fbx.py -- extract/ue/<set>/manifest.json <out_dir> <A_name>...
+# Checks the exported FBX: SK + weapons on the sockets + each animation, 5-frame contact sheet per animation.
 import json
 import math
 import os
@@ -51,8 +51,8 @@ for asset in wanted:
     src = next(o for o in set(scene.objects) - before if o.type == "ARMATURE")
     src.hide_render = True
     act = src.animation_data.action
-    # O FBX só de animação volta com outro repouso (sem bind pose); copiar a pose em espaço
-    # de mundo, osso a osso, mostra o que os valores absolutos do arquivo descrevem.
+    # The animation-only FBX comes back with another rest pose (no bind pose); copying the pose in world
+    # space, bone by bone, shows what the file's absolute values describe.
     for pb in arm.pose.bones:
         for c in list(pb.constraints):
             pb.constraints.remove(c)

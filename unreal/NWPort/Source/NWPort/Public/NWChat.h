@@ -8,9 +8,9 @@ class SWidget;
 class UCanvas;
 
 /**
- * Chat no canto inferior esquerdo, no visual do chat do jogo (lyshineui/hud/chat: fundo 0,04 a 80%, moldura de
- * 1 px cinza, divisória). Enter abre o campo, Enter envia, Esc cancela. Fechado, mostra as últimas mensagens por
- * 15 s; aberto, as últimas 30.
+ * Chat in the lower-left corner, in the look of the game chat (lyshineui/hud/chat: background 0.04 at 80%, 1 px gray
+ * frame, divider). Enter opens the field, Enter sends, Esc cancels. Closed, shows the last messages for
+ * 15 s; open, the last 30.
  */
 class NWPORT_API FNWChat
 {
@@ -21,7 +21,7 @@ public:
 	void Close();
 	bool IsOpen() const { return bOpen; }
 
-	// Usados pelo campo de texto (Slate).
+	// Used by the text field (Slate).
 	FBox2f InputRect() const { return InputPixels; }
 	float FontPixels() const { return 20.f * UIScale; }
 	void Submit(const FString& Text);

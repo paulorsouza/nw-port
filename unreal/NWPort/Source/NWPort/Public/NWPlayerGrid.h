@@ -7,12 +7,12 @@
 class ANWCharacter;
 
 /**
- * Jogadores perto de um ponto sem varrer o mundo (docs/tech/architecture.md, regra 1).
+ * Players near a point without scanning the world (docs/tech/architecture.md, rule 1).
  *
- * Grade uniforme (células de CellSize) com os personagens que contam como jogador (ANWCharacter::IsPlayerLike: com
- * conexão ou simulado do teste de carga), refeita a cada RebuildSeconds com uma passada só pelos personagens. Quem
- * precisa de "jogadores a menos de R" (visão das criaturas, spawn, aggro) consulta só as células em volta.
- * Pode estar até RebuildSeconds atrasada: quem consulta confere a distância de novo.
+ * Uniform grid (cells of CellSize) with the characters that count as players (ANWCharacter::IsPlayerLike: with a
+ * connection or simulated by the load test), rebuilt every RebuildSeconds with a single pass over the characters. Whoever
+ * needs "players closer than R" (creature sight, spawn, aggro) queries only the surrounding cells.
+ * It may be up to RebuildSeconds behind: whoever queries checks the distance again.
  */
 UCLASS()
 class NWPORT_API UNWPlayerGrid : public UWorldSubsystem
@@ -24,9 +24,9 @@ public:
 	static constexpr float RebuildSeconds = 0.25f;
 
 	static UNWPlayerGrid* Get(const UWorld* World);
-	/** Chama Fn para cada jogador vivo ou morto a menos de Radius (2D) de At. */
+	/** Calls Fn for each player, alive or dead, closer than Radius (2D) to At. */
 	void ForEachNear(const FVector& At, float Radius, TFunctionRef<void(ANWCharacter*)> Fn);
-	/** Todos os jogadores (posição da última reconstrução). */
+	/** All players (position from the last rebuild). */
 	const TArray<TWeakObjectPtr<ANWCharacter>>& All() { Refresh(); return Players; }
 
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;

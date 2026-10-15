@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Desmonta um .luac do New World (Lua 5.1, 2 bytes de prefixo antes de "\\x1bLua") em texto legível.
+"""Disassembles a New World .luac (Lua 5.1, 2 prefix bytes before "\\x1bLua") into readable text.
 
-    python3 tools/luac_dump.py extract/ui/luac/lyshineui/markers/staticworldmarker.luac [filtro]
+    python3 tools/luac_dump.py extract/ui/luac/lyshineui/markers/staticworldmarker.luac [filter]
 
-Mostra cada função (linha de definição), as constantes e as instruções com os operandos resolvidos (K = constante,
-R = registrador), no estilo do `luac -l -l`. Com filtro, só as funções que citam o texto. O nwbt converte .luac com
-um decompilador externo (cLuaDecompiler) que não está na máquina; isto basta para ler regras e números.
+Shows each function (definition line), the constants and the instructions with resolved operands (K = constant,
+R = register), in the style of `luac -l -l`. With a filter, only the functions that mention the text. nwbt converts
+.luac with an external decompiler (cLuaDecompiler) that is not on the machine; this is enough to read rules and numbers.
 """
 import struct
 import sys
@@ -57,7 +57,7 @@ def function(r):
         elif t == 4:
             consts.append(r.string())
         else:
-            raise SystemExit(f"constante de tipo {t} desconhecido")
+            raise SystemExit(f"constant of unknown type {t}")
     f["consts"] = consts
     f["protos"] = [function(r) for _ in range(r.int())]
     f["lines"] = [r.int() for _ in range(r.int())]
@@ -94,7 +94,7 @@ def dump(f, depth, flt, out):
         lines.append(f"  [{line:4}] {op:9} {arg}")
     text = "\n".join(lines)
     if not flt or flt.lower() in text.lower():
-        out.append(f"{'  ' * depth}function linha {f['line']}-{f['last']} ({f['params']} params)")
+        out.append(f"{'  ' * depth}function line {f['line']}-{f['last']} ({f['params']} params)")
         out.append(text)
     for p in f["protos"]:
         dump(p, depth + 1, flt, out)
@@ -104,7 +104,7 @@ def main():
     data = open(sys.argv[1], "rb").read()
     data = data[data.index(b"\x1bLua"):]
     r = Reader(data)
-    r.take(12)  # cabeçalho: assinatura, versão 0x51, formato, endian, int, size_t, instrução, número, integral
+    r.take(12)  # header: signature, version 0x51, format, endian, int, size_t, instruction, number, integral
     out = []
     dump(function(r), 0, sys.argv[2] if len(sys.argv) > 2 else "", out)
     print("\n".join(out))

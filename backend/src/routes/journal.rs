@@ -1,9 +1,9 @@
-//! Ordem das gravações e log de itens (migration 0011).
+//! Save ordering and item log (migration 0011).
 //!
-//! - `WriteSeq`: sessão e número da gravação que o servidor de jogo manda em toda escrita de bolsa, moedas ou
-//!   armazém. `claim` só deixa passar a sessão atual com `seq` maior que o último (409 `stale_write`; o mesmo `seq` de
-//!   novo é 409 `duplicate_write`, que o servidor trata como já gravado).
-//! - `item_log`: uma linha por diferença de item ou de moedas, na mesma transação da gravação.
+//! - `WriteSeq`: session and save number that the game server sends on every write of bag, coins or
+//!   Storage. `claim` only lets through the current session with a `seq` greater than the last one (409 `stale_write`;
+//!   the same `seq` again is 409 `duplicate_write`, which the server treats as already saved).
+//! - `item_log`: one row per item or coin difference, in the same transaction as the save.
 
 use std::collections::HashMap;
 
@@ -18,7 +18,7 @@ use crate::auth::GameServer;
 use crate::error::{ApiError, ApiResult};
 use crate::AppState;
 
-/// Sessão e número da gravação, mais o motivo para o log.
+/// Session and save number, plus the reason for the log.
 #[derive(Deserialize, Debug, Clone, Default)]
 pub struct WriteSeq {
     pub session: Option<i64>,
@@ -27,7 +27,7 @@ pub struct WriteSeq {
     pub reason: Option<String>,
 }
 
-/// Quem gravou, para as linhas do log.
+/// Who saved, for the log rows.
 #[derive(Debug, Clone)]
 pub(crate) struct Ctx {
     pub character_id: Uuid,
@@ -37,7 +37,7 @@ pub(crate) struct Ctx {
 }
 
 impl Ctx {
-    /// Ação do próprio nw-core (entrega do mercado, devolução): sem sessão.
+    /// Action by nw-core itself (market delivery, refund): no session.
     pub(crate) fn core(character_id: Uuid, reason: &str) -> Self {
         Self { character_id, session: None, seq: None, reason: reason.to_string() }
     }
@@ -45,7 +45,7 @@ impl Ctx {
 
 const MAX_REASON: usize = 80;
 
-/// Confere e reserva o `seq` da gravação (trava a linha do personagem até o fim da transação).
+/// Checks and reserves the save's `seq` (locks the character row until the end of the transaction).
 pub(crate) async fn claim(tx: &mut sqlx::PgConnection, character_id: Uuid, w: &WriteSeq) -> ApiResult<Ctx> {
     let (Some(session), Some(seq)) = (w.session, w.seq) else {
         return Err(ApiError::bad_request("missing_seq", "Gravação sem sessão e número."));
@@ -73,7 +73,7 @@ pub(crate) async fn claim(tx: &mut sqlx::PgConnection, character_id: Uuid, w: &W
     Ok(Ctx { character_id, session: Some(session), seq: Some(seq), reason })
 }
 
-/// Abre uma sessão nova (resgate do passe); devolve o número dela.
+/// Opens a new session (ticket redeem); returns its number.
 pub(crate) async fn new_session(tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<i64> {
     let (session,): (i64,) = sqlx::query_as("update characters set session = session + 1, save_seq = 0 where id = $1 returning session")
         .bind(character_id)
@@ -82,7 +82,7 @@ pub(crate) async fn new_session(tx: &mut sqlx::PgConnection, character_id: Uuid)
     Ok(session)
 }
 
-/// Uma linha do log.
+/// One log row.
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn log(
     tx: &mut sqlx::PgConnection,
@@ -116,7 +116,7 @@ pub(crate) async fn log(
     Ok(())
 }
 
-/// Pilha para comparar antes e depois: local, item, GS, raridade e props (o espaço não importa).
+/// Stack for comparing before and after: place, item, GS, rarity and props (the slot does not matter).
 #[derive(Hash, PartialEq, Eq, Clone)]
 pub(crate) struct Key {
     pub place: String,
@@ -133,7 +133,7 @@ pub(crate) fn add(t: &mut Tally, place: &str, item_id: &str, quantity: i64, gear
     t.entry(key).or_insert((0, props.clone())).0 += quantity;
 }
 
-/// Grava no log a diferença entre o antes e o depois.
+/// Writes the difference between before and after to the log.
 pub(crate) async fn log_diff(tx: &mut sqlx::PgConnection, ctx: &Ctx, before: &Tally, after: &Tally) -> ApiResult<()> {
     let mut keys: Vec<&Key> = before.keys().chain(after.keys().filter(|k| !before.contains_key(*k))).collect();
     keys.sort_by(|a, b| (&a.place, &a.item_id).cmp(&(&b.place, &b.item_id)));
@@ -146,7 +146,7 @@ pub(crate) async fn log_diff(tx: &mut sqlx::PgConnection, ctx: &Ctx, before: &Ta
     Ok(())
 }
 
-/// Bolsa e equipado de uma lista (o que vai ser gravado).
+/// Bag and equipped from a list (what is about to be saved).
 pub(crate) fn tally_items(items: &[crate::routes::characters::ItemInstance]) -> Tally {
     let mut t = Tally::new();
     for it in items {
@@ -155,7 +155,7 @@ pub(crate) fn tally_items(items: &[crate::routes::characters::ItemInstance]) -> 
     t
 }
 
-/// Grava a bolsa inteira e as moedas, com a diferença no log.
+/// Saves the whole bag and the coins, with the difference in the log.
 pub(crate) async fn write_bag(
     tx: &mut sqlx::PgConnection,
     ctx: &Ctx,
@@ -165,7 +165,7 @@ pub(crate) async fn write_bag(
     let id = ctx.character_id;
     if let Some(mut c) = coins {
         let was = coins_of(tx, id).await?;
-        // Teto de moedas: o que passa não entra e fica no log (o servidor de jogo já corta antes; isto é a garantia).
+        // Coin cap: the excess is not added and goes to the log (the game server already cuts it; this is the guarantee).
         let max = crate::routes::city::RULES.moedas_max;
         if c > max && c > was {
             let kept = max.max(was);
@@ -183,7 +183,7 @@ pub(crate) async fn write_bag(
     Ok(())
 }
 
-/// Aplica só os espaços que mudaram (bolsa e equipado), com a diferença no log.
+/// Applies only the slots that changed (bag and equipped), with the difference in the log.
 pub(crate) async fn patch_bag(tx: &mut sqlx::PgConnection, ctx: &Ctx, patches: &[crate::routes::characters::SlotPatch]) -> ApiResult<()> {
     let id = ctx.character_id;
     let mut before = Tally::new();
@@ -223,7 +223,7 @@ pub(crate) async fn patch_bag(tx: &mut sqlx::PgConnection, ctx: &Ctx, patches: &
     log_diff(tx, ctx, &before, &after).await
 }
 
-/// Bolsa e equipado gravados agora.
+/// Bag and equipped as currently stored.
 pub(crate) async fn bag_tally(tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<Tally> {
     let rows: Vec<(String, String, i32, i32, i16, Value)> =
         sqlx::query_as("select container, item_id, quantity, gear_score, rarity, props from items where character_id = $1")
@@ -237,7 +237,7 @@ pub(crate) async fn bag_tally(tx: &mut sqlx::PgConnection, character_id: Uuid) -
     Ok(t)
 }
 
-/// Armazém compartilhado gravado agora (local `storage:<aba>`).
+/// Shared Storage as currently stored (place `storage:<tab>`).
 pub(crate) async fn storage_tally(tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<Tally> {
     let rows: Vec<(i16, String, i32, i32, i16, Value)> = sqlx::query_as(
         "select tab, item_id, quantity, gear_score, rarity, props from storage_items where character_id = $1 and location = 'shared'",
@@ -252,7 +252,7 @@ pub(crate) async fn storage_tally(tx: &mut sqlx::PgConnection, character_id: Uui
     Ok(t)
 }
 
-/// Moedas gravadas agora.
+/// Coins as currently stored.
 pub(crate) async fn coins_of(tx: &mut sqlx::PgConnection, character_id: Uuid) -> ApiResult<i64> {
     let (c,): (i64,) = sqlx::query_as("select coins from characters where id = $1")
         .bind(character_id)
@@ -261,12 +261,12 @@ pub(crate) async fn coins_of(tx: &mut sqlx::PgConnection, character_id: Uuid) ->
     Ok(c)
 }
 
-// ---------------------------------------------------------------- consulta
+// ---------------------------------------------------------------- query
 
 #[derive(Deserialize, Debug)]
 pub struct LogQuery {
     pub character_id: Option<Uuid>,
-    /// Nome do personagem (sem diferenciar maiúsculas).
+    /// Character name (case-insensitive).
     pub character: Option<String>,
     pub item_id: Option<String>,
     pub serial: Option<String>,
@@ -292,8 +292,8 @@ pub struct LogRow {
     pub props: Value,
 }
 
-/// `GET /internal/item-log`: filtros por personagem, item, número de série e data; mais novos primeiro.
-/// Moedas que o servidor de jogo deixou de dar por causa do teto (`coins_cap`): só o registro.
+/// `GET /internal/item-log`: filters by character, item, serial number and date; newest first.
+/// Coins the game server did not grant because of the cap (`coins_cap`): record only.
 #[derive(Deserialize)]
 pub struct CoinsCap {
     pub amount: i64,

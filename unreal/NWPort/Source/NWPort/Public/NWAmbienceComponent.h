@@ -8,9 +8,9 @@ class UAudioComponent;
 class USoundBase;
 
 /**
- * Som de fundo do jogador local em Guardaventos: música do território (fora da cidade) ou da cidade, e por baixo o
- * ambiente do jogo (vida selvagem / movimento do assentamento). Troca com fade quando o personagem entra ou sai da
- * cidade. Sons importados por tools/ue/import_audio.py em /Game/NW/Audio (loop).
+ * Background sound of the local player in Windsward: territory music (outside the city) or city music, and under it the
+ * game ambience (wildlife / settlement movement). Crossfades when the character enters or leaves the
+ * city. Sounds imported by tools/ue/import_audio.py into /Game/NW/Audio (loop).
  */
 UCLASS(ClassGroup = (NW))
 class NWPORT_API UNWAmbienceComponent : public UActorComponent
@@ -24,7 +24,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NW|Som") TSoftObjectPtr<USoundBase> SettlementMusic;
 	UPROPERTY(EditAnywhere, Category = "NW|Som") TSoftObjectPtr<USoundBase> WildlifeAmbience;
 	UPROPERTY(EditAnywhere, Category = "NW|Som") TSoftObjectPtr<USoundBase> SettlementAmbience;
-	// Raio da cidade no referencial do mapa (a cidade fica na origem do L_SouthWindsward), em cm.
+	// City radius in the map frame (the city is at the origin of L_SouthWindsward), in cm.
 	UPROPERTY(EditAnywhere, Category = "NW|Som") float SettlementRadius = 22000.f;
 	UPROPERTY(EditAnywhere, Category = "NW|Som") float MusicVolume = 0.45f;
 	UPROPERTY(EditAnywhere, Category = "NW|Som") float AmbienceVolume = 0.8f;
@@ -38,5 +38,5 @@ private:
 
 	UPROPERTY() TObjectPtr<UAudioComponent> Music;
 	UPROPERTY() TObjectPtr<UAudioComponent> Ambience;
-	int32 Zone = -1;  // 0 território, 1 cidade
+	int32 Zone = -1;  // 0 territory, 1 city
 };

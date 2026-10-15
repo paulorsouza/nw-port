@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Teste em rede do clã neste PC (docs/tech/network-test.md): Postgres + nw-core + servidor de jogo em Docker (projeto
-# nw-rede) e o nw-core publicado pelo Cloudflare Tunnel em https://$NW_REDE_HOST (local.env).
+# Clan network test on this PC (docs/tech/network-test.md): Postgres + nw-core + game server in Docker (project
+# nw-rede) and nw-core published by the Cloudflare Tunnel at https://$NW_REDE_HOST (local.env).
 #
-#     tools/linux/rede.sh build     # servidor (engine do fonte) + cozinha Guardaventos + imagens; editor fechado
-#     tools/linux/rede.sh tunnel    # uma vez, depois do `cloudflared tunnel login`: cria o túnel, o $NW_REDE_HOST e a rota
-#                             # privada para este PC (os amigos chegam no jogo pelo WARP; o provedor usa CGNAT)
-#     tools/linux/rede.sh up        # sobe tudo e o túnel
-#     tools/linux/rede.sh down      # para tudo (o banco fica no volume nw-rede_db)
-#     tools/linux/rede.sh invite    # gera um convite de conta (7 dias)
-#     tools/linux/rede.sh admin <conta> [--revoke]   # libera (ou tira) os comandos de teste F10 da conta
-#     tools/linux/rede.sh logs      # últimas linhas do jogo, do nw-core e do túnel
+#     tools/linux/rede.sh build     # server (source engine) + cooks Windsward + images; editor closed
+#     tools/linux/rede.sh tunnel    # once, after `cloudflared tunnel login`: creates the tunnel, $NW_REDE_HOST and the
+#                             # private route to this PC (friends reach the game through WARP; the ISP uses CGNAT)
+#     tools/linux/rede.sh up        # starts everything and the tunnel
+#     tools/linux/rede.sh down      # stops everything (the database stays in the nw-rede_db volume)
+#     tools/linux/rede.sh invite    # creates an account invite (7 days)
+#     tools/linux/rede.sh admin <account> [--revoke]   # grants (or removes) the F10 test commands for the account
+#     tools/linux/rede.sh logs      # last lines of the game, nw-core and tunnel logs
 #     tools/linux/rede.sh status
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
@@ -17,11 +17,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SRC_ENGINE="${NW_UE_SOURCE:-}"
 OUT="$ROOT/unreal/NWPort/Saved/Rede"
 TUNNEL=nw-rede
-HOST="${NW_REDE_HOST:?defina NW_REDE_HOST (ex. core.seudominio.com) em local.env}"
+HOST="${NW_REDE_HOST:?set NW_REDE_HOST (e.g. core.yourdomain.com) in local.env}"
 LAN_IP="$(ip -4 route get 1.1.1.1 | grep -o 'src [0-9.]*' | cut -d' ' -f2)"
 mkdir -p "$OUT"
 tunnel_config() {
-    # nw-core em https://$HOST e a rede deste PC pelo WARP (warp-routing).
+    # nw-core at https://$HOST and this PC's network through WARP (warp-routing).
     local id
     id="$(cloudflared tunnel list -o json | python3 -c "import json,sys; print(next(t['id'] for t in json.load(sys.stdin) if t['name']=='$TUNNEL'))")"
     cat > "$OUT/cloudflared.yml" <<CFG
@@ -39,10 +39,10 @@ compose() { docker compose -p nw-rede --env-file "$ROOT/deploy/.env" -f "$ROOT/d
 
 case "${1:-status}" in
     build)
-        [ -n "$SRC_ENGINE" ] || { echo "defina NW_UE_SOURCE (engine 5.8.3 compilada do código-fonte) em local.env" >&2; exit 2; }
+        [ -n "$SRC_ENGINE" ] || { echo "set NW_UE_SOURCE (engine 5.8.3 built from source) in local.env" >&2; exit 2; }
         "$ROOT/tools/linux/pesado.sh" bash -c "cd '$SRC_ENGINE' && nice Engine/Build/BatchFiles/Linux/Build.sh NWPortServer Linux Development \
             -Project='$ROOT/unreal/NWPort/NWPort.uproject' -WaitMutex -MaxParallelActions=8" | tee "$OUT/server_build.log"
-        grep -q "Result: Succeeded" "$OUT/server_build.log" || { echo "servidor não compilou (ver $OUT/server_build.log)"; exit 1; }
+        grep -q "Result: Succeeded" "$OUT/server_build.log" || { echo "server did not compile (see $OUT/server_build.log)"; exit 1; }
         "$ROOT/tools/linux/pesado.sh" "$ROOT/tools/linux/package_server.sh"
         "$ROOT/tools/linux/pesado.sh" "$ROOT/deploy/build_images.sh"
         ;;
@@ -51,7 +51,7 @@ case "${1:-status}" in
         cloudflared tunnel route dns "$TUNNEL" "$HOST" || true
         cloudflared tunnel route ip add "$LAN_IP/32" "$TUNNEL" || true
         tunnel_config
-        echo "túnel $TUNNEL: https://$HOST e rota privada $LAN_IP/32 (config em $OUT/cloudflared.yml)"
+        echo "tunnel $TUNNEL: https://$HOST and private route $LAN_IP/32 (config in $OUT/cloudflared.yml)"
         ;;
     up)
         compose up -d
@@ -61,8 +61,8 @@ case "${1:-status}" in
             echo $! > "$OUT/tunnel.pid"
         fi
         for _ in $(seq 60); do curl -sf http://127.0.0.1:8091/health >/dev/null && break; sleep 1; done
-        echo "nw-core local: $(curl -sf http://127.0.0.1:8091/health || echo fora)"
-        echo "nw-core público: $(curl -sf "https://$HOST/health" || echo 'fora (o túnel leva alguns segundos)')"
+        echo "nw-core local: $(curl -sf http://127.0.0.1:8091/health || echo down)"
+        echo "nw-core public: $(curl -sf "https://$HOST/health" || echo 'down (the tunnel takes a few seconds)')"
         ;;
     down)
         [ -f "$OUT/tunnel.pid" ] && kill "$(cat "$OUT/tunnel.pid")" 2>/dev/null || true
@@ -78,7 +78,7 @@ case "${1:-status}" in
         ;;
     status)
         compose ps
-        echo "túnel: $( [ -f "$OUT/tunnel.pid" ] && kill -0 "$(cat "$OUT/tunnel.pid")" 2>/dev/null && echo rodando || echo parado)"
+        echo "tunnel: $( [ -f "$OUT/tunnel.pid" ] && kill -0 "$(cat "$OUT/tunnel.pid")" 2>/dev/null && echo running || echo stopped)"
         ;;
-    *) echo "uso: $0 build|tunnel|up|down|invite|admin|logs|status"; exit 2 ;;
+    *) echo "usage: $0 build|tunnel|up|down|invite|admin|logs|status"; exit 2 ;;
 esac

@@ -1,10 +1,10 @@
-# blender -b -P tools/export_ue.py -- extract/ue/<conjunto>/manifest.json
+# blender -b -P tools/export_ue.py -- extract/ue/<set>/manifest.json
 #
-# Exporta para o Unreal, a partir dos glb do nwbt:
-#   fbx/SK_<personagem>.fbx   malha + esqueleto, sem animação
-#   fbx/anim/A_<clipe>.fbx    só esqueleto + uma animação (root motion no osso raiz Xform)
-#   fbx/SM_<arma>.fbx         armas, origem no ponto de pega
-# e acrescenta ao manifest os caminhos gerados.
+# Exports for Unreal, from the nwbt glb files:
+#   fbx/SK_<character>.fbx    mesh + skeleton, no animation
+#   fbx/anim/A_<clip>.fbx     skeleton only + one animation (root motion on the Xform root bone)
+#   fbx/SM_<weapon>.fbx       weapons, origin at the grip point
+# and adds the generated paths to the manifest.
 import json
 import os
 import sys
@@ -40,7 +40,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
 scene.render.fps = manifest["fps"]
 arm = nwchar.import_character(manifest["glb"]["character"])
-# O Unreal descarta o objeto de armadura como osso raiz só quando ele se chama "Armature".
+# Unreal drops the armature object as root bone only when it is named "Armature".
 arm.name = "Armature"
 if manifest["glb"].get("armor"):
     _, covered = nwchar.attach_armor(arm, manifest["glb"]["armor"])
@@ -53,12 +53,12 @@ nwchar.to_centimeters(arm, meshes + list(skinned_objs))
 clips = {a.name.lower(): a for a in bpy.data.actions}
 missing = [c for c in manifest["clips"] if c not in clips]
 if missing:
-    raise SystemExit(f"ações ausentes no glb: {missing}")
+    raise SystemExit(f"actions missing from the glb: {missing}")
 
 
 def compose(asset, layers, loop):
-    """Cópia da camada base; curvas das camadas de cima substituem as de mesmo osso.
-    Em loops, a camada de cima é esticada para a duração da base (o Mannequin sincroniza pelo tempo normalizado)."""
+    """Copy of the base layer; curves of the upper layers replace those of the same bone.
+    In loops, the upper layer is stretched to the base duration (Mannequin syncs by normalized time)."""
     base = clips[layers[0]]
     out_act = base.copy()
     out_act.name = asset
@@ -85,7 +85,7 @@ ROOT_BONE = next(b.name for b in arm.data.bones if b.parent is None)
 
 
 def hips_yaw(act):
-    """Ângulo médio do quadril em relação à frente do personagem (-Y), em graus; + = virado para a direita."""
+    """Mean hip angle relative to the character's front (-Y), in degrees; + = turned right."""
     import math
     nwchar.set_action(arm, act)
     vals = []
@@ -98,7 +98,7 @@ def hips_yaw(act):
 
 
 def straighten(act):
-    """Gira o osso raiz para o quadril médio do loop apontar para a frente (teste: sem a torção da pose de guarda)."""
+    """Rotates the root bone so the loop's mean hip points forward (test: without the guard pose twist)."""
     import math
     from mathutils import Matrix
     yaw = hips_yaw(act)
@@ -112,11 +112,11 @@ def straighten(act):
     for f, mtx in zip(frames, mats):
         pb.matrix = mtx
         pb.keyframe_insert("rotation_quaternion", frame=f)
-    print(f"endireitado {act.name}: {yaw:+.1f}° -> {hips_yaw(act):+.1f}°")
+    print(f"straightened {act.name}: {yaw:+.1f}° -> {hips_yaw(act):+.1f}°")
 
 
 def root_motion(act):
-    """Deslocamento do osso raiz entre o primeiro e o último quadro, em metros (espaço do objeto)."""
+    """Root bone displacement between the first and last frame, in meters (object space)."""
     nwchar.set_action(arm, act)
     pb = arm.pose.bones[ROOT_BONE]
     scene.frame_set(int(act.frame_range[0]))
@@ -127,13 +127,13 @@ def root_motion(act):
 
 materials = nwchar.flatten_materials(os.path.join(out, "textures"))
 
-# Malha: pose de repouso, sem animação.
+# Mesh: rest pose, no animation.
 arm.animation_data_clear()
 sk = os.path.join(out, f"{manifest.get('mesh_name', 'SK_player_male')}.fbx")
 select_only([arm] + meshes)
 bpy.ops.export_scene.fbx(filepath=sk, object_types={"ARMATURE", "MESH"}, bake_anim=False,
                          path_mode="COPY", embed_textures=True, **FBX_COMMON)
-# Armas com pele (luva da manopla): uma malha esqueletal por arma, no mesmo esqueleto (SK_<chave>).
+# Skinned weapons (gauntlet glove): one skeletal mesh per weapon, on the same skeleton (SK_<key>).
 skinned_fbx = {}
 for key, objs in skinned.items():
     skinned_fbx[key] = os.path.join(out, f"SK_{key}.fbx")
@@ -144,15 +144,15 @@ for key, objs in skinned.items():
 anims = {}
 for key, comp in manifest["composites"].items():
     act = compose(comp["asset"], comp["layers"], comp["loop"])
-    # Velocidade do clipe (m/s, no plano) antes de tirar a translação do osso raiz: blend spaces do jogo
-    # usam isso quando a amostra não informa MoveSpeed.
+    # Clip speed (m/s, on the plane) before removing the root bone translation: the game's blend spaces
+    # use it when the sample has no MoveSpeed.
     rm0 = root_motion(act)
     dur = max((act.frame_range[1] - act.frame_range[0]) / scene.render.fps, 1e-6)
     comp["clip_speed"] = round((rm0[0] ** 2 + rm0[1] ** 2) ** 0.5 / 100.0 / dur, 3)
     if comp["loop"]:
-        # Loops ficam no lugar (quem move é o CharacterMovement): translação do osso raiz zerada.
-        # Zerar, não apagar: sem curva o osso guarda o último valor avaliado (ex.: o fim do ciclo) e o
-        # export grava esse deslocamento como constante, tirando o corpo de cima da cápsula.
+        # Loops stay in place (CharacterMovement does the moving): root bone translation zeroed.
+        # Zero, do not delete: without a curve the bone keeps the last evaluated value (e.g. the end of the cycle) and
+        # the export writes that offset as a constant, moving the body off the capsule.
         cb = nwchar.channelbag(act)
         for fc in [fc for fc in cb.fcurves if fc.data_path == f'pose.bones["{ROOT_BONE}"].location']:
             for kp in fc.keyframe_points:
@@ -161,10 +161,10 @@ for key, comp in manifest["composites"].items():
                 kp.handle_right[1] = 0.0
             fc.update()
         arm.pose.bones[ROOT_BONE].location = (0.0, 0.0, 0.0)
-        # Só loops parados ou para a frente: girar um clipe lateral giraria também a direção dos passos.
+        # Only idle or forward loops: rotating a sideways clip would also rotate the step direction.
         import math
         travel = math.degrees(math.atan2(-rm0[0], -rm0[1])) if comp["clip_speed"] > 0.2 else 0.0
-        # Clipes já no lugar no jogo (sem translação) não dizem a direção: vale o sufixo do nome.
+        # Clips already in place in the game (no translation) do not tell the direction: the name suffix decides.
         import re
         lateral = re.search(r"_(l|r|fl|fr|b|bl|br)$", comp["layers"][0]) is not None
         if manifest.get("straighten_loops") and abs(travel) < 25.0 and not lateral:
@@ -176,7 +176,7 @@ for key, comp in manifest["composites"].items():
     scene.frame_start, scene.frame_end = int(start), int(round(end))
     path = os.path.join(out, "anim", f"{comp['asset']}.fbx")
     select_only([arm])
-    # Cena já em centímetros (nwchar.to_centimeters): sem fator de escala em objeto ou osso.
+    # Scene already in centimeters (nwchar.to_centimeters): no scale factor on object or bone.
     anim_opts = dict(FBX_COMMON)
     bpy.ops.export_scene.fbx(
         filepath=path, object_types={"ARMATURE"}, bake_anim=True,
@@ -184,10 +184,10 @@ for key, comp in manifest["composites"].items():
         bake_anim_force_startend_keying=True, bake_anim_simplify_factor=0.0, **anim_opts)
     comp.update(fbx=path, frames=int(round(end - start)) + 1, animated_bones=len(bones), root_motion=rm)
     anims[comp["asset"]] = path
-    flag = "  <- parcial" if len(bones) < 60 else ""
-    print(f"anim {comp['asset']:42} quadros={comp['frames']:4} ossos={len(bones):3} root={rm}{flag}")
+    flag = "  <- partial" if len(bones) < 60 else ""
+    print(f"anim {comp['asset']:42} frames={comp['frames']:4} bones={len(bones):3} root={rm}{flag}")
 
-# .blend para abrir no Blender: personagem, armas nos sockets e todas as ações (Action Editor).
+# .blend to open in Blender: character, weapons on the sockets and every action (Action Editor).
 for key, glb in manifest["glb"]["weapons"].items():
     before = set(scene.objects)
     bpy.ops.import_scene.gltf(filepath=glb)
@@ -197,8 +197,8 @@ for key, glb in manifest["glb"]["weapons"].items():
             o.parent, o.parent_type, o.parent_bone = arm, "BONE", bone
             o.matrix_parent_inverse.identity()
             o.location = (0, -arm.data.bones[bone].length, 0)
-            # O importador de glTF já converte para a unidade da cena (cm): escala 1.
-            # Rotação: o osso do Blender fica -90° no X local em relação à junta do jogo (tools/ue/grip_offsets.md).
+            # The glTF importer already converts to the scene unit (cm): scale 1.
+            # Rotation: the Blender bone is -90° on local X relative to the game joint (tools/ue/grip_offsets.md).
             o.rotation_mode = "XYZ"
             o.rotation_euler = (-1.5707963, 0.0, 0.0)
             o.name = f"SM_{key}"
@@ -206,20 +206,20 @@ idle = next(c["asset"] for k, c in manifest["composites"].items() if k == manife
 nwchar.set_action(arm, bpy.data.actions[idle])
 scene.frame_start, scene.frame_end = 0, int(bpy.data.actions[idle].frame_range[1])
 guide = bpy.data.texts.new("LEIA")
-guide.write("Ações (Action Editor, objeto Armature):\n")
+guide.write("Actions (Action Editor, Armature object):\n")
 for name, comp_key in manifest["loops"].items():
     guide.write(f"  loop {name}: {manifest['composites'][comp_key]['asset']}\n")
 for name, keys in manifest["montages"].items():
     guide.write(f"  {name}: {', '.join(manifest['composites'][k]['asset'] for k in keys)}\n")
 for name, bs in manifest["blendspaces"].items():
-    guide.write(f"  {name}: {len(bs['samples'])} amostras (ver manifest.json)\n")
+    guide.write(f"  {name}: {len(bs['samples'])} samples (see manifest.json)\n")
 blend_path = os.path.join(os.path.dirname(mpath), f"NW_{manifest['name']}.blend")
 bpy.ops.file.pack_all()
 bpy.ops.wm.save_as_mainfile(filepath=blend_path, compress=True)
 manifest["blend"] = blend_path
 
-# Ataques sem janela de dano no .adb (comum nos NPCs): janela = trecho rápido da mão da arma em volta do pico.
-ATTACK_HINTS = ("attack", "heavy", "leap", "spin", "swipe", "combo", "sprintattack")  # escudo (bash/rush) acerta por área
+# Attacks with no damage window in the .adb (common for NPCs): window = fast stretch of the weapon hand around the peak.
+ATTACK_HINTS = ("attack", "heavy", "leap", "spin", "swipe", "combo", "sprintattack")  # shield (bash/rush) hits by area
 HAND = next((b for b in ("right_hand_attach", "Hand_right") if b in arm.pose.bones), None)
 
 
@@ -230,7 +230,7 @@ def swing_window(act):
     for f in range(f0, f1 + 1):
         scene.frame_set(f)
         pos.append((arm.matrix_world @ arm.pose.bones[HAND].head).copy())
-    # velocidade relativa ao quadril, para não contar o deslocamento do corpo inteiro
+    # speed relative to the hip, so the whole body's displacement is not counted
     speed = [0.0] + [(pos[i] - pos[i - 1]).length for i in range(1, len(pos))]
     peak = max(range(len(speed)), key=lambda i: speed[i])
     lim = speed[peak] * 0.45
@@ -257,14 +257,14 @@ if HAND:
             if act is None:
                 continue
             t0, t1 = swing_window(act)
-            # Janela do jogo vale se cobre o pico do golpe; senão (ex.: veio de uma sequência com outro clipe) soma a calculada.
+            # The game window counts if it covers the swing peak; otherwise (e.g. it came from a sequence with another clip) add the computed one.
             mid = (t0 + t1) / 2
             covered = any(w["type"] in ("CAGE-Damage", "WeaponEffects") and w["start"] <= mid <= (w["end"] if w["end"] is not None else 1e9)
                           for w in secs[i]["windows"])
             if covered:
                 continue
             secs[i]["windows"].append({"type": "CAGE-Damage", "start": t0, "end": t1, "name": "swing", "params": {}})
-            print(f"janela de dano calculada: {montage}[{i}] {t0:.2f}–{t1:.2f}s")
+            print(f"computed damage window: {montage}[{i}] {t0:.2f}–{t1:.2f}s")
 
 weapons = {}
 for key, glb in manifest["glb"]["weapons"].items():
@@ -282,4 +282,4 @@ manifest["materials"] = materials
 manifest["fbx"] = {"skeletal_mesh": sk, "anims": anims, "weapons": weapons, "skinned_weapons": skinned_fbx,
                    "root_bone": ROOT_BONE}
 json.dump(manifest, open(mpath, "w"), indent=1)
-print(f"export_ue: SK + {len(anims)} animações + {len(weapons)} armas")
+print(f"export_ue: SK + {len(anims)} animations + {len(weapons)} weapons")

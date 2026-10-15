@@ -1,10 +1,10 @@
-"""Barra de membro do grupo do jogo (lyshineui/hud/grouphealth/grouphud.dynamicuicanvas, GroupHealthBarSlice1).
+"""The game's group member bar (lyshineui/hud/grouphealth/grouphud.dynamicuicanvas, GroupHealthBarSlice1).
 
-    python3 tools/ui_build_group.py [--preview prévia.png]
+    python3 tools/ui_build_group.py [--preview preview.png]
 
-O jogo instancia esse modelo por membro (Lua); aqui sai um canvas "member" com o modelo na origem e o C++ desenha
-uma cópia por membro com Translate. Fica: nome, barra de vida, ícone de grupo e ícone de morte. Gera
-unreal/NWPort/Data/UI/group_layout.json e extract/ui/group_textures.txt.
+The game instantiates this template per member (Lua); here a "member" canvas comes out with the template at the origin
+and the C++ draws one copy per member with Translate. Kept: name, health bar, group icon and death icon. Writes
+unreal/NWPort/Data/UI/group_layout.json and extract/ui/group_textures.txt.
 """
 import argparse
 import json
@@ -29,13 +29,13 @@ def main():
         if e["path"] == SLICE:
             e["anchors"], e["offsets"] = [0, 0, 0, 0], [0, 0, 346, 56]
         elif not e["path"].startswith(SLICE):
-            # Ancestrais (raiz, GroupHUD, contêineres): a tela inteira, sem deslocamento.
+            # Ancestors (root, GroupHUD, containers): the whole screen, no offset.
             e["anchors"], e["offsets"], e["scale"] = [0, 0, 1, 1], [0, 0, 0, 0], [1, 1]
     out = os.path.join(ROOT, "unreal", "NWPort", "Data", "UI", "group_layout.json")
     json.dump({"canvases": [{"name": "member", "size": lay["size"], "elements": lay["elements"]}]}, open(out, "w"), separators=(",", ":"))
     textures = sorted({e["image"]["texture"].lower() for e in lay["elements"] if e.get("image") and e["image"]["texture"]})
     open(os.path.join(UI, "group_textures.txt"), "w").write("\n".join(textures))
-    print(f"{len(lay['elements'])} elementos, {len(textures)} texturas -> {out}")
+    print(f"{len(lay['elements'])} elements, {len(textures)} textures -> {out}")
     if a.preview:
         import ui_canvas
         relayout(lay["elements"], lay["size"])

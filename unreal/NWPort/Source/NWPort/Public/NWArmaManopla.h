@@ -12,32 +12,32 @@ class UMaterialInstanceDynamic;
 struct FNWWeaponSet;
 
 /**
- * Manopla de gelo (sub-esteira 1a, docs/game/weapons/ice-gauntlet.md): registro da arma e a luva com pele, que segue a pose
- * do corpo. O combate usa o UNWCombatComponent pela tabela DT_IceGauntletActions; a mana, o UNWManaComponent; as
- * habilidades, o UNWIceGauntletComponent (criado no servidor quando a manopla é equipada).
+ * Ice Gauntlet (sub-area 1a, docs/game/weapons/ice-gauntlet.md): weapon registration and the skinned glove, which follows
+ * the body pose. Combat uses UNWCombatComponent through the DT_IceGauntletActions table; mana, UNWManaComponent; the
+ * abilities, UNWIceGauntletComponent (created on the server when the gauntlet is equipped).
  */
 namespace NWArmaManopla
 {
 	void AddWeaponSet(TArray<FNWWeaponSet>& Sets);
-	// Mostra a malha com pele da arma ativa (FNWWeaponSet::SkinMesh) ou esconde, se a arma não tiver.
+	// Shows the skinned mesh of the active weapon (FNWWeaponSet::SkinMesh), or hides it if the weapon has none.
 	void ApplySkin(ANWCharacter* Character, const FNWWeaponSet& Set);
 }
 
-/** Forma de uma área de gelo (esfera ou caixa), em cm, no espaço do mundo. */
+/** Shape of an ice area (sphere or box), in cm, in world space. */
 USTRUCT()
 struct FNWIceShape
 {
 	GENERATED_BODY()
 	UPROPERTY() FVector Center = FVector::ZeroVector;
 	UPROPERTY() FRotator Rotation = FRotator::ZeroRotator;
-	UPROPERTY() FVector Extent = FVector::ZeroVector;   // caixa: meia-extensão; esfera: X = raio
+	UPROPERTY() FVector Extent = FVector::ZeroVector;   // box: half-extent; sphere: X = radius
 	UPROPERTY() bool bBox = false;
 };
 
 /**
- * Área de gelo no chão (Tempestade de Gelo, Chuva de Gelo): dura Seconds; a cada Tick aplica a linha de dano em quem
- * está dentro e mantém o status de lentidão; quem entra pode ser enraizado (com imunidade depois) e quem sai leva a
- * lentidão residual. Servidor decide; todos desenham.
+ * Ice area on the ground (Ice Storm, Ice Shower): lasts Seconds; each Tick applies the damage row to whoever is
+ * inside and keeps the slow status; whoever enters may be rooted (with immunity afterwards) and whoever leaves gets the
+ * lingering slow. The server decides; everyone draws.
  */
 UCLASS()
 class NWPORT_API ANWIceArea : public AActor
@@ -51,18 +51,18 @@ public:
 
 	UPROPERTY(Replicated) TArray<FNWIceShape> Shapes;
 	UPROPERTY(Replicated) float Seconds = 5.f;
-	// Efeito do jogo convertido para Niagara (tools/ue/import_fx.py); vazio = discos/caixas azuis simples.
+	// Game effect converted to Niagara (tools/ue/import_fx.py); empty = plain blue discs/boxes.
 	UPROPERTY(Replicated) FString FxPath;
 
 	TWeakObjectPtr<UNWCombatComponent> Source;
-	FName DamageID;            // dano por tique (vazio = sem dano)
+	FName DamageID;            // damage per tick (empty = no damage)
 	float TickSeconds = 0.33f;
-	FName SlowID;              // lentidão enquanto dentro
+	FName SlowID;              // slow while inside
 	float SlowMove = 0.f;
-	FName RootID;              // enraizar ao entrar (Chuva)
+	FName RootID;              // root on entering (Shower)
 	float RootSeconds = 0.f;
 	float RootImmunity = 0.f;
-	FName LingerID;            // lentidão depois de sair
+	FName LingerID;            // slow after leaving
 	float LingerSeconds = 0.f;
 
 protected:
@@ -79,7 +79,7 @@ private:
 	UPROPERTY() TObjectPtr<UMaterialInstanceDynamic> Mat;
 };
 
-/** Malha de gelo por um tempo (estacas, tumba): replicada, sem colisão. */
+/** Ice mesh for a while (spikes, tomb): replicated, no collision. */
 UCLASS()
 class NWPORT_API ANWIceProp : public AActor
 {
@@ -92,7 +92,7 @@ public:
 		const TArray<FString>& Fx = {}, bool bHideMesh = false);
 
 	UPROPERTY(ReplicatedUsing = OnRep_Mesh) FString MeshPath;
-	// Efeitos do jogo presos à malha; bHideMesh quando o próprio efeito já traz a malha (estacas).
+	// Game effects attached to the mesh; bHideMesh when the effect itself already brings the mesh (spikes).
 	UPROPERTY(ReplicatedUsing = OnRep_Fx) TArray<FString> FxPaths;
 	UPROPERTY(Replicated) bool bHideMesh = false;
 	UFUNCTION() void OnRep_Fx();
@@ -100,7 +100,7 @@ public:
 	UFUNCTION() void OnRep_Mesh();
 };
 
-/** Torre de Gelo: atira projéteis IceMagic_Pylon no inimigo mais perto até 20 m; some ao fim da vida. */
+/** Ice Pylon: shoots IceMagic_Pylon projectiles at the nearest enemy within 20 m; disappears when its life ends. */
 UCLASS()
 class NWPORT_API ANWIcePylon : public ANWIceProp
 {
@@ -116,9 +116,9 @@ public:
 };
 
 /**
- * Habilidades da manopla de gelo no servidor: acompanha a ação em curso do UNWCombatComponent e faz o que a ação
- * pede no tempo do jogo (estacas em linha, vento com tiques de dano, áreas, torre, tumba), troca de fase pelo tempo
- * (ForceAction) e inicia as recargas que o jogo começa no fim (StartCooldown).
+ * Ice Gauntlet abilities on the server: follows the UNWCombatComponent's current action and does what the action
+ * asks at the game's timing (spikes in a line, wind with damage ticks, areas, pylon, tomb), switches phase by time
+ * (ForceAction) and starts the cooldowns the game starts at the end (StartCooldown).
  */
 UCLASS(ClassGroup = (NW))
 class NWPORT_API UNWIceGauntletComponent : public UActorComponent
@@ -140,10 +140,10 @@ private:
 	UNWCombatComponent* Combat() const;
 
 	FName Current;
-	float StartedAt = 0.f;       // começo da ação atual
-	float PhaseStartedAt = 0.f;  // começo da fase em loop (vento, tumba)
-	int32 Done = 0;              // eventos já feitos na ação (estacas, tiques, caixas)
-	FVector Origin;              // posição e direção fixadas na entrada (estacas, chuva)
+	float StartedAt = 0.f;       // start of the current action
+	float PhaseStartedAt = 0.f;  // start of the looping phase (wind, tomb)
+	int32 Done = 0;              // events already done in the action (spikes, ticks, boxes)
+	FVector Origin;              // position and direction fixed on entry (spikes, shower)
 	FVector Dir;
 	FVector GroundTarget;
 	TWeakObjectPtr<ANWIcePylon> Pylon;

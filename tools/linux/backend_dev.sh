@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# nw-core local de teste, para o Play do editor e os testes com backend (docs/tech/backend-testing.md).
+# Local test nw-core, for editor Play and the backend tests (docs/tech/backend-testing.md).
 #
-#     tools/linux/backend_dev.sh            # sobe (se não estiver no ar) e garante a conta e o personagem do editor
-#     tools/linux/backend_dev.sh status     # no ar ou não
-#     tools/linux/backend_dev.sh down       # para o nw-core (o banco continua, com tudo salvo)
-#     tools/linux/backend_dev.sh log        # últimas linhas do log do nw-core
+#     tools/linux/backend_dev.sh            # starts it (if not up) and ensures the editor account and character
+#     tools/linux/backend_dev.sh status     # up or not
+#     tools/linux/backend_dev.sh down       # stops nw-core (the database stays, with everything saved)
+#     tools/linux/backend_dev.sh log        # last lines of the nw-core log
 #
-# Postgres: container nw-core-db (backend/compose.yaml), volume nw-core-db; os dados ficam entre sessões.
-# nw-core: 127.0.0.1:8090, log em unreal/NWPort/Saved/Play/nw-core.log. Valores de teste em backend/dev.env.
+# Postgres: container nw-core-db (backend/compose.yaml), volume nw-core-db; data persists between sessions.
+# nw-core: 127.0.0.1:8090, log in unreal/NWPort/Saved/Play/nw-core.log. Test values in backend/dev.env.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 set -a; source "$ROOT/backend/dev.env"; set +a
@@ -30,40 +30,40 @@ ensure_account() {
         curl -sf -X POST "$NW_BACKEND/v1/auth/register" -H 'Content-Type: application/json' \
             -d "$(printf '{"invite":"%s","name":"%s","password":"%s"}' "$invite" "$account" "$NW_TEST_PASSWORD")" >/dev/null
         token=$(curl -sf -X POST "$NW_BACKEND/v1/auth/login" -H 'Content-Type: application/json' -d "$body" | json '["token"]')
-        echo "conta $account criada"
+        echo "account $account created"
     fi
     if ! curl -sf "$NW_BACKEND/v1/me" -H "Authorization: Bearer $token" \
             | python3 -c "import json,sys; sys.exit(0 if any(c['name'].lower()=='$character'.lower() for c in json.load(sys.stdin)['characters']) else 1)"; then
         curl -sf -X POST "$NW_BACKEND/v1/characters" -H 'Content-Type: application/json' -H "Authorization: Bearer $token" \
             -d "$(printf '{"name":"%s"}' "$character")" >/dev/null
-        echo "personagem $character criado"
+        echo "character $character created"
     fi
-    echo "conta do editor: $account / $character"
+    echo "editor account: $account / $character"
 }
 
 case "${1:-up}" in
     up)
         if ! up; then
             (cd "$ROOT/backend" && docker compose up -d >/dev/null)
-            # Compilar é trabalho pesado (fila); só quando o fonte mudou.
+            # Compiling is a heavy job (queue); only when the source changed.
             if [ ! -x "$BIN" ] || [ -n "$(find "$ROOT/backend/src" "$ROOT/backend/migrations" "$ROOT/backend/Cargo.toml" "$ROOT/tools/governanca.json" "$ROOT/tools/precos_cidade.json" -newer "$BIN" -print -quit)" ]; then
                 "$ROOT/tools/linux/pesado.sh" bash -c "cd '$ROOT/backend' && cargo build -q"
             fi
             NW_BIND=127.0.0.1:8090 setsid nohup "$BIN" serve >"$LOG" 2>&1 < /dev/null &
             echo $! > "$PID"
             for _ in $(seq 100); do up && break; sleep 0.3; done
-            up || { echo "nw-core não subiu:"; tail -20 "$LOG"; exit 1; }
-            echo "nw-core no ar em $NW_BACKEND"
+            up || { echo "nw-core did not start:"; tail -20 "$LOG"; exit 1; }
+            echo "nw-core up at $NW_BACKEND"
         else
-            echo "nw-core já está no ar em $NW_BACKEND"
+            echo "nw-core already up at $NW_BACKEND"
         fi
         ensure_account
         ;;
-    status) up && echo "no ar ($NW_BACKEND)" || { echo "fora do ar"; exit 1; } ;;
+    status) up && echo "up ($NW_BACKEND)" || { echo "down"; exit 1; } ;;
     down)
-        if [ -f "$PID" ] && kill "$(cat "$PID")" 2>/dev/null; then echo "nw-core parado"; else echo "nw-core não estava rodando por este script"; fi
+        if [ -f "$PID" ] && kill "$(cat "$PID")" 2>/dev/null; then echo "nw-core stopped"; else echo "nw-core was not running from this script"; fi
         rm -f "$PID"
         ;;
     log) tail -40 "$LOG" ;;
-    *) echo "uso: $0 [up|status|down|log]"; exit 2 ;;
+    *) echo "usage: $0 [up|status|down|log]"; exit 2 ;;
 esac

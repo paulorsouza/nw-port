@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Liga o áudio extraído (extract/audio) às animações do conjunto.
+"""Links the extracted audio (extract/audio) to the set's animations.
 
-Fontes, por animação composta:
-  - janelas Audio do ProcLayer (.adb): Play_* e as vozes de esforço (Set_Switch_Vocals_*);
-  - .animevents do jogo: passos (footstep) nos clipes de cada camada, com o osso do pé;
-  - reações fixas: impacto e voz de dor nos Hit_*, som do escudo no bloqueio, quebra de guarda, morte.
+Sources, per composite animation:
+  - ProcLayer Audio windows (.adb): Play_* and the effort voices (Set_Switch_Vocals_*);
+  - game .animevents: footsteps in each layer's clips, with the foot bone;
+  - fixed reactions: impact and pain voice on Hit_*, shield sound on block, guard break, death.
 
-uso: make_sound_map.py extract/ue/sword_shield/manifest.json [--surface grass]
-Saída: extract/ue/<conjunto>/sounds.json  {asset: [{time, files[], bone, label}]}
+usage: make_sound_map.py extract/ue/sword_shield/manifest.json [--surface grass]
+Output: extract/ue/<set>/sounds.json  {asset: [{time, files[], bone, label}]}
 """
 import argparse
 import csv
@@ -23,15 +23,15 @@ nwplatform.configure()
 GAME = nwplatform.game_directory()
 ANIMEVENTS = "animations/gameplay/character/player/male/temp_male.animevents"
 
-# Troca de voz do Wwise -> pasta de voz extraída.
+# Wwise voice switch -> extracted voice folder.
 VOCALS = {
     "set_switch_vocals_exerta": "combat/voice_male/vo_exerta",
     "set_switch_vocals_exertb": "combat/voice_male/vo_exertb",
     "set_switch_vocals_landsoft": "combat/voice_male/vo_landsoft",
 }
-# Reações (montagem -> sons no início). O alvo usa Heroic Heavy: impacto de espada em armadura.
+# Reactions (montage -> sounds at the start). The target uses Heroic Heavy: sword impact on armor.
 REACTIONS = {
-    # Reações R1/R2/R3 (AM_Hit1_, AM_Hit_, AM_Hit3_, e as do arco AM_Bw_Hit*) e a queda R4 (AM_Down_).
+    # R1/R2/R3 reactions (AM_Hit1_, AM_Hit_, AM_Hit3_, and the Bow ones AM_Bw_Hit*) and the R4 fall (AM_Down_).
     "AM_Hit": [(0.0, "combat/impacts/imp_swordmetal_armor", "impacto"), (0.05, "combat/voice_male/vo_hurt", "dor")],
     "AM_Bw_Hit": [(0.0, "combat/impacts/imp_swordmetal_armor", "impacto"), (0.05, "combat/voice_male/vo_hurt", "dor")],
     "AM_Down_": [(0.0, "combat/impacts/imp_swordmetal_armor", "impacto"), (0.05, "combat/voice_male/vo_hurt", "dor")],
@@ -41,9 +41,9 @@ REACTIONS = {
 }
 
 
-# Criaturas (conjunto -> montagem -> sons). Tempo "golpe" = início da janela CAGE-Damage da montagem (o whoosh e a
-# mordida saem 0,15 s antes). Os passos dos bichos (walk_boar, run_wolf...) são de outro banco, ainda não extraído.
-# Na dor vai o impacto de espada em carne: hoje quem bate em criatura é o jogador.
+# Creatures (set -> montage -> sounds). Time "golpe" = start of the montage's CAGE-Damage window (the whoosh and the
+# bite play 0.15 s earlier). The animals' footsteps (walk_boar, run_wolf...) are in another bank, not extracted yet.
+# Pain gets the sword-on-flesh impact: for now only the player hits creatures.
 CREATURES = {
     "boar": {
         "AM_Attack1": [("golpe", "creatures/boar/sfx_boar_whoosh", "whoosh"), ("golpe", "creatures/boar/sfx_boar_furwhoosh", "pelo")],
@@ -89,7 +89,7 @@ def main():
     def event_files(event, surface=None):
         rows = by_event.get(event.lower(), [])
         if surface:
-            # O nome traz "decals=corruption" em quase tudo (o extrator guarda o 1º valor do state); vale o surfacetype.
+            # The name has "decals=corruption" in almost everything (the extractor keeps the 1st state value); surfacetype decides.
             for want in (surface, "dirt", "default"):
                 hit = [r for r in rows if f"[surfacetype={want}]" in r["txtp"]]
                 if hit:
@@ -97,7 +97,7 @@ def main():
                     break
         return [os.path.join(AUDIO, r["file"]) for r in rows][:MAX_VARIATIONS]
 
-    # Passos por clipe (caminho completo do .caf -> eventos).
+    # Footsteps per clip (full .caf path -> events).
     set_name = os.path.basename(os.path.dirname(os.path.abspath(a.manifest)))
     creature = CREATURES.get(set_name)
     events_file = CREATURE_ANIMEVENTS.format(set_name) if creature else ANIMEVENTS
@@ -115,11 +115,11 @@ def main():
         if files:
             out.setdefault(asset, []).append({"time": round(t, 4), "files": files, "bone": bone, "label": label})
 
-    # Passos: da camada base de cada animação composta (é ela que move as pernas).
+    # Footsteps: from the base layer of each composite animation (it is the one that moves the legs).
     fps = m["fps"]
     for comp in m["composites"].values():
         base_clip = comp["layers"][0]
-        # Tempo do .animevents é normalizado (0–1) pela duração do clipe.
+        # .animevents time is normalized (0–1) by the clip duration.
         duration = (comp["frames"] - 1) / fps
         for t, param, bone in steps.get(base_clip, []):
             files = event_files(param, a.surface)
@@ -127,7 +127,7 @@ def main():
                 missing.add(param)
             add(comp["asset"], t * duration, files, bone, param)
 
-    # Janelas Audio do .adb nas montagens.
+    # .adb Audio windows in the montages.
     for montage, sections in m.get("windows", {}).items():
         for i, sec in enumerate(sections):
             keys = m["montages"][montage]
@@ -146,7 +146,7 @@ def main():
                     missing.add(name)
                 add(asset, w["start"], files, "", name)
 
-    # Criaturas: ataques, voz, dor e morte.
+    # Creatures: attacks, voice, pain and death.
     for montage, keys in m["montages"].items() if creature else ():
         for prefix, sounds in creature.items():
             if montage != prefix and not (prefix.endswith("_") and montage.startswith(prefix)):
@@ -160,7 +160,7 @@ def main():
                     missing.add(rel)
                 add(asset, max(0.0, hit - 0.15) if t == "golpe" else t, files, "", label)
 
-    # Reações.
+    # Reactions.
     for montage, keys in m["montages"].items() if not creature else ():
         for prefix, sounds in REACTIONS.items():
             if montage.startswith(prefix):
@@ -172,9 +172,9 @@ def main():
     json.dump(out, open(path, "w"), indent=1)
     n = sum(len(v) for v in out.values())
     files = {f for v in out.values() for e in v for f in e["files"]}
-    print(f"{n} sons em {len(out)} animações, {len(files)} arquivos .ogg -> {path}")
+    print(f"{n} sounds in {len(out)} animations, {len(files)} .ogg files -> {path}")
     if missing:
-        print(f"sem áudio: {sorted(missing)}")
+        print(f"no audio: {sorted(missing)}")
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ bag, equipment, position, levels, storage and NPC rewards are saved between one 
    heavy-work queue), starts the API on `127.0.0.1:8090`, and creates the account `editor` with the character
    `Exilado` if they do not exist.
 2. Open the editor and press Play (single player, "Standalone"/"Play in Viewport"). The log shows
-   `Play com backend: Exilado (editor)`.
+   `Playing with backend: Exilado (editor)`.
 3. Stopping Play saves everything (it also saves every 5 s). Item history of the character:
    `tools/item_log.py --personagem Exilado` (filters `--item`, `--serie`, `--desde`).
 

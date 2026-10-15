@@ -1,6 +1,6 @@
-# blender -b -P tools/gallery.py -- <personagem.glb> <pose> <saida.png> <armadura.glb>...
-# Veste cada armadura no personagem base (cabeça + corpo) e monta uma grade com o nome de cada uma.
-# As peças da armadura substituem as do corpo de mesmo slot (shirt1, pants1...).
+# blender -b -P tools/gallery.py -- <character.glb> <pose> <output.png> <armor.glb>...
+# Dresses each armor on the base character (head + body) and builds a grid with each one's name.
+# The armor pieces replace the body pieces of the same slot (shirt1, pants1...).
 import math
 import os
 import sys
@@ -15,7 +15,7 @@ import nwchar  # noqa: E402
 args = sys.argv[sys.argv.index("--") + 1:]
 char_glb, pose, out_png, armors = args[0], args[1], args[2], args[3:]
 COLS = 6
-# Sufixo da peça da armadura -> malha do corpo nu que ela cobre.
+# Armor piece suffix -> bare body mesh it covers.
 SLOT_OF = {"_chest": "shirt1", "_thighs": "pants1", "_calves": "boots1", "_forearms": "gloves1"}
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -44,7 +44,7 @@ bg = world.node_tree.nodes["Background"]
 bg.inputs["Color"].default_value = (0.55, 0.6, 0.7, 1)
 bg.inputs["Strength"].default_value = 0.9
 scene.world = world
-# Fundo escuro na imagem, mas o céu claro continua iluminando e refletindo no metal.
+# Dark background in the image, but the bright sky still lights and reflects on the metal.
 scene.render.film_transparent = True
 scene.render.resolution_x, scene.render.resolution_y = 300, 440
 
@@ -99,7 +99,7 @@ while len(tiles) % COLS:
     tiles.append(np.zeros_like(tiles[0]))
 rows = [np.concatenate(tiles[i:i + COLS], axis=1) for i in range(0, len(tiles), COLS)]
 sheet = np.concatenate(rows[::-1], axis=0)
-# Compõe sobre um fundo escuro (o render é transparente).
+# Composites over a dark background (the render is transparent).
 bgcol = np.array([0.09, 0.09, 0.11, 1.0])
 a = sheet[..., 3:4]
 sheet = sheet * a + bgcol * (1 - a)

@@ -7,21 +7,21 @@
 class ANWCharacter;
 
 /**
- * Teste de carga do servidor (docs/tech/architecture.md, "Teste de carga").
+ * Server load test (docs/tech/architecture.md, "Load test").
  *
- * - Jogadores simulados: `nw.sim <n> [raio_m]` (ou `-nwsim=<n> -nwsimraio=<m>` na linha de comando do servidor) cria n
- *   personagens no servidor, sem conexão, com controle de IA e marcados como jogador (ANWCharacter::bSimPlayer: o spawn
- *   de criaturas e a IA os tratam como jogador). Papéis: 30% andam na cidade (40 m do início), 50% andam pelo mapa
- *   (até o raio), 20% andam e atacam. `nw.sim 0` remove todos.
- * - Relatório: `nw.perf 1` (ou `-nwperf`) grava a cada 10 s no log (`NWPerf:`) e em Saved/Perf/perf_<data>.csv o tempo
- *   de trabalho do ciclo do mundo (média, p95, máximo, sem a espera do limite de 30/s), o intervalo real entre ciclos,
- *   jogadores conectados, simulados, criaturas, personagens, bytes enviados por segundo e memória.
- * - Perfil: `-nwcsv=<ciclos>` grava o perfil CSV da Unreal (tempo por categoria em cada ciclo) `-nwcsvdelay=<s>` (padrão
- *   15) depois de criar os simulados, em Saved/Profiling/CSV (`tools/perf_csv.py` resume).
- * - Experimentos: `-nwexp=meshcol,floor` muda uma configuração em todos os personagens só no teste, para medir antes
- *   de levar ao jogo (meshcol: malha sem colisão; floor: menos checagem de chão).
+ * - Simulated players: `nw.sim <n> [raio_m]` (or `-nwsim=<n> -nwsimraio=<m>` on the server command line) creates n
+ *   characters on the server, without a connection, with an AI controller and marked as players (ANWCharacter::bSimPlayer:
+ *   creature spawning and AI treat them as players). Roles: 30% walk in the city (40 m from the start), 50% walk across the map
+ *   (up to the radius), 20% walk and attack. `nw.sim 0` removes all.
+ * - Report: `nw.perf 1` (or `-nwperf`) writes every 10 s to the log (`NWPerf:`) and to Saved/Perf/perf_<date>.csv the
+ *   work time of the world cycle (mean, p95, max, without the wait of the 30/s limit), the real interval between cycles,
+ *   connected players, simulated, creatures, characters, bytes sent per second and memory.
+ * - Profile: `-nwcsv=<cycles>` writes Unreal's CSV profile (time per category in each cycle) `-nwcsvdelay=<s>` (default
+ *   15) after creating the simulated players, in Saved/Profiling/CSV (`tools/perf_csv.py` summarizes).
+ * - Experiments: `-nwexp=meshcol,floor` changes a setting on all characters only in the test, to measure before
+ *   taking it to the game (meshcol: mesh without collision; floor: fewer floor checks).
  *
- * O próprio teste custa pouco (um passo por simulado a cada ciclo, sem varrer o mundo), mas entra na medição.
+ * The test itself costs little (one step per simulated player each cycle, without scanning the world), but it is in the measurement.
  */
 UCLASS(NotPlaceable, Transient)
 class NWPORT_API ANWLoadTest : public AActor
@@ -31,9 +31,9 @@ class NWPORT_API ANWLoadTest : public AActor
 public:
 	ANWLoadTest();
 
-	/** Servidor: deixa n simulados no mundo (cria ou remove), espalhados até RadiusM metros do início. */
+	/** Server: keeps n simulated players in the world (creates or removes), spread up to RadiusM meters from the start. */
 	static void SetSims(UWorld* World, int32 Count, float RadiusM);
-	/** Liga ou desliga o relatório de desempenho do mundo. */
+	/** Turns the world performance report on or off. */
 	static void SetPerf(UWorld* World, bool bOn);
 
 	virtual void Tick(float DeltaSeconds) override;

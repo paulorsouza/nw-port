@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Resolve as ações do Mannequin (.adb) para um conjunto de tags ativas.
+"""Resolve Mannequin (.adb) actions for a set of active tags.
 
-Para cada fragmento (Idle, Sprint, Attack_Primary...) escolhe a variante mais
-específica cujas tags estão todas ativas, como o Mannequin faz, e resolve os
-nomes de animação das camadas para arquivos do jogo (.caf, .bspace, .comb).
+For each fragment (Idle, Sprint, Attack_Primary...) picks the most specific
+variant whose tags are all active, as Mannequin does, and resolves the layers'
+animation names to game files (.caf, .bspace, .comb).
 
-uso: adb_resolve.py <paths.txt> <adb>... --tags 1H_Melee,Shield_OH,Offhand [--json saida.json]
+usage: adb_resolve.py <paths.txt> <adb>... --tags 1H_Melee,Shield_OH,Offhand [--json saida.json]
 """
 import argparse
 import json
@@ -18,21 +18,21 @@ EXTS = (".caf", ".bspace", ".comb")
 
 
 def index_animations(paths_file):
-    """nome curto (minúsculo, sem extensão) -> caminho no pak, só animações do jogador masculino."""
+    """short name (lowercase, no extension) -> path in the pak, male player animations only."""
     idx = {}
     with open(paths_file) as f:
         for line in f:
             p = line.strip()
             if p.startswith(ANIM_ROOT) and p.endswith(EXTS):
                 name = os.path.splitext(os.path.basename(p))[0].lower()
-                # .caf tem precedência sobre .bspace/.comb de mesmo nome
+                # .caf takes precedence over a .bspace/.comb with the same name
                 if name not in idx or p.endswith(".caf"):
                     idx[name] = p
     return idx
 
 
 def fragments(adb_files):
-    """Lista (fragmento, tags, camadas, origem). Camada = lista de animações [{name, speed?}]."""
+    """List of (fragment, tags, layers, source). Layer = list of animations [{name, speed?}]."""
     out = []
     for adb in adb_files:
         root = ET.parse(adb).getroot()
@@ -52,8 +52,8 @@ def fragments(adb_files):
 
 
 def resolve(frags, active):
-    """Por fragmento, a variante com mais tags dentre as que cabem nas tags ativas.
-    Em empate vale a primeira, na ordem dos arquivos passados."""
+    """Per fragment, the variant with the most tags among those that fit the active tags.
+    On a tie the first one wins, in the order of the files given."""
     best = {}
     for name, tags, layers, src in frags:
         if not tags <= active or not layers:
@@ -89,7 +89,7 @@ def main():
         desc = " + ".join("/".join(os.path.basename(x["file"] or "?" + x["name"]) for x in layer) for layer in f["layers"])
         print(f"{name:34} [{'+'.join(f['tags'])}] {desc}")
     if missing:
-        print(f"\nsem arquivo ({len(missing)}): {', '.join(sorted(missing)[:30])}", file=sys.stderr)
+        print(f"\nno file ({len(missing)}): {', '.join(sorted(missing)[:30])}", file=sys.stderr)
     if a.json:
         with open(a.json, "w") as fp:
             json.dump(best, fp, indent=1)

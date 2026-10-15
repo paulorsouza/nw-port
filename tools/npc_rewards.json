@@ -1,5 +1,5 @@
 {
-  "_comment": "Brindes dos NPCs (docs/game/city.md). Até 6 ofícios: por semana um NPC de cada ofício, sorteado igual para todos, entrega na cidade. inicial: uma vez por personagem por ofício, [ItemID, mín, máx]. semanal: uma vez por semana por cidade e ofício; sorteia 1 item de cada lista (material + argueiro). Renova terça 05:00 BRT (08:00 UTC). moedas_semanal: [mín, máx] em centavos, junto do brinde semanal (governança, docs/game/economy.md: moeda nova).",
+  "_comment": "NPC rewards (docs/game/city.md). Up to 6 trade skills: each week one NPC per trade skill, rolled the same for everyone, gives out rewards in the city. inicial: once per character per trade skill, [ItemID, min, max]. semanal: once per week per city and trade skill; rolls 1 item from each list (material + argueiro, the motes). Resets Tuesday 05:00 BRT (08:00 UTC). moedas_semanal: [min, max] in cents, together with the weekly reward (governance, docs/game/economy.md: new coin).",
   "renovacao_utc": {
     "dia": "terca",
     "hora": 8

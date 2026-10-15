@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Roda um trabalho pesado na fila: um por vez na máquina, mesmo com várias sessões trabalhando juntas
-# (docs/workflow.md). Pesado = nwbt, Blender, build_set.py, UnrealEditor-Cmd, compilação, Ghidra em lote.
+# Runs a heavy job in the queue: one at a time on the machine, even with several sessions working together
+# (docs/workflow.md). Heavy = nwbt, Blender, build_set.py, UnrealEditor-Cmd, compilation, batch Ghidra.
 #
 #     tools/linux/pesado.sh <comando> [args...]
 #
-# build_all.sh e ue_import_all.sh já entram na fila sozinhos. Dentro da fila (NW_PESADO=1) não espera de novo.
+# build_all.sh and ue_import_all.sh enter the queue on their own. Inside the queue (NW_PESADO=1) it does not wait again.
 set -euo pipefail
 LOCK="${XDG_RUNTIME_DIR:-/tmp}/nw-pesado.lock"
 if [ -n "${NW_PESADO:-}" ]; then
@@ -12,7 +12,7 @@ if [ -n "${NW_PESADO:-}" ]; then
 fi
 exec 9>"$LOCK"
 if ! flock -n 9; then
-    echo "[pesado] esperando outro trabalho pesado terminar ($LOCK)..." >&2
+    echo "[pesado] waiting for another heavy job to finish ($LOCK)..." >&2
     flock 9
 fi
 export NW_PESADO=1

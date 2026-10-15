@@ -1,6 +1,6 @@
-//! Posto de trocas. Ordem de venda guarda o item; ordem de compra guarda as moedas. O que se compra cai no armazém
-//! da cidade da ordem; o que o dono da ordem de venda recebe vira crédito de moedas (`coin_credits`), resgatado pelo
-//! servidor de jogo. Taxas e duração vêm do servidor de jogo (sem fonte nos dados; docs/game/city.md).
+//! Trading Post. A sell order holds the item; a buy order holds the coins. What is bought lands in the Storage of
+//! the order's city; what the sell order's owner receives becomes a coin credit (`coin_credits`), redeemed by the
+//! game server. Fees and duration come from the game server (no source in the data; docs/game/city.md).
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
@@ -19,7 +19,7 @@ use crate::routes::storage::{check_room, deliver, is_territory, Snapshot, SHARED
 use crate::AppState;
 
 const MAX_HOURS: i64 = 24 * 30;
-/// Ordens abertas por personagem, compra e venda somadas (dono, 2026-10-14; o jogo usa 100).
+/// Open orders per character, buy and sell combined (maintainer, 2026-10-14; the game uses 100).
 const MAX_OPEN_ORDERS: i64 = 50;
 
 #[derive(Serialize, Debug, sqlx::FromRow)]
@@ -36,18 +36,18 @@ pub struct Order {
     pub unit_price: i64,
     pub fee: i64,
     pub status: String,
-    /// Peso unitário em kg (do catálogo do servidor de jogo).
+    /// Unit weight in kg (from the game server's catalog).
     pub weight: f32,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     #[serde(with = "time::serde::rfc3339")]
     pub expires_at: OffsetDateTime,
-    /// Nome do personagem dono da ordem (só na lista do livro).
+    /// Name of the character who owns the order (only in the order book list).
     #[sqlx(default)]
     pub seller: String,
 }
 
-/// Colunas de `Order`, em macro para entrar em `concat!` (o sqlx só aceita SQL estático).
+/// `Order` columns, as a macro so they fit in `concat!` (sqlx only accepts static SQL).
 macro_rules! order_columns {
     () => {
         "id, territory, kind, character_id, item_id, quantity, gear_score, rarity, props, unit_price, fee, status, weight, created_at, expires_at"
@@ -77,10 +77,10 @@ pub struct CreateOrder {
     #[serde(default)]
     pub fee: i64,
     pub duration_hours: i64,
-    /// Peso unitário em kg; a ordem de compra só passa se couber no armazém (409 `storage_full`).
+    /// Unit weight in kg; a buy order only goes through if it fits in Storage (409 `storage_full`).
     #[serde(default)]
     pub weight: f32,
-    /// Bolsa e moedas do dono depois de tirar o item (venda) ou as moedas (compra) e a taxa.
+    /// Owner's bag and coins after removing the item (sell) or the coins (buy) and the fee.
     #[serde(flatten)]
     pub snapshot: Snapshot,
 }
@@ -89,11 +89,11 @@ pub struct CreateOrder {
 pub struct FillOrder {
     pub character_id: Uuid,
     pub quantity: i32,
-    /// Ordem de compra: o item que o vendedor entrega (padrão: o da ordem).
+    /// Buy order: the item the seller delivers (default: the order's).
     pub gear_score: Option<i32>,
     pub rarity: Option<i16>,
     pub props: Option<Value>,
-    /// Bolsa e moedas de quem fecha a ordem, já com o pagamento (venda) ou o item tirado e as moedas (compra).
+    /// Bag and coins of whoever fills the order, already with the payment (sell) or the item removed and the coins (buy).
     #[serde(flatten)]
     pub snapshot: Snapshot,
 }
@@ -108,7 +108,7 @@ pub struct Claimed {
     pub amount: i64,
 }
 
-/// Créditos pendentes até `until` (o resgate leva esse instante e soma exatamente esse valor).
+/// Pending credits up to `until` (the claim carries this instant and adds exactly this amount).
 #[derive(Serialize, Debug)]
 pub struct Pending {
     pub amount: i64,
@@ -120,7 +120,7 @@ pub struct Pending {
 pub struct ClaimRequest {
     #[serde(flatten)]
     pub write: journal::WriteSeq,
-    /// Só os créditos criados até este instante (o da consulta); ausente = todos.
+    /// Only the credits created up to this instant (the one from the query); missing = all.
     #[serde(default, with = "time::serde::rfc3339::option")]
     pub until: Option<OffsetDateTime>,
 }
@@ -141,7 +141,7 @@ pub(crate) async fn credit(tx: &mut sqlx::PgConnection, character_id: Uuid, amou
     Ok(())
 }
 
-/// Fecha a ordem sem negociar o resto: item de volta ao armazém (venda) ou moedas de volta em crédito (compra).
+/// Closes the order without trading the rest: item back to Storage (sell) or coins back as credit (buy).
 async fn close(tx: &mut sqlx::PgConnection, o: &Order, status: &str) -> ApiResult<()> {
     if o.quantity > 0 {
         if o.kind == "sell" {
@@ -163,7 +163,7 @@ async fn close(tx: &mut sqlx::PgConnection, o: &Order, status: &str) -> ApiResul
     Ok(())
 }
 
-/// Ordens vencidas de um território (ou todas) viram 'expired'.
+/// Expired orders of a territory (or all of them) become 'expired'.
 async fn expire(tx: &mut sqlx::PgConnection, territory: Option<&str>) -> ApiResult<()> {
     let due: Vec<Order> = sqlx::query_as(concat!("select ", order_columns!(), " from market_orders
           where status = 'open' and expires_at <= now() and ($1::text is null or territory = $1)
@@ -241,7 +241,7 @@ pub async fn create(
         return Err(ApiError::conflict("too_many_orders", "Limite de ordens abertas."));
     }
     if c.kind == "buy" {
-        // Venda não tem limite; compra soma armazém + compras abertas + esta ordem contra a capacidade.
+        // Selling has no limit; buying checks Storage + open buys + this order against the capacity.
         check_room(&mut tx, c.character_id, c.quantity as f64 * c.weight as f64).await?;
     }
     let ctx = c.snapshot.apply(&mut tx, c.character_id).await?;
@@ -309,7 +309,7 @@ pub async fn fill(
         return Err(ApiError::conflict("order_quantity", "Quantidade maior que a disponível."));
     }
     if o.kind == "sell" {
-        // Comprar de uma ordem de venda também é compra: precisa caber no armazém de quem compra.
+        // Buying from a sell order is also a purchase: it must fit in the buyer's Storage.
         check_room(&mut tx, f.character_id, f.quantity as f64 * o.weight as f64).await?;
     }
     f.snapshot.apply(&mut tx, f.character_id).await?;
@@ -360,9 +360,9 @@ pub async fn cancel(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Moedas a receber (vendas e devoluções). O servidor de jogo soma no personagem e salva logo em seguida.
-/// Resgata os créditos somando nas moedas do personagem, numa transação com sessão e número (o servidor de jogo soma o
-/// `amount` devolvido nas moedas que tem em memória).
+/// Coins to receive (sales and refunds). The game server adds them to the character and saves right after.
+/// Claims the credits by adding them to the character's coins, in a transaction with session and number (the game server
+/// adds the returned `amount` to the coins it holds in memory).
 pub async fn claim_credits(
     State(state): State<AppState>,
     _server: GameServer,
@@ -392,7 +392,7 @@ pub async fn claim_credits(
     Ok(Json(Claimed { amount }))
 }
 
-/// `GET /internal/characters/{id}/credits`: créditos de venda pendentes (vence ordens antes de somar).
+/// `GET /internal/characters/{id}/credits`: pending sale credits (expires orders before summing).
 pub async fn pending_credits(State(state): State<AppState>, _server: GameServer, Path(id): Path<Uuid>) -> ApiResult<Json<Pending>> {
     let mut tx = state.db.begin().await?;
     expire(&mut tx, None).await?;

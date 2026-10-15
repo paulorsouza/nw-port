@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Atualiza o Content e o Data desta máquina com os zips exportados pelo tools/assets_export.py.
+"""Updates this machine's Content and Data with the zips exported by tools/assets_export.py.
 
-uso: assets_import.py [--dir <pasta>] [--check] [--yes] [--force]
+usage: assets_import.py [--dir <folder>] [--check] [--yes] [--force]
 
-A pasta (padrão ~/nw-port-assets, ou NW_ASSETS) recebe à mão o que está no OneDrive: primeiro só o manifest.json;
-o import diz quais zips baixar (só os das pastas que estão diferentes daqui). Zip pode ficar em bundles/ ou solto.
-Arquivo local substituído ou que não está na publicação vai para unreal/NWPort/Saved/assets_backup/<data>/ (ficam os
-3 últimos). Arquivos versionados no git não são tocados. Roteiro: docs/tech/asset-sync.md.
+The folder (default ~/nw-port-assets, or NW_ASSETS) gets by hand what is on OneDrive: first only manifest.json;
+the import says which zips to download (only those of folders that differ from here). A zip can be in bundles/ or loose.
+A local file that is replaced or not in the publication goes to unreal/NWPort/Saved/assets_backup/<date>/ (the last
+3 are kept). Files versioned in git are not touched. Walkthrough: docs/tech/asset-sync.md.
 """
 import argparse
 import json
@@ -49,7 +49,7 @@ def check_zip(zpath, path, deep):
     with zipfile.ZipFile(zpath) as z:
         bad = [n for n in z.namelist() if not n.endswith("/") and not safe_member(n, path, deep)]
     if bad:
-        die(f"{zpath.name}: entrada fora da pasta do zip ({bad[0]}). Nada foi alterado.")
+        die(f"{zpath.name}: entry outside the zip's folder ({bad[0]}). Nothing was changed.")
 
 
 def extract(zpath):
@@ -66,32 +66,32 @@ def extract(zpath):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dir", type=Path, default=DEFAULT_DIR)
-    ap.add_argument("--check", action="store_true", help="só mostra o que mudaria e quais zips baixar")
-    ap.add_argument("--yes", action="store_true", help="sem a pergunta de confirmação")
-    ap.add_argument("--force", action="store_true", help="ignora versão da Unreal, build do jogo e commit")
+    ap.add_argument("--check", action="store_true", help="only show what would change and which zips to download")
+    ap.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+    ap.add_argument("--force", action="store_true", help="ignore the Unreal version, game build and commit")
     a = ap.parse_args()
     folder = a.dir.expanduser()
     mf = folder / "manifest.json"
     if not mf.exists():
-        die(f"Sem {mf}: baixe o manifest.json da pasta do OneDrive para lá.")
+        die(f"No {mf}: download manifest.json from the OneDrive folder to it.")
     m = json.loads(mf.read_text(encoding="utf-8"))
     if not a.check:
         preflight()
     if not a.force:
         ue = ue_version()
         if m["ue_version"] != ue:
-            die(f"Os zips são da Unreal {m['ue_version']}, esta máquina usa {ue}.")
+            die(f"The zips are from Unreal {m['ue_version']}, this machine uses {ue}.")
         if m["game_build"] != game_build():
-            die(f"Os zips são da build {m['game_build']} do jogo; tools/jogo.versao aqui diz {game_build()}.")
+            die(f"The zips are from game build {m['game_build']}; tools/jogo.versao here says {game_build()}.")
         c = m["git_commit"]
         if git("cat-file", "-e", f"{c}^{{commit}}", check=False).returncode != 0:
-            die(f"Commit {c[:9]} não existe aqui: git pull antes.")
+            die(f"Commit {c[:9]} does not exist here: git pull first.")
         if git("merge-base", "--is-ancestor", c, "HEAD", check=False).returncode != 0:
-            die(f"Os zips são do commit {c[:9]}, que não está no HEAD daqui: git pull antes.")
+            die(f"The zips are from commit {c[:9]}, which is not in HEAD here: git pull first.")
 
     st = read_state()
-    print(f"Publicação: geração {m['generation']} de {m['machine']} em {m['created_at']}; aqui: {st['generation']}.")
-    print("Comparando com os arquivos daqui...")
+    print(f"Publication: generation {m['generation']} from {m['machine']} at {m['created_at']}; here: {st['generation']}.")
+    print("Comparing with the files here...")
     files = scan()
     hasher = Hasher()
     bundles = {p: e["deep"] for p, e in m["bundles"].items()}
@@ -105,16 +105,16 @@ def main():
 
     for p in changed:
         e = m["bundles"][p]
-        print(f"  {p}{'' if e['deep'] else ' (soltos)'}: {len(local[p])} → {e['files']} arquivos")
+        print(f"  {p}{'' if e['deep'] else ' (loose)'}: {len(local[p])} → {e['files']} files")
     if orphans:
-        print(f"  {len(orphans)} arquivo(s) daqui fora da publicação (vão para o backup), ex.: {orphans[0]}")
+        print(f"  {len(orphans)} file(s) here not in the publication (they go to the backup), e.g.: {orphans[0]}")
     want = set(m["etapas"]) if m.get("etapas") is not None else None
     have = {p.name for p in ETAPAS.glob("ue_*.ok")} if ETAPAS.exists() else set()
     etapas_diff = want is not None and want != have
     if etapas_diff:
-        print(f"  marcadores de import: {len(want - have)} novos, {len(have - want)} a remover")
+        print(f"  import markers: {len(want - have)} new, {len(have - want)} to remove")
     if not changed and not orphans and not etapas_diff:
-        print("Já está igual à publicação.")
+        print("Already matches the publication.")
         if not a.check:
             write_state(m)
         return
@@ -124,21 +124,21 @@ def main():
     print(f"{len(changed)} zip(s), {total / 2**30:.2f} GiB.")
     if missing:
         size = sum(m["bundles"][p]["zip_bytes"] for p in changed if m["bundles"][p]["zip"] in missing)
-        print(f"\nBaixe da pasta bundles/ do OneDrive para {folder / 'bundles'} ({size / 2**30:.2f} GiB):")
+        print(f"\nDownload from the OneDrive bundles/ folder to {folder / 'bundles'} ({size / 2**30:.2f} GiB):")
         print("\n".join(f"  {z}" for z in missing))
-        print("Depois rode de novo. Nada foi alterado.")
+        print("Then run again. Nothing was changed.")
         sys.exit(2)
     if a.check:
         return
 
-    print("Conferindo os zips...")
+    print("Checking the zips...")
     for p in changed:
         e = m["bundles"][p]
         z = find_zip(folder, e["zip"])
         if z.stat().st_size != e["zip_bytes"] or sha256_file(z) != e["sha256"]:
-            die(f"{z.name} está diferente do manifest (download incompleto?). Baixe de novo. Nada foi alterado.")
+            die(f"{z.name} differs from the manifest (incomplete download?). Download it again. Nothing was changed.")
         check_zip(z, p, e["deep"])
-    ask(f"Aplicar ({len(changed)} pasta(s), {len(orphans)} arquivo(s) para o backup)?", a.yes)
+    ask(f"Apply ({len(changed)} folder(s), {len(orphans)} file(s) to the backup)?", a.yes)
 
     bdir = BACKUP / stamp()
     for i, p in enumerate(changed, 1):
@@ -158,9 +158,9 @@ def main():
             (ETAPAS / n).touch()
     write_state(m)
     if bdir.exists():
-        print(f"O que foi substituído ou removido aqui está em {bdir}.")
+        print(f"What was replaced or removed here is in {bdir}.")
     prune_backups()
-    print(f"Esta máquina está na geração {m['generation']}. Na primeira abertura a Unreal compila os shaders do que mudou.")
+    print(f"This machine is at generation {m['generation']}. On first open, Unreal compiles the shaders for what changed.")
 
 
 if __name__ == "__main__":

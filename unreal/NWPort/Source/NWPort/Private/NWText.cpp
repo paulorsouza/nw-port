@@ -27,7 +27,7 @@ namespace
 		return Code.StartsWith(TEXT("pt"), ESearchCase::IgnoreCase) ? TEXT("pt-br") : TEXT("en-us");
 	}
 
-	// chave -> (pt-br, en-us)
+	// key -> (pt-br, en-us)
 	const TMap<FString, TPair<FString, FString>>& Table()
 	{
 		static TMap<FString, TPair<FString, FString>> Map;
@@ -51,7 +51,7 @@ namespace
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("NW: sem Data/UI/nw_strings.json (tools/build_strings.py)"));
+				UE_LOG(LogTemp, Warning, TEXT("NW: no Data/UI/nw_strings.json (tools/build_strings.py)"));
 			}
 		}
 		return Map;
@@ -105,7 +105,7 @@ FString NWText::Format(const FString& Key, const TArray<FString>& Args)
 			Text.ReplaceInline(*Slot, *Args[i]);
 			continue;
 		}
-		// Textos do jogo com printf (%d, %s): o argumento i ocupa o próximo.
+		// Game texts with printf (%d, %s): argument i takes the next one.
 		int32 At = Text.Find(TEXT("%d"));
 		if (At == INDEX_NONE)
 		{

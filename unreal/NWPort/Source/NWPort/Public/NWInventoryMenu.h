@@ -12,51 +12,51 @@ class SWidget;
 class UCanvas;
 
 /**
- * Inventário (Tab), equipamento e armazém no estilo do jogo (spec: docs/game/ui/inventory.md).
- * - Janela do inventário: moldura do canvas inventory/newinventory (Data/UI/inventory_layout.json), lista com as seções
- *   do jogo (dynamicitemlist.lua: UiItemClass do item) em duas colunas, peças 60x60 quadradas ou redondas
- *   (itemlayout.lua), ordenação por chegada/peso/gear score/tier, peso atual/máximo.
- * - Equipamento sem painel, nas posições do equipmentv3 (espaços 63x63, fundos pretos por grupo, abas em ícone, nível
- *   e gear score, atributos).
- * - Armazém (catcontainer.lua, modo armazém): segunda janela igual à direita; o inventário e o equipamento vão 300 px
- *   para a esquerda. Modo bolsa de saque (CONTAINER_MODE_LOOT_BAG): a mesma janela com os itens da bolsa no chão
- *   (ANWLootBag), aviso de tempo de vida e contagem no lugar da busca; só pegar, nunca guardar.
- * - Arrastar (itemdraggable.lua): cópia 75x75 no cursor, origem a 0,5; espaços compatíveis acendem; a janela de destino
- *   acende com o mouse em cima. Shift + clique guarda/retira; direito equipa, usa ou move.
+ * Inventory (Tab), equipment and storage in the game style (spec: docs/game/ui/inventory.md).
+ * - Inventory window: frame of the inventory/newinventory canvas (Data/UI/inventory_layout.json), list with the game
+ *   sections (dynamicitemlist.lua: the item's UiItemClass) in two columns, 60x60 square or round pieces
+ *   (itemlayout.lua), sorting by arrival/weight/gear score/tier, current/maximum weight.
+ * - Equipment without a panel, at the equipmentv3 positions (63x63 slots, black backgrounds per group, icon tabs, level
+ *   and gear score, attributes).
+ * - Storage (catcontainer.lua, storage mode): a second identical window on the right; the inventory and equipment move
+ *   300 px to the left. Loot bag mode (CONTAINER_MODE_LOOT_BAG): the same window with the items of the ground bag
+ *   (ANWLootBag), lifetime notice and count in place of the search; take only, never store.
+ * - Drag (itemdraggable.lua): 75x75 copy at the cursor, source at 0.5; compatible slots light up; the target window
+ *   lights up with the mouse over it. Shift + click stores/withdraws; right click equips, uses or moves.
  */
 class NWPORT_API FNWInventoryMenu
 {
 public:
 	bool IsOpen() const { return Character.IsValid(); }
 	void Open(ANWCharacter* InCharacter);
-	/** Inventário com o armazém da cidade (o servidor já abriu o local). */
+	/** Inventory with the city storage (the server has already opened the location). */
 	void OpenStorage(ANWCharacter* InCharacter, const FString& InTitle);
 	bool IsStorageMode() const { return IsOpen() && bStorage; }
-	/** Inventário com a bolsa no chão (catcontainer no modo bolsa de saque). */
+	/** Inventory with the bag on the ground (catcontainer in loot bag mode). */
 	void OpenLootBag(ANWCharacter* InCharacter, ANWLootBag* Bag);
 	void Close();
 	void Draw(UCanvas* Canvas, const FVector2D& Mouse);
-	/** Apertar do botão (o soltar chega por Hold). */
+	/** Button press (the release arrives through Hold). */
 	void Click(const FVector2D& Mouse, bool bRight);
-	/** A cada quadro: estado do botão esquerdo; arrasta e solta. */
+	/** Every frame: left button state; drags and drops. */
 	void Hold(const FVector2D& Mouse, bool bDown);
 	void Wheel(float Delta, const FVector2D& Mouse);
-	/** Captura offline: começa um arrasto da bolsa (0), equipamento (1) ou armazém (2). */
+	/** Offline capture: starts a drag from the bag (0), equipment (1) or storage (2). */
 	void ShotDrag(int32 Source, int32 Slot);
-	/** Captura offline: ordenação da lista (0 inventário, 1 armazém): 1 chegada, 2 peso, 3 gear score, 4 tier. */
+	/** Offline capture: list sorting (0 inventory, 1 storage): 1 arrival, 2 weight, 3 gear score, 4 tier. */
 	void ShotSort(int32 List, int32 Sort) { Lists[FMath::Clamp(List, 0, 1)].Sort = Sort; }
-	/** Captura offline: abre o popup de dividir (1) ou de destruir (2) para o item da bolsa (0) ou do armazém (2). */
+	/** Offline capture: opens the split (1) or destroy (2) popup for the bag item (0) or storage item (2). */
 	void ShotPopup(int32 Kind, int32 Source, int32 Slot, int32 Qty = 0);
-	/** Captura offline: texto da busca da lista (0 inventário, 1 armazém). */
+	/** Offline capture: list search text (0 inventory, 1 storage). */
 	void ShotSearch(int32 List, const FString& Text) { Lists[FMath::Clamp(List, 0, 1)].Search = Text; }
-	/** Campo de busca da lista em pixels (o campo de texto do Slate fica por cima). */
+	/** List search field in pixels (the Slate text field sits on top). */
 	FBox2f SearchRect(int32 List) const { return Lists[FMath::Clamp(List, 0, 1)].SearchBox; }
 	void SetSearch(int32 List, const FString& Text) { Lists[FMath::Clamp(List, 0, 1)].Search = Text; }
-	/** Aba do armazém sendo renomeada (clique duplo): retângulo do campo de texto; inválido = nenhuma. */
+	/** Storage tab being renamed (double click): text field rectangle; invalid = none. */
 	FBox2f RenameRect() const;
-	/** Enter ou perder o foco no campo do nome da aba. */
+	/** Enter or losing focus in the tab name field. */
 	void CommitRename(const FString& Name);
-	/** Captura offline: aba aberta do armazém. */
+	/** Offline capture: open storage tab. */
 	void ShotTab(int32 Tab) { StorageTab = Tab; }
 
 private:
@@ -65,12 +65,12 @@ private:
 	{
 		ENWItemContainer Container = ENWItemContainer::Bag;
 		int32 Slot = INDEX_NONE;
-		FBox2f Rect = FBox2f(ForceInit);   // área de clique (recortada pela rolagem)
-		FBox2f Full = FBox2f(ForceInit);   // peça inteira (desenho)
+		FBox2f Rect = FBox2f(ForceInit);   // click area (clipped by scrolling)
+		FBox2f Full = FBox2f(ForceInit);   // whole piece (drawing)
 		bool bStorage = false;
 		ESource Source() const { return bStorage ? ESource::Storage : Container == ENWItemContainer::Equip ? ESource::Equip : ESource::Bag; }
 	};
-	// Uma lista de itens (inventário ou armazém) com seções, ordenação e rolagem próprias.
+	// A list of items (inventory or storage) with its own sections, sorting and scrolling.
 	struct FSectionHit
 	{
 		FName Class;
@@ -79,21 +79,21 @@ private:
 	};
 	struct FList
 	{
-		FBox2f Window = FBox2f(ForceInit);   // moldura inteira (alvo de soltar)
-		FBox2f Area = FBox2f(ForceInit);     // lista com rolagem
-		float Scroll = 0.f;                  // px de 1080p
+		FBox2f Window = FBox2f(ForceInit);   // whole frame (drop target)
+		FBox2f Area = FBox2f(ForceInit);     // scrolling list
+		float Scroll = 0.f;                  // px at 1080p
 		float ContentH = 0.f;
-		int32 Sort = 1;                      // inventoryfilter.lua: 1 chegada, 2 peso, 3 gear score, 4 tier
-		int32 SortDir = 1;                   // 1 padrão (maior/mais novo primeiro), −1 invertido
+		int32 Sort = 1;                      // inventoryfilter.lua: 1 arrival, 2 weight, 3 gear score, 4 tier
+		int32 SortDir = 1;                   // 1 default (largest/newest first), −1 reversed
 		TSet<FName> Collapsed;
-		FString Search;                      // busca por nome (sem maiúsculas nem acentos)
+		FString Search;                      // search by name (no case or accents)
 		FBox2f SearchBox = FBox2f(ForceInit);
 		FBox2f SortRects[4];
 		TArray<FSectionHit> Sections;
 	};
 
-	// Popup do jogo (popup.lua): dividir pilha (Ctrl + clique), confirmar destruir (soltar no chão), acoplar gema (soltar
-	// a gema no item; ui_attach_gem / ui_replace_gem) e retirar gema (Shift + clique direito no item; docs/game/items.md).
+	// Game popup (popup.lua): split stack (Ctrl + click), confirm destroy (drop on the ground), socket gem (drop
+	// the gem on the item; ui_attach_gem / ui_replace_gem) and remove gem (Shift + right click on item; docs/game/items.md).
 	enum class EPopup : uint8 { None, Split, Destroy, Socket, Unsocket };
 	enum class EAction : uint8 { Cancel, Move, Drop, Destroy, Socket, Unsocket };
 	struct FPopupButton
@@ -110,7 +110,7 @@ private:
 	bool PopupClick(const FVector2D& Mouse);
 	void RunAction(EAction Action);
 	void SetSliderFromMouse(float X);
-	/** Zona de largar no chão (grounddroptarget): à direita do inventário, só sem armazém. */
+	/** Drop-to-ground zone (grounddroptarget): right of the inventory, only without storage. */
 	FBox2f GroundZone() const;
 	void DrawGround(UCanvas* Canvas, const FVector2D& Mouse);
 	void ShowSearch();
@@ -122,17 +122,17 @@ private:
 	void LayoutList(FList& L, bool bStorageItems);
 	void LayoutEquipment();
 	const FSlotRef* SlotAt(const FVector2D& Mouse) const;
-	/** Peça do jogo (itemlayout.lua): fundo e moldura por raridade, ícone − 6 px, tier, quantidade > 1, valor da ordenação. */
+	/** Game piece (itemlayout.lua): background and frame by rarity, icon − 6 px, tier, quantity > 1, sort value. */
 	void DrawItemTile(UCanvas* Canvas, const FBox2f& R, const FNWItem* Item, bool bRound, float Alpha, bool bHover, int32 SortShown);
 	void DrawWindow(UCanvas* Canvas, const FList& L, float OffsetX, bool bStorageWindow, const FVector2D& Mouse);
 	void DrawList(UCanvas* Canvas, const FList& L, bool bStorageItems, const FVector2D& Mouse, const FSlotRef* Hover);
 	void DrawEquipment(UCanvas* Canvas, const FVector2D& Mouse, const FSlotRef* Hover);
 	void DrawDrag(UCanvas* Canvas, const FVector2D& Mouse);
-	/** Desenha o tooltip ao lado do mouse (ou com a borda esquerda em ForceX) e devolve o retângulo usado. */
+	/** Draws the tooltip next to the mouse (or with the left edge at ForceX) and returns the rectangle used. */
 	FBox2f DrawTooltip(UCanvas* Canvas, const FNWItem& Item, const FVector2D& Mouse, bool bEquipped, float ForceX = -1.f);
 	TArray<FString> Wrap(const FString& Text, float Width, float Size, int32 Style) const;
 	void DrawText(UCanvas* Canvas, const FString& Text, float X, float Y, float Size, const FLinearColor& Color, int32 Style = 0) const;
-	/** Texto na fonte do jogo (lyshineui/fonts/<arquivo>.font, como no FNWUILayout), tamanho em px de 1080p. */
+	/** Text in the game font (lyshineui/fonts/<file>.font, as in FNWUILayout), size in px at 1080p. */
 	void DrawGameText(UCanvas* Canvas, const FString& Text, float X, float Y, float Size, const FLinearColor& Color, const TCHAR* Font, bool bRight = false) const;
 	float GameTextWidth(const FString& Text, float Size, const TCHAR* Font) const;
 	float GameScale(UFont* Font, int32 Index, float Size) const;
@@ -146,27 +146,27 @@ private:
 	void RightClick(const FSlotRef& S);
 	int32 FreeBagSlot() const;
 	bool ModifierDown(const FKey& Key) const;
-	/** Itens de uma seção (para mover a seção inteira). */
+	/** Items of a section (to move the whole section). */
 	TArray<int32> SectionSlots(FName Class, bool bStorageItems) const;
 
 	FNWUILayout Window;
 	bool bLoaded = false;
 	TWeakObjectPtr<ANWCharacter> Character;
 	float UIScale = 1.f;
-	UCanvas* DrawCanvas = nullptr;              // canvas do quadro atual (medir texto fora do Draw)
-	mutable float LineH[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};   // altura da linha de cada fonte a 1
-	FVector2f Center = FVector2f::ZeroVector;   // centro da tela em px (as telas do jogo se posicionam a partir dele)
+	UCanvas* DrawCanvas = nullptr;              // canvas of the current frame (measure text outside Draw)
+	mutable float LineH[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};   // line height of each font at 1
+	FVector2f Center = FVector2f::ZeroVector;   // screen center in px (the game screens position themselves from it)
 	TArray<FSlotRef> Slots;
-	FList Lists[2];                             // 0 inventário, 1 armazém
-	float InvOffsetX = 0.f;                     // 0, ou −300 com o armazém (newinventory.lua OnTransitionIn)
+	FList Lists[2];                             // 0 inventory, 1 storage
+	float InvOffsetX = 0.f;                     // 0, or −300 with the storage (newinventory.lua OnTransitionIn)
 	FVector2f EquipOrigin = FVector2f::ZeroVector;
-	FBox2f EquipArea = FBox2f(ForceInit);       // alvo universal do equipamento (equipmentuniversaldroptarget)
+	FBox2f EquipArea = FBox2f(ForceInit);       // universal equipment target (equipmentuniversaldroptarget)
 	FBox2f TabRects[2];
 	FBox2f PointRects[5] = {FBox2f(ForceInit), FBox2f(ForceInit), FBox2f(ForceInit), FBox2f(ForceInit), FBox2f(ForceInit)};
 	FBox2f TakeAllRect = FBox2f(ForceInit);
-	int32 EquipTab = 0;                         // 0 armas e armadura, 1 ferramentas
+	int32 EquipTab = 0;                         // 0 weapons and armor, 1 tools
 
-	// Arrasto: apertou num item (bPressed), passou de DragStart px (bDragging).
+	// Drag: pressed on an item (bPressed), moved more than DragStart px (bDragging).
 	bool bPressed = false;
 	bool bDragging = false;
 	FSlotRef Pressed;
@@ -176,8 +176,8 @@ private:
 
 	bool bStorage = false;
 	FString StorageTitle;
-	// Abas do armazém compartilhado (FNWItemRules::StorageTabs): a lista mostra só a aba aberta; guardar vai para ela;
-	// soltar um item numa aba passa para lá; clique duplo renomeia.
+	// Shared storage tabs (FNWItemRules::StorageTabs): the list shows only the open tab; storing goes into it;
+	// dropping an item on a tab moves it there; double click renames.
 	static constexpr int32 MaxTabs = 5;
 	int32 StorageTab = 0;
 	int32 RenameTab = INDEX_NONE;
@@ -186,32 +186,32 @@ private:
 	int32 LastTabClicked = INDEX_NONE;
 	TSharedPtr<SEditableText> RenameEdit;
 	bool ShowsTabs() const { return bStorage && !bLoot; }
-	/** Aba sob o mouse (INDEX_NONE fora). */
+	/** Tab under the mouse (INDEX_NONE outside). */
 	int32 TabAt(const FVector2f& M) const;
-	/** A pilha entra na lista da segunda janela (aba aberta do armazém; a bolsa no chão mostra tudo). */
+	/** The stack goes into the second window's list (open storage tab; the bag on the ground shows everything). */
 	bool InList(const FNWItem& I, bool bStorageItems) const { return !bStorageItems || !ShowsTabs() || I.Tab == StorageTab; }
 	void DrawTabs(UCanvas* Canvas, const FVector2D& Mouse);
-	// Modo bolsa de saque: a segunda janela mostra LootBag em vez do armazém.
+	// Loot bag mode: the second window shows LootBag instead of the storage.
 	bool bLoot = false;
 	TWeakObjectPtr<ANWLootBag> LootBag;
-	/** Itens da segunda janela (armazém ou bolsa no chão). */
+	/** Items of the second window (storage or bag on the ground). */
 	const TArray<FNWItem>* ContainerItems() const;
-	/** Move entre a bolsa e a segunda janela; na bolsa no chão só pega (bDeposit false). */
+	/** Moves between the bag and the second window; from the bag on the ground it only takes (bDeposit false). */
 	void ContainerMove(bool bDeposit, int32 Slot, int32 Quantity);
 	void ContainerMoveMany(bool bDeposit, const TArray<int32>& Slots);
 
-	FBox2f ClipRect = FBox2f(ForceInit);         // recorte do desenho (lista com rolagem); inválido = sem recorte
-	float InvLeft = 0.f;                          // borda esquerda do Content do inventário (px de 1080p)
+	FBox2f ClipRect = FBox2f(ForceInit);         // drawing clip (scrolling list); invalid = no clip
+	float InvLeft = 0.f;                          // left edge of the inventory Content (px at 1080p)
 
 	EPopup Popup = EPopup::None;
 	FSlotRef PopupSlot;
-	int32 PopupGemSlot = INDEX_NONE;   // Socket: espaço da gema na bolsa
+	int32 PopupGemSlot = INDEX_NONE;   // Socket: gem slot in the bag
 	int32 PopupQty = 1, PopupMax = 1;
 	TArray<FPopupButton> PopupButtons;
 	FBox2f SliderRect = FBox2f(ForceInit);
 	bool bSliderDrag = false;
 
-	// Campos de texto da busca (Slate, por cima do canvas), um por lista.
+	// Search text fields (Slate, over the canvas), one per list.
 	TSharedPtr<SWidget> SearchHost;
 	TSharedPtr<SEditableText> SearchEdit[2];
 };

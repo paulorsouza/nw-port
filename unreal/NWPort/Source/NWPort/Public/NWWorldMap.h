@@ -6,9 +6,9 @@ class APawn;
 class UCanvas;
 
 /**
- * Mapa do mundo (M), como o `lyshineui/worldmap/magicmap` do jogo: tela cheia com os tiles do mapa do jogo
- * (Data/World/worldmap.json, tools/make_worldmap.py), degradê nas bordas, régua de escala, botões de centralizar e
- * zoom à direita e o ícone do jogador virado para onde ele olha. Roda do mouse aproxima no cursor; arrastar move.
+ * World map (M), like the game's `lyshineui/worldmap/magicmap`: full screen with the tiles of the game's map
+ * (Data/World/worldmap.json, tools/make_worldmap.py), gradient on the edges, scale ruler, center and
+ * zoom buttons on the right and the player icon turned to where they look. Mouse wheel zooms at the cursor; dragging moves.
  */
 class NWPORT_API FNWWorldMap
 {
@@ -19,23 +19,23 @@ public:
 	void Draw(UCanvas* Canvas, const FVector2D& Mouse, bool bMouseDown, const APawn* Player);
 	void Click(const FVector2D& Mouse);
 	void Wheel(float Delta, const FVector2D& Mouse);
-	/** Botão direito: põe o marcador (waypoint) no ponto do mapa; de novo em cima dele, tira. */
+	/** Right button: places the marker (waypoint) at the map point; again on top of it, removes it. */
 	void RightClick(const FVector2D& Mouse);
-	/** Marcador do jogador (mundo, m) para a bússola; não definido = não há. */
+	/** Player marker (world, m) for the compass; unset = none. */
 	TOptional<FVector2D> Waypoint;
-	/** Onde o jogador morreu por último (mundo, m): ícone lastdeathposition no mapa. */
+	/** Where the player last died (world, m): lastdeathposition icon on the map. */
 	TOptional<FVector2D> LastDeath;
 
-	/** Posição do Unreal (cm, referencial da cidade) -> mundo do jogo (m). */
+	/** Unreal position (cm, city frame) -> game world (m). */
 	FVector2D ToWorld(const FVector& Location) const;
-	/** Mundo do jogo (m) -> plano do Unreal (cm). */
+	/** Game world (m) -> Unreal plane (cm). */
 	FVector2D ToUnreal(const FVector2D& World) const;
-	/** Lê Data/World/worldmap.json uma vez (o mapa e a bússola usam). */
+	/** Reads Data/World/worldmap.json once (the map and the compass use it). */
 	void EnsureLoaded() { if (!bLoaded) Load(); }
 
 	struct FPoi
 	{
-		FVector2D Pos;   // mundo, metros
+		FVector2D Pos;   // world, meters
 		FString NameKey;
 		FString Icon;
 	};
@@ -44,7 +44,7 @@ public:
 private:
 	struct FTile
 	{
-		FVector2D Min;   // canto sudoeste, metros do mundo
+		FVector2D Min;   // southwest corner, world meters
 		FString Texture;
 	};
 	struct FLevel
@@ -68,12 +68,12 @@ private:
 	TArray<FLevel> Levels;
 	TArray<FPoi> Pois;
 
-	FVector2D Center = FVector2D::ZeroVector;   // mundo, no meio da tela
+	FVector2D Center = FVector2D::ZeroVector;   // world, at the center of the screen
 	double MetersPerPixel = 1.0;
 	FVector2D ScreenSize = FVector2D(1920.0, 1080.0);
 	float UIScale = 1.f;
 	bool bDragging = false;
 	bool bCenterOnPlayer = false;
 	FVector2D DragLast = FVector2D::ZeroVector;
-	FBox2f Buttons[3] = {FBox2f(ForceInit), FBox2f(ForceInit), FBox2f(ForceInit)};   // centralizar, aproximar, afastar
+	FBox2f Buttons[3] = {FBox2f(ForceInit), FBox2f(ForceInit), FBox2f(ForceInit)};   // center, zoom in, zoom out
 };

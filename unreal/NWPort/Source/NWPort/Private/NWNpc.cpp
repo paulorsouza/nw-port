@@ -28,28 +28,28 @@ ANWNpc::ANWNpc()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = false;
-	// Cápsula do tamanho da do jogador: bloqueia quem anda e serve de alvo para o foco da interação.
+	// Capsule the size of the player's: blocks whoever walks and serves as a target for the interaction focus.
 	Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
 	Capsule->InitCapsuleSize(34.f, 86.f);
 	Capsule->SetCollisionProfileName(TEXT("Pawn"));
 	RootComponent = Capsule;
 	Body = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Body"));
 	Body->SetupAttachment(Capsule);
-	// Malha do jogo olha para +Y: mesma correção do jogador (NWCharacter), para o ator e a malha olharem juntos (virar
-	// para quem conversa).
+	// The game mesh faces +Y: same correction as the player (NWCharacter), so the actor and the mesh face together
+	// (turning to whoever talks).
 	Body->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -86.f), FRotator(0.f, -90.f, 0.f));
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Body->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	Body->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
 	Interact = CreateDefaultSubobject<UNWInteractableComponent>(TEXT("Interact"));
-	Interact->FocusHeight = 0.f;   // centro da cápsula (o cartão sobe 90 cm a partir daí)
+	Interact->FocusHeight = 0.f;   // capsule center (the card rises 90 cm from there)
 }
 
 void ANWNpc::Setup(const FString& InVariant, const FText& InName, const FString& Mesh, const FString& Anim)
 {
 	Variant = InVariant;
 	DisplayName = InName;
-	// NPC ambiente (sem nome no jogo) não tem cartão de conversa.
+	// Ambient NPC (no name in the game) has no conversation card.
 	Interact->SetActive(!InName.IsEmpty());
 	Interact->DisplayName = InName;
 	TWeakObjectPtr<ANWNpc> Self(this);
@@ -71,17 +71,17 @@ void ANWNpc::Setup(const FString& InVariant, const FText& InName, const FString&
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NPC %s: sem malha %s"), *Variant, *Mesh);
+		UE_LOG(LogTemp, Warning, TEXT("NPC %s: no mesh %s"), *Variant, *Mesh);
 	}
 	if (UAnimSequence* A = Anim.IsEmpty() ? nullptr : LoadObject<UAnimSequence>(nullptr, *Anim))
 	{
 		Body->PlayAnimation(A, true);
-		// Começo em ponto diferente por NPC: vários com a mesma animação não se mexem juntos.
+		// Different start point per NPC: several with the same animation do not move in sync.
 		Body->SetPosition(FMath::Fmod(float(GetTypeHash(Variant) % 1000) * 0.037f, A->GetPlayLength()), false);
 	}
 	else if (!Anim.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NPC %s: sem animação %s"), *Variant, *Anim);
+		UE_LOG(LogTemp, Warning, TEXT("NPC %s: no animation %s"), *Variant, *Anim);
 	}
 }
 
@@ -100,7 +100,7 @@ void ANWNpcField::BeginPlay()
 	const FString File = FPaths::ProjectDir() / TEXT("Data/World") / DataFile;
 	if (!FFileHelper::LoadFileToString(Raw, *File) || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Raw), Root) || !Root.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NPCs: não li %s"), *File);
+		UE_LOG(LogTemp, Warning, TEXT("NPCs: could not read %s"), *File);
 		return;
 	}
 	Root->TryGetStringField(TEXT("city"), City);
@@ -112,8 +112,8 @@ void ANWNpcField::BeginPlay()
 		{
 			continue;
 		}
-		// pos é o pé (ponto do capital). Encaixa no chão convertido logo abaixo ou acima (até 1,5 m) e põe o centro
-		// da cápsula 86 cm acima dele.
+		// pos is the foot (capital point). Snaps to the converted ground just below or above (up to 1.5 m) and puts the
+		// capsule center 86 cm above it.
 		FVector Foot(P[0]->AsNumber(), P[1]->AsNumber(), P[2]->AsNumber());
 		FHitResult Hit;
 		FCollisionQueryParams Q(SCENE_QUERY_STAT(NWNpcFloor), true);
@@ -122,7 +122,7 @@ void ANWNpcField::BeginPlay()
 			Foot = Hit.ImpactPoint;
 		}
 		const FVector Loc = Foot + FVector(0, 0, 86.0);
-		// "yaw" dos dados é o do ator com a malha sem correção; +90 compensa o giro da malha acima (pose igual).
+		// The data "yaw" is the actor's with the uncorrected mesh; +90 compensates the mesh rotation above (same pose).
 		const FRotator Rot(0.0, N->GetNumberField(TEXT("yaw")) + 90.0, 0.0);
 		FActorSpawnParameters SP;
 		SP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -144,7 +144,7 @@ void ANWNpcField::BeginPlay()
 		Npc->Setup(N->GetStringField(TEXT("variant")), FText::FromString(Name),
 			FString::Printf(TEXT("%s/NPCs/%s/%s.%s"), *AssetRoot, *MeshName, *MeshName, *MeshName),
 			AnimName.IsEmpty() ? FString() : FString::Printf(TEXT("%s/Anims/A_%s.A_%s"), *AssetRoot, *AnimName, *AnimName));
-		// Mercador da loja do port (tools/shops.json): cartão "Loja · [E] Comprar" abre a tela da loja no cliente.
+		// Port shop merchant (tools/shops.json): card "Loja · [E] Comprar" opens the shop screen on the client.
 		if (const FNWShop* Shop = FNWShops::Get().ForNpc(Npc->Variant))
 		{
 			const FString ShopId = Shop->Id;
@@ -163,9 +163,9 @@ void ANWNpcField::BeginPlay()
 		}
 		Npcs.Add(Npc);
 	}
-	UE_LOG(LogTemp, Log, TEXT("NPCs: %d de %s"), Npcs.Num(), *File);
-	// Campo de treino dos tutoriais de arma: bonecos (personagem sem IA, renasce depois de morto). Só no servidor:
-	// o boneco é replicado.
+	UE_LOG(LogTemp, Log, TEXT("NPCs: %d from %s"), Npcs.Num(), *File);
+	// Training field of the weapon tutorials: dummies (character without AI, respawns after death). Server only:
+	// the dummy is replicated.
 	const TArray<TSharedPtr<FJsonValue>>* Dummies = nullptr;
 	if (HasAuthority() && Root->TryGetArrayField(TEXT("dummies"), Dummies))
 	{
@@ -182,7 +182,7 @@ void ANWNpcField::BeginPlay()
 		}
 	}
 
-	// Estações de refino da cidade (Data/Crafting/refining.json; a malha é a da cidade convertida).
+	// City refining stations (Data/Crafting/refining.json; the mesh is the converted city one).
 	for (const FNWCrafting::FStation& Data : FNWCrafting::Get().Stations())
 	{
 		FVector Foot = Data.Pos;
@@ -201,7 +201,7 @@ void ANWNpcField::BeginPlay()
 		}
 	}
 
-	// Área da cidade: centro dos NPCs e estações, raio até o mais longe + CityMargin. Só o servidor marca.
+	// City area: center of the NPCs and stations, radius to the farthest + CityMargin. Only the server marks it.
 	TArray<FVector> Points;
 	for (const ANWNpc* Npc : Npcs)
 	{
@@ -228,7 +228,7 @@ void ANWNpcField::BeginPlay()
 
 void ANWNpcField::CheckDiscover()
 {
-	// Com nw-core, só depois que o personagem carregou dele (senão o Load apagaria a cidade marcada).
+	// With nw-core, only after the character has loaded from it (otherwise the Load would erase the marked city).
 	const UGameInstance* GI = GetGameInstance();
 	const UNWBackend* B = GI ? GI->GetSubsystem<UNWBackend>() : nullptr;
 	const bool bBackend = B && B->IsServerEnabled();
@@ -245,7 +245,7 @@ void ANWNpcField::CheckDiscover()
 			PC->Warning(NWText::Key(TEXT("nw.storage.city_known"), {FString::FromInt(FMath::RoundToInt(FNWItemRules::Get().StoragePerCity))}));
 			if (ANWGameMode* GM = GetWorld()->GetAuthGameMode<ANWGameMode>())
 			{
-				GM->SavePlayer(PC, TEXT("city:") + City);   // cidade e capacidade no nw-core na hora
+				GM->SavePlayer(PC, TEXT("city:") + City);   // city and capacity in nw-core right away
 			}
 		}
 	}

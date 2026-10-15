@@ -1,5 +1,5 @@
-//! Fluxo completo contra Postgres real. `#[sqlx::test]` cria um banco temporário por teste a partir de
-//! `DATABASE_URL` (ver README).
+//! Full flow against a real Postgres. `#[sqlx::test]` creates a temporary database per test from
+//! `DATABASE_URL` (see README).
 
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
@@ -26,8 +26,8 @@ impl Api {
         Self { router: app(AppState { db: db.clone(), server_secret: Arc::from(SECRET) }), db, seq: AtomicI64::new(0) }
     }
 
-    /// Gravações do servidor de jogo levam sessão e número (journal.rs): quando o teste não manda, usa a sessão atual do
-    /// personagem e um número crescente, como o servidor faz.
+    /// Game server saves carry session and number (journal.rs): when the test does not send them, uses the character's
+    /// current session and an increasing number, as the server does.
     async fn with_seq(&self, method: &str, uri: &str, server: bool, body: Option<Value>) -> Option<Value> {
         let write = ["/state", "/storage/", "/houses", "/npc-rewards", "/credits/claim", "/orders", "/fill", "/ground", "/take", "/city/buy", "/sell-raw", "/buy-item", "/city/bid"];
         if !server || method == "GET" || !write.iter().any(|w| uri.contains(w)) || uri.contains("/cancel") {
@@ -54,7 +54,7 @@ impl Api {
         self.send(method, uri, token, server, body.map(|b| b.to_string())).await
     }
 
-    /// Corpo em texto, como o servidor de jogo manda (números com 17 dígitos, por exemplo).
+    /// Body as text, as the game server sends it (numbers with 17 digits, for example).
     async fn send(&self, method: &str, uri: &str, token: Option<&str>, server: bool, body: Option<String>) -> (StatusCode, Value) {
         let mut req = Request::builder().method(method).uri(uri);
         if let Some(t) = token {
@@ -151,7 +151,7 @@ async fn limite_de_personagens(db: PgPool) {
     for name in ["Um", "Dois", "Tres"] {
         let (status, body) = api.call("POST", "/v1/characters", Some(&t), false, Some(json!({ "name": name }))).await;
         if name == "Um" {
-            assert_eq!(status, StatusCode::BAD_REQUEST, "nome curto: {body}");
+            assert_eq!(status, StatusCode::BAD_REQUEST, "short name: {body}");
             continue;
         }
         assert_eq!(status, StatusCode::CREATED, "{body}");
@@ -162,7 +162,7 @@ async fn limite_de_personagens(db: PgPool) {
     assert_eq!(status, StatusCode::CONFLICT);
     assert_eq!(err["error"], "too_many_characters");
 
-    // Apagar libera a vaga e o nome.
+    // Deleting frees the slot and the name.
     let id = body["id"].as_str().unwrap();
     let (status, _) = api.call("DELETE", &format!("/v1/characters/{id}"), Some(&t), false, None).await;
     assert_eq!(status, StatusCode::NO_CONTENT);
@@ -180,14 +180,14 @@ async fn entrar_no_servidor_e_salvar(db: PgPool) {
     assert_eq!(ch["active_weapon"], "Sword");
     assert!(ch["position"].is_null());
 
-    // Só o dono pede passe.
+    // Only the owner can request a ticket.
     let (status, _) = api.call("POST", &format!("/v1/characters/{id}/join"), Some(&b), false, None).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
     let (status, join) = api.call("POST", &format!("/v1/characters/{id}/join"), Some(&a), false, None).await;
     assert_eq!(status, StatusCode::OK);
     let ticket = join["ticket"].as_str().unwrap();
 
-    // Servidor sem segredo não resgata.
+    // A server without the secret cannot redeem.
     let (status, _) = api.call("POST", "/internal/tickets/redeem", None, false, Some(json!({ "ticket": ticket }))).await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
     let (status, got) = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": ticket }))).await;
@@ -195,7 +195,7 @@ async fn entrar_no_servidor_e_salvar(db: PgPool) {
     assert_eq!(got["account_name"], "Paulo");
     assert_eq!(got["is_admin"], false);
     assert_eq!(got["character"]["name"], "Aranha");
-    // Uso único.
+    // Single use.
     let (status, err) = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": ticket }))).await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
     assert_eq!(err["error"], "invalid_ticket");
@@ -278,7 +278,7 @@ async fn inventario_salva_e_volta(db: PgPool) {
     assert_eq!(c["progression"]["level"], 3);
     assert_eq!(c["progression"]["trade"], json!([640, 0, 110, 0]));
 
-    // Sem inventário/moedas no salvamento: mantém.
+    // No inventory/coins in the save: keeps them.
     let (status, _) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(base.clone())).await;
     assert_eq!(status, StatusCode::NO_CONTENT);
     let c = redeem(&api, &t, &id).await;
@@ -291,7 +291,7 @@ async fn inventario_salva_e_volta(db: PgPool) {
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(err["error"], "invalid_progression");
 
-    // Slot repetido e quantidade zero são recusados, e nada muda.
+    // Repeated slot and zero quantity are rejected, and nothing changes.
     for bad in [
         json!([{ "item_id": "OreT1", "quantity": 1, "container": "bag", "slot": 0 }, { "item_id": "WoodT1", "quantity": 1, "container": "bag", "slot": 0 }]),
         json!([{ "item_id": "OreT1", "quantity": 0, "container": "bag", "slot": 0 }]),
@@ -307,7 +307,7 @@ async fn inventario_salva_e_volta(db: PgPool) {
     assert_eq!(c["inventory"].as_array().unwrap().len(), 3);
 }
 
-/// Personagem novo; devolve o id.
+/// New character; returns the id.
 async fn character(api: &Api, db: &PgPool, account: &str, name: &str) -> String {
     let t = api.register(db, account).await;
     let (_, ch) = api.call("POST", "/v1/characters", Some(&t), false, Some(json!({ "name": name }))).await;
@@ -329,7 +329,7 @@ async fn armazem_grava_com_a_bolsa_e_confere_versao(db: PgPool) {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(s, json!({ "version": 0, "items": [], "tab_names": [], "capacity": 0.0 }));
 
-    // Deposita 30 de 37 minérios: bolsa e armazém na mesma chamada.
+    // Deposits 30 of 37 ores: bag and Storage in the same call.
     let put = json!({ "version": 0, "coins": 50,
                       "items": [{ "item_id": "OreT1", "quantity": 30, "slot": 0 }],
                       "inventory": [{ "item_id": "OreT1", "quantity": 7, "container": "bag", "slot": 0 }] });
@@ -338,7 +338,7 @@ async fn armazem_grava_com_a_bolsa_e_confere_versao(db: PgPool) {
     assert_eq!(s["version"], 1);
     assert_eq!(coins_of(&db, &id).await, 50);
 
-    // Versão velha: recusa e não mexe em nada.
+    // Stale version: rejects and touches nothing.
     let mut stale = put.clone();
     stale["coins"] = json!(999);
     let (status, err) = api.call("PUT", &url, None, true, Some(stale)).await;
@@ -349,7 +349,7 @@ async fn armazem_grava_com_a_bolsa_e_confere_versao(db: PgPool) {
     let (_, s) = api.call("GET", &url, None, true, None).await;
     assert_eq!(s["items"][0]["quantity"], 30);
 
-    // Só existe o armazém compartilhado.
+    // Only the shared Storage exists.
     for other in ["cidade".to_string(), "settlement:4".to_string(), format!("house:{}", uuid::Uuid::new_v4())] {
         let (status, _) = api.call("GET", &format!("/internal/characters/{id}/storage/{other}"), None, true, None).await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{other}");
@@ -371,7 +371,7 @@ async fn armazem_abas_peso_e_capacidade(db: PgPool) {
     assert_eq!(s["tab_names"][4], "Armas");
     assert_eq!(s["items"][1]["tab"], 4);
 
-    // Aba fora de 0–4, peso negativo e nome comprido: recusa.
+    // Tab outside 0–4, negative weight and long name: rejected.
     for bad in [json!({ "item_id": "OreT1", "quantity": 1, "slot": 0, "tab": 5 }), json!({ "item_id": "OreT1", "quantity": 1, "slot": 0, "weight": -1.0 })] {
         let (status, _) = api.call("PUT", &url, None, true, Some(json!({ "version": 1, "coins": 0, "inventory": [], "items": [bad] }))).await;
         assert_eq!(status, StatusCode::BAD_REQUEST);
@@ -379,7 +379,7 @@ async fn armazem_abas_peso_e_capacidade(db: PgPool) {
     let long = json!({ "version": 1, "coins": 0, "inventory": [], "items": [], "tab_names": ["x".repeat(25)] });
     let (status, _) = api.call("PUT", &url, None, true, Some(long)).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
-    // O salvamento do personagem também atualiza a capacidade (cidade nova sem abrir o armazém).
+    // The character save also updates the capacity (new city without opening Storage).
     let st = json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {}, "storage_capacity": 3000.0 });
     let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(st)).await;
     assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
@@ -392,7 +392,7 @@ async fn mercado_compra_respeita_o_armazem(db: PgPool) {
     let api = Api::new(db.clone());
     let buyer = character(&api, &db, "Paulo", "Aranha").await;
     let seller = character(&api, &db, "Joao", "Besouro").await;
-    // Armazém de 10 kg com 6 kg ocupados.
+    // 10 kg Storage with 6 kg used.
     let url = format!("/internal/characters/{buyer}/storage/shared");
     let put = json!({ "version": 0, "coins": 1000, "inventory": [], "capacity": 10.0,
                       "items": [{ "item_id": "StoneT1", "quantity": 6, "slot": 0, "weight": 1.0 }] });
@@ -401,14 +401,14 @@ async fn mercado_compra_respeita_o_armazem(db: PgPool) {
     let buy = |q: i32| json!({ "character_id": buyer, "kind": "buy", "item_id": "WoodT1", "quantity": q, "unit_price": 10,
                                "duration_hours": 1, "weight": 1.0, "coins": 900, "inventory": [] });
 
-    // 3 kg cabem; depois mais 2 kg não (6 + 3 em aberto + 2 > 10).
+    // 3 kg fit; then 2 kg more do not (6 + 3 open + 2 > 10).
     let (status, o) = api.call("POST", "/internal/market/4/orders", None, true, Some(buy(3))).await;
     assert_eq!(status, StatusCode::CREATED, "{o}");
     let (status, e) = api.call("POST", "/internal/market/4/orders", None, true, Some(buy(2))).await;
     assert_eq!(status, StatusCode::CONFLICT);
     assert_eq!(e["error"], "storage_full");
 
-    // Venda não tem limite, e a venda vencida volta ao armazém mesmo passando da capacidade.
+    // Selling has no limit, and an expired sell order returns to Storage even over capacity.
     let sell = json!({ "character_id": buyer, "kind": "sell", "item_id": "OreT1", "quantity": 50, "unit_price": 5,
                        "duration_hours": 1, "weight": 1.0, "coins": 900, "inventory": [] });
     let (status, o) = api.call("POST", "/internal/market/4/orders", None, true, Some(sell)).await;
@@ -418,7 +418,7 @@ async fn mercado_compra_respeita_o_armazem(db: PgPool) {
     let (_, s) = api.call("GET", &url, None, true, None).await;
     assert_eq!(s["items"].as_array().unwrap().len(), 2, "{s}");
 
-    // Acima do limite: comprar de uma ordem de venda também recusa.
+    // Over the limit: buying from a sell order is also rejected.
     let other = json!({ "character_id": seller, "kind": "sell", "item_id": "FiberT1", "quantity": 1, "unit_price": 5,
                         "duration_hours": 1, "weight": 0.1, "coins": 0, "inventory": [] });
     let (_, o) = api.call("POST", "/internal/market/4/orders", None, true, Some(other)).await;
@@ -436,7 +436,7 @@ async fn mercado_venda_compra_e_credito(db: PgPool) {
     let buyer = character(&api, &db, "Joao", "Besouro").await;
     let empty = json!([]);
 
-    // Vende 10 minérios a 5 cada (taxa 2): o item sai da bolsa e fica na ordem.
+    // Sells 10 ores at 5 each (fee 2): the item leaves the bag and stays in the order.
     let sell = json!({ "character_id": seller, "kind": "sell", "item_id": "OreT1", "quantity": 10, "unit_price": 5,
                        "fee": 2, "duration_hours": 24, "coins": 98, "inventory": empty });
     let (status, o) = api.call("POST", "/internal/market/4/orders", None, true, Some(sell)).await;
@@ -447,14 +447,14 @@ async fn mercado_venda_compra_e_credito(db: PgPool) {
     assert_eq!(list.as_array().unwrap().len(), 1);
     assert_eq!(list[0]["seller"], "Aranha");
 
-    // Não compra da própria ordem nem mais do que há.
+    // Cannot buy from one's own order nor more than is available.
     let fill = |who: &str, q: i32, coins: i64| json!({ "character_id": who, "quantity": q, "coins": coins, "inventory": [] });
     let (status, _) = api.call("POST", &format!("/internal/market/orders/{oid}/fill"), None, true, Some(fill(&seller, 1, 0))).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     let (status, _) = api.call("POST", &format!("/internal/market/orders/{oid}/fill"), None, true, Some(fill(&buyer, 11, 0))).await;
     assert_eq!(status, StatusCode::CONFLICT);
 
-    // Compra 4: vão para o armazém da cidade do comprador; o vendedor ganha crédito de 20.
+    // Buys 4: they go to the buyer's city Storage; the seller gets a credit of 20.
     let (status, o) = api.call("POST", &format!("/internal/market/orders/{oid}/fill"), None, true, Some(fill(&buyer, 4, 80))).await;
     assert_eq!(status, StatusCode::OK, "{o}");
     assert_eq!(o["quantity"], 6);
@@ -464,7 +464,7 @@ async fn mercado_venda_compra_e_credito(db: PgPool) {
     assert_eq!(s["items"][0]["quantity"], 4);
     assert_eq!(s["version"], 1);
 
-    // Cancelar: só o dono; o resto (6) volta ao armazém do vendedor.
+    // Cancel: only the owner; the rest (6) returns to the seller's Storage.
     let (status, _) = api.call("POST", &format!("/internal/market/orders/{oid}/cancel"), None, true, Some(json!({ "character_id": buyer }))).await;
     assert_eq!(status, StatusCode::FORBIDDEN);
     let (status, _) = api.call("POST", &format!("/internal/market/orders/{oid}/cancel"), None, true, Some(json!({ "character_id": seller }))).await;
@@ -474,7 +474,7 @@ async fn mercado_venda_compra_e_credito(db: PgPool) {
     let (status, _) = api.call("POST", &format!("/internal/market/orders/{oid}/fill"), None, true, Some(fill(&buyer, 1, 0))).await;
     assert_eq!(status, StatusCode::CONFLICT);
 
-    // Crédito resgatado uma vez só.
+    // Credit claimed only once.
     let (_, c) = api.call("POST", &format!("/internal/characters/{seller}/credits/claim"), None, true, None).await;
     assert_eq!(c["amount"], 20);
     let (_, c) = api.call("POST", &format!("/internal/characters/{seller}/credits/claim"), None, true, None).await;
@@ -487,7 +487,7 @@ async fn mercado_ordem_de_compra_e_vencimento(db: PgPool) {
     let buyer = character(&api, &db, "Paulo", "Aranha").await;
     let seller = character(&api, &db, "Joao", "Besouro").await;
 
-    // Ordem de compra de 3 a 10 (moedas em garantia): o vendedor entrega 2, que caem no armazém do comprador.
+    // Buy order of 3 at 10 (coins held in escrow): the seller delivers 2, which land in the buyer's Storage.
     let buy = json!({ "character_id": buyer, "kind": "buy", "item_id": "WoodT1", "quantity": 3, "unit_price": 10,
                       "duration_hours": 1, "coins": 0, "inventory": [] });
     let (_, o) = api.call("POST", "/internal/market/4/orders", None, true, Some(buy)).await;
@@ -498,7 +498,7 @@ async fn mercado_ordem_de_compra_e_vencimento(db: PgPool) {
     let (_, s) = api.call("GET", &format!("/internal/characters/{buyer}/storage/shared"), None, true, None).await;
     assert_eq!(s["items"][0]["quantity"], 2);
 
-    // Vence: o que sobrou da garantia (1 × 10) volta em crédito.
+    // Expires: what is left of the escrow (1 × 10) returns as credit.
     sqlx::query("update market_orders set expires_at = now() - interval '1 minute'").execute(&db).await.unwrap();
     let (_, list) = api.call("GET", "/internal/market/4/orders", None, true, None).await;
     assert_eq!(list, json!([]));
@@ -537,7 +537,7 @@ async fn brindes_de_npc_uma_vez_por_periodo(db: PgPool) {
     assert_eq!(status, StatusCode::CONFLICT);
     assert_eq!(err["error"], "already_claimed");
 
-    // Semanal: um por período; a semana seguinte é outro período.
+    // Weekly: one per period; the next week is another period.
     let weekly = |p: &str| json!({ "npc": "0407a_Commander", "kind": "weekly", "period": p, "coins": 5, "inventory": [] });
     let (status, _) = api.call("POST", &url, None, true, Some(weekly("2026-10-13"))).await;
     assert_eq!(status, StatusCode::CREATED);
@@ -547,7 +547,7 @@ async fn brindes_de_npc_uma_vez_por_periodo(db: PgPool) {
     assert_eq!(status, StatusCode::CREATED);
     assert_eq!(coins_of(&db, &id).await, 5);
 
-    // Período errado para o tipo.
+    // Wrong period for the kind.
     let (status, _) = api.call("POST", &url, None, true, Some(weekly("once"))).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
@@ -563,7 +563,7 @@ async fn item_com_props(db: PgPool) {
     let url = format!("/internal/characters/{id}/storage/shared");
     let props = json!({ "attr": 4, "quality": 87.5, "perks": ["ChanceCritica"], "bind": "equip", "signed": "Aranha" });
 
-    // Armazém com props: volta igual.
+    // Storage with props: comes back the same.
     let put = json!({ "version": 0, "coins": 0, "inventory": [],
                       "items": [{ "item_id": "1hSwordT5", "quantity": 1, "slot": 0, "gear_score": 512, "props": props }] });
     let (status, s) = api.call("PUT", &url, None, true, Some(put)).await;
@@ -571,7 +571,7 @@ async fn item_com_props(db: PgPool) {
     let (_, s) = api.call("GET", &url, None, true, None).await;
     assert_eq!(s["items"][0]["props"], props);
 
-    // Bolsa com props: grava igual.
+    // Bag with props: stored the same.
     let base = json!({ "map": "L_QuedaEterna", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "yaw": 0.0, "health": 100.0,
                        "active_weapon": "Sword", "loadout": {}, "mastery": {} });
     let mut state = base.clone();
@@ -581,13 +581,13 @@ async fn item_com_props(db: PgPool) {
     let (props_db,): (Value,) = sqlx::query_as("select props from items where character_id = $1::uuid").bind(&id).fetch_one(&db).await.unwrap();
     assert_eq!(props_db, props);
 
-    // props que não é objeto: recusa.
+    // props that is not an object: rejected.
     let mut bad = base.clone();
     bad["inventory"] = json!([{ "item_id": "OreT1", "quantity": 1, "container": "bag", "slot": 0, "props": [1] }]);
     let (status, _) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(bad)).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
-    // Item vinculado não vai ao posto de trocas.
+    // A bound item cannot go to the Trading Post.
     let sell = json!({ "character_id": id, "kind": "sell", "item_id": "1hSwordT5", "quantity": 1, "unit_price": 5,
                        "duration_hours": 24, "props": { "bound": true }, "coins": 0, "inventory": [] });
     let (status, err) = api.call("POST", "/internal/market/4/orders", None, true, Some(sell)).await;
@@ -611,23 +611,23 @@ async fn item_assinado_nao_duplica(db: PgPool) {
                        "active_weapon": "Sword", "loadout": {}, "mastery": {} });
     let state = |items: Value| { let mut b = base.clone(); b["inventory"] = items; b };
 
-    // Na bolsa: ok.
+    // In the bag: ok.
     let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state(json!([sword(0)])))).await;
     assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
-    // Duas vezes na mesma bolsa: recusa.
+    // Twice in the same bag: rejected.
     let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state(json!([sword(0), sword(1)])))).await;
     assert_eq!(status, StatusCode::CONFLICT);
     assert_eq!(e["error"], "item_duplicate");
-    // Número inventado: recusa.
+    // Made-up number: rejected.
     let fake = json!([{ "item_id": "1hSwordT5", "quantity": 1, "container": "bag", "slot": 0, "props": { "serial": "x-1" } }]);
     let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state(fake))).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(e["error"], "unknown_serial");
-    // Outro personagem com o mesmo item enquanto ele está na bolsa do primeiro: recusa.
+    // Another character with the same item while it is in the first one's bag: rejected.
     let (status, e) = api.call("PUT", &format!("/internal/characters/{other}/state"), None, true, Some(state(json!([sword(0)])))).await;
     assert_eq!(status, StatusCode::CONFLICT, "{e}");
 
-    // Guardar: sai da bolsa e entra no armazém na mesma gravação: ok; no armazém e na bolsa ao mesmo tempo: recusa.
+    // Store: leaves the bag and enters Storage in the same save: ok; in Storage and in the bag at once: rejected.
     let url = format!("/internal/characters/{id}/storage/shared");
     let stored = json!([{ "item_id": "1hSwordT5", "quantity": 1, "slot": 0, "props": { "serial": serial, "quality": 91.0 } }]);
     let (status, e) = api.call("PUT", &url, None, true, Some(json!({ "version": 0, "coins": 0, "inventory": [], "items": stored }))).await;
@@ -656,16 +656,16 @@ async fn gravacao_fora_de_ordem_e_sessao_velha(db: PgPool) {
 
     let (status, e) = api.call("PUT", &url, None, true, Some(state(2, session, 50, 10))).await;
     assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
-    // A gravação 1 chega depois da 2: recusada; a mesma 2 de novo: já aplicada.
+    // Save 1 arrives after save 2: rejected; the same save 2 again: already applied.
     let (status, e) = api.call("PUT", &url, None, true, Some(state(1, session, 0, 99))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("stale_write")));
     let (status, e) = api.call("PUT", &url, None, true, Some(state(2, session, 0, 99))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("duplicate_write")));
-    // Sem número: recusada.
+    // No number: rejected.
     let (status, e) = api.call("PUT", &url, None, false, None).await;
     assert_ne!(status, StatusCode::NO_CONTENT, "{e}");
 
-    // Entrou de novo (outro servidor): a gravação atrasada da sessão anterior não passa, mesmo com número alto.
+    // Joined again (another server): the late save from the previous session does not pass, even with a high number.
     let (_, join) = api.call("POST", &format!("/v1/characters/{id}/join"), Some(&t), false, None).await;
     let (_, got) = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": join["ticket"] }))).await;
     assert_eq!(got["character"]["coins"], 50);
@@ -685,7 +685,7 @@ async fn log_de_itens(db: PgPool) {
     let ore = |q: i32| json!([{ "item_id": "OreT1", "quantity": q, "container": "bag", "slot": 0 }]);
     let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state(10, ore(40)))).await;
     assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
-    // Guarda 30 na aba 2.
+    // Stores 30 in tab 2.
     let put = json!({ "version": 0, "coins": 10, "reason": "storage", "inventory": ore(10),
                       "items": [{ "item_id": "OreT1", "quantity": 30, "slot": 0, "tab": 2, "weight": 0.1 }] });
     let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/storage/shared"), None, true, Some(put)).await;
@@ -703,7 +703,7 @@ async fn log_de_itens(db: PgPool) {
     let (_, by_item) = api.call("GET", "/internal/item-log?item_id=WoodT1", None, true, None).await;
     assert_eq!(by_item, json!([]));
 
-    // Item com decimal (qualidade em float do jogo, impressa com 17 dígitos): gravar duas vezes igual não gera linha.
+    // Item with a decimal (game float quality, printed with 17 digits): saving the same twice adds no row.
     let sword = json!([{ "item_id": "1hSwordT5", "quantity": 1, "container": "bag", "slot": 0, "props": { "quality": 0.5, "attr": 4 } }]);
     let url = format!("/internal/characters/{id}/state");
     for _ in 0..2 {
@@ -725,7 +725,7 @@ async fn chao_soltar_pegar_e_vencer(db: PgPool) {
     let (status, e) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(st)).await;
     assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
 
-    // Solta 10: a bolsa fica com 30 e o saco com 10, numa gravação.
+    // Drops 10: the bag keeps 30 and the ground bag gets 10, in one save.
     let drop = json!({ "map": "L_QuedaEterna", "position": { "x": 1.0, "y": 2.0, "z": 3.0 }, "ttl_seconds": 180,
                        "items": stack(10), "inventory": ore(30), "coins": 0, "reason": "drop" });
     let (status, bag) = api.call("POST", &format!("/internal/characters/{id}/ground"), None, true, Some(drop)).await;
@@ -735,7 +735,7 @@ async fn chao_soltar_pegar_e_vencer(db: PgPool) {
     assert_eq!(list[0]["items"][0]["quantity"], 10);
     assert_eq!(list[0]["position"]["z"], 3.0);
 
-    // Pega 4 (sobram 6), depois o resto: o saco some; pegar de novo dá ground_gone.
+    // Takes 4 (6 left), then the rest: the ground bag disappears; taking again gives ground_gone.
     let take = |left: Value, bag_ore: i32| json!({ "character_id": id, "items": left, "inventory": ore(bag_ore), "coins": 0, "reason": "ground_take" });
     let (status, e) = api.call("POST", &format!("/internal/ground/{bag_id}/take"), None, true, Some(take(stack(6), 34))).await;
     assert_eq!(status, StatusCode::OK, "{e}");
@@ -746,7 +746,7 @@ async fn chao_soltar_pegar_e_vencer(db: PgPool) {
     let (_, list) = api.call("GET", &format!("/internal/characters/{id}/ground"), None, true, None).await;
     assert_eq!(list, json!([]));
 
-    // Saco vencido: some na listagem e fica no log como ground_expired.
+    // Expired ground bag: disappears from the list and stays in the log as ground_expired.
     let drop = json!({ "map": "L_QuedaEterna", "position": { "x": 0.0, "y": 0.0, "z": 0.0 }, "ttl_seconds": 180,
                        "items": stack(5), "inventory": ore(35), "coins": 0, "reason": "drop" });
     let (_, bag) = api.call("POST", &format!("/internal/characters/{id}/ground"), None, true, Some(drop)).await;
@@ -770,7 +770,7 @@ async fn chao_item_assinado_nao_duplica(db: PgPool) {
                        "items": [sword.clone()], "inventory": [], "coins": 0, "reason": "drop" });
     let (status, e) = api.call("POST", &format!("/internal/characters/{id}/ground"), None, true, Some(drop)).await;
     assert_eq!(status, StatusCode::CREATED, "{e}");
-    // No chão e na bolsa ao mesmo tempo: recusa.
+    // On the ground and in the bag at once: rejected.
     let mut in_bag = sword.clone();
     in_bag["container"] = json!("bag");
     let st = json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {}, "inventory": [in_bag] });
@@ -791,7 +791,7 @@ async fn bolsa_por_diferenca(db: PgPool) {
     let (status, e) = api.call("PUT", &url, None, true, Some(st)).await;
     assert_eq!(status, StatusCode::NO_CONTENT, "{e}");
 
-    // Coleta: só o espaço 0 muda (10 → 13) e entra fibra no espaço 2; o 1 apaga.
+    // Gathering: only slot 0 changes (10 → 13) and fiber goes into slot 2; slot 1 is cleared.
     let mut st = base();
     st["reason"] = json!("gather");
     st["inventory_patch"] = json!([
@@ -809,7 +809,7 @@ async fn bolsa_por_diferenca(db: PgPool) {
     assert_eq!(gather.len(), 3, "{gather:?}");
     assert!(gather.contains(&("OreT1".into(), 3)) && gather.contains(&("WoodT1".into(), -5)) && gather.contains(&("FiberT1".into(), 4)), "{gather:?}");
 
-    // Espaço repetido ou contêiner errado: recusa sem mudar nada.
+    // Repeated slot or wrong container: rejected without changing anything.
     for bad in [json!([{ "container": "bag", "slot": 0, "item": null }, { "container": "bag", "slot": 0, "item": null }]),
                 json!([{ "container": "chest", "slot": 0, "item": null }])] {
         let mut st = base();
@@ -818,7 +818,7 @@ async fn bolsa_por_diferenca(db: PgPool) {
         assert_eq!(status, StatusCode::BAD_REQUEST);
     }
 
-    // Item assinado em dois espaços pelo patch: recusa.
+    // Signed item in two slots via the patch: rejected.
     let (_, s) = api.call("POST", &format!("/internal/characters/{id}/serials"), None, true, None).await;
     let serial = s["serial"].as_str().unwrap().to_string();
     let sword = json!({ "item_id": "1hSwordT5", "quantity": 1, "props": { "serial": serial } });
@@ -838,7 +838,7 @@ async fn creditos_ate_e_limite_de_ordens(db: PgPool) {
     }
     let (_, p) = api.call("GET", &format!("/internal/characters/{id}/credits"), None, true, None).await;
     assert_eq!(p["amount"], 350);
-    // Um crédito novo depois da consulta não entra neste resgate.
+    // A new credit after the query is not included in this claim.
     tokio::time::sleep(std::time::Duration::from_millis(20)).await;
     sqlx::query("insert into coin_credits (id, character_id, amount, reason) values (gen_random_uuid(), $1::uuid, 7, 'market_sale')")
         .bind(&id).execute(&db).await.unwrap();
@@ -850,7 +850,7 @@ async fn creditos_ate_e_limite_de_ordens(db: PgPool) {
     let (_, p) = api.call("GET", &format!("/internal/characters/{id}/credits"), None, true, None).await;
     assert_eq!(p["amount"], 7);
 
-    // 50 ordens abertas: a 51ª é recusada.
+    // 50 open orders: the 51st is rejected.
     sqlx::query("insert into market_orders (id, territory, kind, character_id, item_id, quantity, unit_price, expires_at)
                  select gen_random_uuid(), 'global', 'buy', $1::uuid, 'OreT1', 1, 1, now() + interval '1 day' from generate_series(1, 50)")
         .bind(&id).execute(&db).await.unwrap();
@@ -860,7 +860,7 @@ async fn creditos_ate_e_limite_de_ordens(db: PgPool) {
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("too_many_orders")));
 }
 
-// ---------------------------------------------------------------- cidades (migration 0013)
+// ---------------------------------------------------------------- cities (migration 0013)
 
 const CITY: &str = "/internal/regions/1/city";
 
@@ -876,7 +876,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     assert_eq!(c["treasury"], 20_000_000);
     let price = c["price"].as_i64().unwrap();
 
-    // Compra pelo preço fixo; outro preço = 409.
+    // Buys at the fixed price; another price = 409.
     let (status, e) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": gov, "price": 1, "coins": 0, "inventory": [] }))).await;
     assert_eq!(status, StatusCode::CONFLICT, "{e}");
     assert_eq!(e["error"], "price_changed");
@@ -884,7 +884,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     assert_eq!(status, StatusCode::OK, "{c}");
     assert_eq!(c["owner_name"], "Aranha");
 
-    // Jogador vende minério de ferro pelo padrão (meio da faixa): sai do balancete, entra no estoque.
+    // Player sells iron ore at the default (middle of the range): paid from the treasury, added to the stock.
     let ore = c["buy"].as_array().unwrap().iter().find(|r| r["item_id"] == "OreT1").unwrap().clone();
     let p = ore["padrao"].as_i64().unwrap();
     assert_eq!((ore["min"].as_i64().unwrap(), ore["max"].as_i64().unwrap()), (20, 100));
@@ -894,12 +894,12 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     assert_eq!(c["treasury"], 20_000_000 - 100 * p);
     assert_eq!(c["stock"]["OreT1"], 100);
     assert_eq!(coins_of(&db, &player).await, 100 * p);
-    // Limite de 5 mil por semana por personagem e matéria-prima.
+    // Limit of 5 thousand per week per character and raw material.
     assert_eq!(ore["limit"], 5_000);
     let (status, e) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 4_901, p, 0))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("city_limit")));
 
-    // Só o governador mexe nos preços, e dentro da faixa.
+    // Only the governor changes prices, and within the range.
     let (status, e) = api.call("PUT", CITY, None, true, Some(json!({ "character_id": player, "tax": 0.02 }))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("not_governor")));
     let (status, e) = api.call("PUT", CITY, None, true, Some(json!({ "character_id": gov, "buy_prices": { "OreT1": 101 } }))).await;
@@ -907,7 +907,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     let (status, c) = api.call("PUT", CITY, None, true, Some(json!({ "character_id": gov, "buy_prices": { "OreT1": 100 }, "tax": 0.08 }))).await;
     assert_eq!(status, StatusCode::OK, "{c}");
     assert!((c["tax"].as_f64().unwrap() - 0.08).abs() < 1e-6);
-    // Preço velho = 409; o governador vendendo à própria cidade recebe no máximo o padrão.
+    // Stale price = 409; the governor selling to his own city gets at most the default.
     let (status, e) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 10, p, 0))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("price_changed")));
     let (status, _) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&player, 10, 100, 0))).await;
@@ -917,7 +917,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     let (status, _) = api.call("POST", &format!("{CITY}/sell-raw"), None, true, Some(sell(&gov, 10, p, 0))).await;
     assert_eq!(status, StatusCode::OK);
 
-    // Lista: poção pelo padrão, entra no balancete.
+    // List: potion at the default, goes into the treasury.
     let (_, before) = api.call("GET", CITY, None, true, None).await;
     let pot = before["sell"].as_array().unwrap().iter().find(|r| r["item_id"] == "PotionHealthT5").unwrap()["price"].as_i64().unwrap();
     let buy = json!({ "character_id": player, "item_id": "PotionHealthT5", "quantity": 10, "unit_price": pot, "coins": 0,
@@ -927,7 +927,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     assert_eq!(c["treasury"].as_i64().unwrap(), before["treasury"].as_i64().unwrap() + 10 * pot);
     assert_eq!(c["this_week"]["list_units"], 10);
 
-    // Projetos: mesa e arma pedem cesta de material do estoque + moedas e levam 24 h de obra; buff sai do balancete.
+    // Projects: station and weapon take a material basket from stock + coins and 24 h of work; a buff is paid from the treasury.
     let proj = |kind: &str, station: Option<&str>, other: Option<&str>| json!({ "character_id": gov, "kind": kind, "station": station,
                                                                               "buff": other, "weapon": other });
     let (status, e) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("station", Some("smelting"), None))).await;
@@ -940,7 +940,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     assert_eq!(c["buffs"], json!([["smelting", "xp"]]));
     let (status, e) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("buff", Some("smelting"), Some("xp")))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("buff_active")));
-    // Com a cesta da escala 3 no estoque, a fundição entra em obra; segunda obra na mesma mesa = 409.
+    // With the tier 3 basket in stock, the smelter goes into work; a second work on the same station = 409.
     for item in ["OreT1", "WoodT2", "FiberT1", "RawhideT1", "StoneT1"] {
         sqlx::query("insert into city_stock (region, item_id, quantity) values ('1', $1, 5000) on conflict (region, item_id) do update set quantity = 5000")
             .bind(item).execute(&db).await.unwrap();
@@ -952,10 +952,10 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     assert_eq!(c["stock"]["OreT1"], 2000);
     let (status, e) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("station", Some("smelting"), None))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("work_running")));
-    // Arma: balista para a escala 2.
+    // Weapon: ballista to tier 2.
     let (status, c) = api.call("POST", &format!("{CITY}/projects"), None, true, Some(proj("weapon", None, Some("ballista")))).await;
     assert_eq!(status, StatusCode::OK, "{c}");
-    // 25 h depois as obras terminam.
+    // 25 h later the works finish.
     let later = (time::OffsetDateTime::now_utc() + time::Duration::hours(25)).format(&time::format_description::well_known::Rfc3339).unwrap();
     let (status, _) = api.call("POST", "/internal/cities/advance", None, true, Some(json!({ "now": later }))).await;
     assert_eq!(status, StatusCode::NO_CONTENT);
@@ -964,7 +964,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     assert_eq!((st["tier"].as_i64(), st["work"].is_null()), (Some(3), true));
     assert_eq!(c["defense"], 6);
 
-    // Imposto de fabricação no salvamento do personagem: entra no balancete e conta a fabricação na mesa.
+    // Crafting tax in the character save: goes into the treasury and counts the craft at the station.
     let (_, before) = api.call("GET", CITY, None, true, None).await;
     let state = json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {},
                         "city_tax": { "region": "1", "station": "smelting", "amount": 500 } });
@@ -975,7 +975,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     let st = c["stations"].as_array().unwrap().iter().find(|s| s["station"] == "smelting").unwrap().clone();
     assert_eq!(st["crafts"], 1);
 
-    // Venda da cidade só depois da carência.
+    // City sale only after the grace period.
     let (status, e) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": 30_000_000 }))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("city_grace")));
 
@@ -983,7 +983,7 @@ async fn cidade_compra_precos_limites_e_projetos(db: PgPool) {
     assert_eq!(status, StatusCode::OK);
     let kinds: Vec<&str> = log.as_array().unwrap().iter().map(|l| l["kind"].as_str().unwrap()).collect();
     for k in ["owner", "raw_bought", "manage", "list_sold", "weapon", "buff", "tier", "work_done", "tax"] {
-        assert!(kinds.contains(&k), "falta {k} no log: {kinds:?}");
+        assert!(kinds.contains(&k), "missing {k} in the log: {kinds:?}");
     }
 }
 
@@ -997,7 +997,7 @@ async fn cidade_semana_tenebroso_e_venda_obrigatoria(db: PgPool) {
     let (status, _) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": gov, "price": price, "coins": 0, "inventory": [] }))).await;
     assert_eq!(status, StatusCode::OK);
 
-    // Uma semana e um dia sem nada: virada da semana (tenebroso) e o primeiro ataque.
+    // One week and one day with nothing: week rollover (`tenebroso`) and the first attack.
     let later = (time::OffsetDateTime::now_utc() + time::Duration::days(8)).format(&time::format_description::well_known::Rfc3339).unwrap();
     let (status, _) = api.call("POST", "/internal/cities/advance", None, true, Some(json!({ "now": later }))).await;
     assert_eq!(status, StatusCode::NO_CONTENT);
@@ -1010,7 +1010,7 @@ async fn cidade_semana_tenebroso_e_venda_obrigatoria(db: PgPool) {
     assert_eq!((c["auction"]["forced"].as_bool(), c["auction"]["start"].as_i64(), c["auction"]["min_bid"].as_i64()), (Some(true), Some(price), Some(price)));
     assert!(!c["last_attack"].is_null(), "{c}");
 
-    // Leilão obrigatório: o dono não cancela; ninguém compra direto; lances com mínimo e devolução de quem é coberto.
+    // Forced auction: the owner cannot cancel; nobody buys directly; bids have a minimum and outbid bidders are refunded.
     let (status, e) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": null }))).await;
     assert_eq!((status, e["error"].as_str()), (StatusCode::CONFLICT, Some("forced_sale")));
     let (status, e) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": other, "price": price, "coins": 0, "inventory": [] }))).await;
@@ -1029,7 +1029,7 @@ async fn cidade_semana_tenebroso_e_venda_obrigatoria(db: PgPool) {
     let (_, credits) = api.call("GET", &format!("/internal/characters/{other}/credits"), None, true, None).await;
     assert_eq!(credits["amount"], price);
 
-    // 24 h depois: quem deu o maior lance leva; o governador que sai recebe o lance inteiro (venda obrigatória).
+    // 24 h later: the highest bidder wins; the outgoing governor receives the whole bid (forced sale).
     let end = (time::OffsetDateTime::now_utc() + time::Duration::days(8) + time::Duration::hours(25))
         .format(&time::format_description::well_known::Rfc3339).unwrap();
     let (status, _) = api.call("POST", "/internal/cities/advance", None, true, Some(json!({ "now": end }))).await;
@@ -1049,7 +1049,7 @@ async fn cidade_leilao_do_dono_e_sem_lance(db: PgPool) {
     let price = c["price"].as_i64().unwrap();
     let (status, _) = api.call("POST", &format!("{CITY}/buy"), None, true, Some(json!({ "character_id": gov, "price": price, "coins": 0, "inventory": [] }))).await;
     assert_eq!(status, StatusCode::OK);
-    // Passa a carência: o dono abre com o lance inicial que quiser e pode cancelar sem lance.
+    // Grace period over: the owner opens with any starting bid and may cancel with no bids.
     sqlx::query("update cities set owner_since = now() - interval '15 days'").execute(&db).await.unwrap();
     let (status, c) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": 1_000 }))).await;
     assert_eq!(status, StatusCode::OK, "{c}");
@@ -1057,7 +1057,7 @@ async fn cidade_leilao_do_dono_e_sem_lance(db: PgPool) {
     let (status, c) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": null }))).await;
     assert_eq!(status, StatusCode::OK);
     assert!(c["auction"].is_null());
-    // Sem lance até o fim: continua com o dono.
+    // No bid until the end: stays with the owner.
     let (status, _) = api.call("POST", &format!("{CITY}/sale"), None, true, Some(json!({ "character_id": gov, "price": 2_000 }))).await;
     assert_eq!(status, StatusCode::OK);
     let end = (time::OffsetDateTime::now_utc() + time::Duration::hours(25)).format(&time::format_description::well_known::Rfc3339).unwrap();
@@ -1073,7 +1073,7 @@ async fn cidade_leilao_do_dono_e_sem_lance(db: PgPool) {
 async fn teto_de_moedas_e_preco_maximo(db: PgPool) {
     let api = Api::new(db.clone());
     let id = character(&api, &db, "Paulo", "Aranha").await;
-    // Gravação acima de 20 milhões: entra só até o teto e o excedente fica no log.
+    // Save above 20 million: only up to the cap is added and the excess goes to the log.
     let state = json!({ "map": "L_QuedaEterna", "yaw": 0.0, "active_weapon": "Sword", "loadout": {}, "mastery": {}, "coins": 2_000_000_500i64 });
     let (status, b) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(state)).await;
     assert_eq!(status, StatusCode::NO_CONTENT, "{b}");
@@ -1081,10 +1081,10 @@ async fn teto_de_moedas_e_preco_maximo(db: PgPool) {
     let (_, log) = api.call("GET", &format!("/internal/item-log?character_id={id}"), None, true, None).await;
     let cap = log.as_array().unwrap().iter().find(|l| l["location"] == "coins_cap" || l["place"] == "coins_cap").cloned().unwrap_or(Value::Null);
     assert_eq!(cap["quantity"], -500, "{log}");
-    // Corte feito pelo servidor de jogo: só o registro.
+    // Cut made by the game server: record only.
     let (status, _) = api.call("POST", &format!("/internal/characters/{id}/coins-cap"), None, true, Some(json!({ "amount": 700, "reason": "loot:teste" }))).await;
     assert_eq!(status, StatusCode::NO_CONTENT);
-    // Mercado: preço unitário acima de 5 milhões é recusado.
+    // Market: unit price above 5 million is rejected.
     let order = json!({ "character_id": id, "kind": "buy", "item_id": "IngotT5", "quantity": 1, "unit_price": 500_000_001i64,
                         "duration_hours": 24, "coins": 0, "inventory": [] });
     let (status, e) = api.call("POST", "/internal/market/global/orders", None, true, Some(order)).await;

@@ -90,7 +90,7 @@ void FNWItemCatalog::Load()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NW: sem Data/Items/items.*.json (tools/make_items.py)"));
+		UE_LOG(LogTemp, Warning, TEXT("NW: no Data/Items/items.*.json (tools/make_items.py)"));
 	}
 
 	TSharedPtr<FJsonObject> Root;
@@ -160,7 +160,7 @@ void FNWItemCatalog::Load()
 void FNWItemCatalog::RollGame(FName Table, TArray<FNWItem>& OutItems, int32 RollBonus) const
 {
 	RollGameRec(Table, OutItems, 0, RollBonus);
-	// Junta repetidos (a mesma gema pode sair em duas rolagens).
+	// Merges duplicates (the same gem can come out in two rolls).
 	for (int32 i = 0; i < OutItems.Num(); ++i)
 	{
 		for (int32 j = OutItems.Num() - 1; j > i; --j)
@@ -200,7 +200,7 @@ void FNWItemCatalog::RollGameRec(FName Table, TArray<FNWItem>& OutItems, int32 D
 	}
 	if (!T->bAnd && Hits.Num() > 1)
 	{
-		// "or": fica a faixa mais alta que o dado alcançou; empate = sorteio.
+		// "or": keeps the highest range the die reached; tie = random pick.
 		int32 Top = 0;
 		for (const FGameEntry* E : Hits)
 		{
@@ -239,7 +239,7 @@ void FNWItemCatalog::RollStats(FNWItem& Item) const
 		return;
 	}
 	Item.GearScore = FMath::RandRange(D->GearScoreMin, FMath::Max(D->GearScoreMin, D->GearScoreMax));
-	// Raridade sobe com a sorte e com o tier (no jogo vem das vantagens; aqui é só a chance).
+	// Rarity goes up with luck and with tier (in the game it comes from perks; here it is just the chance).
 	const float R = FMath::FRand() + D->Tier * 0.04f;
 	Item.Rarity = R > 1.05f ? 4 : R > 0.95f ? 3 : R > 0.8f ? 2 : R > 0.55f ? 1 : 0;
 }
@@ -270,11 +270,11 @@ FLinearColor NWRarityColor(uint8 Rarity)
 {
 	switch (Rarity)
 	{
-	case 1: return FLinearColor(FColor(0x2C, 0x9A, 0x47));   // incomum (verde)
-	case 2: return FLinearColor(FColor(0x2E, 0x7F, 0xD1));   // raro (azul)
-	case 3: return FLinearColor(FColor(0x9A, 0x4D, 0xD6));   // épico (roxo)
-	case 4: return FLinearColor(FColor(0xE0, 0x8A, 0x2C));   // lendário (laranja)
-	default: return FLinearColor(FColor(0x8C, 0x8C, 0x8C));  // comum
+	case 1: return FLinearColor(FColor(0x2C, 0x9A, 0x47));   // uncommon (green)
+	case 2: return FLinearColor(FColor(0x2E, 0x7F, 0xD1));   // rare (blue)
+	case 3: return FLinearColor(FColor(0x9A, 0x4D, 0xD6));   // epic (purple)
+	case 4: return FLinearColor(FColor(0xE0, 0x8A, 0x2C));   // legendary (orange)
+	default: return FLinearColor(FColor(0x8C, 0x8C, 0x8C));  // common
 	}
 }
 
@@ -308,7 +308,7 @@ TSharedRef<FJsonObject> NWItemProps::Write(const FNWItem& Item)
 	}
 	else if (Item.Bind == 2)
 	{
-		P->SetBoolField(TEXT("bound"), true);   // o nw-core recusa item vinculado no posto de trocas
+		P->SetBoolField(TEXT("bound"), true);   // nw-core refuses a bound item on the Trading Post
 	}
 	if (!Item.Signer.IsEmpty())
 	{

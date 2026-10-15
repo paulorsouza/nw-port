@@ -5,14 +5,14 @@
 class ANWPlayerController;
 
 /**
- * Botões do menu de dev (F10) registrados por cada esteira no próprio arquivo (docs/workflow.md), sem mexer no
- * ENWDevCommand, no ServerDev nem no SNWDevMenu. Server roda no servidor (com as mesmas regras do ServerDev); State,
- * se houver, mostra o estado no botão (no cliente).
+ * Dev menu (F10) buttons registered by each area in its own file (docs/workflow.md), without touching
+ * ENWDevCommand, ServerDev or SNWDevMenu. Server runs on the server (with the same rules as ServerDev); State,
+ * if present, shows the state on the button (on the client).
  *
  *     NW_REGISTER_DEV(SummonHorse, TEXT("montarias.summon_horse"), TEXT("nw.dev.summon_horse"),
  *         [](ANWPlayerController* PC) { ... });
  *
- * Id único com o prefixo da esteira; rótulo é chave de texto (tools/strings/<esteira>.json).
+ * Unique id with the area prefix; the label is a text key (tools/strings/<area>.json).
  */
 struct NWPORT_API FNWDevEntry
 {

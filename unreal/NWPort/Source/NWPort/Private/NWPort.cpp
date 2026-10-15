@@ -2,13 +2,13 @@
 #include "Modules/ModuleManager.h"
 
 /**
- * Versão de rede do jogo. A da Unreal inclui o changelist da build da engine: o servidor (compilado do
- * código-fonte) e os clientes (engine instalada, Linux ou Windows) dariam números diferentes e a conexão seria
- * recusada como "versão incompatível". Aumente NetProtocol quando mudar algo replicado (propriedades, RPCs).
+ * Game network version. Unreal's includes the changelist of the engine build: the server (compiled from
+ * source) and the clients (installed engine, Linux or Windows) would give different numbers and the connection would
+ * be rejected as "incompatible version". Bump NetProtocol when changing anything replicated (properties, RPCs).
  */
 class FNWPortModule : public FDefaultGameModuleImpl
 {
-	static constexpr uint32 NetProtocol = 3;   // 2: inventário (F3); 3: coleta, progressão e ofícios, desprender
+	static constexpr uint32 NetProtocol = 3;   // 2: inventory (F3); 3: gathering, progression and trade skills, unstuck
 
 	virtual void StartupModule() override
 	{

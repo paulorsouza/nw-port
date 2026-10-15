@@ -22,7 +22,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogNWBackend, Log, All);
 static TSharedPtr<FJsonObject> ParseJson(const FString& Text)
 {
 	TSharedPtr<FJsonObject> Obj;
-	// Resposta em lista (ex. sacos no chão): vem embrulhada em {"__array": [...]}.
+	// List response (e.g. bags on the ground): comes wrapped in {"__array": [...]}.
 	if (Text.TrimStart().StartsWith(TEXT("[")))
 	{
 		TArray<TSharedPtr<FJsonValue>> Arr;
@@ -132,7 +132,7 @@ FString FNWCharacterRecord::StateJson() const
 	Obj->SetStringField(TEXT("active_weapon"), ActiveWeapon);
 	Obj->SetObjectField(TEXT("loadout"), Loadout.IsValid() ? Loadout : MakeShared<FJsonObject>());
 	Obj->SetObjectField(TEXT("mastery"), Mastery.IsValid() ? Mastery : MakeShared<FJsonObject>());
-	// O servidor de jogo é autoritativo no inventário: manda o conjunto inteiro a cada salvamento.
+	// The game server is authoritative on the inventory: it sends the whole set on every save.
 	Obj->SetNumberField(TEXT("coins"), double(Coins));
 	TArray<TSharedPtr<FJsonValue>> Inv;
 	for (const FNWItem& Item : Items)
@@ -166,7 +166,7 @@ void UNWBackend::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 	GConfig->GetString(TEXT("NW.Server"), TEXT("Backend"), BaseUrl, GGameIni);
 	GConfig->GetString(TEXT("NW.Server"), TEXT("Address"), ConnectAddress, GGameIni);
-	// Testes: -nwexitafter=N fecha o processo depois de N s (clientes sem render, -nullrhi, não tiram print).
+	// Tests: -nwexitafter=N closes the process after N s (clients without rendering, -nullrhi, take no screenshot).
 	float ExitAfter = 0.f;
 	if (FParse::Value(FCommandLine::Get(), TEXT("-nwexitafter="), ExitAfter) && ExitAfter > 0.f)
 	{
@@ -178,11 +178,11 @@ void UNWBackend::Initialize(FSubsystemCollectionBase& Collection)
 	ServerSecret = FPlatformMisc::GetEnvironmentVariable(TEXT("NW_SERVER_SECRET"));
 	if (IsRunningDedicatedServer() || GetGameInstance()->IsDedicatedServerInstance())
 	{
-		UE_LOG(LogNWBackend, Display, TEXT("servidor: backend %s, passe %s"), BaseUrl.IsEmpty() ? TEXT("(nenhum)") : *BaseUrl,
-			IsServerEnabled() ? TEXT("exigido") : TEXT("dispensado"));
+		UE_LOG(LogNWBackend, Display, TEXT("server: backend %s, pass %s"), BaseUrl.IsEmpty() ? TEXT("(none)") : *BaseUrl,
+			IsServerEnabled() ? TEXT("required") : TEXT("not required"));
 		return;
 	}
-	ServerSecret.Reset();  // segredo nunca fica no cliente
+	ServerSecret.Reset();  // secret never stays on the client
 	if (BaseUrl.IsEmpty())
 	{
 		return;
@@ -211,7 +211,7 @@ bool UNWBackend::WantsFrontEnd(const UWorld* World) const
 
 void UNWBackend::HandleNetworkFailure(UWorld*, UNetDriver*, ENetworkFailure::Type Type, const FString& Error)
 {
-	// Recusa do nosso servidor vem com "#nw.err.*" no texto (traduzida na tela); versão diferente tem chave própria.
+	// Our server's refusal carries "#nw.err.*" in the text (translated on screen); a version mismatch has its own key.
 	const int32 KeyAt = Error.Find(TEXT("#nw."));
 	if (Type == ENetworkFailure::OutdatedClient || Type == ENetworkFailure::OutdatedServer)
 	{
@@ -225,13 +225,13 @@ void UNWBackend::HandleNetworkFailure(UWorld*, UNetDriver*, ENetworkFailure::Typ
 	{
 		ConnectionError = Error.IsEmpty() ? FString(ENetworkFailure::ToString(Type)) : Error;
 	}
-	UE_LOG(LogNWBackend, Warning, TEXT("falha de rede: %s"), *ConnectionError);
+	UE_LOG(LogNWBackend, Warning, TEXT("network failure: %s"), *ConnectionError);
 }
 
 void UNWBackend::HandleTravelFailure(UWorld*, ETravelFailure::Type Type, const FString& Error)
 {
 	ConnectionError = Error.IsEmpty() ? FString(ETravelFailure::ToString(Type)) : Error;
-	UE_LOG(LogNWBackend, Warning, TEXT("falha de viagem: %s"), *ConnectionError);
+	UE_LOG(LogNWBackend, Warning, TEXT("travel failure: %s"), *ConnectionError);
 }
 
 void UNWBackend::Request(const FString& Verb, const FString& Path, const FString& Body, bool bServer, FJsonDone Done)
@@ -263,7 +263,7 @@ void UNWBackend::Request(const FString& Verb, const FString& Path, const FString
 		TSharedPtr<FJsonObject> Json = (Status > 0) ? ParseJson(Res->GetContentAsString()) : nullptr;
 		if (Status == 0 || Status >= 400)
 		{
-			UE_LOG(LogNWBackend, Warning, TEXT("%s %s -> %d %s"), *Verb, *Path, Status, Res.IsValid() ? *Res->GetContentAsString() : TEXT("(sem conexão)"));
+			UE_LOG(LogNWBackend, Warning, TEXT("%s %s -> %d %s"), *Verb, *Path, Status, Res.IsValid() ? *Res->GetContentAsString() : TEXT("(no connection)"));
 		}
 		Done(Status, Json);
 	});
@@ -272,7 +272,7 @@ void UNWBackend::Request(const FString& Verb, const FString& Path, const FString
 
 FString UNWBackend::ErrorMessage(int32 Status, const TSharedPtr<FJsonObject>& Body)
 {
-	// O nw-core manda {"error": código, "message": texto em pt}; o cliente traduz pelo código.
+	// nw-core sends {"error": code, "message": text in pt}; the client translates by the code.
 	FString Code, Msg;
 	if (Body.IsValid() && Body->TryGetStringField(TEXT("error"), Code))
 	{
@@ -290,7 +290,7 @@ FString UNWBackend::ErrorMessage(int32 Status, const TSharedPtr<FJsonObject>& Bo
 	return Status == 0 ? NWText::Get(TEXT("nw.err.backend_down")) : NWText::Format(TEXT("nw.err.backend_status"), {FString::FromInt(Status)});
 }
 
-// ---------------------------------------------------------------- servidor de jogo
+// ---------------------------------------------------------------- game server
 
 void UNWBackend::RedeemTicket(const FString& Ticket, FRedeemDone Done)
 {
@@ -318,7 +318,7 @@ void UNWBackend::RedeemTicket(const FString& Ticket, FRedeemDone Done)
 		Record->AccountName = Json->GetStringField(TEXT("account_name"));
 		Json->TryGetBoolField(TEXT("first_join"), Record->bFirstJoin);
 		Json->TryGetBoolField(TEXT("is_admin"), Record->bAdmin);
-		// Sessão nova do personagem: as gravações dele recomeçam do número 1.
+		// New character session: its writes start again from number 1.
 		int64 Session = 0;
 		Json->TryGetNumberField(TEXT("session"), Session);
 		if (Weak.IsValid())
@@ -326,7 +326,7 @@ void UNWBackend::RedeemTicket(const FString& Ticket, FRedeemDone Done)
 			FWriteQueue& Q = Weak->Writes.FindOrAdd(Record->Id);
 			Q.Session = Session;
 			Q.NextSeq = 0;
-			Weak->RememberBag(*Record);   // o que o nw-core tem agora
+			Weak->RememberBag(*Record);   // what nw-core has now
 		}
 		Done(Record, FString());
 	});
@@ -338,7 +338,7 @@ void UNWBackend::Write(const FString& CharacterId, const FString& Verb, const FS
 	FWriteQueue* Q = Writes.Find(CharacterId);
 	if (!Q || Q->Session < 0)
 	{
-		UE_LOG(LogNWBackend, Error, TEXT("%s %s: personagem sem sessão aberta; gravação não enviada"), *Verb, *Path);
+		UE_LOG(LogNWBackend, Error, TEXT("%s %s: character without an open session; write not sent"), *Verb, *Path);
 		Done(0, nullptr);
 		return;
 	}
@@ -369,9 +369,9 @@ void UNWBackend::PumpWrites(const FString& CharacterId)
 		FPendingWrite& W = Q->Pending[0];
 		if ((Status == 0 || Status >= 500) && ++W.Tries < MaxWriteTries)
 		{
-			// Sem resposta: mesmo número de novo, esperando 1, 2, 4, 8, 16 s. A fila fica parada (ordem).
+			// No response: same number again, waiting 1, 2, 4, 8, 16 s. The queue stays stopped (ordering).
 			const float Wait = float(1 << (W.Tries - 1));
-			UE_LOG(LogNWBackend, Warning, TEXT("%s %s: nova tentativa em %.0f s"), *W.Verb, *W.Path, Wait);
+			UE_LOG(LogNWBackend, Warning, TEXT("%s %s: retrying in %.0f s"), *W.Verb, *W.Path, Wait);
 			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Weak, CharacterId](float)
 			{
 				if (UNWBackend* S = Weak.Get())
@@ -389,11 +389,11 @@ void UNWBackend::PumpWrites(const FString& CharacterId)
 		FString Code;
 		if (Status == 409 && Json && Json->TryGetStringField(TEXT("error"), Code) && Code == TEXT("duplicate_write"))
 		{
-			Status = 208;   // já estava gravado
+			Status = 208;   // already written
 		}
 		if (Status == 0 || Status >= 400)
 		{
-			UE_LOG(LogNWBackend, Error, TEXT("%s %s: gravação %s recusada ou perdida (%d)"), *W.Verb, *W.Path,
+			UE_LOG(LogNWBackend, Error, TEXT("%s %s: write %s refused or lost (%d)"), *W.Verb, *W.Path,
 				*FString::Printf(TEXT("%lld"), int64(W.Body->GetNumberField(TEXT("seq")))), Status);
 		}
 		TFunction<void(int32, TSharedPtr<FJsonObject>)> Done = MoveTemp(W.Done);
@@ -422,8 +422,8 @@ void UNWBackend::SaveState(const FNWCharacterRecord& Record, const FString& Reas
 			Body->SetField(F.Key, F.Value);
 		}
 	}
-	// Só os espaços que mudaram desde a última gravação (docs/tech/architecture.md, "Banco"): nada mudou, a bolsa não
-	// vai. Cada espaço leva o valor final, então uma diferença calculada antes de outra gravação terminar continua certa.
+	// Only slots changed since the last write (docs/tech/architecture.md, "Database layout"); none changed: the bag
+	// is not sent. Each slot carries its final value, so a diff computed before another write finishes stays correct.
 	if (const TArray<FNWItem>* Old = PersistedBag.Find(Record.Id))
 	{
 		auto Key = [](const FNWItem& I) { return (I.Container == ENWItemContainer::Equip ? 100000 : 0) + I.Slot; };
@@ -491,7 +491,7 @@ void UNWBackend::SaveState(const FNWCharacterRecord& Record, const FString& Reas
 		{
 			if (Status == 204 || Status == 208)
 			{
-				UE_LOG(LogNWBackend, Verbose, TEXT("salvo: %s"), *Name);
+				UE_LOG(LogNWBackend, Verbose, TEXT("saved: %s"), *Name);
 				if (Weak.IsValid())
 				{
 					Weak->PersistedBag.Add(Id, Sent);
@@ -528,7 +528,7 @@ void UNWBackend::ListNpcRewards(const FString& CharacterId, const FString& Perio
 void UNWBackend::ClaimNpcReward(const FNWCharacterRecord& Record, const FString& Npc, const FString& Kind, const FString& Period,
 	TFunction<void(bool, int32)> Done)
 {
-	// Corpo = estado do personagem (a rota usa só inventory e coins) + npc, kind, period.
+	// Body = character state (the route uses only inventory and coins) + npc, kind, period.
 	TSharedPtr<FJsonObject> Body = ParseJson(Record.StateJson());
 	if (!Body)
 	{
@@ -635,7 +635,7 @@ void UNWBackend::PutStorage(const FNWCharacterRecord& Record, const FString& Loc
 		I->SetObjectField(TEXT("props"), NWItemProps::Write(Item));
 		I->SetNumberField(TEXT("tab"), Item.Tab);
 		const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
-		I->SetNumberField(TEXT("weight"), D ? D->Weight : 0.0);   // peso unitário: o nw-core soma para o limite do mercado
+		I->SetNumberField(TEXT("weight"), D ? D->Weight : 0.0);   // unit weight: nw-core sums it for the market limit
 		Arr.Add(MakeShared<FJsonValueObject>(I));
 	}
 	Body->SetArrayField(TEXT("items"), Arr);
@@ -659,7 +659,7 @@ void UNWBackend::PutStorage(const FNWCharacterRecord& Record, const FString& Loc
 
 namespace
 {
-	/** Item do armazém e do chão no formato do nw-core (com o peso unitário do catálogo). */
+	/** Storage and ground item in nw-core format (with the catalog unit weight). */
 	TSharedRef<FJsonObject> PlacedItemJson(const FNWItem& Item)
 	{
 		TSharedRef<FJsonObject> I = MakeShared<FJsonObject>();
@@ -766,7 +766,7 @@ void UNWBackend::ListGround(const FString& CharacterId, TFunction<void(bool, con
 		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
 		{
 			TArray<FGroundBag> Bags;
-			// A rota devolve uma lista: vem em "__array" (ParseJson).
+			// The route returns a list: it comes in "__array" (ParseJson).
 			const TArray<TSharedPtr<FJsonValue>>* Arr = nullptr;
 			if (Status == 200 && Json && Json->TryGetArrayField(TEXT("__array"), Arr))
 			{
@@ -852,7 +852,7 @@ void UNWBackend::CreateOrder(const FNWCharacterRecord& Record, bool bSell, const
 	Body->SetNumberField(TEXT("rarity"), Item.Rarity);
 	Body->SetObjectField(TEXT("props"), NWItemProps::Write(Item));
 	Body->SetNumberField(TEXT("unit_price"), double(UnitPrice));
-	Body->SetNumberField(TEXT("fee"), 0);   // sem taxas (dono, 2026-10-14)
+	Body->SetNumberField(TEXT("fee"), 0);   // no fees (maintainer, 2026-10-14)
 	Body->SetNumberField(TEXT("duration_hours"), DurationHours);
 	const FNWItemDef* D = FNWItemCatalog::Get().Find(Item.ItemId);
 	Body->SetNumberField(TEXT("weight"), D ? D->Weight : 0.0);
@@ -966,7 +966,7 @@ void UNWBackend::CoinsCap(const FString& CharacterId, int64 Amount, const FStrin
 		{
 			if (Status != 204)
 			{
-				UE_LOG(LogNWBackend, Warning, TEXT("coins-cap: nw-core respondeu %d"), Status);
+				UE_LOG(LogNWBackend, Warning, TEXT("coins-cap: nw-core answered %d"), Status);
 			}
 		});
 }
@@ -1024,7 +1024,7 @@ void UNWBackend::ClaimCredits(const FNWCharacterRecord& Record, const FString& U
 		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json) { Done(Status, Status == 200 && Json ? int64(Json->GetNumberField(TEXT("amount"))) : 0); });
 }
 
-// ---------------------------------------------------------------- cliente
+// ---------------------------------------------------------------- client
 
 void UNWBackend::OpenSession(const TSharedPtr<FJsonObject>& Json)
 {
@@ -1041,7 +1041,7 @@ void UNWBackend::SaveSession() const
 {
 	if (bAutoConnect)
 	{
-		return;  // testes automáticos não mexem na sessão lembrada
+		return;  // automated tests do not touch the remembered session
 	}
 	GConfig->SetString(SessionSection, TEXT("Account"), *AccountName, GGameUserSettingsIni);
 	GConfig->SetString(SessionSection, TEXT("Token"), *SessionToken, GGameUserSettingsIni);
@@ -1171,7 +1171,7 @@ void UNWBackend::Play(const FString& CharacterId, FDone Done)
 			return;
 		}
 		const FString Url = FString::Printf(TEXT("%s?ticket=%s"), *ConnectAddress, *Json->GetStringField(TEXT("ticket")));
-		UE_LOG(LogNWBackend, Display, TEXT("conectando em %s"), *ConnectAddress);
+		UE_LOG(LogNWBackend, Display, TEXT("connecting to %s"), *ConnectAddress);
 		UWorld* World = GetGameInstance()->GetWorld();
 		if (!World)
 		{
@@ -1194,7 +1194,7 @@ void UNWBackend::Logout()
 	SaveSession();
 }
 
-// Testes sem tela: -nwlogin=<conta> -nwchar=<personagem>, senha em NW_PASSWORD.
+// Tests without a screen: -nwlogin=<account> -nwchar=<character>, password in NW_PASSWORD.
 void UNWBackend::ClientAutoConnect()
 {
 	FString Account, CharacterName;
@@ -1203,36 +1203,36 @@ void UNWBackend::ClientAutoConnect()
 		return;
 	}
 	bAutoConnect = true;
-	UE_LOG(LogNWBackend, Display, TEXT("login de %s em %s"), *Account, *BaseUrl);
+	UE_LOG(LogNWBackend, Display, TEXT("login of %s at %s"), *Account, *BaseUrl);
 	Login(Account, FPlatformMisc::GetEnvironmentVariable(TEXT("NW_PASSWORD")), [this, CharacterName](bool bOk, const FString& Error)
 	{
 		if (!bOk)
 		{
-			UE_LOG(LogNWBackend, Error, TEXT("login falhou: %s"), *Error);
+			UE_LOG(LogNWBackend, Error, TEXT("login failed: %s"), *Error);
 			return;
 		}
 		const FNWCharacterSummary* C = Characters.FindByPredicate([&](const FNWCharacterSummary& S) { return S.Name.Equals(CharacterName, ESearchCase::IgnoreCase); });
 		if (!C)
 		{
-			UE_LOG(LogNWBackend, Error, TEXT("personagem %s não existe nessa conta"), *CharacterName);
+			UE_LOG(LogNWBackend, Error, TEXT("character %s does not exist in this account"), *CharacterName);
 			return;
 		}
 		Play(C->Id, [](bool bOk, const FString& Error)
 		{
 			if (!bOk)
 			{
-				UE_LOG(LogNWBackend, Error, TEXT("entrada falhou: %s"), *Error);
+				UE_LOG(LogNWBackend, Error, TEXT("join failed: %s"), *Error);
 			}
 		});
 	});
 }
 
-// ---------------------------------------------------------------- Play do editor com backend
+// ---------------------------------------------------------------- editor Play with backend
 
 bool UNWBackend::EnablePie()
 {
 #if WITH_EDITOR
-	// backend/dev.env (valores de teste, no repositório): KEY=valor por linha, aspas opcionais.
+	// backend/dev.env (test values, in the repository): KEY=value per line, optional quotes.
 	FString Raw;
 	const FString File = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("../../backend/dev.env"));
 	if (!FFileHelper::LoadFileToString(Raw, *File))
@@ -1262,7 +1262,7 @@ bool UNWBackend::EnablePie()
 	PiePassword = Env.FindRef(TEXT("NW_TEST_PASSWORD"));
 	PieCharacter = Env.FindRef(TEXT("NW_PIE_CHARACTER"));
 	bPie = true;
-	UE_LOG(LogNWBackend, Display, TEXT("Play com backend: %s, conta %s, personagem %s"), *BaseUrl, *PieAccount, *PieCharacter);
+	UE_LOG(LogNWBackend, Display, TEXT("Play with backend: %s, account %s, character %s"), *BaseUrl, *PieAccount, *PieCharacter);
 	return true;
 #else
 	return false;
@@ -1282,7 +1282,7 @@ void UNWBackend::PieEnter(FRedeemDone Done)
 	TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
 	Body->SetStringField(TEXT("name"), PieAccount);
 	Body->SetStringField(TEXT("password"), PiePassword);
-	// A sessão fica só na memória do Play (não grava [NW.Session] no GameUserSettings).
+	// The session lives only in the Play memory (does not write [NW.Session] to GameUserSettings).
 	Request(TEXT("POST"), TEXT("/v1/auth/login"), WriteJson(Body), false, [this, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json) mutable
 	{
 		if (Status != 200 || !Json.IsValid())

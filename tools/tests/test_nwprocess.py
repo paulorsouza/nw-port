@@ -18,7 +18,7 @@ def wait_file(path, timeout=5):
     deadline = time.monotonic() + timeout
     while not path.exists():
         if time.monotonic() >= deadline:
-            raise AssertionError(f"processo nao criou {path}")
+            raise AssertionError(f"process did not create {path}")
         time.sleep(0.01)
 
 

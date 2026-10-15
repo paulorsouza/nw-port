@@ -1,4 +1,4 @@
-"""Renderiza os ambientes .txtp com ferramentas nativas, sem pipeline de shell."""
+"""Renders the .txtp ambiences with native tools, without a shell pipeline."""
 import argparse
 from pathlib import Path
 import re
@@ -32,7 +32,7 @@ def render(source, destination, decoder=None, encoder=None):
         producer.stdout.close()
         producer.wait()
         if encoded.returncode or producer.returncode or not temporary.is_file() or not temporary.stat().st_size:
-            raise RuntimeError(f"render falhou: decoder={producer.returncode}, encoder={encoded.returncode}")
+            raise RuntimeError(f"render failed: decoder={producer.returncode}, encoder={encoded.returncode}")
         temporary.replace(destination)
     except BaseException:
         temporary.unlink(missing_ok=True)
@@ -55,17 +55,17 @@ def main():
             render(*args.one)
             return 0
         if not args.territory or not re.fullmatch(r"[a-z]+", args.territory):
-            parser.error("informe o territorio, ex.: windsward")
+            parser.error("give the territory, e.g. windsward")
         source_dir = nwplatform.ROOT / "extract/_raw/txtp/ambient"
         output = nwplatform.ROOT / "extract/audio/ambient" / args.territory
         if not source_dir.is_dir():
-            raise FileNotFoundError(f"falta {source_dir}; rode extract_audio.py")
+            raise FileNotFoundError(f"missing {source_dir}; run extract_audio.py")
         matches = sorted(source_dir.glob(f"*mx_territory={args.territory}*.txtp"))
         names = [sound_name(source.name) for source in matches]
         if len({name.casefold() for name in names}) != len(names):
-            raise ValueError("nomes de audio colidem depois da conversao")
+            raise ValueError("audio names collide after conversion")
         if not matches:
-            raise RuntimeError(f"nenhum ambiente de {args.territory}; etapa pendente")
+            raise RuntimeError(f"no ambience for {args.territory}; step pending")
         with context_lock(args.dry_run):
             for source, name in zip(matches, names):
                 destination = output / (name + ".ogg")

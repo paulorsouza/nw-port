@@ -9,7 +9,7 @@ class ANWGatherField;
 class UStaticMesh;
 class UInstancedStaticMeshComponent;
 
-/** Coletável esgotado e quando volta (tempo do servidor). */
+/** Depleted gatherable and when it comes back (server time). */
 USTRUCT()
 struct FNWDepletedNode : public FFastArraySerializerItem
 {
@@ -43,13 +43,13 @@ struct TStructOpsTypeTraits<FNWDepletedList> : public TStructOpsTypeTraitsBase2<
 };
 
 /**
- * Coletáveis de uma região (Data/World/<região>_gatherables.json, tools/make_gatherables.py): os ~100 mil
- * arbustos, árvores, pedras, minérios, plantas e alquimia da paisagem do jogo. Servidor e cliente leem o mesmo
- * arquivo, então o índice do coletável é o mesmo dos dois lados; só o que está esgotado é replicado.
- * Uma malha instanciada por variante (cheia) e outra para a esgotada; esgotar troca a instância de lugar
- * (a cheia desce para baixo do chão, a esgotada sobe). Malhas em /Game/NW/Gatherables/<nome do .cgf>
- * (tools/ue/import_gatherables.py: /Game/NW/Gatherables/<nome>/<nome>); sem a malha o coletável funciona sem aparecer. Colisão só em minérios,
- * pedras e troncos; o servidor dedicado só cria esses (não desenha nada).
+ * Gatherables of a region (Data/World/<region>_gatherables.json, tools/make_gatherables.py): the ~100k
+ * bushes, trees, rocks, ores, plants and alchemy of the game landscape. Server and client read the same
+ * file, so the gatherable index is the same on both sides; only what is depleted is replicated.
+ * One instanced mesh per variant (full) and another for the depleted one; depleting moves the instance
+ * (the full one goes below the ground, the depleted one comes up). Meshes in /Game/NW/Gatherables/<.cgf name>
+ * (tools/ue/import_gatherables.py: /Game/NW/Gatherables/<name>/<name>); without a mesh the gatherable works unseen. Collision only on ores,
+ * rocks and trunks; the dedicated server only creates those (draws nothing).
  */
 UCLASS()
 class NWPORT_API ANWGatherField : public AActor
@@ -68,8 +68,8 @@ public:
 		FString NameKey;
 		FName Tradeskill, Action, Restriction, Loot;
 		float Time = 0.f;
-		int32 RequiredLevel = 0;   // RequiredTradeskillLevel (ainda não exigido; docs/backlog.md)
-		int32 TradeXp = 0;         // XP de ofício por coleta (evento do coletável)
+		int32 RequiredLevel = 0;   // RequiredTradeskillLevel (not enforced yet; docs/backlog.md)
+		int32 TradeXp = 0;         // trade skill XP per gather (gatherable event)
 		float RespawnMin = 0.f, RespawnMax = 0.f;
 		bool bCollides = false;
 		UInstancedStaticMeshComponent* Full = nullptr;
@@ -84,22 +84,22 @@ public:
 		bool bDepleted = false;
 	};
 
-	/** Campo da região (há no máximo um por mapa). */
+	/** Region field (at most one per map). */
 	static ANWGatherField* Get(const UWorld* World);
-	/** Arquivo de coletáveis do mapa atual ou vazio (mapa sem coleta). */
+	/** Gatherables file of the current map or empty (map without gathering). */
 	static FString DataFileFor(const UWorld* World);
 
 	int32 Num() const { return Nodes.Num(); }
 	const FNode& Node(int32 Index) const { return Nodes[Index]; }
 	const FVariant& VariantOf(int32 Index) const { return Variants[Nodes[Index].Variant]; }
 	bool IsDepleted(int32 Index) const { return Nodes.IsValidIndex(Index) && Nodes[Index].bDepleted; }
-	/** Coletável disponível mais perto de Location dentro do raio de interação (ou INDEX_NONE). */
+	/** Closest available gatherable to Location within the interaction radius (or INDEX_NONE). */
 	int32 FindNear(const FVector& Location, const FVector& Facing) const;
-	/** Distância horizontal até o coletável (cm) cabe no raio de interação + folga? */
+	/** Does the horizontal distance to the gatherable (cm) fit in the interaction radius + margin? */
 	bool InReach(int32 Index, const FVector& Location, float Slack = 0.f) const;
 
-	// ---- servidor
-	/** Esgota o coletável e marca a volta no respawn do jogo. */
+	// ---- server
+	/** Depletes the gatherable and schedules its return at the game respawn. */
 	void Deplete(int32 Index);
 
 	virtual void BeginPlay() override;
@@ -116,7 +116,7 @@ private:
 
 	TArray<FVariant> Variants;
 	TArray<FNode> Nodes;
-	// Grade de 20 m para a busca por proximidade (índices de Nodes por célula).
+	// 20 m grid for the proximity search (indices of Nodes per cell).
 	TMap<FIntPoint, TArray<int32>> Grid;
 	static constexpr float CellSize = 2000.f;
 	float NextRespawnCheck = 0.f;

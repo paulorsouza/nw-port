@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Captura de tela do port sem abrir o jogo (esteira 4): a Unreal sem janela desenha a tela num PNG com o código do jogo
-# (NWUIShotCommandlet), a partir de um cenário (bolsa, níveis, estação, receita, tamanho da janela).
+# Screenshot of the port without opening the game (area 4): windowless Unreal draws the screen to a PNG with the game
+# code (NWUIShotCommandlet), from a scenario (bag, levels, station, recipe, window size).
 #
 #     tools/linux/ui_shot.sh tools/ui_shots/refining.json [captura]   ->  extract/ui/shots/refining_<captura>.png
 #
-# Precisa do módulo compilado (tools/linux/ue_import_all.sh 01). Roda na fila de trabalho pesado.
+# Needs the compiled module (tools/linux/ue_import_all.sh 01). Runs in the heavy-job queue.
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -22,4 +22,4 @@ ARGS=(-run=NWUIShot "-scenario=$SC" "-out=$OUT" -nwlang="${NW_LANG:-pt-br}" -All
 ARGS+=(${NW_SHOT_ARGS:-})
 nice "$UE_DIR/Engine/Binaries/Linux/UnrealEditor-Cmd" "$P" "${ARGS[@]}" > "$LOG" 2>&1
 grep -a "NWUIShot\|LogNWUIShot: Error" "$LOG" | sed 's/.*NWUIShot: //'
-grep -aq "NWUIShot: [1-9][0-9]* capturas" "$LOG" || { echo "falhou, ver $LOG" >&2; exit 1; }
+grep -aq "NWUIShot: [1-9][0-9]* capturas" "$LOG" || { echo "failed, see $LOG" >&2; exit 1; }

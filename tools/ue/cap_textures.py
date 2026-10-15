@@ -1,8 +1,8 @@
-"""Limita o tamanho máximo das texturas de uma pasta (VRAM de 8 GB: a paisagem tem ~530 texturas).
+"""Caps the maximum texture size in a folder (8 GB of VRAM: the landscape has ~530 textures).
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/cap_textures.py /Game/NW/Gatherables 1024"
 
-Com 0 tira o limite (tamanho original).
+0 removes the cap (original size).
 """
 import sys
 
@@ -18,4 +18,4 @@ for p in eal.list_assets(ROOT, recursive=True):
         a.set_editor_property("max_texture_size", MAX)
         eal.save_asset(p, only_if_is_dirty=False)
         n += 1
-unreal.log_warning(f"TEXTURAS {n} {'sem limite' if MAX == 0 else f'limitadas a {MAX}'} em {ROOT}")
+unreal.log_warning(f"TEXTURES {n} {'uncapped' if MAX == 0 else f'capped at {MAX}'} in {ROOT}")

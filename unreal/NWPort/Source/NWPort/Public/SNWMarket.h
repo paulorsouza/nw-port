@@ -13,13 +13,13 @@ class SToolTip;
 class SWidgetSwitcher;
 
 /**
- * Entreposto comercial (esteira 4): primeira tela própria do port, em Slate, com as cores e fontes do jogo
- * (docs/game/city.md §5). Abas Comprar (pedidos de venda dos outros, filtros e tabela ordenável), Vender (itens da bolsa
- * que vão ao mercado) e Meus Pedidos. Pedido de compra fica fora da tela (dono 2026-10-14); o servidor ainda aceita.
+ * Trading Post (area 4): the port's first own screen, in Slate, with the game's colors and fonts
+ * (docs/game/city.md §5). Tabs Buy (other players' sell orders, filters and sortable table), Sell (bag items
+ * that can go to the market) and My Orders. Buy orders stay off the screen (maintainer 2026-10-14); the server still accepts them.
  *
- * Resposta otimista: comprar, vender e cancelar mudam a tela na hora (linha nova com spinner, linha some, moedas caem) e
- * o servidor confirma depois (UNWInteractorComponent::ClientMarketDone). Recusado, volta ao que era e a linha pisca em
- * vermelho. A previsão vale até o livro e a bolsa do servidor chegarem.
+ * Optimistic response: buying, selling and cancelling change the screen right away (new row with spinner, row disappears,
+ * coins drop) and the server confirms later (UNWInteractorComponent::ClientMarketDone). If refused, it goes back to what it was
+ * and the row flashes red. The prediction holds until the server's book and bag arrive.
  */
 class NWPORT_API SNWMarket : public SCompoundWidget
 {
@@ -27,18 +27,18 @@ public:
 	SLATE_BEGIN_ARGS(SNWMarket) : _Character(nullptr), _bShot(false) {}
 		SLATE_ARGUMENT(ANWCharacter*, Character)
 		SLATE_ARGUMENT(FString, Title)
-		/** Captura offline (NWUIShotCommandlet): sem servidor, linhas já assentadas. */
+		/** Offline capture (NWUIShotCommandlet): no server, rows already settled. */
 		SLATE_ARGUMENT(bool, bShot)
 	SLATE_END_ARGS()
 
-	/** Linha das tabelas: pedido do livro (Comprar, Meus Pedidos) ou item da bolsa (Vender). */
+	/** Table row: order from the book (Buy, My Orders) or bag item (Sell). */
 	struct FRow
 	{
-		FString Key;            // id do pedido, "pending:<n>" ou "bag:<espaço>"
+		FString Key;            // order id, "pending:<n>" or "bag:<slot>"
 		FNWMarketRow Order;
 		FNWItem Item;
-		int64 Lowest = 0;       // Vender: menor preço anunciado do mesmo item
-		bool bPending = false;  // pedido criado esperando o servidor
+		int64 Lowest = 0;       // Sell: lowest listed price of the same item
+		bool bPending = false;  // order created waiting for the server
 		bool bCancelling = false;
 		double Born = 0.0;
 	};
@@ -50,7 +50,7 @@ public:
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 	virtual FReply OnKeyDown(const FGeometry& Geometry, const FKeyEvent& Key) override;
 
-	// Captura offline.
+	// Offline capture.
 	void ShotTab(int32 Tab);
 	void ShotSelect(int32 Index);
 	void ShotSearch(const FString& Query);
@@ -91,7 +91,7 @@ private:
 	double LastRefresh = 0.0;
 	bool bDirty = true;
 
-	// Filtros (Comprar) e busca (Comprar e Vender).
+	// Filters (Buy) and search (Buy and Sell).
 	FString Search;
 	ECat Cat = ECat::All;
 	TSet<int32> Tiers;
@@ -100,21 +100,21 @@ private:
 	TSet<uint8> Attrs;
 	TSet<FName> PerkFilter;
 	bool bAfford = false;
-	TArray<FName> BookPerks;        // perks que aparecem nos pedidos à venda
+	TArray<FName> BookPerks;        // perks that appear in the orders for sale
 	uint32 BookPerksSig = 0;
 
-	// Ordenação por página.
+	// Sorting per page.
 	FName SortCol[3];
 	EColumnSortMode::Type SortMode[3] = {EColumnSortMode::Ascending, EColumnSortMode::Ascending, EColumnSortMode::Ascending};
 
-	// Linhas (a mesma FRow por chave entre refeitas: a tabela mantém seleção e não reanima).
+	// Rows (the same FRow per key across rebuilds: the table keeps the selection and does not re-animate).
 	TArray<FRowPtr> Rows[3];
 	TMap<FString, FRowPtr> Known;
 	TSharedPtr<SListView<FRowPtr>> Lists[3];
 	FString Selected[3];
 	double SelectedAt = 0.0;
 
-	// Painel do item à direita (Comprar e Vender).
+	// Item panel on the right (Buy and Sell).
 	TSharedPtr<SBox> Panels[2];
 	TSharedPtr<SEditableTextBox> PriceBox;
 	TSharedPtr<SBox> PerkChips;
@@ -126,7 +126,7 @@ private:
 	int32 NextReq = 1;
 	TMap<FString, double> Flash;
 
-	// Montagem.
+	// Construction.
 	TSharedRef<SWidget> BuildTabs();
 	TSharedRef<SWidget> BuildFilters();
 	TSharedRef<SWidget> BuildList(EPage P);
@@ -141,7 +141,7 @@ private:
 	void Close();
 	TSharedRef<ITableRow> OnRow(FRowPtr Row, const TSharedRef<STableViewBase>& Owner, EPage P);
 
-	// Estado.
+	// State.
 	void SetPage(EPage P);
 	void Consume();
 	void Rebuild();
@@ -156,7 +156,7 @@ private:
 	FNWItem ShownBag(const FNWItem& I) const;
 	bool AnyWaiting() const;
 
-	// Ações.
+	// Actions.
 	void Buy(FRowPtr R);
 	void PostSell();
 	void Cancel(FRowPtr R);

@@ -26,7 +26,7 @@ void UNWPlayerGrid::Refresh()
 	BuiltAt = Now;
 	Players.Reset();
 	Cells.Reset();
-	// Uma passada pelos personagens a cada RebuildSeconds, no lugar de uma por criatura por ciclo.
+	// One pass over the characters every RebuildSeconds, instead of one per creature per cycle.
 	for (TActorIterator<ANWCharacter> It(GetWorld()); It; ++It)
 	{
 		if (It->IsPlayerLike() && !It->IsActorBeingDestroyed())

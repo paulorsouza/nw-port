@@ -4,7 +4,7 @@
 #include "NWCharacter.h"
 #include "NWLost.generated.h"
 
-// Lost (damned) de espada: inimigo que persegue e alterna os ataques do jogo. Assets do conjunto lost_sword.
+// Sword Lost (damned): enemy that chases and alternates the game's attacks. Assets from the lost_sword set.
 UCLASS()
 class NWPORT_API ANWLost : public ANWCharacter
 {

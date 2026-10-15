@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
-# Teste em rede local: nw-core + servidor dedicado (UnrealEditor -server) + N clientes que entram pelo login
-# do clã, tiram print e saem.
-#   tools/linux/net_test.sh [clientes=2] [mapa=L_SouthWindsward]
-#   NW_SERVER=pacote tools/linux/net_test.sh ...   usa o servidor empacotado (deploy/build/LinuxServer)
-#   NW_SERVER=docker tools/linux/net_test.sh 10    usa o compose de deploy/ já no ar (contas no banco do container);
-#                                            grava docker stats em Saved/NetTest/stats.txt
-#   NW_TEST_SECONDS=90                       quanto tempo os clientes ficam no servidor (bots: -nwbot)
-#   NW_BOT=                                  clientes sem o bot (padrão: -nwbot, anda e ataca sozinho)
-#   NW_CLIENT_EXTRA="-PktLag=150 -ExecCmds=nw.DebugPrediction 1"   argumentos a mais para os clientes
-# Logs e prints em Saved/NetTest/. Precisa do editor fechado (usa o mesmo binário). Só o primeiro cliente
-# renderiza (e tira print); os outros rodam sem render (-nullrhi): dois clientes com Nanite/Lumen não cabem
-# nos 8 GB de VRAM.
+# Local network test: nw-core + dedicated server (UnrealEditor -server) + N clients that log in through the
+# clan login, take a screenshot and leave.
+#   tools/linux/net_test.sh [clients=2] [map=L_SouthWindsward]
+#   NW_SERVER=pacote tools/linux/net_test.sh ...   uses the packaged server (deploy/build/LinuxServer)
+#   NW_SERVER=docker tools/linux/net_test.sh 10    uses the deploy/ compose already up (accounts in the container DB);
+#                                            writes docker stats to Saved/NetTest/stats.txt
+#   NW_TEST_SECONDS=90                       how long the clients stay on the server (bots: -nwbot)
+#   NW_BOT=                                  clients without the bot (default: -nwbot, walks and attacks on its own)
+#   NW_CLIENT_EXTRA="-PktLag=150 -ExecCmds=nw.DebugPrediction 1"   extra arguments for the clients
+# Logs and screenshots in Saved/NetTest/. Needs the editor closed (uses the same binary). Only the first client
+# renders (and takes the screenshot); the others run without rendering (-nullrhi): two clients with Nanite/Lumen do
+# not fit in 8 GB of VRAM.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 caller_accounts="${NW_TEST_ACCOUNTS:-}"
 set -a; source "$root/backend/dev.env"; set +a
-[ -n "$caller_accounts" ] && NW_TEST_ACCOUNTS="$caller_accounts"   # quem chamou escolhe as contas
+[ -n "$caller_accounts" ] && NW_TEST_ACCOUNTS="$caller_accounts"   # the caller picks the accounts
 clients="${1:-2}"
 map="${2:-L_SouthWindsward}"
 ue="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}/Engine/Binaries/Linux/UnrealEditor"
@@ -26,7 +26,7 @@ mkdir -p "$out"
 rm -f "$out"/*.png
 
 pids=()
-# O NWPortServer.sh do pacote chama o binário como filho: mata os filhos também.
+# The package's NWPortServer.sh runs the binary as a child: kill the children too.
 cleanup() { for p in "${pids[@]}"; do pkill -INT -P "$p" 2>/dev/null || true; kill "$p" 2>/dev/null || true; done; }
 trap cleanup EXIT
 
@@ -45,7 +45,7 @@ else
 fi
 until curl -sf "$NW_BACKEND/health" >/dev/null; do sleep 0.3; done
 
-# Contas e personagens de teste (idempotente).
+# Test accounts and characters (idempotent).
 for pair in $NW_TEST_ACCOUNTS; do
   acc="${pair%%:*}" char="${pair#*:}"
   token=$(curl -s -XPOST "$NW_BACKEND/v1/auth/login" -H content-type:application/json \
@@ -56,8 +56,8 @@ for pair in $NW_TEST_ACCOUNTS; do
       -d "{\"invite\":\"$code\",\"name\":\"$acc\",\"password\":\"$NW_TEST_PASSWORD\"}" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
   fi
   curl -s -XPOST "$NW_BACKEND/v1/characters" -H "authorization: Bearer $token" -H content-type:application/json \
-    -d "{\"name\":\"$char\"}" | grep -q '"id"\|name_taken' || { echo "falhou criar $char"; exit 1; }
-  admin "$acc"   # contas de teste usam o F10 (-nwtestdev); o servidor só aceita de admin
+    -d "{\"name\":\"$char\"}" | grep -q '"id"\|name_taken' || { echo "failed to create $char"; exit 1; }
+  admin "$acc"   # test accounts use F10 (-nwtestdev); the server only accepts it from admins
 done
 
 server_log() { if [ "${NW_SERVER:-}" = docker ]; then docker exec deploy-game-1 cat /srv/nw/NWPort/Saved/Logs/NWPort.log; else cat "$out/server.log"; fi; }
@@ -74,22 +74,22 @@ if [ "${NW_SERVER:-}" != docker ]; then
   pids+=($!)
   for _ in $(seq 300); do
     grep -q "listening on port" "$out/server.log" 2>/dev/null && break
-    kill -0 "${pids[-1]}" 2>/dev/null || { echo "servidor caiu:"; tail -20 "$out/server.log"; exit 1; }
+    kill -0 "${pids[-1]}" 2>/dev/null || { echo "server died:"; tail -20 "$out/server.log"; exit 1; }
     sleep 1
   done
 fi
 
-# Amostra CPU/RAM/rede do servidor a cada 5 s; se a RAM livre da máquina cair abaixo de 6 GB, encerra os
-# clientes (o oomd derruba a sessão gráfica por pressão de memória).
+# Samples server CPU/RAM/network every 5 s; if the machine's free RAM drops below 6 GB, shuts down the
+# clients (oomd kills the graphical session under memory pressure).
 (
   while sleep 5; do
     avail=$(awk '/MemAvailable/{print int($2/1048576)}' /proc/meminfo)
     if [ "${NW_SERVER:-}" = docker ]; then
-      echo "$(date +%T) livre=${avail}G $(docker stats --no-stream --format '{{.CPUPerc}} {{.MemUsage}} net={{.NetIO}}' deploy-game-1)"
+      echo "$(date +%T) free=${avail}G $(docker stats --no-stream --format '{{.CPUPerc}} {{.MemUsage}} net={{.NetIO}}' deploy-game-1)"
     else
-      echo "$(date +%T) livre=${avail}G"
+      echo "$(date +%T) free=${avail}G"
     fi
-    if [ "$avail" -lt 6 ]; then echo "RAM baixa: encerrando clientes"; pkill -INT -f "nwconnect=127.0.0.1" ; fi
+    if [ "$avail" -lt 6 ]; then echo "low RAM: shutting down clients"; pkill -INT -f "nwconnect=127.0.0.1" ; fi
   done
 ) > "$out/stats.txt" 2>&1 &
 pids+=($!)
@@ -114,20 +114,20 @@ for pair in $NW_TEST_ACCOUNTS; do
 done
 for p in "${client_pids[@]}"; do wait "$p" || true; done
 
-# Sem passe: o servidor tem que recusar.
+# No ticket: the server must refuse.
 "$ue" "$uproject" 127.0.0.1:7777 -game -nullrhi -unattended -nosplash \
   -abslog="$out/client-intruso.log" >/dev/null 2>&1 &
 intruder=$!
 pids+=($intruder)
 for _ in $(seq 60); do grep -q "nw.err.no_ticket" "$out/client-intruso.log" 2>/dev/null && break; sleep 1; done
 kill "$intruder" 2>/dev/null || true
-echo "--- intruso"
-grep -o "nw.err.no_ticket" "$out/client-intruso.log" | head -1 || echo "NÃO foi recusado"
+echo "--- intruder"
+grep -o "nw.err.no_ticket" "$out/client-intruso.log" | head -1 || echo "was NOT refused"
 sleep 2
-echo "--- servidor"
-server_log | grep -E "entrada|saída|recusada" | tail -24
+echo "--- server"
+server_log | grep -E "join|leave|refused" | tail -24
 echo "--- nw-core"
-[ ! -f "$out/nw-core.log" ] || grep -E "entrou|ERROR|WARN" "$out/nw-core.log" | sed 's/\x1b\[[0-9;]*m//g' | tail -10
-echo "--- amostras"
+[ ! -f "$out/nw-core.log" ] || grep -E "joined|ERROR|WARN" "$out/nw-core.log" | sed 's/\x1b\[[0-9;]*m//g' | tail -10
+echo "--- samples"
 cat "$out/stats.txt"
 ls -la "$out"/*.png 2>/dev/null

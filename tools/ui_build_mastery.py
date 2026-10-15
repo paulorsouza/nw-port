@@ -1,9 +1,9 @@
-"""Janela de maestria de armas do jogo (lyshineui/skills/skills.dynamicuicanvas, subárvore MasteryTreeWindow).
+"""The game's Weapon Mastery window (lyshineui/skills/skills.dynamicuicanvas, MasteryTreeWindow subtree).
 
-    python3 tools/ui_build_mastery.py [--preview prévia.png]
+    python3 tools/ui_build_mastery.py [--preview preview.png]
 
-Gera unreal/NWPort/Data/UI/mastery_layout.<idioma>.json (pt-br e en-us). Aplica o que o Lua do jogo faz ao abrir a tela e não está no
-arquivo: estilo padrão da moldura (FrameMultiBg: FRAME_STYLE_DEFAULT_2023) e textos @chave resolvidos em pt-BR.
+Writes unreal/NWPort/Data/UI/mastery_layout.<language>.json (pt-br and en-us). Applies what the game's Lua does when opening the screen and is
+not in the file: default frame style (FrameMultiBg: FRAME_STYLE_DEFAULT_2023) and @key texts resolved in pt-BR.
 """
 import argparse
 import glob
@@ -15,11 +15,11 @@ import subprocess
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UI = os.path.join(ROOT, "extract", "ui")
 LOC_ROOT = os.path.join(ROOT, "extract", "loc", "localization")
-# Idiomas do clã: português e inglês. Cada tela sai num arquivo por idioma (<nome>.<idioma>.json).
+# Clan languages: Portuguese and English. Each screen is written to one file per language (<name>.<language>.json).
 LANGS = ["pt-br", "en-us"]
 KEEP = ["_root/Skills/ScreenHolder/FrameMultiBg", "_root/Skills/ScreenHolder/FrameHeader", "_root/Skills/ScreenHolder/MasteryTreeWindow"]
 EXCLUDE = ["AbilitySelection", "SlotOptions", "ExpansionBadgeWithText", "AzothTextContainer", "FreeText", "Respec"]
-# Texturas dos estados dos nós que o script troca (masterynode.luac).
+# Node state textures the script swaps (masterynode.luac).
 EXTRA = ["lyshineui/images/skills/mastery/" + n for n in (
     "masterynodeactivebg.dds", "masterynodeactiveborder.dds", "masterynodeactiverune.dds", "masterynodeinfobg.dds",
     "masterynodeinfoborder.dds", "masterynodeinforune.dds", "masterynodelockiconglow.dds",
@@ -44,7 +44,7 @@ def main():
                     "--keep", ",".join(KEEP), "--enable", "MasteryTreeWindow", "--exclude", ",".join(EXCLUDE)], check=True)
     lay = json.load(open(tmp))
     for e in lay["elements"]:
-        # FrameMultiBg com o estilo padrão de 2023 (o script aplica a textura e o 9-slice).
+        # FrameMultiBg with the default 2023 style (the script applies the texture and the 9-slice).
         if e["path"].endswith("FrameMultiBg/FrameBg") and e.get("image") and not e["image"]["texture"]:
             e["image"]["texture"] = "lyshineui/images/slices/framemultibg/framestyles/framebgdefault2023.dds"
             e["image"]["type"] = "sliced"
@@ -62,13 +62,13 @@ def main():
                 t["text"] = loc.get(t["text"][1:].lower(), t["text"])
         out = os.path.join(ROOT, "unreal", "NWPort", "Data", "UI", f"mastery_layout.{lang}.json")
         json.dump({"canvases": [{"name": "mastery", "size": lay["size"], "elements": elements}]}, open(out, "w"), separators=(",", ":"))
-    # Ícones de todos os nós (ativas, passivas, ultimate) e fundos das ativas.
+    # Icons of every node (actives, passives, ultimate) and the actives' backgrounds.
     abil = json.load(open(os.path.join(ROOT, "unreal", "NWPort", "Data", "UI", "abilities.pt-br.json")))
     icons = {n[k].lower() for w in abil.values() for n in w.get("nodes", []) for k in ("icon", "background") if n.get(k)}
     icons |= {w["hud_icon"].lower() for w in abil.values() if w.get("hud_icon")}
     textures = sorted({e["image"]["texture"].lower() for e in lay["elements"] if e.get("image") and e["image"]["texture"]} | set(EXTRA) | icons)
     open(os.path.join(UI, "mastery_textures.txt"), "w").write("\n".join(textures))
-    print(f"{len(lay['elements'])} elementos, {len(textures)} texturas -> {out}")
+    print(f"{len(lay['elements'])} elements, {len(textures)} textures -> {out}")
     if a.preview:
         import sys
         sys.path.insert(0, os.path.join(ROOT, "tools"))

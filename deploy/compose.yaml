@@ -1,11 +1,11 @@
-# Servidor do clã completo: Postgres + nw-core + servidor de jogo.
-#   ./build_images.sh && docker compose up -d      (segredos em .env: NW_SERVER_SECRET, NW_DB_PASSWORD)
+# Full clan server: Postgres + nw-core + game server.
+#   ./build_images.sh && docker compose up -d      (secrets in .env: NW_SERVER_SECRET, NW_DB_PASSWORD)
 services:
   db:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: nw
-      POSTGRES_PASSWORD: ${NW_DB_PASSWORD:?defina NW_DB_PASSWORD}
+      POSTGRES_PASSWORD: ${NW_DB_PASSWORD:?set NW_DB_PASSWORD}
       POSTGRES_DB: nw
     volumes:
       - db:/var/lib/postgresql/data
@@ -14,7 +14,7 @@ services:
     image: nw-core:local
     environment:
       DATABASE_URL: postgres://nw:${NW_DB_PASSWORD}@db:5432/nw
-      NW_SERVER_SECRET: ${NW_SERVER_SECRET:?defina NW_SERVER_SECRET}
+      NW_SERVER_SECRET: ${NW_SERVER_SECRET:?set NW_SERVER_SECRET}
       NW_BIND: 0.0.0.0:8090
     ports:
       - "8090:8090"

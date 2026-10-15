@@ -8,17 +8,17 @@ class ANWCharacter;
 struct FNWCharacterRecord;
 
 /**
- * Operações gravadas antes de valer (etapa 2 das gravações, docs/tech/server.md "Gravações").
+ * Operations recorded before they take effect (step 2 of the recordings, docs/tech/server.md "Recordings").
  *
- * Uma operação (guardar, fabricar, refinar, melhorar, soltar, pegar do chão) roda assim, uma por vez por personagem:
- * 1. Apply muda o estado real (bolsa, moedas, armazém) como sempre; os avisos ao cliente feitos com NWOps::Hold
- *    (saque, resultado da fabricação) ficam guardados; o excesso que iria para o chão (Grant com bolsa cheia) também.
- * 2. O resultado é copiado e o estado volta ao de antes no mesmo ciclo: a replicação (fim do ciclo) não mostra nada.
- * 3. Commit grava no nw-core (estado, armazém ou chão).
- * 4. Gravou: o resultado vale (estado, avisos, saco no chão) e o Record do jogador passa a ele. Falhou: nada muda e o
- *    jogador vê o aviso. Sem nw-core (Play sem backend), vale na hora.
- * Enquanto grava, mudanças de bolsa e moedas de fora (coleta, saque, mover itens, poção) esperam (NWOps::Defer) e o
- * salvamento periódico espera (NWOps::After). A progressão (XP de ofício) não volta atrás.
+ * An operation (store, craft, refine, improve, drop, pick up from the ground) runs like this, one at a time per character:
+ * 1. Apply changes the real state (bag, coins, storage) as usual; client notices made with NWOps::Hold
+ *    (loot, craft result) are held back; so is the overflow that would go to the ground (Grant with a full bag).
+ * 2. The result is copied and the state goes back to what it was in the same cycle: replication (end of cycle) shows nothing.
+ * 3. Commit records to nw-core (state, storage or ground).
+ * 4. Recorded: the result takes effect (state, notices, sack on the ground) and the player's Record moves to it. Failed: nothing changes and the
+ *    player sees the notice. Without nw-core (Play without a backend), applies immediately.
+ * While recording, bag and coin changes from outside (gathering, loot, moving items, potion) wait (NWOps::Defer) and the
+ * periodic save waits (NWOps::After). Progression (trade skill XP) is not rolled back.
  */
 struct NWPORT_API FNWOpState
 {
@@ -31,22 +31,22 @@ struct NWPORT_API FNWOpState
 
 namespace NWOps
 {
-	/** Ok gravou; Failed não gravou (aviso genérico); Rejected o nw-core recusou e quem gravou já avisou o motivo;
-	 *  Retry refaz em cima do estado novo. */
+	/** Ok recorded; Failed not recorded (generic notice); Rejected nw-core refused and whoever recorded already gave the reason;
+	 *  Retry redoes it on top of the new state. */
 	enum class EResult : uint8 { Ok, Failed, Retry, Rejected };
-	/** Grava o resultado (After = Record com o estado novo; S1 = o estado novo) e chama Fin. */
+	/** Records the result (After = Record with the new state; S1 = the new state) and calls Fin. */
 	using FCommit = TFunction<void(const FNWCharacterRecord& After, const FNWOpState& S1, TFunction<void(EResult)> Fin)>;
 
-	/** Enfileira uma operação. Apply devolve false quando não mudou nada (recusa, sem material). Done(true) quando valeu. */
+	/** Queues an operation. Apply returns false when nothing changed (refusal, no material). Done(true) when it took effect. */
 	NWPORT_API void Run(ANWCharacter* Who, const FString& Reason, TFunction<bool()> Apply, FCommit Commit, TFunction<void(bool)> Done = nullptr);
-	/** Grava estado inteiro (PUT state; bolsa, moedas e progressão). */
+	/** Records the whole state (PUT state; bag, coins and progression). */
 	NWPORT_API FCommit CommitState(ANWCharacter* Who, const FString& Reason);
-	/** Igual, com campos a mais no corpo lidos na hora de gravar (o Apply já rodou): ex. o imposto da cidade. */
+	/** Same, with extra body fields read at record time (Apply already ran): e.g. the city tax. */
 	NWPORT_API FCommit CommitState(ANWCharacter* Who, const FString& Reason, TFunction<TSharedPtr<FJsonObject>()> Extra);
 
-	/** Com nw-core (as operações gravam); sem, valem na hora. */
+	/** With nw-core (operations record); without it, they apply immediately. */
 	NWPORT_API bool Persists(const ANWCharacter* Who);
-	/** Motivo das operações abertas dentro deste escopo (ex. "dev:<comando>", "gather"), para o log de itens. */
+	/** Reason for the operations opened inside this scope (e.g. "dev:<command>", "gather"), for the item log. */
 	struct NWPORT_API FReason
 	{
 		explicit FReason(const FString& InReason);
@@ -55,17 +55,17 @@ namespace NWOps
 		FString Previous;
 	};
 	NWPORT_API FString CurrentReason(const TCHAR* Default);
-	/** Uma operação está gravando: mudanças de fora esperam. */
+	/** An operation is recording: outside changes wait. */
 	NWPORT_API bool IsBusy(const ANWCharacter* Who);
-	/** Dentro do Apply de uma operação. */
+	/** Inside the Apply of an operation. */
 	NWPORT_API bool IsApplying(const ANWCharacter* Who);
-	/** Se uma operação está gravando, guarda Fn para depois dela e devolve true. */
+	/** If an operation is recording, stores Fn for after it and returns true. */
 	NWPORT_API bool Defer(ANWCharacter* Who, TFunction<void()> Fn);
-	/** Aviso ao cliente: dentro do Apply, só se a operação valer; fora, na hora. */
+	/** Client notice: inside Apply, only if the operation takes effect; outside, immediately. */
 	NWPORT_API void Hold(ANWCharacter* Who, TFunction<void()> Fn);
-	/** Itens que iriam para o chão no Apply (bolsa cheia): saem num saco só se a operação valer. */
+	/** Items that would go to the ground in Apply (full bag): they go out in a sack only if the operation takes effect. */
 	NWPORT_API void Overflow(ANWCharacter* Who, const TArray<FNWItem>& Items);
-	/** Depois da operação em curso (ou na hora, sem nenhuma). */
+	/** After the current operation (or immediately, if there is none). */
 	NWPORT_API void After(ANWCharacter* Who, TFunction<void()> Fn);
 
 	NWPORT_API FNWOpState Capture(const ANWCharacter* Who);

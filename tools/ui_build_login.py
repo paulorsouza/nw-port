@@ -1,14 +1,14 @@
-"""Tela de entrada do clã a partir das telas do jogo.
+"""The clan's login screen built from the game screens.
 
-    python3 tools/ui_build_login.py [--preview prévia.png] [--background fundo.png]
+    python3 tools/ui_build_login.py [--preview preview.png] [--background background.png]
 
-- landing: lyshineui/main menu/landingscreenv2 — logo, painel de personagens (3 vagas) e botão Jogar; o popup
-  do Twitch vira a janela de login.
-- input: campo de nome da criação de personagem (charactercreation, NameInputField), desenhado pelo C++ em cada
-  campo de texto.
+- landing: lyshineui/main menu/landingscreenv2 — logo, character panel (3 slots) and Play button; the Twitch
+  popup becomes the login window.
+- input: name field of character creation (charactercreation, NameInputField), drawn by the C++ in each
+  text field.
 
-Gera unreal/NWPort/Data/UI/login_layout.<idioma>.json e extract/ui/login_textures.txt. Aplica o que o Lua faria ao abrir
-(estilo da moldura, fundos das vagas e textos pt-BR).
+Writes unreal/NWPort/Data/UI/login_layout.<language>.json and extract/ui/login_textures.txt. Applies what the Lua would
+do on open (frame style, slot backgrounds and pt-BR text).
 """
 import argparse
 import json
@@ -46,7 +46,7 @@ INPUT_KEEP = ["_root/CharacterCreationMaster/ScreenHolder/CharacterCreationIdent
 INPUT_EXCLUDE = ["NameValidationIcon"]
 FRAME_BG = "lyshineui/images/slices/framemultibg/framestyles/framebgdefault2023.dds"
 LIST_ITEM_BG = "lyshineui/images/slices/listitembg/listitembg.dds"
-# Trocadas pelo C++ conforme o estado (selecionada / passando o mouse).
+# Swapped by the C++ according to state (selected / hovered).
 EXTRA = [FRAME_BG, LIST_ITEM_BG, "lyshineui/images/slices/listitembg/focushighlight.dds",
          "lyshineui/images/slices/listitembg/selectedsequence/listitem_long17.dds"]
 
@@ -69,7 +69,7 @@ def set_image(e, texture, kind="sliced"):
 
 
 def relayout(elements, size):
-    """Recalcula "rect" como o FNWUILayout::DrawCanvas (anchors + offsets sobre o pai, escala no pivô)."""
+    """Recomputes "rect" like FNWUILayout::DrawCanvas (anchors + offsets over the parent, scale around the pivot)."""
     for e in elements:
         par = e.get("parent", -1)
         L, T, R, B = elements[par]["rect"] if 0 <= par < len(elements) else (0, 0, size[0], size[1])
@@ -107,16 +107,16 @@ def main():
             set_image(e, FRAME_BG)
         if p.endswith("ListItemBg/itemBg"):
             set_image(e, LIST_ITEM_BG)
-        # Janela de login: menor que o popup do Twitch.
+        # Login window: smaller than the Twitch popup.
         if p.endswith("TwitchInfoPopup/PopupContainer"):
             e["offsets"] = [-330, -250, 330, 250]
-    # Campo na origem da tela; o C++ posiciona cada campo com Translate.
+    # Field at the screen origin; the C++ positions each field with Translate.
     for e in inp["elements"]:
         if e["path"].endswith("NameInputField"):
             e["anchors"], e["offsets"] = [0, 0, 0, 0], [0, 0, 497, 54]
         elif "NameInputField" not in e["path"]:
             e["anchors"], e["offsets"], e["scale"] = [0, 0, 1, 1], [0, 0, 0, 0], [1, 1]
-    # Um arquivo por idioma; os textos que o C++ escolhe na hora ficam em nw_strings.json (tools/build_strings.py).
+    # One file per language; the strings the C++ picks at runtime are in nw_strings.json (tools/build_strings.py).
     for lang in LANGS:
         loc = load_loc(lang)
         canvases = []
@@ -132,7 +132,7 @@ def main():
     textures = sorted({e["image"]["texture"].lower() for lay in (landing, inp) for e in lay["elements"]
                        if e.get("image") and e["image"]["texture"]} | set(EXTRA))
     open(os.path.join(UI, "login_textures.txt"), "w").write("\n".join(textures))
-    print(f"{len(landing['elements'])} + {len(inp['elements'])} elementos, {len(textures)} texturas -> {out}")
+    print(f"{len(landing['elements'])} + {len(inp['elements'])} elements, {len(textures)} textures -> {out}")
     if a.preview:
         import ui_canvas
         relayout(landing["elements"], landing["size"])

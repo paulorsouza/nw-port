@@ -5,8 +5,8 @@
 #include "NWNiagaraTools.generated.h"
 
 /**
- * Ferramentas de editor para montar sistemas Niagara a partir dos efeitos do jogo (docs/tech/particles.md).
- * Chamadas pelo Python do editor (scripts em tools/ue/); só fazem algo em build de editor.
+ * Editor tools to build Niagara systems from the game's effects (docs/tech/particles.md).
+ * Called by the editor's Python (scripts in tools/ue/); they only do something in an editor build.
  */
 UCLASS()
 class NWPORT_API UNWNiagaraTools : public UBlueprintFunctionLibrary
@@ -14,16 +14,16 @@ class NWPORT_API UNWNiagaraTools : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 
 public:
-	// Prova: cria PackagePath (ex. /Game/NW/FX/NS_Probe) com o emissor modelo do motor TemplatePath, muda a taxa de
-	// spawn para SpawnRate, compila e salva. Devolve um relatório (emissores, módulos, parâmetros constantes).
+	// Probe: creates PackagePath (e.g. /Game/NW/FX/NS_Probe) with the engine's template emitter TemplatePath, changes the
+	// spawn rate to SpawnRate, compiles and saves. Returns a report (emitters, modules, constant parameters).
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
 	static FString ProbeNiagara(const FString& PackagePath, const FString& TemplatePath, float SpawnRate);
 
 	/**
-	 * Monta PackagePath a partir de uma receita JSON (tools/ue/import_fx.py, docs/tech/particles.md). Por emissor:
-	 * name, template (emissor do motor), disable (módulos), add [{usage, script}], params [{usage, name, type, value}],
-	 * renderer {kind sprite|mesh|decal, material, mesh, subuv [x, y], mesh_scale}, constants {"Modulo.Entrada": valor},
-	 * curves [{function, index, keys [[t, v]...] ou channels {r,g,b,a: keys}}]. Devolve o relatório.
+	 * Builds PackagePath from a JSON recipe (tools/ue/import_fx.py, docs/tech/particles.md). Per emitter:
+	 * name, template (engine emitter), disable (modules), add [{usage, script}], params [{usage, name, type, value}],
+	 * renderer {kind sprite|mesh|decal, material, mesh, subuv [x, y], mesh_scale}, constants {"Module.Input": value},
+	 * curves [{function, index, keys [[t, v]...] or channels {r,g,b,a: keys}}]. Returns the report.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "NW|Editor")
 	static FString BuildEffect(const FString& SpecJson, const FString& PackagePath);

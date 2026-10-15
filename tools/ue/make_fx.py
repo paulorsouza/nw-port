@@ -1,11 +1,11 @@
-"""Materiais e ajustes simples de efeito de combate (o port ainda não converte as partículas do jogo):
+"""Simple combat effect materials and tweaks (the port does not convert the game's particles yet):
 
-- /Game/NW/Materials/M_NW_FX: sem luz, aditivo, emissivo = Color × Intensity (parâmetros), para rastro da flecha,
-  clarão da explosão e nuvem de veneno (ANWProjectile, ANWFxActor).
-- Montagens do arco (corpo superior): transições curtas (entrada 0,1 s, saída 0,15 s) e AM_Bw_AimStart terminando
-  normalmente (antes segurava o último quadro e nunca acabava, travando a puxada).
+- /Game/NW/Materials/M_NW_FX: unlit, additive, emissive = Color × Intensity (parameters), for the arrow trail,
+  explosion flash and poison cloud (ANWProjectile, ANWFxActor).
+- Bow montages (upper body): short transitions (blend in 0.1 s, blend out 0.15 s) and AM_Bw_AimStart ending
+  normally (before, it held the last frame and never finished, locking the draw).
 
-    python3 tools/ue/remote.py tools/ue/make_fx.py          (editor aberto)
+    python3 tools/ue/remote.py tools/ue/make_fx.py          (editor open)
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/make_fx.py"
 """
 import unreal
@@ -32,7 +32,7 @@ if not eal.does_asset_exist(PATH):
     mel.connect_material_property(mul, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
     mel.recompile_material(m)
     eal.save_asset(PATH, only_if_is_dirty=False)
-    unreal.log("FX: M_NW_FX criado")
+    unreal.log("FX: M_NW_FX created")
 
 ANIMS = "/Game/NW/sword_shield/Anims"
 for name in eal.list_assets(ANIMS, recursive=False):
@@ -49,4 +49,4 @@ for name in eal.list_assets(ANIMS, recursive=False):
         b.set_editor_property("blend_time", t)
         am.set_editor_property(prop, b)
     eal.save_loaded_asset(am, only_if_is_dirty=False)
-unreal.log("FX: montagens do arco ajustadas")
+unreal.log("FX: Bow montages adjusted")

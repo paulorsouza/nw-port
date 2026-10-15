@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Resumo do perfil CSV da Unreal (csvprofile; NWLoadTest -nwcsv=): média por ciclo de cada coluna, maiores primeiro.
+"""Summary of an Unreal CSV profile (csvprofile; NWLoadTest -nwcsv=): per-frame average of each column, largest first.
 
-  tools/perf_csv.py [arquivo.csv] [--top 30] [--filtro Exclusive]
-Sem arquivo: o mais novo de unreal/NWPort/Saved/Profiling/CSV.
+  tools/perf_csv.py [file.csv] [--top 30] [--filtro Exclusive]
+Without a file: the newest in unreal/NWPort/Saved/Profiling/CSV.
 """
 import argparse
 import csv
@@ -27,7 +27,7 @@ def main():
             return True
         except ValueError:
             return False
-    # Linhas de ciclo: mesmo número de colunas e a 2ª é número (a 1ª é EVENTS, vazia quase sempre).
+    # Frame rows: same number of columns and the 2nd is a number (the 1st is EVENTS, almost always empty).
     data = [r for r in rows[1:] if len(r) == len(head) and numeric(r[1])]
     sums = {}
     for r in data:
@@ -38,7 +38,7 @@ def main():
                 pass
     n = max(1, len(data))
     items = sorted(((v / n, k) for k, v in sums.items() if a.filtro.lower() in k.lower()), reverse=True)
-    print(f"{path}: {len(data)} ciclos")
+    print(f"{path}: {len(data)} frames")
     for v, k in items[: a.top]:
         print(f"{v:10.3f}  {k}")
 

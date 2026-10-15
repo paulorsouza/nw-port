@@ -19,7 +19,7 @@ static const TCHAR* Canvas_ = TEXT("mastery");
 static const TCHAR* Keys[3] = {TEXT("Q"), TEXT("R"), TEXT("F")};
 static const TCHAR* NodeNames[5] = {TEXT("Node"), TEXT("Node2"), TEXT("Node3"), TEXT("Node4"), TEXT("Node5")};
 static const TCHAR* TreeNames[2] = {TEXT("TreeContainer/LeftMasteryTree"), TEXT("TreeContainer/RightMasteryTree")};
-// Cores da UI do jogo (UIStyle): tan, dourado das descrições, cinza das notas.
+// Game UI colors (UIStyle): tan, gold of the descriptions, gray of the notes.
 static const FLinearColor Tan(FColor(0xEB, 0xE3, 0xD6));
 static const FLinearColor Gold(FColor(0xED, 0xC6, 0x3E));
 static const FLinearColor Dim(FColor(0x82, 0x82, 0x82));
@@ -83,7 +83,7 @@ void FNWMasteryMenu::Open(ANWCharacter* InCharacter)
 {
 	if (Weapons.Num() == 0 && !Load())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("NW: tela de maestria sem dados (Data/UI/mastery_layout.json, abilities.json)"));
+		UE_LOG(LogTemp, Warning, TEXT("NW: mastery screen without data (Data/UI/mastery_layout.json, abilities.json)"));
 		return;
 	}
 	Character = InCharacter;
@@ -132,7 +132,7 @@ void FNWMasteryMenu::ApplyWeapon()
 			}
 		}
 	}
-	// Nós de cada linha nos elementos Node, Node2…, espalhados pela coluna do datasheet (5 colunas de 108).
+	// Nodes of each row in the Node, Node2… elements, spread over the datasheet column (5 columns of 108).
 	TMap<TPair<int32, int32>, int32> Used;
 	TArray<FNode*> Sorted;
 	for (FNode& N : W.Nodes)
@@ -165,9 +165,9 @@ void FNWMasteryMenu::ApplyWeapon()
 			continue;
 		}
 		N->Root->Visible = true;
-		// Ultimate sobe um pouco para não encostar no botão (ultimateArrowOffset do script).
+		// Ultimate moves up a bit so it does not touch the button (script's ultimateArrowOffset).
 		N->Root->Translate = FVector2f((N->Col - 2) * 108.f, N->Kind == TEXT("ultimate") ? -40.f : 0.f);
-		// Arte por tipo (masterynode.luac): ativa, passiva ou "info" (ultimate).
+		// Art by type (masterynode.luac): active, passive or "info" (ultimate).
 		const FString Type = N->Kind == TEXT("active") ? TEXT("active") : N->Kind == TEXT("ultimate") ? TEXT("info") : TEXT("passive");
 		if (N->Rune) N->Rune->TextureOverride = Mastery + TEXT("masterynode") + Type + TEXT("rune.dds");
 		if (N->Bg) N->Bg->TextureOverride = Mastery + TEXT("masterynode") + Type + TEXT("bg.dds");
@@ -180,12 +180,12 @@ void FNWMasteryMenu::ApplyWeapon()
 		if (N->IconImg) N->IconImg->TextureOverride = N->Icon;
 		if (N->Ultimate) N->Ultimate->Visible = N->Kind == TEXT("ultimate");
 		if (N->Ticks) N->Ticks->Visible = false;
-		// Seta para a habilidade de cima quando ela está na linha logo acima (melhorias).
+		// Arrow to the ability above when it is on the row right above (upgrades).
 		const FNode* Parent = W.Nodes.FindByPredicate([&](const FNode& P) { return P.Id == N->Parent; });
 		if (N->VLine) N->VLine->Visible = Parent && Parent->Row == N->Row - 1;
 		if (N->HLine) N->HLine->Visible = false;
 	}
-	// Textos fixos que o script preenchia.
+	// Fixed texts the script used to fill in.
 	if (FNWUIElement* T = E(TEXT("MasteryTreeWindow/WeaponTitle"))) T->TextOverride = W.Title;
 	for (int32 t = 0; t < 2; ++t)
 	{
@@ -199,7 +199,7 @@ void FNWMasteryMenu::ApplyWeapon()
 	if (FNWUIElement* T = E(TEXT("ProgressBarBg/ProgressionPoints"))) T->Visible = false;
 	if (FNWUIElement* F = E(TEXT("ProgressBarBg/ProgressFill"))) F->Fill = 1.f;
 	if (FNWUIElement* T = E(TEXT("Confirm/buttonText"))) T->TextOverride = NWText::Get(TEXT("nw.mastery.confirm"));
-	// Estados de foco e animações do botão: o script só liga com o mouse em cima.
+	// Button focus states and animations: the script only turns them on with the mouse over it.
 	for (const TCHAR* Part : {TEXT("buttonBgFocus"), TEXT("buttonFocus"), TEXT("buttonFocusHero"), TEXT("frameFocus"),
 		TEXT("heroImageSequence"), TEXT("heroImageSequenceDisabled"), TEXT("buttonBottomGlow")})
 	{
@@ -250,7 +250,7 @@ void FNWMasteryMenu::Refresh()
 		const bool bOwned = bActive || Owned.Contains(N.Id);
 		const bool bUnlocked = !bUltimate || SpentInTree(N.Tree) >= UltimatePoints;
 		const bool bAvailable = bOwned || (bCanSpend && bUnlocked);
-		// Estados do masterynode.luac: possuído (claro), disponível, indisponível (escuro).
+		// masterynode.luac states: owned (light), available, unavailable (dark).
 		const FLinearColor BgColor = bOwned ? FLinearColor::White : bAvailable ? FLinearColor(0.55f, 0.55f, 0.55f) : FLinearColor(0.3f, 0.3f, 0.3f);
 		if (N.Bg) N.Bg->Tint = BgColor;
 		if (N.IconImg) N.IconImg->Tint = bOwned ? FLinearColor::White : bAvailable ? FLinearColor(0.75f, 0.75f, 0.75f) : FLinearColor(0.4f, 0.4f, 0.4f);
@@ -279,18 +279,18 @@ void FNWMasteryMenu::Refresh()
 		if (FNWUIElement* Fs = E(Slot + TEXT("/SlotFlashShort"))) Fs->Visible = !Pending.IsNone();
 	}
 	if (FNWUIElement* Points = E(TEXT("PointsAvailableContainer/PointsAvailableNumber"))) Points->TextOverride = FString::FromInt(PointsLeft());
-	// Com pontos sobrando o número fica em destaque e o desenho da arma vai para o fundo.
+	// With points left, the number is highlighted and the weapon drawing goes to the background.
 	if (FNWUIElement* Icon = E(TEXT("PointsAvailableContainer/WeaponIcon"))) Icon->AlphaMul = PointsLeft() > 0 ? 0.25f : 1.f;
 	if (FNWUIElement* Num = E(TEXT("PointsAvailableContainer/PointsAvailableNumber"))) Num->Visible = PointsLeft() > 0;
 	if (FNWUIElement* Lbl = E(TEXT("PointsAvailableContainer/PointsAvailableLabel"))) Lbl->Visible = PointsLeft() > 0;
-	// Botão com foco (camadas do jogo) quando o mouse está em cima.
+	// Focused button (game layers) when the mouse is over it.
 	if (FNWUIElement* Focus = E(TEXT("TreeContainer/Confirm/frameFocus"))) Focus->Visible = bHoverConfirm;
 	if (FNWUIElement* Focus = E(TEXT("TreeContainer/Confirm/buttonBgFocus"))) Focus->Visible = bHoverConfirm;
 }
 
 FNWMasteryMenu::FNode* FNWMasteryMenu::NodeAt(const FVector2D& Mouse)
 {
-	// Só a parte de dentro do nó (fundo e ícone), não o brilho em volta.
+	// Only the inner part of the node (background and icon), not the glow around it.
 	const int32 Hit = Layout.HitTest(Canvas_, Mouse, [](const FNWUIElement& El)
 	{
 		return El.Path.Contains(TEXT("/Row")) && (El.Name == TEXT("Bg") || El.Name == TEXT("Icon") || El.Name == TEXT("Border") || El.Name == TEXT("IconBg"));
@@ -306,7 +306,7 @@ FNWMasteryMenu::FNode* FNWMasteryMenu::NodeAt(const FVector2D& Mouse)
 	});
 }
 
-// Texto rico das descrições: <hl>..</> dourado, <dim>..</> cinza; quebra de linha por largura.
+// Rich text of the descriptions: <hl>..</> gold, <dim>..</> gray; line wrap by width.
 struct FRichWord { FString Text; FLinearColor Color; bool bBreak = false; };
 
 static TArray<FRichWord> ParseRich(const FString& Src)
@@ -367,7 +367,7 @@ void FNWMasteryMenu::DrawTooltip(UCanvas* Canvas, const FNode& N, const FVector2
 	{
 		Sub = N.Kind == TEXT("ultimate") ? NWText::Format(TEXT("nw.mastery.ultimate"), {FString::FromInt(UltimatePoints)}) : NWText::Get(TEXT("nw.mastery.passive"));
 	}
-	// Layout das palavras.
+	// Word layout.
 	struct FPlaced { FString Text; FLinearColor Color; float X, Y; };
 	TArray<FPlaced> Placed;
 	float X = 0.f, Y = 0.f, LineH = 0.f;
@@ -437,7 +437,7 @@ void FNWMasteryMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	Refresh();
 	Layout.Draw(Canvas);
 
-	// Abas das armas no cabeçalho (o jogo abre uma tela por arma a partir da lista de maestrias).
+	// Weapon tabs in the header (the game opens one screen per weapon from the mastery list).
 	TabRects.Reset();
 	UFont* Bold = FNWUILayout::GameFont(2);
 	const FBox2f Header = Layout.RectOf(E(TEXT("ScreenHolder/FrameHeader")));
@@ -504,7 +504,7 @@ bool FNWMasteryMenu::Click(const FVector2D& Mouse, bool& bCloseRequested)
 			New.SetNum(3);
 			if (!Pending.IsNone() && C)
 			{
-				// Já equipada em outro espaço: troca os dois de lugar.
+				// Already equipped in another slot: swaps the two.
 				const int32 Existing = New.IndexOfByKey(Pending);
 				if (Existing != INDEX_NONE)
 				{

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Original em cima, port embaixo, no mesmo tamanho (esteira 4: ajuste de telas com tools/linux/ui_shot.sh).
+"""Original on top, port below, at the same size (area 4: screen tuning with tools/linux/ui_shot.sh).
 
-    python3 tools/ui_compare.py <print do jogo> <captura do port> <saída.png> [--crop x0,y0,x1,y1] [--width 1600]
+    python3 tools/ui_compare.py <game screenshot> <port capture> <output.png> [--crop x0,y0,x1,y1] [--width 1600]
 
---crop recorta a mesma região (em frações 0–1 da tela) das duas, para olhar detalhe.
+--crop cuts the same region (in 0–1 screen fractions) from both, to look at detail.
 """
 import argparse
 from PIL import Image
@@ -16,7 +16,7 @@ ap.add_argument("--crop")
 ap.add_argument("--width", type=int, default=1600)
 a = ap.parse_args()
 ims = [Image.open(p).convert("RGB") for p in (a.orig, a.port)]
-# O print do jogo pode vir esticado (janela fora de 16:9): vai para o tamanho da captura.
+# The game screenshot may be stretched (window not 16:9): it is resized to the capture size.
 ims[0] = ims[0].resize(ims[1].size)
 if a.crop:
     f = [float(v) for v in a.crop.split(",")]

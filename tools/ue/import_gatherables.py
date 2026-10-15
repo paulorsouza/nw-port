@@ -1,13 +1,13 @@
-"""Importa as malhas dos coletáveis (glb limpos de tools/linux/convert_gatherables.sh), uma malha por .cgf.
+"""Imports the gatherable meshes (clean glb files from tools/linux/convert_gatherables.sh), one mesh per .cgf.
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_gatherables.py <pasta limpa> [filtro|/Game/destino]"
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_gatherables.py <limpa folder> [filter|/Game/dest]"
 
-Cria /Game/NW/Gatherables/<nome>/<nome> (malha única: as partes do glb são combinadas), com materiais e texturas
-na mesma pasta (uma pasta por malha: materiais de malhas diferentes têm o mesmo nome, ex. "stone").
-Pipelines = os do glTF do projeto (DefaultGLTFAssetsPipeline + DefaultGLTFPipeline, que fazem instâncias do
-M_Default com as texturas, como na cidade) com "combinar malhas" ligado numa cópia do primeiro. Só o pipeline
-genérico deixava os materiais sem textura (2026-10-11). Colisão por triângulo e Nanite ligados. Pula malhas que já existem (rodar de novo
-só importa as novas). ANWGatherField carrega pelo mesmo nome.
+Creates /Game/NW/Gatherables/<name>/<name> (single mesh: the glb parts are combined), with materials and textures
+in the same folder (one folder per mesh: materials of different meshes share names, e.g. "stone").
+Pipelines = the project's glTF ones (DefaultGLTFAssetsPipeline + DefaultGLTFPipeline, which make M_Default
+instances with the textures, as in the city) with "combine meshes" on in a copy of the first. The generic
+pipeline alone left the materials without textures (2026-10-11). Per-triangle collision and Nanite on. Skips meshes that already exist (running
+again only imports the new ones). ANWGatherField loads by the same name.
 """
 import os
 import sys
@@ -16,8 +16,8 @@ import time
 import unreal
 
 SRC = sys.argv[1]
-# Segundo argumento: filtro por nome (teste com uma malha) ou, começando com /Game/, outra pasta de destino
-# (ex.: as peças da arena, tools/arena/meshes.txt → /Game/NW/Arena).
+# Second argument: name filter (test with one mesh) or, when it starts with /Game/, another destination folder
+# (e.g. the arena pieces, tools/arena/meshes.txt → /Game/NW/Arena).
 ARG = sys.argv[2] if len(sys.argv) > 2 else ""
 ONLY = "" if ARG.startswith("/Game/") else ARG
 DEST = ARG if ARG.startswith("/Game/") else "/Game/NW/Gatherables"
@@ -28,12 +28,12 @@ im = unreal.InterchangeManager.get_interchange_manager_scripted()
 
 
 def pipeline():
-    # Cópia do pipeline de assets do glTF com as partes combinadas numa malha só.
+    # Copy of the glTF assets pipeline with the parts combined into a single mesh.
     dst = "/Game/NW/Pipelines/NWGatherAssetsPipeline"
     if eal.does_asset_exist(dst):
         p = eal.load_asset(dst)
     else:
-        # O registro de assets do commandlet não lista o conteúdo do plugin: carrega pelo caminho e duplica.
+        # The commandlet's asset registry does not list the plugin content: load by path and duplicate.
         src = unreal.load_object(None, "/Interchange/Pipelines/DefaultGLTFAssetsPipeline.DefaultGLTFAssetsPipeline")
         p = unreal.AssetToolsHelpers.get_asset_tools().duplicate_asset("NWGatherAssetsPipeline", "/Game/NW/Pipelines", src)
     mp = p.get_editor_property("mesh_pipeline")
@@ -66,7 +66,7 @@ for f in sorted(os.listdir(SRC)):
     if not meshes:
         failed.append(name)
         continue
-    # O Interchange nomeia pela malha/arquivo; garante o nome do .cgf.
+    # Interchange names by mesh/file; enforce the .cgf name.
     mesh_path = meshes[0]
     if mesh_path.split(".")[0] != path:
         eal.rename_asset(mesh_path.split(".")[0], path)
@@ -82,4 +82,4 @@ for f in sorted(os.listdir(SRC)):
 
 for p in eal.list_assets(DEST, recursive=True):
     eal.save_asset(p, only_if_is_dirty=True)
-unreal.log_warning(f"COLETAVEIS importadas={done} existentes={skipped} falhas={len(failed)} {failed[:20]} em {time.time() - t0:.0f}s")
+unreal.log_warning(f"GATHERABLES imported={done} existing={skipped} failed={len(failed)} {failed[:20]} in {time.time() - t0:.0f}s")

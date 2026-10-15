@@ -5,14 +5,14 @@
 #include "NWUIShotCommandlet.generated.h"
 
 /**
- * Desenha uma tela do port num PNG sem mapa, sem rede e sem PIE (esteira 4): mundo vazio, um personagem com a bolsa e os
- * níveis do arquivo de cenário, o mesmo código de tela do jogo num render target.
+ * Draws a port screen to a PNG without a map, network or PIE (area 4): empty world, a character with the bag and the
+ * levels from the scenario file, the same game screen code into a render target.
  *
- *     tools/linux/ui_shot.sh tools/ui_shots/refining.json      ->  extract/ui/shots/refining_<captura>.png
+ *     tools/linux/ui_shot.sh tools/ui_shots/refining.json      ->  extract/ui/shots/refining_<shot>.png
  *
- * Cenário (JSON): "screen" (refining), "lang", "station" {type, tier, name}, "coins", "trade" {Ofício: nível},
- * "items" [[id, qtd]], "shots" [{name, w, h, recipe, count, mouse [x, y], craft, t}]. craft = clica em CONFECCIONAR e
- * desenha t segundos depois (roll e fim).
+ * Scenario (JSON): "screen" (refining), "lang", "station" {type, tier, name}, "coins", "trade" {TradeSkill: level},
+ * "items" [[id, qty]], "shots" [{name, w, h, recipe, count, mouse [x, y], craft, t}]. craft = clicks CONFECCIONAR (CRAFT)
+ * and draws t seconds later (roll and end).
  */
 UCLASS()
 class UNWUIShotCommandlet : public UCommandlet

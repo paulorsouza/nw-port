@@ -1,34 +1,34 @@
-# Prints do jogo original (inspiração)
+# Screenshots of the original game (inspiration)
 
-Prints do New World original tirados pelo dono (2026-10-13) para servir de referência às telas e ao visual do port.
-As imagens ficam fora do git (conteúdo do jogo; `.gitignore`), só este índice entra. Quem trabalha em outra máquina
-pede os prints ao dono ou tira os seus e acrescenta aqui.
+Screenshots of the original New World taken by the maintainer (2026-10-13) as a reference for the port's screens and
+look. The images stay out of git (game content; `.gitignore`); only this index is committed. Anyone working on another
+machine asks the maintainer for the screenshots, or takes their own and adds them here.
 
-Resolução: os prints 01–16 foram tirados com o jogo em **1920x1080 num monitor ultrawide** (a imagem sai esticada na
-horizontal; para comparar com a captura do port, redimensione para 16:9, `docs/game/ui/README.md`). Do 17 em diante, o jogo
-já estava na **resolução ultrawide nativa**. Os arquivos estão em 2000x845.
+Resolution: screenshots 01–16 were taken with the game at **1920x1080 on an ultrawide monitor** (the image comes out
+stretched horizontally; to compare with a port capture, resize to 16:9, `docs/game/ui/README.md`). From 17 on, the game
+was already at the **native ultrawide resolution**. The files are 2000x845.
 
-Para comparar com uma captura do port: `python3 tools/ui_compare.py inspiracao/<print>.webp extract/ui/shots/<captura>.png saida.png`.
+To compare with a port capture: `python3 tools/ui_compare.py inspiracao/<screenshot>.webp extract/ui/shots/<capture>.png out.png`.
 
-| Arquivo | O que mostra | Útil para |
+| File | What it shows | Useful for |
 |---|---|---|
-| `01_cidade_hud.webp` | Praça de uma cidade (Corinth) com o HUD normal: bússola com marcadores, rastreador de missões, barra de ações, vida e XP, buffs de comida | HUD em jogo, iluminação de cidade de dia |
-| `02_inventario_equipamento.webp` | Inventário (Tab) com o equipamento à esquerda (armadura, armas, joias, munição, consumíveis rápidos), carga "Light 7.5", nível 65, gear score 598, atributos e resistências embaixo; inventário à direita com seções por categoria em 2 colunas, peso por seção, busca, filtros, ordenação, moedas e outras moedas no rodapé | Tela de inventário inteira, painel de equipamento |
-| `03_inventario_aba_ferramentas.webp` | Mesma tela, aba de ferramentas de coleta e instrumentos, com os níveis dos ofícios (250) embaixo | Aba de ferramentas |
-| `04_inventario_aba_ferramentas_2.webp` | Igual ao 03 (outro momento) | Aba de ferramentas |
-| `05_inventario_aba_montaria.webp` | Aba de montaria: montaria (panda), equipamento da montaria e consumíveis | Aba de montaria (esteira 3) |
-| `06_inventario_tooltip_buffs.webp` | Tooltip dos buffs ativos (pedra de afiar, comidas com tempo restante) | Tooltip de buffs |
-| `07_inventario_tooltip_item.webp` | Tooltip de item da bolsa (botas Artifact): gear score, armaduras, perks, descrição, Tier, peso, requisito; rodapé com LALT Link to Chat, Compare, Actions | Tooltip de item, rodapé de ações |
-| `08_inventario_arrastando_item.webp` | Arrastando um item da bolsa: o ícone segue o mouse sobre o personagem, o espaço de equipamento de destino acende, e aparece "Drop items" à direita (soltar fora larga no chão) | Arrastar e soltar |
-| `09_inventario_filtros_colunas.webp` | Janela de filtros: número de colunas, filtros Equipment/Materials/All, lista de seções com visibilidade, largura e ordem | Filtros e seções do inventário |
-| `10_inventario_e_armazem.webp` | Inventário e armazém lado a lado (Storage Shed 2217.6/6500.0), peso em cada peça, busca e filtros nos dois, seletor de assentamento "Windsward (Here)" e "Take All" | Armazém |
-| `11_casa_cartao_compra.webp` | Cartão de interação de um lote de casa: "Windsward Housing", E View House, T Purchase House, preço 20,000.00 | Casas (cartão de várias opções) |
-| `12_casa_interior.webp` | Dentro da casa: barra superior com Decorate, Upkeep, Hide UI, Exit; baús de armazenamento | Casas |
-| `13_casa_modo_decoracao.webp` | Modo de decoração: catálogo por categoria com busca, contagem de decorações, pontuação, troféus à direita | Casas (decoração) |
-| `14_cartao_atividades.webp` | Cartão de atividades da temporada (menu do Esc, aba Season) | Fora do escopo; estilo de tela cheia |
-| `15_passe_temporada.webp` | Recompensas do passe de temporada | Fora do escopo; estilo de tela cheia |
-| `16_configuracoes_video.webp` | Configurações > Vídeo (1920x1080, campo de visão 57–70) | Tela de configurações |
-| `17_cidade_forja_ultrawide.webp` | Cidade com fundição ao lado, HUD em ultrawide nativo | HUD em ultrawide, iluminação |
-| `18_posto_de_trocas_comprar.webp` | Posto de trocas, aba Comprar: categorias à esquerda, tabela com nome, preço, tier, gear score, perk, disponível; filtros e páginas | Mercado |
-| `19_viagem_rapida.webp` | Viagem rápida em andamento (contagem regressiva com "Fast traveling...") | HUD de viagem |
-| `20_tela_carregamento.webp` | Tela de carregamento com arte e texto de lore, barra de progresso, faixas laterais em ultrawide | Tela de carregamento |
+| `01_cidade_hud.webp` | A city plaza (Corinth) with the normal HUD: compass with markers, quest tracker, action bar, health and XP, food buffs | In-game HUD, daytime city lighting |
+| `02_inventario_equipamento.webp` | Inventory (Tab) with the equipment on the left (armor, weapons, jewelry, ammo, quick consumables), load "Light 7.5", level 65, gear score 598, attributes and resistances below; inventory on the right with sections by category in 2 columns, weight per section, search, filters, sorting, coins and other currencies in the footer | Whole inventory screen, equipment panel |
+| `03_inventario_aba_ferramentas.webp` | Same screen, tab for gathering tools and instruments, with the trade skill levels (250) below | Tools tab |
+| `04_inventario_aba_ferramentas_2.webp` | Same as 03 (another moment) | Tools tab |
+| `05_inventario_aba_montaria.webp` | Mount tab: mount (panda), mount equipment and consumables | Mount tab (area 3) |
+| `06_inventario_tooltip_buffs.webp` | Tooltip of the active buffs (whetstone, foods with time remaining) | Buffs tooltip |
+| `07_inventario_tooltip_item.webp` | Tooltip of a bag item (Artifact boots): gear score, armor values, perks, description, Tier, weight, requirement; footer with LALT Link to Chat, Compare, Actions | Item tooltip, actions footer |
+| `08_inventario_arrastando_item.webp` | Dragging an item from the bag: the icon follows the mouse over the character, the target equipment slot lights up, and "Drop items" appears on the right (releasing outside drops it on the ground) | Drag and drop |
+| `09_inventario_filtros_colunas.webp` | Filters window: number of columns, Equipment/Materials/All filters, list of sections with visibility, width and order | Inventory filters and sections |
+| `10_inventario_e_armazem.webp` | Inventory and Storage side by side (Storage Shed 2217.6/6500.0), weight on each item, search and filters on both, settlement selector "Windsward (Here)" and "Take All" | Storage |
+| `11_casa_cartao_compra.webp` | Interaction card of a housing plot: "Windsward Housing", E View House, T Purchase House, price 20,000.00 | Houses (multi-option card) |
+| `12_casa_interior.webp` | Inside the house: top bar with Decorate, Upkeep, Hide UI, Exit; storage chests | Houses |
+| `13_casa_modo_decoracao.webp` | Decoration mode: catalog by category with search, decoration count, score, trophies on the right | Houses (decoration) |
+| `14_cartao_atividades.webp` | Season activity card (Esc menu, Season tab) | Out of scope; full-screen style |
+| `15_passe_temporada.webp` | Season pass rewards | Out of scope; full-screen style |
+| `16_configuracoes_video.webp` | Settings > Video (1920x1080, field of view 57–70) | Settings screen |
+| `17_cidade_forja_ultrawide.webp` | City with a smelter next to it, HUD at native ultrawide | Ultrawide HUD, lighting |
+| `18_posto_de_trocas_comprar.webp` | Trading Post, Buy tab: categories on the left, table with name, price, tier, gear score, perk, available; filters and pages | Market |
+| `19_viagem_rapida.webp` | Fast travel in progress (countdown with "Fast traveling...") | Travel HUD |
+| `20_tela_carregamento.webp` | Loading screen with art and lore text, progress bar, side bands at ultrawide | Loading screen |

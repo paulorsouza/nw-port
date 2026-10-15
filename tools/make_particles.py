@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Efeito de partículas do jogo (biblioteca CryEngine libs/particles/*.xml) → JSON para o UNWNiagaraTools::BuildEffect.
+"""Game particle effect (CryEngine library libs/particles/*.xml) → JSON for UNWNiagaraTools::BuildEffect.
 
     python3 tools/make_particles.py extract/fx_study/libs/particles/wfxo_icegaunt_tempest.xml Blizzard_AOE
 
-Saída: extract/fx/<Biblioteca>.<Efeito>.json com os emissores ativos do efeito (o raiz e os filhos, em ordem), cada
-um com o renderizador (sprite, malha ou decalque), os números e as curvas pela idade da partícula, e a lista de
-texturas, malhas e materiais que o efeito usa (docs/tech/particles.md).
+Output: extract/fx/<Library>.<Effect>.json with the effect's active emitters (the root and the children, in order),
+each with its renderer (sprite, mesh or decal), the numbers and the curves over particle age, and the list of
+textures, meshes and materials the effect uses (docs/tech/particles.md).
 
-Formato dos valores do CryEngine (ParticleParams): "base,Random=r,ParticleAge=(t=..,v=..;t=..,v=..)". Chave sem t é
-t=0, sem v é v=0. Vetores "x=..,y=..,z=..", cores "(x=..,y=..,z=..)". Curvas EmitterStrength e as inclinações (d, s,
-flags) ficam de fora por enquanto.
+CryEngine value format (ParticleParams): "base,Random=r,ParticleAge=(t=..,v=..;t=..,v=..)". A key without t is
+t=0, without v is v=0. Vectors "x=..,y=..,z=..", colors "(x=..,y=..,z=..)". EmitterStrength curves and the slopes
+(d, s, flags) are left out for now.
 """
 import json
 import os
@@ -21,7 +21,7 @@ OUT = os.path.join(ROOT, "extract", "fx")
 
 
 def split_top(s, sep=","):
-    """Divide pelos separadores fora de parênteses."""
+    """Splits on separators outside parentheses."""
     out, depth, cur = [], 0, ""
     for ch in s:
         if ch == "(":
@@ -45,7 +45,7 @@ def num(s, default=0.0):
 
 
 def vec(s):
-    """'x=1,y=2' ou '(x=1,y=2,z=3)' → [x, y, z] (faltando = 0)."""
+    """'x=1,y=2' or '(x=1,y=2,z=3)' → [x, y, z] (missing = 0)."""
     s = s.strip()
     if s.startswith("(") and s.endswith(")"):
         s = s[1:-1]
@@ -58,7 +58,7 @@ def vec(s):
 
 
 def curve(s, is_vec=False):
-    """'(t=0.5,v=1;t=1)' → [[t, v], ...] (v vetor nas cores)."""
+    """'(t=0.5,v=1;t=1)' → [[t, v], ...] (v is a vector for colors)."""
     s = s.strip()
     if s.startswith("(") and s.endswith(")"):
         s = s[1:-1]
@@ -78,7 +78,7 @@ def curve(s, is_vec=False):
 
 
 def value(s, is_vec=False):
-    """Valor de um parâmetro: base, acaso, curva pela idade (e o resto como texto)."""
+    """Value of a parameter: base, random, curve over age (and the rest as text)."""
     out = {}
     parts = split_top(s)
     first = parts[0] if parts else ""
@@ -126,7 +126,7 @@ def find(root, dotted):
                 nxt = c
                 break
         if nxt is None:
-            sys.exit(f"efeito não encontrado: {dotted}")
+            sys.exit(f"effect not found: {dotted}")
         node = nxt
         path.append(name)
     return node
@@ -149,7 +149,7 @@ def build(lib_path, effect, src):
     assets = {"textures": sorted({e["texture"] for e in active if e["texture"]}),
               "materials": sorted({e["material"] for e in active if e["material"]}),
               "meshes": sorted({e["geometry"] for e in active if e["geometry"]})}
-    # Materiais (.mtl extraídos em extract/fx/src): shader e texturas por mapa.
+    # Materials (.mtl extracted to extract/fx/src): shader and textures per map.
     assets["material_info"] = {}
     for m in assets["materials"]:
         f = os.path.join(src, m.lower() + ".mtl")
@@ -168,16 +168,18 @@ def build(lib_path, effect, src):
     os.makedirs(OUT, exist_ok=True)
     dst = os.path.join(OUT, f"{lib}.{effect}.json")
     json.dump({"library": lib, "effect": effect, "emitters": active, "assets": assets}, open(dst, "w"), indent=1)
-    print(f"{lib}.{effect}: {len(active)} emissores ativos de {len(emitters)} -> {os.path.relpath(dst, ROOT)}")
+    print(f"{lib}.{effect}: {len(active)} active emitters of {len(emitters)} -> {os.path.relpath(dst, ROOT)}")
     return assets
 
 
 def nwbt(*args, sub=1):
-    """nwbt pela fila de trabalho pesado (docs/workflow.md), com o jogo de NW_GAME."""
+    """nwbt through the heavy-job queue (docs/workflow.md), with the game from NW_GAME."""
     import subprocess
-    game = os.environ.get("NW_GAME", "/mnt/jogos/Steam/steamapps/common/New World")
-    subprocess.run([os.path.join(ROOT, "tools", "pesado.sh"), os.path.join(ROOT, "bin", "nwbt"), *args[:sub], "-g", game, *args[sub:]],
-                   check=True, capture_output=True)
+    import sys
+    import nwplatform
+    nwplatform.configure()
+    subprocess.run([sys.executable, os.path.join(ROOT, "tools", "pesado.py"), nwplatform.executable("nwbt"), *args[:sub],
+                    "-g", nwplatform.game_directory(), *args[sub:]], check=True, capture_output=True)
 
 
 def regex(paths, ext):
@@ -186,7 +188,7 @@ def regex(paths, ext):
 
 
 def main():
-    """make_particles.py [--extract] <biblioteca.xml> <Efeito> [<Efeito>...] (vários efeitos da mesma biblioteca)."""
+    """make_particles.py [--extract] <library.xml> <Effect> [<Effect>...] (several effects from the same library)."""
     args = sys.argv[1:]
     extract = "--extract" in args
     args = [a for a in args if a != "--extract"]
@@ -195,7 +197,7 @@ def main():
     found = [build(lib_path, e, src) for e in effects]
     if not extract:
         return
-    # 1) materiais; 2) refaz (texturas dos materiais); 3) texturas em png; 4) malhas em glb.
+    # 1) materials; 2) rebuild (material textures); 3) textures as png; 4) meshes as glb.
     mats = sorted({m for a in found for m in a["materials"]} - {m for m in []})
     if mats:
         nwbt("unpack", "-o", src, "-w", "2", "-r", "2", "-e", regex(mats, "mtl"))
@@ -208,7 +210,7 @@ def main():
     todo = [m for m in meshes if not os.path.exists(os.path.join(OUT, "glb", m.lower() + ".glb"))]
     if todo:
         nwbt("models", "files", "-o", os.path.join(OUT, "glb"), "--binary", "--embed", "--ior", "1.5", *[m.lower() for m in todo], sub=2)
-    print(f"extraído: {len(mats)} materiais, {len(missing)} texturas novas, {len(todo)} malhas novas")
+    print(f"extracted: {len(mats)} materials, {len(missing)} new textures, {len(todo)} new meshes")
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ pub struct Position {
     pub z: f64,
 }
 
-/// O que o servidor de jogo salva e recarrega.
+/// What the game server saves and reloads.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CharacterState {
     pub map: String,
@@ -30,46 +30,46 @@ pub struct CharacterState {
     pub active_weapon: String,
     pub loadout: Value,
     pub mastery: Value,
-    /// Ausente no salvamento = mantém o que está no banco.
+    /// Missing on save = keeps what is in the database.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub coins: Option<i64>,
-    /// Inventário inteiro (bolsa e equipado). Ausente = mantém; presente = substitui.
+    /// Whole inventory (bag and equipped). Missing = keeps; present = replaces.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inventory: Option<Vec<ItemInstance>>,
-    /// Nível, XP, atributos e ofícios (objeto do servidor de jogo). Ausente = mantém.
+    /// Level, XP, attributes and trade skills (game server object). Missing = keeps.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub progression: Option<Value>,
-    /// Capacidade do armazém compartilhado (kg), somada pelo servidor de jogo; ausente = mantém.
+    /// Shared Storage capacity (kg), summed by the game server; missing = keeps.
     #[serde(default, skip_serializing)]
     pub storage_capacity: Option<f32>,
-    /// Só os espaços da bolsa/equipado que mudaram (no lugar de `inventory`): item novo ou nulo para apagar.
+    /// Only the bag/equipped slots that changed (instead of `inventory`): new item, or null to clear.
     #[serde(default, skip_serializing)]
     pub inventory_patch: Option<Vec<SlotPatch>>,
-    /// Sessão, número e motivo da gravação (servidor de jogo; journal.rs).
+    /// Session, sequence number and reason of the save (game server; journal.rs).
     #[serde(default, skip_serializing)]
     pub session: Option<i64>,
     #[serde(default, skip_serializing)]
     pub seq: Option<i64>,
     #[serde(default, skip_serializing)]
     pub reason: Option<String>,
-    /// Imposto de fabricação nas mesas de uma cidade (governança), na mesma transação.
+    /// Crafting tax at a city's stations (governance), in the same transaction.
     #[serde(default, skip_serializing)]
     pub city_tax: Option<crate::routes::city::CityTax>,
 }
 
-/// Um item do personagem (ItemID do jogo, ver Data/Items/items.*.json no projeto Unreal).
+/// A character item (game ItemID, see Data/Items/items.*.json in the Unreal project).
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, sqlx::FromRow)]
 pub struct ItemInstance {
     pub item_id: String,
     pub quantity: i32,
-    /// "bag" ou "equip".
+    /// "bag" or "equip".
     pub container: String,
     pub slot: i32,
     #[serde(default)]
     pub gear_score: i32,
     #[serde(default)]
     pub rarity: i16,
-    /// Atributo, qualidade, perks, gema, vínculo e assinatura (docs/game/items.md); o banco não interpreta.
+    /// Attribute, quality, perks, gem, binding and signature (docs/game/items.md); the database does not parse it.
     #[serde(default = "empty_props")]
     pub props: Value,
 }
@@ -81,7 +81,7 @@ pub(crate) fn empty_props() -> Value {
     Value::Object(Default::default())
 }
 
-/// `props` tem que ser um objeto pequeno.
+/// `props` must be a small object.
 pub(crate) fn validate_props(props: &Value, item_id: &str) -> Result<(), String> {
     if !props.is_object() {
         return Err(format!("props de {item_id} tem que ser um objeto"));
@@ -92,13 +92,13 @@ pub(crate) fn validate_props(props: &Value, item_id: &str) -> Result<(), String>
     Ok(())
 }
 
-/// Item vinculado ao personagem (não vai ao posto de trocas).
+/// Item bound to the character (cannot go to the Trading Post).
 pub(crate) fn is_bound(props: &Value) -> bool {
     props.get("bound").and_then(Value::as_bool).unwrap_or(false)
 }
 pub(crate) const MAX_EQUIP_SLOTS: i32 = 16;
 
-/// Um espaço da bolsa ou do equipado: o item que fica nele, ou nenhum.
+/// A bag or equipped slot: the item that goes in it, or none.
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct SlotPatch {
     pub container: String,
@@ -119,7 +119,7 @@ pub struct PatchItem {
 }
 
 impl SlotPatch {
-    /// O item completo do espaço (para validar e gravar), ou None quando apaga.
+    /// The full item for the slot (to validate and store), or None when clearing.
     pub(crate) fn instance(&self) -> Option<ItemInstance> {
         self.item.as_ref().map(|i| ItemInstance {
             item_id: i.item_id.clone(),
@@ -191,7 +191,7 @@ pub(crate) struct CharacterRow {
     progression: Value,
 }
 
-/// Colunas de `CharacterRow`, em macro para entrar em `concat!` (o sqlx só aceita SQL estático).
+/// `CharacterRow` columns, as a macro so they fit in `concat!` (sqlx only accepts static SQL).
 macro_rules! character_columns {
     () => {
         "id, name, created_at, last_seen_at, map, pos_x, pos_y, pos_z, yaw, health, active_weapon, loadout, mastery, coins, progression"
@@ -274,7 +274,7 @@ pub async fn create(State(state): State<AppState>, session: Session, Json(req): 
     validate_character_name(&name)?;
 
     let mut tx = state.db.begin().await?;
-    // Trava a conta para a contagem não correr com outra criação simultânea.
+    // Locks the account so the count does not race with another concurrent creation.
     sqlx::query("select 1 from accounts where id = $1 for update")
         .bind(session.account_id)
         .execute(&mut *tx)
@@ -300,7 +300,7 @@ pub async fn create(State(state): State<AppState>, session: Session, Json(req): 
         other => other?,
     };
     tx.commit().await?;
-    tracing::info!(account = %session.name, character = %name, "personagem criado");
+    tracing::info!(account = %session.name, character = %name, "character created");
     Ok((StatusCode::CREATED, Json(row.into())))
 }
 
@@ -316,7 +316,7 @@ pub async fn remove(State(state): State<AppState>, session: Session, Path(id): P
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Passe de uso único para o servidor de jogo; vai na URL de conexão do cliente (`?ticket=`).
+/// Single-use ticket for the game server; goes in the client's connect URL (`?ticket=`).
 pub async fn join(State(state): State<AppState>, session: Session, Path(id): Path<Uuid>) -> ApiResult<Json<JoinResponse>> {
     let owned: Option<(Uuid,)> =
         sqlx::query_as("select id from characters where id = $1 and account_id = $2 and deleted_at is null")

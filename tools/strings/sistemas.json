@@ -1,5 +1,5 @@
 {
-  "_comment": "Esteira 4 (sistemas: entrada, morte, chat, grupo, inventário, nível, atributos, ofícios).",
+  "_comment": "Area 4 (systems: login, death, chat, group, inventory, level, attributes, trade skills).",
   "textos": {
     "nw.login.account": {
       "pt-br": "Conta",

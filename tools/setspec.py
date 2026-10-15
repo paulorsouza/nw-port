@@ -1,9 +1,9 @@
-"""Lê um conjunto (tools/sets/<x>.json) juntando as partes listadas em "parts" (caminhos relativos a tools/sets/).
+"""Reads a set (tools/sets/<x>.json) merging the parts listed in "parts" (paths relative to tools/sets/).
 
-O conjunto do jogador é dividido por esteira (docs/workflow.md): tools/sets/sword_shield.json (personagem, pulo,
-queda, morte) + tools/sets/player/{armas,coleta,montaria}.json. Junta assim: dicionário funde chave a chave, lista
-soma sem repetir, valor simples tem que ser igual. A mesma chave em duas partes com valores diferentes é erro
-(duas esteiras definindo a mesma montagem).
+The player set is split by area (docs/workflow.md): tools/sets/sword_shield.json (character, jump,
+fall, death) + tools/sets/player/{armas,coleta,montaria}.json. Merge rules: dicts merge key by key, lists
+add without repeats, plain values must be equal. The same key in two parts with different values is an error
+(two areas defining the same montage).
 """
 import json
 import os
@@ -20,12 +20,12 @@ def _merge(dst, src, where):
         elif isinstance(dst[k], dict) and isinstance(v, dict):
             for kk, vv in v.items():
                 if kk in dst[k] and dst[k][kk] != vv:
-                    raise SystemExit(f"{where}: '{k}.{kk}' já definido em outra parte com outro valor")
+                    raise SystemExit(f"{where}: '{k}.{kk}' already defined in another part with another value")
                 dst[k][kk] = vv
         elif isinstance(dst[k], list) and isinstance(v, list):
             dst[k] += [x for x in v if x not in dst[k]]
         elif dst[k] != v:
-            raise SystemExit(f"{where}: '{k}' já definido em outra parte com outro valor")
+            raise SystemExit(f"{where}: '{k}' already defined in another part with another value")
 
 
 def load(path):

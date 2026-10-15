@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gera as imagens do compose. --network=host: o DNS do build padrão não resolve nesta máquina.
+# Builds the compose images. --network=host: the default build DNS does not resolve on this machine.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 docker build --network=host -t nw-core:local "$here/../backend"

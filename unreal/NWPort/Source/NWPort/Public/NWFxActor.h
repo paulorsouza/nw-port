@@ -11,14 +11,14 @@ class UMaterialInstanceDynamic;
 UENUM()
 enum class ENWFx : uint8
 {
-	Explosion,   // clarão que cresce até o raio (Flecha Explosiva)
-	PoisonCloud, // nuvem verde; no servidor envenena quem está dentro (Disparo Venenoso: 3 m, 6 s)
-	ArrowRain,   // flechas caindo na área (Chuva de Flechas)
+	Explosion,   // flash that grows up to the radius (Explosive Arrow)
+	PoisonCloud, // green cloud; on the server it poisons whoever is inside (Poison Shot: 3 m, 6 s)
+	ArrowRain,   // arrows falling in the area (Rain of Arrows)
 };
 
 /**
- * Efeito simples de combate, feito com malhas básicas e o material M_NW_FX (as partículas do jogo ainda não são
- * convertidas). Replicado: o servidor cria, todos desenham. A nuvem de veneno também aplica o status no servidor.
+ * Simple combat effect, made with basic meshes and the M_NW_FX material (the game particles are not
+ * converted yet). Replicated: the server spawns, everyone draws. The poison cloud also applies the status on the server.
  */
 UCLASS()
 class NWPORT_API ANWFxActor : public AActor
@@ -30,7 +30,7 @@ public:
 
 	static ANWFxActor* Spawn(UWorld* World, ENWFx Type, const FVector& At, float Radius, float Seconds, UNWCombatComponent* Source = nullptr);
 
-	// Nuvem: status aplicado a quem entra (servidor).
+	// Cloud: status applied to whoever enters (server).
 	FName StatusID;
 	float StatusSeconds = 0.f;
 	float StatusTick = 1.f;

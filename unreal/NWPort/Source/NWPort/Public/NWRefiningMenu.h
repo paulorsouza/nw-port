@@ -10,10 +10,10 @@ struct FNWRecipe;
 struct FNWItem;
 
 /**
- * Tela de refino de uma estação (esteira 4) com o layout do jogo: lyshineui/crafting/craftingscreenv4 no modo refino
- * (tools/ui_screens/refining.json; o que liga, desliga e preenche: docs/game/ui/refining.md), a barra de título de
- * stationproperties (screen_header.json) e o rodapé de atalhos (helpbar.json).
- * Estados: escolha da receita; roll (contagem do produto, 1 s, craftroll.lua); fim (clique continua).
+ * Refining screen of a station (area 4) with the game's layout: lyshineui/crafting/craftingscreenv4 in refining mode
+ * (tools/ui_screens/refining.json; what turns on, off and gets filled: docs/game/ui/refining.md), the title bar from
+ * stationproperties (screen_header.json) and the shortcut footer (helpbar.json).
+ * States: recipe selection; roll (product count, 1 s, craftroll.lua); end (a click continues).
  */
 class NWPORT_API FNWRefiningMenu
 {
@@ -22,22 +22,22 @@ public:
 	void Open(ANWCharacter* InCharacter, ANWStation* InStation);
 	void Close() { Sound(TEXT("ui_crafting_outro")); Station.Reset(); Character.Reset(); }
 	void Draw(UCanvas* Canvas, const FVector2D& Mouse);
-	/** true se o clique foi da tela (aberta, qualquer clique é dela). */
+	/** true if the click belonged to the screen (when open, every click is its own). */
 	bool Click(const FVector2D& Mouse);
 	void Wheel(float Delta);
-	/** A cada quadro com o botão esquerdo: arrastar o marcador da quantidade e repetir − e + enquanto segura. */
+	/** Every frame with the left button down: drags the quantity marker and repeats − and + while held. */
 	void Hold(const FVector2D& Mouse, bool bDown);
-	/** Espaço (ação tryskip do jogo): quantidade máxima na escolha, pula a contagem, volta à estação no fim. */
+	/** Space (the game's tryskip action): max quantity on selection, skips the count, returns to the station at the end. */
 	void Space();
-	/** Clique em CONFECCIONAR (também usado pela captura offline). */
+	/** Click on CONFECCIONAR (CRAFT) (also used by the offline capture). */
 	void ClickCraft();
-	/** Escolhe a receita e a quantidade (captura offline). */
+	/** Chooses the recipe and the quantity (offline capture). */
 	void Select(FName RecipeId, int32 InCount);
-	/** Abre a aba "Melhorar itens" com o material Mat escolhido para o item do espaço Slot da bolsa (captura offline). */
+	/** Opens the "Improve items" tab with material Mat chosen for the item in bag slot Slot (offline capture). */
 	void ShowImprove(int32 Slot, uint8 Mat) { bReroll = true; if (Slot != INDEX_NONE) { ImproveMat.Add(Slot, Mat); } }
-	/** Retângulos e estado dos elementos cujo caminho contém Filter, no último desenho (captura offline). */
+	/** Rectangles and state of the elements whose path contains Filter, in the last draw (offline capture). */
 	void Dump(const FString& Filter) const;
-	/** Relógio fixo para a captura offline (NWUIShotCommandlet); 0 = relógio real. */
+	/** Fixed clock for the offline capture (NWUIShotCommandlet); 0 = real clock. */
 	double FixedNow = 0.0;
 
 private:
@@ -48,7 +48,7 @@ private:
 	TWeakObjectPtr<ANWStation> Station;
 	TArray<const FNWRecipe*> Recipes;
 
-	// Árvore: 0 aprendidas, 1 família, 2 grupo, 3 receita (craftingtreeviewitem.lua).
+	// Tree: 0 learned, 1 family, 2 group, 3 recipe (craftingtreeviewitem.lua).
 	struct FRow { int32 Depth = 0; FString Text; FString Key; int32 Recipe = INDEX_NONE; };
 	TArray<FRow> Rows;
 	TSet<FString> Collapsed;
@@ -58,7 +58,7 @@ private:
 	int32 Scroll = 0;
 	int32 Count = 1;
 
-	// Botão segurado: marcador da barra ou − e + com repetição (button.lua OnTick).
+	// Held button: bar marker, or − and + with repeat (button.lua OnTick).
 	enum class EDrag : uint8 { None, Slider, Minus, Plus };
 	EDrag Drag = EDrag::None;
 	double HoldLast = 0.0;
@@ -72,21 +72,21 @@ private:
 	double RollStart = 0.0;
 	int32 HaveBefore = 0;
 	int32 RollBase = 0;
-	// Arma/ferramenta: a contagem sobe até o GS do item novo (o espaço da bolsa que não tinha esse item antes).
+	// Weapon/tool: the count rises to the GS of the new item (the bag slot that did not have this item before).
 	bool bGearRoll = false;
 	TArray<int32> BeforeSlots;
-	// Resultado do servidor (UNWInteractorComponent::CraftResult): a tela espera um Seq maior que WaitSeq.
+	// Server result (UNWInteractorComponent::CraftResult): the screen waits for a Seq greater than WaitSeq.
 	int32 WaitSeq = 0;
-	uint8 RollKind = 255;   // 255 fabricar; senão ENWImprove
+	uint8 RollKind = 255;   // 255 craft; otherwise ENWImprove
 	FName RollItem;
 	void StartResultRoll(FName ItemId, uint8 Kind);
 	const FNWItem* RollResult() const;
-	// Roll de equipamento: t0 = chegada do item; contagem do GS de GsFrom ao GS
-	// do item em 1 s; atributo, perks e gema entram um a um.
+	// Gear roll: t0 = item arrival; GS count from GsFrom to the
+	// item's GS in 1 s; attribute, perks and gem come in one by one.
 	double ResultAt = 0.0;
 	int32 GsFrom = 0;
 	void DrawGearRoll(const FNWRecipe& R);
-	/** Fim das animações do roll de equipamento (clique antes disso só termina as animações). */
+	/** End of the gear roll animations (a click before that only finishes the animations). */
 	double GearRollLength() const;
 
 	FNWUIElement* E(const TCHAR* Suffix) { return Ui.FindOne(TEXT("refining"), Suffix); }
@@ -98,32 +98,32 @@ private:
 	double Now() const { return FixedNow > 0.0 ? FixedNow : FPlatformTime::Seconds(); }
 	bool CanCraft(const FNWRecipe& R) const;
 
-	// Fabricar arma, escudo ou ferramenta (docs/game/crafting.md): uma por vez, sem quantidade; faixa de GS e de qualidade, ou o
-	// aviso de treino abaixo do nível de fabricar.
+	// Craft a weapon, shield or tool (docs/game/crafting.md): one at a time, no quantity; GS and quality range, or the
+	// training notice below the crafting level.
 	void DrawCraftInfo(UCanvas* Canvas, const FNWRecipe& R, const FVector2D& Mouse);
 
-	// Aba "Melhorar itens" (docs/game/items.md): itens da bolsa deste ofício com sortear atributo, subir GS e desvincular.
+	// "Improve items" tab (docs/game/items.md): bag items of this trade skill with reroll attribute, raise GS and unbind.
 	bool bReroll = false;
 	FBox2f TabRect = FBox2f(ForceInit);
 	struct FImproveButton { FBox2f Rect; int32 Slot = INDEX_NONE; uint8 Kind = 0; uint8 Mat = 0; };
 	TArray<FImproveButton> RerollButtons;
-	// Material das melhorias escolhido por item (espaço da bolsa -> índice de FNWCrafting::ImproveMaterials) e os
-	// retângulos dos materiais para o clique.
+	// Improvement material chosen per item (bag slot -> index into FNWCrafting::ImproveMaterials) and the
+	// material rectangles for the click.
 	TMap<int32, uint8> ImproveMat;
 	TArray<FImproveButton> MatButtons;
 	void DrawReroll(UCanvas* Canvas, const FVector2D& Mouse);
 	void DrawTab(UCanvas* Canvas, const FVector2D& Mouse);
 
-	// Fim do roll de equipamento (craftroll-equipamento.md §8): Continuar, Equipar (item equipável na bolsa) e Sair da
-	// estação, em coluna no ActiveButtonsContainer.
+	// End of the gear roll (docs/game/crafting.md "Result screen"): Continue, Equip (equippable item in the bag) and Exit
+	// Station, in a column in ActiveButtonsContainer.
 	enum class EDoneButton : uint8 { Continue, Equip, Exit };
 	TArray<TPair<FBox2f, EDoneButton>> DoneButtons;
 	void DrawDoneButtons(UCanvas* Canvas, const FVector2D& Mouse);
-	// Sons da tela (craftroll-equipamento.md §9; Data/Audio/ui_sounds.json, tools/make_ui_sounds.py): uma variação
-	// sorteada de cada camada do evento. SoundAt toca uma vez quando T passa de At (bit marca o que já tocou).
+	// Screen sounds (docs/game/crafting.md "Result screen"; Data/Audio/ui_sounds.json, tools/make_ui_sounds.py): one variation
+	// picked from each layer of the event. SoundAt plays once when T passes At (a bit marks what already played).
 	void Sound(const TCHAR* Event) const;
 	void SoundAt(double T, double At, int32 Bit, const FString& Event);
 	uint32 SoundsDone = 0;
-	/** Item do resultado na bolsa (o mesmo item que o servidor devolveu), ou nulo. */
+	/** Result item in the bag (the same item the server returned), or null. */
 	const FNWItem* ResultInBag() const;
 };

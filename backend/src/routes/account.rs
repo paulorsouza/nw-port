@@ -117,7 +117,7 @@ pub async fn register(State(state): State<AppState>, Json(req): Json<RegisterReq
         .execute(&mut *tx)
         .await?;
     tx.commit().await?;
-    tracing::info!(account = %name, "conta criada");
+    tracing::info!(account = %name, "account created");
 
     let session = open_session(&state, Account { id, name, is_admin: false }).await?;
     Ok((StatusCode::CREATED, Json(session)))
@@ -153,7 +153,7 @@ pub async fn me(State(state): State<AppState>, session: Session) -> ApiResult<Js
     }))
 }
 
-/// Admin gera convite pela API; o primeiro admin sai do `nw-core invite` na linha de comando.
+/// Admin generates invites through the API; the first admin comes from `nw-core invite` on the command line.
 pub async fn create_invite(State(state): State<AppState>, session: Session) -> ApiResult<(StatusCode, Json<InviteResponse>)> {
     if !session.is_admin {
         return Err(ApiError::forbidden());

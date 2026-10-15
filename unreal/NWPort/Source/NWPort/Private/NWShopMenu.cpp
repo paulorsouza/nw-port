@@ -13,15 +13,15 @@
 
 namespace
 {
-	// Cores do jogo (_common/uistyle.lua).
+	// Game colors (_common/uistyle.lua).
 	const FLinearColor ShopTanWarm(FColor(0xEB, 0xE3, 0xD6));
 	const FLinearColor ShopGray50(FColor(0x80, 0x80, 0x80));
 	const FLinearColor ShopRedNew(FColor(0xFF, 0x4E, 0x4E));
 	const TCHAR* ShopImg = TEXT("lyshineui/images/");
-	// shopgriditem.lua: HORIZONTAL_SPACING 11, VERTICAL_SPACING 12; célula 290×326 (ShopGridItem).
+	// shopgriditem.lua: HORIZONTAL_SPACING 11, VERTICAL_SPACING 12; 290×326 cell (ShopGridItem).
 	constexpr float CellGapX = 11.f;
 	constexpr float CellGapY = 12.f;
-	// Laço do botão herói: 30 quadros a 30 fps (como no refino).
+	// Hero button loop: 30 frames at 30 fps (as in refining).
 	constexpr int32 ShopLoopFrames = 30;
 
 	FString ShopTex(const TCHAR* Rel) { return FString(ShopImg) + Rel; }
@@ -106,7 +106,7 @@ void FNWShopMenu::Dump(const FString& Filter) const
 
 FString FNWShopMenu::TimeToReset()
 {
-	// Mesma semana dos brindes (FNWNpcRewards::Period): terça 08:00 UTC.
+	// Same week as the gifts (FNWNpcRewards::Period): Tuesday 08:00 UTC.
 	const FDateTime NowUtc = FDateTime::UtcNow();
 	const FDateTime Shifted = NowUtc - FTimespan::FromHours(8.0);
 	const int32 Back = (int32(Shifted.GetDayOfWeek()) - int32(EDayOfWeek::Tuesday) + 7) % 7;
@@ -174,12 +174,12 @@ void FNWShopMenu::DrawGrid(UCanvas* Canvas, const FVector2D& Mouse)
 		const FBox2f Guess(ProtoRect.Min + Offset * UIScale, ProtoRect.Max + Offset * UIScale);
 		if (FNWUIElement* Icon = At(TEXT("/Mask/ItemIcon")))
 		{
-			Icon->ImageType = 4;   // StretchedToFit: ícone quadrado na faixa do cartão
+			Icon->ImageType = 4;   // StretchedToFit: square icon in the card strip
 			Icon->TextureOverride = D ? D->Icon : FString();
 		}
 		ShopSetText(At(TEXT("/ItemName")), D ? D->Name : I.Id.ToString());
 		ShopSetText(At(TEXT("/CurrencyContainer/Currency1/Amount")), UNWInventoryComponent::FormatCoins(I.Price));
-		// UpdateCooldown: relógio vermelho (COLOR_RED_NEW) quando o limite da semana acabou.
+		// UpdateCooldown: red clock (COLOR_RED_NEW) when the week's limit is used up.
 		int32 Left = -1;
 		MaxCount(i, &Left);
 		const bool bLimit = Left == 0;
@@ -208,7 +208,7 @@ void FNWShopMenu::FillDetail()
 	ShopSetText(E(TEXT("InfoPanel/Title")), D ? D->Name : I.Id.ToString());
 	if (FNWUIElement* T = E(TEXT("InfoPanel/Title")))
 	{
-		// Category é filho do Title e o port não estica o título com o texto: uma linha só, encolhendo se não couber.
+		// Category is a child of Title and the port does not stretch the title with the text: one line, shrinking to fit.
 		T->bWrap = false;
 		T->ShrinkToFit = 1;
 		T->MinShrink = 0.6f;
@@ -225,7 +225,7 @@ void FNWShopMenu::FillDetail()
 	Count = FMath::Clamp(Count, 1, FMath::Max(1, Max));
 	const bool bCan = Max > 0;
 
-	// Quantidade (SliderWithTextInput): valor atual na caixa à esquerda, máximo à direita.
+	// Quantity (SliderWithTextInput): current value in the box on the left, maximum on the right.
 	ShopShow(E(TEXT("Slider/SliderText")), false);
 	ShopSetText(E(TEXT("CurrentValueTextInput/CurrentValueText")), FString::FromInt(bCan ? Count : 0));
 	ShopSetText(E(TEXT("SliderWithTextInput/MaxValueText")), FString::FromInt(Max));
@@ -236,7 +236,7 @@ void FNWShopMenu::FillDetail()
 		H->Translate.X = Max > 1 ? W * float(Count - 1) / float(Max - 1) : 0.f;
 	}
 
-	// Sem compra: o motivo no ButtonDisabledText (UpdateConfirmButton) e, no limite, o tempo até renovar.
+	// No purchase: the reason in ButtonDisabledText (UpdateConfirmButton) and, at the limit, the time until renewal.
 	FString Why;
 	if (LimitLeft == 0)
 	{
@@ -269,7 +269,7 @@ void FNWShopMenu::FillDetail()
 	}
 	ShopSetText(E(TEXT("CooldownContainer/CooldownTextUpdater")), TimeToReset());
 
-	// Botão herói com o custo (GetCostStrings: ícone da moeda + valor, Pica 54 tan).
+	// Hero button with the cost (GetCostStrings: coin icon + value, Pica 54 tan).
 	const int64 Cost = I.Price * (bCan ? Count : 1);
 	ShopSetText(E(TEXT("ConfirmButton/buttonText")), UNWInventoryComponent::FormatCoins(Cost), bCan ? ShopTanWarm : ShopGray50);
 	if (FNWUIElement* T = E(TEXT("ConfirmButton/buttonText")))
@@ -307,7 +307,7 @@ void FNWShopMenu::FillDetail()
 
 void FNWShopMenu::DrawHelp(UCanvas* Canvas)
 {
-	// Rodapé (helpbar): ENTER Chat à esquerda, ESC Voltar à direita (mesmo desenho do refino).
+	// Footer (helpbar): ENTER Chat on the left, ESC Back on the right (same drawing as refining).
 	FNWUIElement* Proto = Help.FindOne(TEXT("helpbar"), TEXT("ActionsDisplays/ActionDisplay"));
 	FNWUIElement* Hint = Help.FindOne(TEXT("helpbar"), TEXT("ActionsDisplays/ActionDisplay/Hint"));
 	FNWUIElement* Key = Help.FindOne(TEXT("helpbar"), TEXT("ActionDisplay/Hint/HintText"));
@@ -364,9 +364,9 @@ void FNWShopMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	ShopShow(E(TEXT("MasterContainer/ShopItemDetailPanel")), bDetail);
 	if (FNWUIElement* Proto = E(TEXT("ShopItemListContainer/ShopGridItem")))
 	{
-		Proto->Visible = false;   // item-modelo: desenhado por célula em DrawGrid
+		Proto->Visible = false;   // template item: drawn per cell in DrawGrid
 	}
-	// Sem rank de loja no port: some o painel de rank e a grade ocupa a janela inteira.
+	// No shop rank in the port: the rank panel disappears and the grid takes the whole window.
 	ShopShow(E(TEXT("ShopListingsPanelContent/RankPanelContainer")), false);
 	if (FNWUIElement* List = E(TEXT("ShopListingsPanelContent/ShopItemListContainer")))
 	{
@@ -445,7 +445,7 @@ bool FNWShopMenu::Click(const FVector2D& Mouse)
 	}
 	if (Ui.RectOf(E(TEXT("InfoPanel/ButtonClose"))).IsInside(M))
 	{
-		Detail = INDEX_NONE;   // volta à grade
+		Detail = INDEX_NONE;   // back to the grid
 		return true;
 	}
 	if (Ui.RectOf(E(TEXT("SliderWithTextInput/Slider"))).ExpandBy(6.f).IsInside(M) && MaxCount(Detail) > 1)

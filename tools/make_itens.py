@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Regras de item do port -> unreal/NWPort/Data/Items/regras_itens.json (docs/game/items.md, docs/game/crafting.md).
+"""The port's item rules -> unreal/NWPort/Data/Items/regras_itens.json (docs/game/items.md, docs/game/crafting.md).
 
     python3 tools/make_itens.py
 
-Fontes:
-- tools/itens.json: regras e perks novas do port (números de balanceamento provisórios);
-- tools/perks_decisoes.json: decisão de cada perk do jogo (página Corte de Perks); as que ficam entram com nome e
-  efeito do jogo (javelindata_perks, textos pt-br/en-us, valores com perkMultiplier 1);
-- perks de habilidade ficam por arma (PerkID_Ability_<Arma>_*), só na arma daquela habilidade.
+Sources:
+- tools/itens.json: the port's rules and new perks (provisional balance numbers);
+- tools/perks_decisoes.json: decision for each game perk (the Corte de Perks page); the kept ones come in with the
+  game's name and effect (javelindata_perks, pt-br/en-us strings, values with perkMultiplier 1);
+- ability perks are per weapon (PerkID_Ability_<Weapon>_*), only on the weapon of that ability.
 """
 import ast
 import glob
@@ -21,7 +21,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DT = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites", "datatables")
 OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "Items", "regras_itens.json")
 LANGS = ("pt-br", "en-us")
-# Arma da habilidade no id do jogo -> conjunto do catálogo do port (vazio: arma ainda sem conjunto no port).
+# Ability weapon in the game id -> set in the port catalog (empty: weapon with no set in the port yet).
 WEAPON = {"Sword": "Sword", "Hatchet": "Hatchet", "Shield": "Shield", "Bow": "Bow", "Rapier": "Rapier",
           "Spear": "Spear", "GreatAxe": "GreatAxe", "Greatsword": "GreatSword", "Hammer": "WarHammer",
           "Musket": "Musket", "Blunderbuss": "Blunderbuss", "FireStaff": "FireStaff", "LifeStaff": "LifeStaff",
@@ -56,7 +56,7 @@ def _eval(n):
 
 
 def text(loc, key):
-    """Texto do jogo com as expressões {[...]} resolvidas no multiplicador 1."""
+    """Game text with the {[...]} expressions resolved at multiplier 1."""
     t = re.sub(r"<[^>]+>", "", loc.get(str(key or "").lstrip("@").lower(), "")).replace("\xa0", " ")
 
     def rep(m):
@@ -66,12 +66,12 @@ def text(loc, key):
             return ("%.2f" % v).rstrip("0").rstrip(".")
         except Exception:
             return m.group(0)
-    # Expressão entre {[ e ]}, que pode ter colchetes e {perkMultiplier} dentro.
+    # Expression between {[ and ]}, which may contain brackets and {perkMultiplier}.
     return re.sub(r"\{\[((?:[^{}]|\{perkMultiplier\})*?)\]\}", rep, t).strip()
 
 
 def gem_items(rules):
-    """Item de gema e de vidro rúnico -> classe, efeitos (%) e gema bruta do custo de retirar (docs/game/items.md "Slot")."""
+    """Gem and runeglass item -> class, effects (%) and raw gem of the removal cost (docs/game/items.md "Slot and gems")."""
     game = {}
     for f in glob.glob(os.path.join(DT, "javelindata_itemdefinitions_master_*.datasheet.json")):
         for r in json.load(open(f))["rows"]:
@@ -82,7 +82,7 @@ def gem_items(rules):
         for cut in range(1, 5):
             iid = f"{gem}CutT{cut}"
             if iid not in game:
-                raise SystemExit(f"gema sem item no jogo: {iid}")
+                raise SystemExit(f"gem without an item in the game: {iid}")
             total = pct[int(game[iid]["Tier"])]
             out[iid] = {"classe": g["classe"], "bruta": f"{gem}T{cut}",
                         "efeitos": {e: round(total * f, 2) for e, f in g["efeito"].items()}}
@@ -90,7 +90,7 @@ def gem_items(rules):
         for case, amp in rules["vidro_capsulas"].items():
             iid = f"Runeglass_Gem_{gem}_{case}"
             if iid not in game:
-                raise SystemExit(f"vidro rúnico sem item no jogo: {iid}")
+                raise SystemExit(f"runeglass without an item in the game: {iid}")
             out[iid] = {"classe": g["classe"], "bruta": pure["bruta"], "vidro": True,
                         "efeitos": {**pure["efeitos"], amp: rules["vidro_amplificacao"]}}
     return out
@@ -122,10 +122,10 @@ def main():
     rules["gema_itens"] = gem_items(rules)
     missing = [p for pool in rules["equipamento"].values() for p in pool if p not in perks]
     if missing:
-        raise SystemExit(f"perks do equipamento sem definição: {missing}")
+        raise SystemExit(f"equipment perks without a definition: {missing}")
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(rules, open(OUT, "w"), ensure_ascii=False, indent=1)
-    print(f"{OUT}: {len(perks)} perks, habilidade por arma {[(k, len(v)) for k, v in sorted(ability.items())]}")
+    print(f"{OUT}: {len(perks)} perks, ability perks per weapon {[(k, len(v)) for k, v in sorted(ability.items())]}")
 
 
 if __name__ == "__main__":

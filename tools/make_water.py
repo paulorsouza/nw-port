@@ -1,12 +1,12 @@
-"""Malha da água (rios, lagos, cachoeiras) de uma região, no referencial do mapa da cidade.
+"""Water mesh (rivers, lakes, waterfalls) of a region, in the town map frame.
 
-    python3 tools/make_water.py <region.f32> <capitals.json> <slice> <saida.glb> [--step 2]
+    python3 tools/make_water.py <region.f32> <capitals.json> <slice> <output.glb> [--step 2]
 
-<region.f32> = altura da água por metro, de `dbgwater` (nwbt, region.waterqt → float32 LE, linha 0 = y máximo,
-como o heightmap); sem água = valor <= 0. Gera uma malha por ladrilho de 128 m com quadrados de --step metros
-onde a água fica acima do terreno. Onde o nível muda de um quadrado para o vizinho a superfície fica inclinada:
-são as cachoeiras. Mesmo referencial e eixos do tools/make_terrain.py (glTF = (−x, z, y) do CryEngine, local da
-cidade). Cor de vértice R = 1 nos degraus (cachoeira), 0 na água parada.
+<region.f32> = water height per meter, from `dbgwater` (nwbt, region.waterqt → float32 LE, row 0 = max y,
+like the heightmap); no water = value <= 0. Writes one mesh per 128 m tile with --step meter squares
+where the water is above the terrain. Where the level changes from one square to its neighbor the surface slopes:
+those are the waterfalls. Same frame and axes as tools/make_terrain.py (glTF = CryEngine (−x, z, y), town-local).
+Vertex color R = 1 on the steps (waterfall), 0 on still water.
 """
 import argparse
 import math
@@ -21,9 +21,9 @@ from make_terrain import REGION, GlbWriter, find_capital, sample  # noqa: E402
 
 
 def floating_patches(W, H, wet, shore):
-    """Máscara das células molhadas cujo trecho conexo de mesmo nível (|Δ| <= 0,5 m) não tem margem: nenhuma célula
-    com o terreno até `shore` metros abaixo da superfície. Encostar num paredão (terreno acima da água, o alto da
-    cachoeira) não conta como margem."""
+    """Mask of wet cells whose connected same-level patch (|Δ| <= 0.5 m) has no shore: no cell with
+    the terrain within `shore` meters below the surface. Touching a cliff (terrain above the water, the top of the
+    waterfall) does not count as shore."""
     from collections import deque
     seen = np.zeros(W.shape, bool)
     out = np.zeros(W.shape, bool)
@@ -65,9 +65,9 @@ def main():
     c, s = math.cos(ang), math.sin(ang)
     rx, ry = (int(t) for t in a.region.split("_")[1:3])
 
-    water = np.fromfile(a.water, dtype="<f4").reshape(REGION, REGION)  # linha 0 = y máximo
+    water = np.fromfile(a.water, dtype="<f4").reshape(REGION, REGION)  # row 0 = max y
     st = a.step
-    # Amostra nos vértices da grade (st metros), coluna x / linha y do mundo.
+    # Samples at the grid vertices (st meters), world column x / row y.
     xs = np.arange(0, REGION + 1, st)
     ys = np.arange(0, REGION + 1, st)
     col = np.clip(xs, 0, REGION - 1)
@@ -76,12 +76,12 @@ def main():
     wx, wy = np.meshgrid(rx * REGION + np.minimum(xs, REGION - 0.01), ry * REGION + np.minimum(ys, REGION - 0.01))
     H, _ = sample(terrain_dir, level, wx, wy, {})
     wet = W > 0
-    # A waterqt guarda uma altura por folha da árvore: no degrau de uma cachoeira, a folha do nível de cima cobre
-    # também o trecho em que o terreno já desceu ao nível de baixo, e a água ficava como uma placa no ar.
-    # 1) Trecho de mesmo nível sem nenhuma margem (terreno a mais de 3 m abaixo da água em todas as células) é um
-    #    pedaço da cortina da cachoeira solto no ar: sai (a queda em si é efeito/malha do jogo, não a waterqt).
-    # 2) Célula do nível de cima vizinha de água mais baixa, com o terreno até 2 m acima do nível baixo, pertence ao
-    #    trecho de baixo: desce para ele (propaga até o terreno subir, onde fica a queda d'água).
+    # The waterqt stores one height per tree leaf: at a waterfall step, the upper level's leaf also covers
+    # the stretch where the terrain has already dropped to the lower level, and the water looked like a slab in the air.
+    # 1) A same-level patch with no shore at all (terrain more than 3 m below the water in every cell) is a
+    #    piece of the waterfall curtain floating in the air: removed (the fall itself is a game effect/mesh, not waterqt).
+    # 2) An upper-level cell next to lower water, with the terrain up to 2 m above the lower level, belongs to the
+    #    lower patch: it drops to it (propagates until the terrain rises, where the waterfall is).
     W = W.copy()
     loose = floating_patches(W, H, wet, shore=3.0)
     wet &= ~loose
@@ -95,8 +95,8 @@ def main():
             break
         W[drop] = low[drop]
         moved += int(drop.sum())
-    print(f"água: {moved} vértices descidos ao nível de baixo, {int(loose.sum())} soltos no ar removidos")
-    # Vértice seco ao lado de molhado herda o nível do vizinho (a borda entra um pouco sob o terreno).
+    print(f"water: {moved} vertices dropped to the lower level, {int(loose.sum())} floating ones removed")
+    # A dry vertex next to a wet one inherits the neighbor's level (the edge goes slightly under the terrain).
     Wf = np.where(wet, W, 0.0)
     for _ in range(2):
         pad = np.pad(Wf, 1, mode="edge")
@@ -111,7 +111,7 @@ def main():
             sl = (slice(ty, min(ty + tile, len(ys) - 1) + 1), slice(tx, min(tx + tile, len(xs) - 1) + 1))
             w, h = Wf[sl], H[sl]
             n_y, n_x = w.shape
-            # Quadrado entra se algum canto é água original acima do terreno.
+            # A square is included if any corner is original water above the terrain.
             above = (W[sl] > 0) & (W[sl] > h + 0.05)
             q = above[:-1, :-1] | above[1:, :-1] | above[:-1, 1:] | above[1:, 1:]
             q &= (w[:-1, :-1] > 0) & (w[1:, :-1] > 0) & (w[:-1, 1:] > 0) & (w[1:, 1:] > 0)
@@ -122,7 +122,7 @@ def main():
             lx, ly = (c * dx + s * dy).astype(np.float32), (-s * dx + c * dy).astype(np.float32)
             lz = (w - T["z"]).astype(np.float32)
             pos = np.stack([-lx, lz, ly], -1).reshape(-1, 3)
-            # Degrau = diferença de nível com o vizinho > 0,5 m (cachoeira).
+            # Step = level difference with the neighbor > 0.5 m (waterfall).
             step_mask = np.zeros_like(w, dtype=np.float32)
             dzx = np.abs(np.diff(w, axis=1)) > 0.5
             dzy = np.abs(np.diff(w, axis=0)) > 0.5
@@ -141,13 +141,13 @@ def main():
             a0, a1, b0, b1 = idx[:-1, :-1][q], idx[:-1, 1:][q], idx[1:, :-1][q], idx[1:, 1:][q]
             tris = np.stack([a0, b0, a1, a1, b0, b1], -1).reshape(-1, 3)
             p0, p1, p2 = pos[tris[0]]
-            if np.cross(p1 - p0, p2 - p0)[1] < 0:  # face para cima (+Y no glTF)
+            if np.cross(p1 - p0, p2 - p0)[1] < 0:  # facing up (+Y in glTF)
                 tris = tris[:, ::-1]
             glb.mesh(f"agua_{tx:04d}_{ty:04d}", pos.astype(np.float32), nrm, uv, colors,
                      np.ascontiguousarray(tris.reshape(-1).astype(np.uint32)))
             quads_total += int(q.sum())
     glb.save(a.out)
-    print(f"{a.out}: {len(glb.j['meshes'])} ladrilhos, {quads_total} quadrados de {st} m, água {W[W > 0].min():.1f}–{W.max():.1f} m")
+    print(f"{a.out}: {len(glb.j['meshes'])} tiles, {quads_total} squares of {st} m, water {W[W > 0].min():.1f}–{W.max():.1f} m")
 
 
 if __name__ == "__main__":

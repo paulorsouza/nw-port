@@ -1,14 +1,14 @@
-"""Nível do personagem e atributos, das tabelas do jogo.
+"""Character level and attributes, from the game tables.
 
     python3 tools/make_progression.py
 
-Lê extract/data/.../javelindata_xpamountsbylevel e javelindata_attribute<atributo> e grava
+Reads extract/data/.../javelindata_xpamountsbylevel and javelindata_attribute<attribute> and writes
 unreal/NWPort/Data/Progression/progression.json:
-  levels[n]       = {"xp": XP total para chegar ao nível n+1, "points": pontos de atributo ganhos ao chegar nele}
-  attributes[a][v] = {"mod": ModifierValueSum, "health": vida extra (só constituição)} para o valor v (5..500)
-  tradeskills[o][n] = {"xp": XP total para chegar ao nível n, "eff": GatheringEfficiency, "roll": RollBonus}
-                     para os ofícios de coleta (javelindata_tradeskill<ofício>; InfluenceCost = XP do nível
-                     anterior até este), até o Expansion01MaxLevel de javelindata_categoricalprogression (250)
+  levels[n]       = {"xp": total XP to reach level n+1, "points": attribute points gained on reaching it}
+  attributes[a][v] = {"mod": ModifierValueSum, "health": extra health (constitution only)} for value v (5..500)
+  tradeskills[o][n] = {"xp": total XP to reach level n, "eff": GatheringEfficiency, "roll": RollBonus}
+                     for the gathering trade skills (javelindata_tradeskill<skill>; InfluenceCost = XP from the
+                     previous level to this one), up to Expansion01MaxLevel of javelindata_categoricalprogression (250)
 """
 import json
 import os
@@ -17,8 +17,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLES = os.path.join(ROOT, "extract", "data", "sharedassets", "springboardentitites", "datatables")
 OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "Progression")
 ATTRS = ["strength", "dexterity", "intelligence", "focus", "constitution"]
-# Coleta (0..3), refino (4..8), fabricar (9..11; esteira 4: tools/make_crafting.py, docs/game/crafting.md), joalharia (12) e
-# armoraria (13; docs/game/items.md); mesma ordem do NWTradeskill no C++.
+# Gathering (0..3), refining (4..8), crafting (9..11; area 4: tools/make_crafting.py, docs/game/crafting.md),
+# jewelcrafting (12) and armoring (13; docs/game/items.md); same order as NWTradeskill in C++.
 TRADESKILLS = ["Mining", "Logging", "Harvesting", "Skinning", "Smelting", "Woodworking", "Leatherworking", "Weaving",
                "Stonecutting", "Weaponsmithing", "Engineering", "Arcana", "Jewelcrafting", "Armoring"]
 
@@ -47,19 +47,19 @@ def main():
             total += int(r.get("InfluenceCost") or 0)
             row = {"xp": total, "eff": float(r.get("GatheringEfficiency") or 0), "roll": int(r.get("RollBonus") or 0)}
             if r.get("MaxGearScoreBonusT5") is not None:
-                # Bônus de GS do artesão por tier do item (T2..T5), mínimo e máximo (docs/game/items.md).
+                # Crafter GS bonus per item tier (T2..T5), minimum and maximum (docs/game/items.md).
                 row["gs"] = [[int(r.get(f"MinGearScoreBonusT{n}") or 0), int(r.get(f"MaxGearScoreBonusT{n}") or 0)] for n in range(2, 6)]
             table.append(row)
         tradeskills[t] = table
     os.makedirs(OUT, exist_ok=True)
-    # Tutoriais de nível (esteira 4, tools/tutorials.json).
+    # Level tutorials (area 4, tools/tutorials.json).
     tutorials = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "tutorials.json")))
     tutorials.pop("_comment", None)
     json.dump({"base_attribute": 5, "levels": levels, "attributes": attributes, "tradeskills": tradeskills,
                "tutorials": tutorials},
               open(os.path.join(OUT, "progression.json"), "w"), separators=(",", ":"))
-    print(f"{len(levels)} níveis, {sum(l['points'] for l in levels)} pontos de atributo; {len(ATTRS)} atributos; "
-          + ", ".join(f"{t} até {len(v) - 1}" for t, v in tradeskills.items()))
+    print(f"{len(levels)} levels, {sum(l['points'] for l in levels)} attribute points; {len(ATTRS)} attributes; "
+          + ", ".join(f"{t} up to {len(v) - 1}" for t, v in tradeskills.items()))
 
 
 if __name__ == "__main__":

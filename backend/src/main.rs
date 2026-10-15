@@ -8,7 +8,7 @@ use tracing_subscriber::EnvFilter;
 use nw_core::{app, AppState, MIGRATOR};
 
 #[derive(Parser)]
-#[command(name = "nw-core", about = "Backend do servidor do clã")]
+#[command(name = "nw-core", about = "Backend for the clan server")]
 struct Cli {
     #[arg(long, env = "DATABASE_URL")]
     database_url: String,
@@ -18,24 +18,24 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Sobe a API (aplica as migrações antes).
+    /// Starts the API (applies the migrations first).
     Serve {
         #[arg(long, env = "NW_BIND", default_value = "0.0.0.0:8090")]
         bind: String,
-        /// Segredo dos servidores de jogo.
+        /// Game server secret.
         #[arg(long, env = "NW_SERVER_SECRET")]
         server_secret: String,
     },
-    /// Só aplica as migrações.
+    /// Only applies the migrations.
     Migrate,
-    /// Gera convites de conta.
+    /// Generates account invites.
     Invite {
         #[arg(long, default_value_t = 1)]
         count: u32,
         #[arg(long, default_value_t = 7)]
         days: i64,
     },
-    /// Dá ou tira admin de uma conta.
+    /// Grants or revokes admin on an account.
     Admin {
         name: String,
         #[arg(long)]
@@ -54,22 +54,22 @@ async fn main() -> anyhow::Result<()> {
         .max_connections(16)
         .connect(&cli.database_url)
         .await
-        .context("conectar no Postgres")?;
+        .context("connect to Postgres")?;
 
     match cli.command {
         Command::Serve { bind, server_secret } => {
-            anyhow::ensure!(server_secret.len() >= 16, "NW_SERVER_SECRET precisa de 16+ caracteres");
+            anyhow::ensure!(server_secret.len() >= 16, "NW_SERVER_SECRET needs 16+ characters");
             MIGRATOR.run(&db).await?;
             let listener = tokio::net::TcpListener::bind(&bind).await.with_context(|| format!("bind {bind}"))?;
-            tracing::info!(%bind, "nw-core no ar");
-            // Cidades: ataques e virada da semana em dia mesmo sem ninguém mexer nelas.
+            tracing::info!(%bind, "nw-core up");
+            // Cities: attacks and week rollover kept up to date even when nobody touches them.
             let cities_db = db.clone();
             tokio::spawn(async move {
                 let mut tick = tokio::time::interval(std::time::Duration::from_secs(60));
                 loop {
                     tick.tick().await;
                     if let Err(e) = nw_core::routes::advance_cities(&cities_db, time::OffsetDateTime::now_utc()).await {
-                        tracing::warn!(?e, "cidades: virada/ataques");
+                        tracing::warn!(?e, "cities: rollover/attacks");
                     }
                 }
             });
@@ -78,13 +78,13 @@ async fn main() -> anyhow::Result<()> {
         }
         Command::Migrate => {
             MIGRATOR.run(&db).await?;
-            println!("migrações aplicadas");
+            println!("migrations applied");
         }
         Command::Invite { count, days } => {
             MIGRATOR.run(&db).await?;
             for _ in 0..count {
                 let invite = nw_core::routes::insert_invite(&db, None, days).await?;
-                println!("{}  (vale até {})", invite.code, invite.expires_at.date());
+                println!("{}  (valid until {})", invite.code, invite.expires_at.date());
             }
         }
         Command::Admin { name, revoke } => {
@@ -93,7 +93,7 @@ async fn main() -> anyhow::Result<()> {
                 .bind(!revoke)
                 .execute(&db)
                 .await?;
-            anyhow::ensure!(done.rows_affected() == 1, "conta {name} não existe");
+            anyhow::ensure!(done.rows_affected() == 1, "account {name} does not exist");
             println!("{name}: admin = {}", !revoke);
         }
     }

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Estilos de texto e cores do jogo (_common/uistyle.lua) -> extract/ui/uistyle.json.
+"""The game's text styles and colors (_common/uistyle.lua) -> extract/ui/uistyle.json.
 
-    python3 tools/ui_styles.py [NOME ...]      # sem nome: grava o JSON; com nome: imprime esses estilos
+    python3 tools/ui_styles.py [NAME ...]      # no name: writes the JSON; with names: prints those styles
 
-O uistyle.lua decompilado é uma função só, linear (atribuições, tabelas e chamadas, sem if/for). Não há Lua na
-máquina: cada linha vira Python e roda num ambiente com os stubs do motor (ColorRgba, enums eUi*) e o StyleHelpers
-(ModifyStyle = cópia com campos trocados; Lightness = soma no canal).
+The decompiled uistyle.lua is a single linear function (assignments, tables and calls, no if/for). There is no Lua on
+the machine: each line becomes Python and runs in an environment with engine stubs (ColorRgba, eUi* enums) and
+StyleHelpers (ModifyStyle = copy with fields replaced; Lightness = add to the channel).
 
-Saída: {"NOME": valor}; cor = [r, g, b, a] (0–1), estilo de fonte = {font, fontSize, fontColor, characterSpacing, ...}.
+Output: {"NAME": value}; color = [r, g, b, a] (0–1), font style = {font, fontSize, fontColor, characterSpacing, ...}.
 """
 import json
 import os
@@ -20,7 +20,7 @@ OUT = os.path.join(ROOT, "extract", "ui", "uistyle.json")
 
 
 class Enum(str):
-    """Valor de enum do motor (eUiHAlign_Center etc.): guarda o nome."""
+    """Engine enum value (eUiHAlign_Center etc.): keeps the name."""
 
 
 def color(r, g, b, a=1):
@@ -45,7 +45,7 @@ class Helpers(dict):
 
 
 class Table(dict):
-    """Tabela Lua: chave ausente é nil."""
+    """Lua table: a missing key is nil."""
     def __missing__(self, k):
         return None
 
@@ -59,7 +59,7 @@ class Env(dict):
 
 def to_py(line):
     out = []
-    # Só fora das strings: true/false/nil e a.b -> a["b"].
+    # Only outside strings: true/false/nil and a.b -> a["b"].
     for i, part in enumerate(re.split(r'("(?:[^"\\]|\\.)*")', line.strip())):
         if i % 2 == 0:
             part = re.sub(r"\btrue\b", "True", part)
@@ -105,7 +105,7 @@ def main():
             print(k, json.dumps(st.get(k), ensure_ascii=False))
         return
     json.dump(st, open(OUT, "w"), indent=1, ensure_ascii=False)
-    print(f"{OUT}: {len(st)} entradas, {sum(1 for v in st.values() if isinstance(v, dict) and 'fontSize' in v)} estilos de fonte")
+    print(f"{OUT}: {len(st)} entries, {sum(1 for v in st.values() if isinstance(v, dict) and 'fontSize' in v)} font styles")
 
 
 if __name__ == "__main__":

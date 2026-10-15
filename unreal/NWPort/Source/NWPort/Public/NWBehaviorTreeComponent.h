@@ -8,7 +8,7 @@
 class ANWCharacter;
 class FJsonObject;
 
-/** Nó da árvore do jogo (Data/AI/<conjunto>.json, tools/make_ai.py). */
+/** Node of the game's tree (Data/AI/<set>.json, tools/make_ai.py). */
 struct FNWBTNode
 {
 	FName Type;
@@ -19,7 +19,7 @@ struct FNWBTNode
 	TArray<int32> Children;
 };
 
-/** Árvore e perfil de uma criatura, carregados uma vez por conjunto. */
+/** Tree and profile of a creature, loaded once per set. */
 struct FNWBTAsset
 {
 	TArray<FNWBTNode> Nodes;
@@ -28,7 +28,7 @@ struct FNWBTAsset
 	static const FNWBTAsset* Get(FName Set);
 };
 
-/** Valor do blackboard: número, vetor ou texto. */
+/** Blackboard value: number, vector or text. */
 struct FNWBBValue
 {
 	double Num = 0.0;
@@ -38,19 +38,19 @@ struct FNWBBValue
 };
 
 /**
- * IA da criatura igual à do jogo: interpreta a árvore de comportamento do Server.pak.
- * Só no servidor.
+ * Creature AI identical to the game's: interprets the behavior tree from Server.pak.
+ * Server only.
  *
- * Planejar (Evaluate): seletor pega o primeiro filho que avalia; sequência exige todos; UtilitySelector escolhe por
- * utilidade (maior ou sorteio proporcional, mantendo a escolha enquanto ela avaliar); condições testam o grupo de
- * entrada; recarga e limitador de frequência falham enquanto ativos. Executar: folhas rodam a cada tick até sucesso
- * ou falha; condições checam continuação (falhou = termina com sucesso) e interrupção (falhou = falha); recarga
- * começa quando o filho termina. Replaneja a cada `replan_seconds` ou quando muda uma chave observada, exceto
- * enquanto um nó não interrompível está no caminho em execução.
+ * Plan (Evaluate): selector takes the first child that evaluates; sequence requires all; UtilitySelector picks by
+ * utility (highest or weighted draw, keeping the choice while it evaluates); conditions test the entry
+ * group; cooldown and rate limiter fail while active. Execute: leaves run every tick until success
+ * or failure; conditions check continuation (failed = ends with success) and interruption (failed = fails); cooldown
+ * starts when the child finishes. Replans every `replan_seconds` or when an observed key changes, except
+ * while a non-interruptible node is on the running path.
  *
- * O que no jogo é do servidor e foi cortado do cliente (sensor de alvo, movimento) é feito aqui: alvo pela visão do
- * slice (ambiente/combate), dano recebido e aggro de grupo; movimento em linha reta com a velocidade e o giro da
- * configuração de navegação do slice.
+ * What in the game belongs to the server and was cut from the client (target sensor, movement) is done here: target by
+ * the slice vision (ambient/combat), damage taken and group aggro; straight-line movement with the speed and turn of
+ * the slice navigation config.
  */
 UCLASS(ClassGroup = (NW))
 class NWPORT_API UNWBehaviorTreeComponent : public UActorComponent
@@ -60,10 +60,10 @@ class NWPORT_API UNWBehaviorTreeComponent : public UActorComponent
 public:
 	UNWBehaviorTreeComponent();
 
-	/** Liga a árvore do conjunto (wolf, boar). Falso se não houver Data/AI/<conjunto>.json. */
+	/** Turns on the set's tree (wolf, boar). False if there is no Data/AI/<set>.json. */
 	bool Start(FName Set, const FVector& Home, const TArray<FVector>& Waypoints);
 	ANWCharacter* GetTarget() const { return Target.Get(); }
-	/** Aggro vindo de fora (grupo, dano). */
+	/** Aggro coming from outside (group, damage). */
 	void Aggro(ANWCharacter* Who);
 
 protected:
@@ -72,7 +72,7 @@ protected:
 private:
 	enum class EStatus : uint8 { Running, Success, Failure };
 
-	// Plano: árvore dos nós escolhidos, com o estado de execução de cada um.
+	// Plan: tree of the chosen nodes, with the execution state of each one.
 	struct FPlan
 	{
 		int32 Node = INDEX_NONE;
@@ -87,7 +87,7 @@ private:
 		float Utility = 0.f;
 	};
 
-	// Planejar e executar.
+	// Plan and execute.
 	TSharedPtr<FPlan> Evaluate(int32 Node);
 	EStatus Execute(FPlan& Plan, float Dt);
 	EStatus ExecuteLeaf(FPlan& Plan, const FNWBTNode& N, float Dt);
@@ -95,7 +95,7 @@ private:
 	void Signature(const FPlan& Plan, TArray<int32>& Out) const;
 	bool RunningPathNonInterruptable(const FPlan& Plan) const;
 
-	// Condições e parâmetros.
+	// Conditions and parameters.
 	bool CheckGroup(const FNWBTNode& N, const TCHAR* Group, bool bDefault) const;
 	bool HasGroup(const FNWBTNode& N, const TCHAR* Group) const;
 	double Operand(const TSharedPtr<FJsonObject>& O, bool bDistance) const;
@@ -106,17 +106,17 @@ private:
 	bool SelectPosition(const TSharedPtr<FJsonObject>& Params, const FString& Prefix, FVector& Out) const;
 	double NumIn(const TSharedPtr<FJsonObject>& Obj, const FString& Key, double Default) const;
 
-	// Blackboard e sensor.
+	// Blackboard and sensor.
 	void SetNum(FName Key, double V) { FNWBBValue& B = BB.FindOrAdd(Key); B.Num = V; B.bVec = false; }
 	void SetVec(FName Key, const FVector& V) { FNWBBValue& B = BB.FindOrAdd(Key); B.Vec = V; B.bVec = true; }
 	void UpdateSensor(float Dt);
 	ANWCharacter* LookForTarget() const;
 
-	// Recargas nomeadas (CooldownDecorator, SetCooldownAction, IsCooldownActiveCondition).
+	// Named cooldowns (CooldownDecorator, SetCooldownAction, IsCooldownActiveCondition).
 	void StartCooldown(const FNWBTNode& N);
 	bool CooldownActive(FName Name) const;
 
-	// Movimento.
+	// Movement.
 	void MoveToward(const FVector& Dest, float Speed, float TurnRate, bool bFaceTarget, float Dt);
 	void FaceTarget(float TurnRate, float Dt);
 
@@ -133,7 +133,7 @@ private:
 	double LastEval = -100.0;
 	TArray<double> WatchedValues;
 	TWeakObjectPtr<ANWCharacter> Target;
-	/** Próxima procura de alvo (visão): a cada LookEvery s, defasada por criatura, não a cada ciclo. */
+	/** Next target search (vision): every LookEvery s, offset per creature, not every cycle. */
 	double NextLookAt = 0.0;
 	static constexpr double LookEvery = 0.25;
 	double TargetLostAt = -1.0;
@@ -141,6 +141,6 @@ private:
 	TArray<FVector> Path;
 	int32 PathIndex = 0;
 	bool bResetting = false;
-	// Tags do Mannequin que a árvore testa (Alerted, ChainAttack...): marcadas por tarefas e por SetMannequinTag.
+	// Mannequin tags the tree tests (Alerted, ChainAttack...): set by tasks and by SetMannequinTag.
 	TSet<FName> Tags;
 };

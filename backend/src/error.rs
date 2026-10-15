@@ -3,7 +3,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 
-/// Erro da API: status, código estável para o cliente e mensagem para mostrar ao jogador.
+/// API error: status, stable code for the client and message to show the player.
 #[derive(Debug)]
 pub struct ApiError {
     pub status: StatusCode,
@@ -42,19 +42,19 @@ impl IntoResponse for ApiError {
 
 impl From<sqlx::Error> for ApiError {
     fn from(e: sqlx::Error) -> Self {
-        tracing::error!(error = %e, "erro no banco");
+        tracing::error!(error = %e, "database error");
         Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal", "Erro interno.")
     }
 }
 
 impl From<anyhow::Error> for ApiError {
     fn from(e: anyhow::Error) -> Self {
-        tracing::error!(error = %e, "erro interno");
+        tracing::error!(error = %e, "internal error");
         Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal", "Erro interno.")
     }
 }
 
-/// Violação de índice único do Postgres.
+/// Postgres unique index violation.
 pub fn is_unique_violation(e: &sqlx::Error) -> bool {
     matches!(e, sqlx::Error::Database(db) if db.code().as_deref() == Some("23505"))
 }

@@ -9,11 +9,11 @@ class SBox;
 class SEditableTextBox;
 
 /**
- * Tela da cidade (governança, docs/game/economy.md), estilo das telas novas (NWSlate). Dois quadros da cidade:
- * - Quadro do Projeto de Vila (bGovernance falso): vender matéria-prima à cidade, comprar da lista, ver a cidade.
- * - Quadro de Planejamento do Território (bGovernance): resumo da semana, preços e imposto, mesas e buffs, defesa e
- *   governo (comprar ou vender a cidade). Quem não é governador vê o resumo e pode comprar a cidade.
- * Vender e comprar mudam a tela na hora (bolsa, moedas, limite) e esperam o servidor com spinner; recusado, volta.
+ * City screen (governance, docs/game/economy.md), in the style of the new screens (NWSlate). Two city boards:
+ * - Town Project Board (bGovernance false): sell raw materials to the city, buy from the list, view the city.
+ * - Territory Planning Board (bGovernance): weekly summary, prices and tax, tables and buffs, defense and
+ *   government (buy or sell the city). Non-governors see the summary and can buy the city.
+ * Selling and buying change the screen immediately (bag, coins, limit) and wait for the server with a spinner; if rejected, it reverts.
  */
 class NWPORT_API SNWCity : public SCompoundWidget
 {
@@ -31,7 +31,7 @@ public:
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 	virtual FReply OnKeyDown(const FGeometry& Geometry, const FKeyEvent& Key) override;
 
-	// Captura offline.
+	// Offline capture.
 	void ShotTab(int32 Tab);
 	void ShotSelect(FName Item);
 
@@ -40,9 +40,9 @@ private:
 	{
 		int32 Req = 0;
 		FName Item;
-		int32 Qty = 0;        // + vendeu à cidade, − comprou
-		int64 Coins = 0;      // moedas que entram (+) ou saem (−) da bolsa
-		FString Busy;         // chave do botão/linha que fica com spinner
+		int32 Qty = 0;        // + sold to the city, − bought
+		int64 Coins = 0;      // coins that come in (+) or go out (−) of the bag
+		FString Busy;         // key of the button/row that shows the spinner
 		double At = 0.0;
 		bool bDone = false;
 	};
@@ -61,7 +61,7 @@ private:
 	TMap<FString, double> Flash;
 	FName Selected;
 	int32 Count = 1;
-	// Preços em edição (governador): item -> centavos; imposto em %.
+	// Prices being edited (governor): item -> cents; tax in %.
 	TMap<FName, int64> EditBuy, EditSell;
 	float EditTax = -1.f;
 	int64 EditSalePrice = 0;
@@ -102,7 +102,7 @@ private:
 	int32 ShownUsed(const FNWCityPrice& P, bool bSellRaw) const;
 	FString StationName(const FString& Station) const;
 	FString TierText(const FNWCityStation& S) const;
-	/** Nome do que o ataque derrubou (mesa ou arma). */
+	/** Name of what the attack destroyed (table or weapon). */
 	FString LostName(const FString& Id) const;
 	TSharedRef<SWidget> Basket(const NWCity::FUp& Up, float Share, bool bCoins);
 	bool CanPay(const NWCity::FUp& Up, float Share, bool bCoins) const;

@@ -89,7 +89,7 @@ void FNWAttributesMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 		Hover(R + TEXT("/AddButton"));
 	}
 	Hover(TEXT("Attributes/Confirm"));
-	// Barra de XP do nível (XpDetails/XpMeter, igual à da HUD) e "N EXP para o Nível X".
+	// Level XP bar (XpDetails/XpMeter, same as the HUD's) and "N EXP to Level X".
 	const float Fill = P->LevelProgress();
 	if (FNWUIElement* E = Layout.FindOne(AttrCanvas, TEXT("XpMeter/LevelPositioner/LevelText"))) E->TextOverride = FString::FromInt(P->Level);
 	if (FNWUIElement* E = Layout.FindOne(AttrCanvas, TEXT("XpMeter/MeterFillPositioner/MeterFillMask/MeterFill"))) E->Fill = Fill;
@@ -106,7 +106,7 @@ void FNWAttributesMenu::Draw(UCanvas* Canvas, const FVector2D& Mouse)
 	}
 	Layout.Draw(Canvas);
 
-	// Barra de cada atributo (attributebarbg do jogo): até 300, com marcas nos limiares de 50 em 50 e o pendente em verde.
+	// Bar for each attribute (the game's attributebarbg): up to 300, with marks at each 50 threshold and the pending in green.
 	const float S = Canvas->ClipY / 1080.f;
 	UTexture2D* BarBg = FNWUILayout::GameTexture(TEXT("lyshineui/images/attributes/attributebarbg.dds"));
 	for (int32 i = 0; i < 5; ++i)
