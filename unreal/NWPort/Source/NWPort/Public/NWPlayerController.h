@@ -43,8 +43,7 @@ enum class ENWDevCommand : uint8
 	ArenaMixed,
 	ArenaArcher,
 	ArenaRapier,
-	// Next weapon pair (1 and 2): sword+Hatchet, Bow+Rapier, Bow+sword, Rapier+Hatchet.
-	CycleLoadout,
+	TravelEverfall,
 };
 
 /** Chat channels (the game's names: ui_chat_name_local / _group, ui_error_systemname). */
@@ -124,6 +123,8 @@ public:
 	// Server with nw-core: character loaded from the backend (empty without backend).
 	TOptional<FNWCharacterRecord> Record;
 	bool bPlacedFromRecord = false;
+	/** Server: map this player is travelling to (ANWGameMode::TravelPlayer); saves from then on write it, without position. */
+	FString TravelMap;
 	// Server: sends saved abilities and Weapon Mastery to the owning client.
 	void PublishProgress();
 	// Client → server: passives marked on the Weapon Mastery screen (key = weapon from abilities.json).

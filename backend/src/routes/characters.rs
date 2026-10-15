@@ -6,7 +6,7 @@ use serde_json::Value;
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
-use crate::auth::{self, Session};
+use crate::auth::{self, GameServer, Session};
 use crate::error::{is_unique_violation, ApiError, ApiResult};
 use crate::AppState;
 
@@ -96,7 +96,8 @@ pub(crate) fn validate_props(props: &Value, item_id: &str) -> Result<(), String>
 pub(crate) fn is_bound(props: &Value) -> bool {
     props.get("bound").and_then(Value::as_bool).unwrap_or(false)
 }
-pub(crate) const MAX_EQUIP_SLOTS: i32 = 16;
+// Equipment slots of the client (NWEquip::Count): weapons, tools, armor, jewelry, 4 quick slots and 3 bags.
+pub(crate) const MAX_EQUIP_SLOTS: i32 = 22;
 
 /// A bag or equipped slot: the item that goes in it, or none.
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -242,6 +243,17 @@ pub struct JoinResponse {
     pub ticket: String,
     #[serde(with = "time::serde::rfc3339")]
     pub expires_at: OffsetDateTime,
+    /// Game server to connect to (`host:port`) and its map, when nw-core knows the servers (`NW_MAP_SERVERS`).
+    /// Absent: the client uses its own address (`-nwconnect`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub map: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct TravelRequest {
+    pub map: String,
 }
 
 fn validate_character_name(name: &str) -> ApiResult<()> {
@@ -316,25 +328,58 @@ pub async fn remove(State(state): State<AppState>, session: Session, Path(id): P
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Single-use ticket for the game server; goes in the client's connect URL (`?ticket=`).
+/// Single-use ticket for the game server; goes in the client's connect URL (`?ticket=`). With `NW_MAP_SERVERS`, also the
+/// address of the server of the character's saved map (the start map when that one is not served).
 pub async fn join(State(state): State<AppState>, session: Session, Path(id): Path<Uuid>) -> ApiResult<Json<JoinResponse>> {
-    let owned: Option<(Uuid,)> =
-        sqlx::query_as("select id from characters where id = $1 and account_id = $2 and deleted_at is null")
+    let owned: Option<(String,)> =
+        sqlx::query_as("select map from characters where id = $1 and account_id = $2 and deleted_at is null")
             .bind(id)
             .bind(session.account_id)
             .fetch_optional(&state.db)
             .await?;
-    if owned.is_none() {
+    let Some((map,)) = owned else {
         return Err(ApiError::not_found("Personagem não encontrado."));
-    }
+    };
+    let entry = state.map_servers.entry(&map).map(|(m, a)| (m, a.to_string()));
+    let (ticket, expires_at) = issue_ticket(&state.db, session.account_id, id).await?;
+    let (map, address) = entry.unzip();
+    Ok(Json(JoinResponse { ticket, expires_at, address, map }))
+}
+
+async fn issue_ticket(db: &sqlx::PgPool, account_id: Uuid, character_id: Uuid) -> ApiResult<(String, OffsetDateTime)> {
     let ticket = auth::new_token();
     let expires_at = OffsetDateTime::now_utc() + Duration::seconds(TICKET_SECONDS);
     sqlx::query("insert into join_tickets (ticket_hash, account_id, character_id, expires_at) values ($1, $2, $3, $4)")
         .bind(auth::token_hash(&ticket))
-        .bind(session.account_id)
-        .bind(id)
+        .bind(account_id)
+        .bind(character_id)
         .bind(expires_at)
-        .execute(&state.db)
+        .execute(db)
         .await?;
-    Ok(Json(JoinResponse { ticket, expires_at }))
+    Ok((ticket, expires_at))
+}
+
+/// Game server: moves the character to the server of another map. Saves the map without a position (spawns at the
+/// map's start) and returns a new ticket and the address; the server then sends the client there (`ClientTravel`).
+/// The game server saves the bag before calling this; the redeem on the new server opens a new session, so a late
+/// save from the old one is refused (`stale_write`).
+pub async fn travel(State(state): State<AppState>, _server: GameServer, Path(id): Path<Uuid>, Json(req): Json<TravelRequest>) -> ApiResult<Json<JoinResponse>> {
+    let Some(address) = state.map_servers.address(&req.map).map(str::to_string) else {
+        return Err(ApiError::conflict("map_not_served", "Nenhum servidor para esse mapa."));
+    };
+    let map = crate::maps::short_name(&req.map).to_string();
+    let moved: Option<(Uuid,)> = sqlx::query_as(
+        "update characters set map = $2, pos_x = null, pos_y = null, pos_z = null
+          where id = $1 and deleted_at is null returning account_id",
+    )
+    .bind(id)
+    .bind(&map)
+    .fetch_optional(&state.db)
+    .await?;
+    let Some((account_id,)) = moved else {
+        return Err(ApiError::not_found("Personagem não encontrado."));
+    };
+    let (ticket, expires_at) = issue_ticket(&state.db, account_id, id).await?;
+    tracing::info!(character = %id, %map, %address, "travel");
+    Ok(Json(JoinResponse { ticket, expires_at, address: Some(address), map: Some(map) }))
 }

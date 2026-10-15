@@ -59,6 +59,7 @@ struct FNWCharacterSummary
  *
  * Client: backend and server address come from [NW.Server] Backend/Address in DefaultGame.ini (or
  * `-nwbackend=` / `-nwconnect=`). With a backend configured, the game opens on the login screen (FNWLoginMenu).
+ * When nw-core knows the server of each map (NW_MAP_SERVERS), the join returns the address and `-nwconnect` is not needed.
  * Tests without a screen: `-nwlogin=<account> -nwchar=<character>` with the password in NW_PASSWORD joins directly.
  */
 UCLASS()
@@ -95,6 +96,9 @@ public:
 
 	using FRedeemDone = TFunction<void(TOptional<FNWCharacterRecord> Record, const FString& Error)>;
 	void RedeemTicket(const FString& Ticket, FRedeemDone Done);
+	/** Server: moves the character to the server of Map (one server per map, NW_MAP_SERVERS in nw-core). nw-core saves the
+	 *  map without a position and returns a new pass; Url = `<address>?ticket=<pass>` for ClientTravel. */
+	void Travel(const FString& CharacterId, const FString& Map, TFunction<void(bool bOk, const FString& Url, const FString& Error)> Done);
 	/** Saves the state; Reason goes to the nw-core item log ("periodic", "logout", "craft:<recipe>"...). Done receives
 	 *  the status (204 written, 208 already written). */
 	/** Extra: additional fields in the body (e.g. `city_tax`, the city's crafting tax, in the same transaction). */
@@ -155,6 +159,9 @@ public:
 	bool IsPie() const { return bPie; }
 	/** Joins with the editor account and character: login, pass and redeem, like a client on the dedicated server. */
 	void PieEnter(FRedeemDone Done);
+	/** Editor Play: the account's character after CurrentId (creates one when the account has only this one) and its
+	 *  redeemed record. */
+	void PieSwitch(const FString& CurrentId, FRedeemDone Done);
 	// NPC gifts (area 4, NWNpcRewards.h): what was already picked up ("<kind>:<npc>:<period>") and the claim, written
 	// together with the Record's bag and coins (Status 201 ok, 409 already picked up).
 	void ListNpcRewards(const FString& CharacterId, const FString& Period, TFunction<void(bool bOk, const TArray<FString>& Keys)> Done);

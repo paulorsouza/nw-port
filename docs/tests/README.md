@@ -10,6 +10,7 @@ Manual tests, run in the Unreal editor. One file per area, numbered only within 
 | [mounts.md](mounts.md) | mounts | `L_SouthWindsward` |
 | [systems.md](systems.md) | systems, Everfall and game screens | `L_QuedaEterna` (Windsward for what already exists there) |
 | [world.md](world.md) | Windsward region and lighting | `L_SouthWindsward`, `L_QuedaEterna` |
+| [build.md](build.md) | Windows demo build (packaged client and servers, travel between maps) | the three maps |
 
 Areas and their maps: [../workflow.md](../workflow.md).
 

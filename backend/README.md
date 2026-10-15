@@ -16,6 +16,10 @@ NW_SERVER_SECRET=dev-secret-0123456789 cargo run -- serve   # API on 0.0.0.0:809
 cargo run -- admin <conta>               # makes the account admin (can generate invites through the API)
 ```
 
+`NW_MAP_SERVERS` (optional): one game server per map, as the clients reach it, e.g.
+`L_SouthWindsward=192.168.0.10:7777,L_QuedaEterna=192.168.0.10:7778,L_Arena=192.168.0.10:7779`. Empty: one server; the
+client uses its own `-nwconnect` address.
+
 Tests (each test creates a temporary database in the Postgres at `DATABASE_URL`):
 
 ```bash
@@ -36,13 +40,14 @@ Client (`Authorization: Bearer <token>`):
 | GET | `/v1/characters` | | list |
 | POST | `/v1/characters` | `name` | 201 character |
 | DELETE | `/v1/characters/{id}` | | 204 |
-| POST | `/v1/characters/{id}/join` | | `ticket` (single use, 60 s), `expires_at` |
+| POST | `/v1/characters/{id}/join` | | `ticket` (single use, 60 s), `expires_at`; with `NW_MAP_SERVERS` also `address` and `map` (server of the saved map, or of `L_SouthWindsward` when that map has none) |
 
 Game server (`X-NW-Server-Secret`):
 
 | Method | Route | Body | Response |
 |---|---|---|---|
 | POST | `/internal/tickets/redeem` | `ticket` | `account_id`, `account_name`, `character` |
+| POST | `/internal/characters/{id}/travel` | `map` | saves the map without position; `ticket`, `address`, `map`; 409 `map_not_served` |
 | PUT | `/internal/characters/{id}/state` | full state; the whole bag (`inventory`) or only the slots that changed (`inventory_patch`: `container`, `slot`, `item` or null) | 204 |
 | GET | `/internal/characters/{id}/storage/shared` | | `version`, `items`, `tab_names`, `capacity` |
 | PUT | `/internal/characters/{id}/storage/shared` | `version`, `items`, `inventory`, `coins`; optional `tab_names`, `capacity` | same as GET; 409 `storage_changed` |

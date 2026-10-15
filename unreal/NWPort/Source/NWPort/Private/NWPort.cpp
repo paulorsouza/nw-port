@@ -8,7 +8,7 @@
  */
 class FNWPortModule : public FDefaultGameModuleImpl
 {
-	static constexpr uint32 NetProtocol = 3;   // 2: inventory (F3); 3: gathering, progression and trade skills, unstuck
+	static constexpr uint32 NetProtocol = 4;   // 2: inventory (F3); 3: gathering, progression and trade skills, unstuck; 4: dev commands (travel per map)
 
 	virtual void StartupModule() override
 	{

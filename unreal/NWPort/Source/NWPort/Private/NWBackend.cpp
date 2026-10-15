@@ -1156,11 +1156,6 @@ void UNWBackend::DeleteCharacter(const FString& Id, FDone Done)
 
 void UNWBackend::Play(const FString& CharacterId, FDone Done)
 {
-	if (ConnectAddress.IsEmpty())
-	{
-		Done(false, NWText::Get(TEXT("nw.err.no_address")));
-		return;
-	}
 	++Busy;
 	Request(TEXT("POST"), FString::Printf(TEXT("/v1/characters/%s/join"), *CharacterId), FString(), false, [this, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
 	{
@@ -1170,8 +1165,19 @@ void UNWBackend::Play(const FString& CharacterId, FDone Done)
 			Done(false, ErrorMessage(Status, Json));
 			return;
 		}
-		const FString Url = FString::Printf(TEXT("%s?ticket=%s"), *ConnectAddress, *Json->GetStringField(TEXT("ticket")));
-		UE_LOG(LogNWBackend, Display, TEXT("connecting to %s"), *ConnectAddress);
+		// nw-core with a server per map returns the address of the character's map; otherwise -nwconnect / Address.
+		FString Address;
+		if (!Json->TryGetStringField(TEXT("address"), Address) || Address.IsEmpty())
+		{
+			Address = ConnectAddress;
+		}
+		if (Address.IsEmpty())
+		{
+			Done(false, NWText::Get(TEXT("nw.err.no_address")));
+			return;
+		}
+		const FString Url = FString::Printf(TEXT("%s?ticket=%s"), *Address, *Json->GetStringField(TEXT("ticket")));
+		UE_LOG(LogNWBackend, Display, TEXT("connecting to %s"), *Address);
 		UWorld* World = GetGameInstance()->GetWorld();
 		if (!World)
 		{
@@ -1180,6 +1186,23 @@ void UNWBackend::Play(const FString& CharacterId, FDone Done)
 		}
 		GEngine->SetClientTravel(World, *Url, TRAVEL_Absolute);
 		Done(true, FString());
+	});
+}
+
+void UNWBackend::Travel(const FString& CharacterId, const FString& Map, TFunction<void(bool bOk, const FString& Url, const FString& Error)> Done)
+{
+	TSharedRef<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("map"), Map);
+	Request(TEXT("POST"), FString::Printf(TEXT("/internal/characters/%s/travel"), *CharacterId), WriteJson(Body), true,
+		[Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Json)
+	{
+		FString Address, Ticket;
+		if (Status != 200 || !Json.IsValid() || !Json->TryGetStringField(TEXT("address"), Address) || !Json->TryGetStringField(TEXT("ticket"), Ticket))
+		{
+			Done(false, FString(), ErrorMessage(Status, Json));
+			return;
+		}
+		Done(true, FString::Printf(TEXT("%s?ticket=%s"), *Address, *Ticket), FString());
 	});
 }
 
@@ -1320,6 +1343,50 @@ void UNWBackend::PieEnter(FRedeemDone Done)
 					}
 					RedeemTicket(Join->GetStringField(TEXT("ticket")), MoveTemp(Done));
 				});
+		});
+	});
+}
+
+void UNWBackend::PieSwitch(const FString& CurrentId, FRedeemDone Done)
+{
+	auto Enter = [this](const FString& CurrentId, FRedeemDone Done)
+	{
+		const int32 Cur = Characters.IndexOfByPredicate([&](const FNWCharacterSummary& C) { return C.Id == CurrentId; });
+		const FNWCharacterSummary& Next = Characters[(Cur + 1) % Characters.Num()];
+		Request(TEXT("POST"), FString::Printf(TEXT("/v1/characters/%s/join"), *Next.Id), FString(), false,
+			[this, Done = MoveTemp(Done)](int32 Status, TSharedPtr<FJsonObject> Join) mutable
+			{
+				if (Status != 200 || !Join.IsValid())
+				{
+					Done({}, ErrorMessage(Status, Join));
+					return;
+				}
+				RedeemTicket(Join->GetStringField(TEXT("ticket")), MoveTemp(Done));
+			});
+	};
+	RefreshCharacters([this, CurrentId, Done = MoveTemp(Done), Enter](bool bOk, const FString& Error) mutable
+	{
+		if (!bOk || Characters.Num() == 0)
+		{
+			Done({}, Error);
+			return;
+		}
+		if (Characters.Num() > 1)
+		{
+			Enter(CurrentId, MoveTemp(Done));
+			return;
+		}
+		// Only one: a second test character (names: 3 to 16 letters, unique on the server).
+		static const TCHAR* Names[] = {TEXT("Andarilho"), TEXT("Forasteira"), TEXT("Viajante"), TEXT("Errante")};
+		const FString Name = FString::Printf(TEXT("%s%c"), Names[FMath::RandRange(0, 3)], TCHAR('A' + FMath::RandRange(0, 25)));
+		CreateCharacter(Name, [this, CurrentId, Done = MoveTemp(Done), Enter](bool bOk, const FString& Error) mutable
+		{
+			if (!bOk || Characters.Num() < 2)
+			{
+				Done({}, Error);
+				return;
+			}
+			Enter(CurrentId, MoveTemp(Done));
 		});
 	});
 }

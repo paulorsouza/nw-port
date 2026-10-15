@@ -23,7 +23,13 @@ struct Api {
 
 impl Api {
     fn new(db: PgPool) -> Self {
-        Self { router: app(AppState { db: db.clone(), server_secret: Arc::from(SECRET) }), db, seq: AtomicI64::new(0) }
+        Self::with_maps(db, "")
+    }
+
+    /// With a game server per map (`NW_MAP_SERVERS`).
+    fn with_maps(db: PgPool, maps: &str) -> Self {
+        let map_servers = Arc::new(nw_core::maps::MapServers::parse(maps).unwrap());
+        Self { router: app(AppState { db: db.clone(), server_secret: Arc::from(SECRET), map_servers }), db, seq: AtomicI64::new(0) }
     }
 
     /// Game server saves carry session and number (journal.rs): when the test does not send them, uses the character's
@@ -171,6 +177,61 @@ async fn limite_de_personagens(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "nw_core::MIGRATOR")]
+async fn servidor_por_mapa(db: PgPool) {
+    // Without NW_MAP_SERVERS the join has no address (the client uses -nwconnect) and travel is refused.
+    let plain = Api::new(db.clone());
+    let t = plain.register(&db, "Paulo").await;
+    let (_, ch) = plain.call("POST", "/v1/characters", Some(&t), false, Some(json!({ "name": "Aranha" }))).await;
+    let id = ch["id"].as_str().unwrap().to_string();
+    let (status, join) = plain.call("POST", &format!("/v1/characters/{id}/join"), Some(&t), false, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(join.get("address").is_none(), "{join}");
+    let (status, err) = plain.call("POST", &format!("/internal/characters/{id}/travel"), None, true, Some(json!({ "map": "L_Arena" }))).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(err["error"], "map_not_served");
+
+    let api = Api::with_maps(db.clone(), "L_SouthWindsward=10.0.0.2:7777,L_QuedaEterna=10.0.0.2:7778,L_Arena=10.0.0.2:7779");
+    // New character: the start map's server.
+    let (status, join) = api.call("POST", &format!("/v1/characters/{id}/join"), Some(&t), false, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(join["address"], "10.0.0.2:7777");
+    assert_eq!(join["map"], "L_SouthWindsward");
+    let got = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": join["ticket"] }))).await.1;
+    let mut s = json!({ "map": "L_SouthWindsward", "position": { "x": 1.0, "y": 2.0, "z": 3.0 }, "yaw": 0.0, "health": 100.0,
+        "active_weapon": "Sword", "loadout": {}, "mastery": {}, "session": got["session"], "seq": 1 });
+    let (status, body) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(s.clone())).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+
+    // Travel: only a game server; saves the map without position and gives a new ticket and the address.
+    let (status, _) = api.call("POST", &format!("/internal/characters/{id}/travel"), Some(&t), false, Some(json!({ "map": "L_QuedaEterna" }))).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    let (status, err) = api.call("POST", &format!("/internal/characters/{id}/travel"), None, true, Some(json!({ "map": "L_Nada" }))).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(err["error"], "map_not_served");
+    let (status, moved) = api.call("POST", &format!("/internal/characters/{id}/travel"), None, true, Some(json!({ "map": "/Game/NW/Maps/L_QuedaEterna" }))).await;
+    assert_eq!(status, StatusCode::OK, "{moved}");
+    assert_eq!(moved["address"], "10.0.0.2:7778");
+    assert_eq!(moved["map"], "L_QuedaEterna");
+    let (status, got) = api.call("POST", "/internal/tickets/redeem", None, true, Some(json!({ "ticket": moved["ticket"] }))).await;
+    assert_eq!(status, StatusCode::OK, "{got}");
+    assert_eq!(got["character"]["map"], "L_QuedaEterna");
+    assert!(got["character"]["position"].is_null(), "{got}");
+
+    // The old server's late save belongs to the previous session: refused, the map stays.
+    s["seq"] = json!(2);
+    let (status, _) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(s)).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    let (_, join) = api.call("POST", &format!("/v1/characters/{id}/join"), Some(&t), false, None).await;
+    assert_eq!(join["address"], "10.0.0.2:7778");
+
+    // A saved map without a server: enters through the start map.
+    sqlx::query("update characters set map = 'L_Velha' where id::text = $1").bind(&id).execute(&db).await.unwrap();
+    let (_, join) = api.call("POST", &format!("/v1/characters/{id}/join"), Some(&t), false, None).await;
+    assert_eq!(join["address"], "10.0.0.2:7777");
+    assert_eq!(join["map"], "L_SouthWindsward");
+}
+
+#[sqlx::test(migrator = "nw_core::MIGRATOR")]
 async fn entrar_no_servidor_e_salvar(db: PgPool) {
     let api = Api::new(db.clone());
     let a = api.register(&db, "Paulo").await;
@@ -305,6 +366,14 @@ async fn inventario_salva_e_volta(db: PgPool) {
     }
     let c = redeem(&api, &t, &id).await;
     assert_eq!(c["inventory"].as_array().unwrap().len(), 3);
+    // Equipment slots 0..21 (client NWEquip::Count: quick slots 15-18, bags 19-21); 22 is out.
+    let mut s = base.clone();
+    s["inventory"] = json!([{ "item_id": "BagAT5", "quantity": 1, "container": "equip", "slot": 21 }]);
+    let (status, body) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(s.clone())).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    s["inventory"][0]["slot"] = json!(22);
+    let (status, _) = api.call("PUT", &format!("/internal/characters/{id}/state"), None, true, Some(s)).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
 }
 
 /// New character; returns the id.

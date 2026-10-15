@@ -124,15 +124,6 @@ void SNWDevMenu::Construct(const FArguments& Args)
 		const ANWCharacter* C = PC.IsValid() ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
 		return FText::FromString(C && C->bDevFlying ? NWText::Get(TEXT("nw.dev.on")) : NWText::Get(TEXT("nw.dev.off")));
 	}, Dev(ENWDevCommand::ToggleFly)));
-	Add(Button(NWText::Get(TEXT("nw.dev.weapon_pair")), [PC]() -> FText
-	{
-		const ANWCharacter* C = PC.IsValid() ? Cast<ANWCharacter>(PC->GetPawn()) : nullptr;
-		if (!C || C->Loadout.Num() != 2 || !C->WeaponSets.IsValidIndex(C->Loadout[0]) || !C->WeaponSets.IsValidIndex(C->Loadout[1]))
-		{
-			return FText::GetEmpty();
-		}
-		return FText::FromString(C->WeaponSets[C->Loadout[0]].Id.ToString() + TEXT(" + ") + C->WeaponSets[C->Loadout[1]].Id.ToString());
-	}, Dev(ENWDevCommand::CycleLoadout)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_tools")), nullptr, Dev(ENWDevCommand::GiveTools)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_level")), nullptr, Dev(ENWDevCommand::GiveLevel)));
 	Add(Button(NWText::Get(TEXT("nw.dev.give_trade_levels")), nullptr, Dev(ENWDevCommand::GiveTradeLevels)));
@@ -160,6 +151,7 @@ void SNWDevMenu::Construct(const FArguments& Args)
 	Add(Button(NWText::Get(TEXT("nw.dev.slow_motion")), SlowMo, Dev(ENWDevCommand::ToggleSlowMotion)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_arena")), nullptr, Dev(ENWDevCommand::TravelArena)));
 	Add(Button(NWText::Get(TEXT("nw.dev.go_city")), nullptr, Dev(ENWDevCommand::TravelCity)));
+	Add(Button(NWText::Get(TEXT("nw.dev.go_everfall")), nullptr, Dev(ENWDevCommand::TravelEverfall)));
 	// Area buttons (NW_REGISTER_DEV, NWDevRegistry.h).
 	if (FNWDevRegistry::All().Num() > 0)
 	{

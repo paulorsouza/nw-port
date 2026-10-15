@@ -18,6 +18,7 @@
 #include "NWCombatComponent.h"
 #include "NWInventoryComponent.h"
 #include "GameFramework/GameStateBase.h"
+#include "Misc/PackageName.h"
 #include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNWGameMode, Log, All);
@@ -102,27 +103,65 @@ void ANWGameMode::PieEnter(ANWPlayerController* PC)
 			P->Warning(NWText::Key(TEXT("nw.pie.offline"), {Error}));
 			return;
 		}
-		UE_LOG(LogNWGameMode, Display, TEXT("Playing with backend: %s (%s)"), *Record->Name, *Record->AccountName);
-		if (APlayerState* PS = P->GetPlayerState<APlayerState>())
+		Self->ApplyRecord(P, MoveTemp(*Record));
+	});
+}
+
+void ANWGameMode::ApplyRecord(ANWPlayerController* P, FNWCharacterRecord&& InRecord)
+{
+	UE_LOG(LogNWGameMode, Display, TEXT("Playing with backend: %s (%s)"), *InRecord.Name, *InRecord.AccountName);
+	if (APlayerState* PS = P->GetPlayerState<APlayerState>())
+	{
+		PS->SetPlayerName(InRecord.Name);
+	}
+	P->Record = MoveTemp(InRecord);
+	P->bPlacedFromRecord = true;
+	P->UpdateDevAllowed();
+	ANWLootBag::RestoreFor(P);   // bags on the ground still alive come back
+	if (ANWCharacter* Ch = Cast<ANWCharacter>(P->GetPawn()))
+	{
+		const FNWCharacterRecord& R = *P->Record;
+		if (R.bHasPosition && R.Map == UWorld::RemovePIEPrefix(GetWorld()->GetMapName()))
 		{
-			PS->SetPlayerName(Record->Name);
+			Ch->TeleportTo(R.Position, FRotator(0.f, R.Yaw, 0.f));
+			P->SetControlRotation(FRotator(0.f, R.Yaw, 0.f));
 		}
-		P->Record = MoveTemp(*Record);
-		P->bPlacedFromRecord = true;
-		P->UpdateDevAllowed();
-		ANWLootBag::RestoreFor(P);   // bags on the ground still alive come back
-		if (ANWCharacter* Ch = Cast<ANWCharacter>(P->GetPawn()))
+		Ch->RestoreFrom(R);
+		Ch->CaptureTo(*P->Record);
+	}
+	P->PublishProgress();
+}
+
+void ANWGameMode::SwitchCharacter(ANWPlayerController* PC)
+{
+	UNWBackend* B = Backend();
+	if (!PC || !PC->Record || !B)
+	{
+		return;
+	}
+	if (!B->IsPie())
+	{
+		// Client with the login screen: back to it (the logout saves); the character list is there.
+		PC->ClientReturnToMainMenuWithTextReason(FText::GetEmpty());
+		return;
+	}
+	// Editor Play (fixed account of dev.env): saves this one and enters the account's next character in place.
+	SavePlayer(PC, TEXT("switch_character"));
+	const FString Current = PC->Record->Id;
+	B->PieSwitch(Current, [WeakThis = TWeakObjectPtr<ANWGameMode>(this), WeakPC = TWeakObjectPtr<ANWPlayerController>(PC)](TOptional<FNWCharacterRecord> Record, const FString& Error)
+	{
+		ANWGameMode* Self = WeakThis.Get();
+		ANWPlayerController* P = WeakPC.Get();
+		if (!Self || !P)
 		{
-			const FNWCharacterRecord& R = *P->Record;
-			if (R.bHasPosition && R.Map == UWorld::RemovePIEPrefix(Self->GetWorld()->GetMapName()))
-			{
-				Ch->TeleportTo(R.Position, FRotator(0.f, R.Yaw, 0.f));
-				P->SetControlRotation(FRotator(0.f, R.Yaw, 0.f));
-			}
-			Ch->RestoreFrom(R);
-			Ch->CaptureTo(*P->Record);
+			return;
 		}
-		P->PublishProgress();
+		if (!Record)
+		{
+			P->Warning(Error);
+			return;
+		}
+		Self->ApplyRecord(P, MoveTemp(*Record));
 	});
 }
 
@@ -300,7 +339,94 @@ void ANWGameMode::SavePlayer(ANWPlayerController* PC, const FString& Reason)
 	{
 		Ch->CaptureTo(R);
 	}
+	if (!PC->TravelMap.IsEmpty())
+	{
+		// Leaving for another map's server: the logout save must not bring the character back here.
+		R.Map = PC->TravelMap;
+		R.bHasPosition = false;
+	}
 	B->SaveState(R, Reason);
+}
+
+bool ANWGameMode::IsBackendServer() const
+{
+	const UNWBackend* B = Backend();
+	return B && B->IsServerEnabled();
+}
+
+void ANWGameMode::TravelPlayer(ANWPlayerController* PC, const FString& Map)
+{
+	UNWBackend* B = Backend();
+	if (!PC || !PC->Record || !B || !B->IsServerEnabled() || !PC->TravelMap.IsEmpty())
+	{
+		return;
+	}
+	const FString Short = FPackageName::GetShortName(Map);
+	if (Short == UWorld::RemovePIEPrefix(GetWorld()->GetMapName()))
+	{
+		return;
+	}
+	// Operation being written (NWOps): travel after it, with the state it wrote.
+	if (ANWCharacter* Ch = Cast<ANWCharacter>(PC->GetPawn()); Ch && NWOps::IsBusy(Ch))
+	{
+		NWOps::After(Ch, [Self = TWeakObjectPtr<ANWGameMode>(this), WeakPC = TWeakObjectPtr<ANWPlayerController>(PC), Map]()
+		{
+			if (Self.IsValid() && WeakPC.IsValid()) { Self->TravelPlayer(WeakPC.Get(), Map); }
+		});
+		return;
+	}
+	// 1. Save in the write queue (after every earlier write) with the target map. 2. nw-core gives the pass and the
+	// address. 3. ClientTravel. The new server's redeem opens a new session: a later save from here is refused.
+	PC->TravelMap = Short;
+	FNWCharacterRecord& R = *PC->Record;
+	if (const ANWCharacter* Ch = Cast<ANWCharacter>(PC->GetPawn()))
+	{
+		Ch->CaptureTo(R);
+	}
+	R.Map = Short;
+	R.bHasPosition = false;
+	const FString Id = R.Id;
+	B->SaveState(R, TEXT("travel"), [Self = TWeakObjectPtr<ANWGameMode>(this), WeakPC = TWeakObjectPtr<ANWPlayerController>(PC), Id, Short](int32 Status)
+	{
+		ANWGameMode* GM = Self.Get();
+		UNWBackend* Backend = GM ? GM->Backend() : nullptr;
+		if (!Backend)
+		{
+			return;
+		}
+		auto Fail = [Self, WeakPC](const FString& Error)
+		{
+			ANWPlayerController* P = WeakPC.Get();
+			if (!P || !Self.IsValid())
+			{
+				return;
+			}
+			UE_LOG(LogNWGameMode, Warning, TEXT("travel of %s failed: %s"), P->Record ? *P->Record->Name : TEXT("?"), *Error);
+			P->TravelMap.Reset();
+			Self->SavePlayer(P, TEXT("travel_failed"));   // back to this map and position
+			P->Warning(Error);
+		};
+		if (Status != 204 && Status != 208)
+		{
+			Fail(NWText::Key(TEXT("nw.err.backend_down")));
+			return;
+		}
+		Backend->Travel(Id, Short, [WeakPC, Short, Fail](bool bOk, const FString& Url, const FString& Error)
+		{
+			ANWPlayerController* P = WeakPC.Get();
+			if (!P)
+			{
+				return;
+			}
+			if (!bOk)
+			{
+				Fail(Error);
+				return;
+			}
+			UE_LOG(LogNWGameMode, Display, TEXT("travel: %s -> %s"), P->Record ? *P->Record->Name : TEXT("?"), *Short);
+			P->ClientTravel(Url, TRAVEL_Absolute);
+		});
+	});
 }
 
 void ANWGameMode::SaveAll(const TCHAR* Reason)

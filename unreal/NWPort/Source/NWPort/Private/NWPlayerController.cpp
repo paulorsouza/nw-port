@@ -759,26 +759,6 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 	};
 	switch (Command)
 	{
-	case ENWDevCommand::CycleLoadout:
-		if (Me)
-		{
-			static const int32 Pairs[][2] = {{0, 1}, {2, 3}, {2, 0}, {3, 1}};
-			int32 Cur = 0;
-			for (int32 i = 0; i < UE_ARRAY_COUNT(Pairs); ++i)
-			{
-				if (Me->Loadout.Num() == 2 && Me->Loadout[0] == Pairs[i][0] && Me->Loadout[1] == Pairs[i][1]) Cur = i;
-			}
-			for (int32 Step = 1; Step <= UE_ARRAY_COUNT(Pairs); ++Step)
-			{
-				const int32* P = Pairs[(Cur + Step) % UE_ARRAY_COUNT(Pairs)];
-				if (Me->WeaponSets.IsValidIndex(P[0]) && Me->WeaponSets.IsValidIndex(P[1]))
-				{
-					Me->SetLoadout(P[0], P[1]);
-					break;
-				}
-			}
-		}
-		break;
 	case ENWDevCommand::ArenaBoars:
 		if (Me) for (int32 i = 0; i < 2; ++i) SpawnCreature(TEXT("Boar_6"), Around(i, 2));
 		break;
@@ -862,11 +842,26 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 		UGameplayStatics::SetGlobalTimeDilation(World, UGameplayStatics::GetGlobalTimeDilation(World) < 0.99f ? 1.f : 0.3f);
 		break;
 	case ENWDevCommand::TravelArena:
-		UGameplayStatics::OpenLevel(this, TEXT("/Game/NW/Maps/L_Arena"));
-		break;
 	case ENWDevCommand::TravelCity:
-		UGameplayStatics::OpenLevel(this, TEXT("/Game/NW/Maps/L_SouthWindsward"));
+	case ENWDevCommand::TravelEverfall:
+	{
+		const TCHAR* Map = Command == ENWDevCommand::TravelArena ? TEXT("/Game/NW/Maps/L_Arena")
+			: Command == ENWDevCommand::TravelEverfall ? TEXT("/Game/NW/Maps/L_QuedaEterna") : TEXT("/Game/NW/Maps/L_SouthWindsward");
+		ANWGameMode* GM = World->GetAuthGameMode<ANWGameMode>();
+		if (GetNetMode() == NM_Standalone)
+		{
+			UGameplayStatics::OpenLevel(this, Map);   // alone (editor Play, no server): the local world changes
+		}
+		else if (GM && Record && GM->IsBackendServer())
+		{
+			GM->TravelPlayer(this, Map);   // one server per map: only this player goes to the other server
+		}
+		else
+		{
+			World->ServerTravel(Map);   // server without nw-core: everyone goes along
+		}
 		break;
+	}
 	case ENWDevCommand::KillSelf:
 		if (Me) Me->Combat->Kill();
 		break;
@@ -926,14 +921,24 @@ void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 			TArray<FNWItem> Gift;
 			for (int32 Tier = 2; Tier <= 5; ++Tier)
 			{
+				// Leather and cloth enough for a bag (45 / 25); holding rune of the tier for the bag recipe.
 				for (const TPair<const TCHAR*, int32>& M : {TPair<const TCHAR*, int32>(TEXT("IngotT"), 60), TPair<const TCHAR*, int32>(TEXT("TimberT"), 20),
-					TPair<const TCHAR*, int32>(TEXT("LeatherT"), 20)})
+					TPair<const TCHAR*, int32>(TEXT("LeatherT"), 60), TPair<const TCHAR*, int32>(TEXT("ClothT"), 40),
+					TPair<const TCHAR*, int32>(TEXT("HoldingRuneT"), 1)})
 				{
 					FNWItem I;
 					I.ItemId = FName(*(FString(M.Key) + FString::FromInt(Tier)));
 					I.Quantity = M.Value;
 					Gift.Add(I);
 				}
+			}
+			// Ice Gauntlet waters (T2..T5).
+			for (const TCHAR* Water : {TEXT("AlchemyWaterT1"), TEXT("AlchemyWaterT2"), TEXT("AlchemyWaterT3"), TEXT("EssenceWaterT1")})
+			{
+				FNWItem I;
+				I.ItemId = Water;
+				I.Quantity = 12;
+				Gift.Add(I);
 			}
 			Me->Inventory->Grant(Gift, 100000);
 		}
@@ -1116,7 +1121,7 @@ void ANWPlayerController::PlayerTick(float DeltaTime)
 			if (Inv && P.Num() > 0)
 			{
 				UE_LOG(LogTemp, Display, TEXT("NW inventory test: %s"), *First);
-				if (P[0] == TEXT("potion")) Inv->ServerUseBestPotion();
+				if (P[0] == TEXT("potion")) Inv->ServerUseQuick(0);
 				else if (P[0] == TEXT("move") && P.Num() == 3) Inv->ServerMove(ENWItemContainer::Bag, FCString::Atoi(*P[1]), ENWItemContainer::Bag, FCString::Atoi(*P[2]));
 				else if (P[0] == TEXT("unequip") && P.Num() == 3) Inv->ServerMove(ENWItemContainer::Equip, FCString::Atoi(*P[1]), ENWItemContainer::Bag, FCString::Atoi(*P[2]));
 				else if (P[0] == TEXT("equip") && P.Num() == 3) Inv->ServerMove(ENWItemContainer::Bag, FCString::Atoi(*P[1]), ENWItemContainer::Equip, FCString::Atoi(*P[2]));

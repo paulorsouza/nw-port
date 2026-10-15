@@ -25,6 +25,9 @@ enum Command {
         /// Game server secret.
         #[arg(long, env = "NW_SERVER_SECRET")]
         server_secret: String,
+        /// Game server of each map: "L_SouthWindsward=host:7777,L_QuedaEterna=host:7778,L_Arena=host:7779".
+        #[arg(long, env = "NW_MAP_SERVERS", default_value = "")]
+        map_servers: String,
     },
     /// Only applies the migrations.
     Migrate,
@@ -57,7 +60,8 @@ async fn main() -> anyhow::Result<()> {
         .context("connect to Postgres")?;
 
     match cli.command {
-        Command::Serve { bind, server_secret } => {
+        Command::Serve { bind, server_secret, map_servers } => {
+            let map_servers = nw_core::maps::MapServers::parse(&map_servers)?;
             anyhow::ensure!(server_secret.len() >= 16, "NW_SERVER_SECRET needs 16+ characters");
             MIGRATOR.run(&db).await?;
             let listener = tokio::net::TcpListener::bind(&bind).await.with_context(|| format!("bind {bind}"))?;
@@ -73,7 +77,7 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
             });
-            let state = AppState { db, server_secret: Arc::from(server_secret) };
+            let state = AppState { db, server_secret: Arc::from(server_secret), map_servers: Arc::new(map_servers) };
             axum::serve(listener, app(state)).with_graceful_shutdown(shutdown()).await?;
         }
         Command::Migrate => {

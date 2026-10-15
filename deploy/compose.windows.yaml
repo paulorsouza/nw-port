@@ -1,0 +1,28 @@
+# Windows demo (docs/tech/windows.md, "Demo build"): Postgres + nw-core in Docker Desktop. The game servers run as
+# native WindowsServer processes, one per map (deploy/build/Servidores.bat), not here.
+#   docker compose -p nw-demo --env-file deploy/.env -f deploy/compose.windows.yaml up -d
+# deploy/.env: NW_DB_PASSWORD, NW_SERVER_SECRET and NW_MAP_SERVERS (written by tools/windows/build_demo.ps1).
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: nw
+      POSTGRES_PASSWORD: ${NW_DB_PASSWORD:?set NW_DB_PASSWORD}
+      POSTGRES_DB: nw
+    volumes:
+      - db:/var/lib/postgresql/data
+    restart: unless-stopped
+  core:
+    image: nw-core:local
+    environment:
+      DATABASE_URL: postgres://nw:${NW_DB_PASSWORD}@db:5432/nw
+      NW_SERVER_SECRET: ${NW_SERVER_SECRET:?set NW_SERVER_SECRET}
+      NW_BIND: 0.0.0.0:8090
+      # Server of each map, as the clients reach it: "L_SouthWindsward=<host>:7777,L_QuedaEterna=<host>:7778,...".
+      NW_MAP_SERVERS: ${NW_MAP_SERVERS:-}
+    ports:
+      - "8090:8090"
+    depends_on: [db]
+    restart: unless-stopped
+volumes:
+  db:

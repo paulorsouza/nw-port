@@ -54,7 +54,7 @@ source refuses clients built with the installed engine.
 - Session remembered for 30 days. Deleting a character asks for its name, as in the game. Server connection errors
   show on screen.
 - Enabled by `[NW.Server] Backend=` and `Address=` in `DefaultGame.ini`, or `-nwbackend= -nwconnect=`. Without them
-  the game opens straight into the arena.
+  the game opens straight into the arena. With one server per map (below) only `-nwbackend` is needed.
 - Checked with `-nwuisteps` (fill and click steps through the same path as the mouse): login, wrong password, create
   account by invite, create and delete character, Play into the city. Real keyboard typing has not been tested by a
   person.
@@ -66,6 +66,24 @@ source refuses clients built with the installed engine.
 - Abilities and weapon mastery are kept by the server and replicated only to the owner.
 - Position is saved only while the character is on the ground. While falling, the last good position is kept.
 - Save before the character is destroyed on logout (`PawnLeavingGame`).
+
+### One server per map
+
+Each map runs in its own dedicated server process (Windows demo: Windsward 7777, Everfall 7778, Arena 7779,
+[windows.md](windows.md#demo-build)). The client only knows nw-core.
+
+- nw-core reads `NW_MAP_SERVERS="L_SouthWindsward=<host>:7777,L_QuedaEterna=<host>:7778,L_Arena=<host>:7779"`, with the
+  address the clients reach. Empty: one server, and the client uses its `-nwconnect` / `Address`.
+- Entry: `POST /v1/characters/{id}/join` returns the ticket and the address of the server of the character's saved map
+  (the `L_SouthWindsward` one when that map has no server).
+- Travel (F10 > World): the server saves the character with the target map and no position (it spawns at the map's
+  start), in the write queue after the earlier writes. Then `POST /internal/characters/{id}/travel` returns a new
+  ticket and the address, and the server sends the client there (`ClientTravel`). From then on the old server's
+  saves write the target map; after the redeem on the new server they are refused (new session).
+- Without nw-core: Play alone changes the local map (`OpenLevel`); a server without nw-core takes everyone along
+  (`ServerTravel`).
+- A target server that is down: the client drops to the login screen with a connection error and the character stays
+  saved on the target map until that server is back.
 
 ## Platforms
 

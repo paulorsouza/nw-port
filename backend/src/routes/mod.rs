@@ -30,6 +30,7 @@ pub fn router() -> Router<AppState> {
         .route("/v1/characters", get(characters::list).post(characters::create))
         .route("/v1/characters/{id}", delete(characters::remove))
         .route("/v1/characters/{id}/join", post(characters::join))
+        .route("/internal/characters/{id}/travel", post(characters::travel))
         .route("/internal/tickets/redeem", post(internal::redeem_ticket))
         .route("/internal/characters/{id}/state", put(internal::save_state))
         .route("/internal/characters/{id}/storage/{location}", get(storage::get).put(storage::put))

@@ -3,6 +3,7 @@
 
 pub mod auth;
 pub mod error;
+pub mod maps;
 pub mod routes;
 
 use std::sync::Arc;
@@ -17,6 +18,8 @@ pub struct AppState {
     pub db: PgPool,
     /// Secret shared with the game servers (`X-NW-Server-Secret` header).
     pub server_secret: Arc<str>,
+    /// Game server of each map (`NW_MAP_SERVERS`); empty = one server, the client's own address.
+    pub map_servers: Arc<maps::MapServers>,
 }
 
 pub fn app(state: AppState) -> Router {

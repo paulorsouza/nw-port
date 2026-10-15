@@ -29,6 +29,18 @@ public:
 	/** Copies the player's current state into the record and sends it to the backend; Reason goes to the item log. */
 	void SavePlayer(ANWPlayerController* PC, const FString& Reason = TEXT("save"));
 
+	/** Server with nw-core (pass required on connect). */
+	bool IsBackendServer() const;
+	/**
+	 * One dedicated server per map (docs/tech/server.md): saves the player with Map and no position (spawns at the map's
+	 * start), asks nw-core for a new pass and the address of that map's server, and sends the client there.
+	 */
+	void TravelPlayer(ANWPlayerController* PC, const FString& Map);
+	/** F10: another character of the account (editor Play: in place; client with login: back to the character list). */
+	void SwitchCharacter(ANWPlayerController* PC);
+	/** Puts the character record on the player (name, position on this map, inventory, progression). */
+	void ApplyRecord(ANWPlayerController* PC, struct FNWCharacterRecord&& Record);
+
 	/** Periodic save (s): whatever is not an operation written on the spot (position, health, XP; gathering and loot until step 3). */
 	UPROPERTY(EditAnywhere, Category = "NW|Servidor") float SaveInterval = 5.f;
 

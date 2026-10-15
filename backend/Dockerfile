@@ -3,6 +3,9 @@ WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY src src
 COPY migrations migrations
+# city.rs embeds tools/governanca.json and tools/precos_cidade.json (include_str! "../../../tools/..." = /tools):
+# they come from the named build context "tools" (docker build --build-context tools=<repo>/tools).
+COPY --from=tools governanca.json precos_cidade.json /tools/
 RUN cargo build --release --locked
 
 FROM debian:bookworm-slim

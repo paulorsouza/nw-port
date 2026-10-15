@@ -78,7 +78,8 @@ Orchestration:
 - `tools/ue_import_all.py` on Linux: steps `sistemas-04/05` (`tools/steps/systems.ue.sh`), the heavy-work queue,
   and the open-editor check on Linux.
 - No Windows equivalent yet: `backend_dev`, `ui_shot`, `check` (use `doctor.py` and
-  `python -m unittest discover -s tools/tests`), `package_server`, `rede`, `net_test`, `play_local`.
+  `python -m unittest discover -s tools/tests`), `rede`, `net_test`, `play_local`. Packaging client and servers:
+  `tools/windows/build_demo.ps1` (Demo build, below).
 
 ## Acceptance status
 
@@ -153,6 +154,58 @@ python tools/make_data.py
 
 Variables: `NW_GAME` (game), `NW_UE` (engine), `NW_BLENDER` (`blender.exe`), `NW_BUDDY` (RTTI tables checkout, if
 not in `vendor/nw-buddy`), `NW_PYTHON` (Python used by the build scripts).
+
+## Demo build
+
+`tools/windows/build_demo.ps1` builds a Development demo for the clan: client with `L_SouthWindsward`,
+`L_QuedaEterna` and `L_Arena` (F10 for admin accounts), one native server per map and Postgres + nw-core in Docker
+Desktop. Per-map servers and travel between them: [server.md](server.md#one-server-per-map).
+
+Needs: Unreal 5.8.3 built from source (`NW_UE_SOURCE` in `local.env`), the installed 5.8.3 (`NW_UE`, cooks), Docker
+Desktop running, Python, the project imported, editor and game closed.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\windows\build_demo.ps1 -HostAddress 192.168.0.10 -Admin paulo
+```
+
+| Parameter | Use |
+|---|---|
+| `-HostAddress` | Address the players use to reach this PC. Default: the IPv4 of the network with the default gateway. |
+| `-BackendUrl` | nw-core URL for the clients (e.g. a Cloudflare Tunnel). Default: `http://<HostAddress>:8090`. |
+| `-Admin a,b` | Accounts with F10. An account that does not exist yet gets an invite; run again after it is created. |
+| `-Invites N` | Prints N account invites (7 days). |
+| `-CookWith Source` | Cooks with the source engine instead of the installed editor. |
+| `-SkipData`, `-SkipCompile`, `-SkipCook`, `-SkipPackage`, `-SkipDocker`, `-SkipZip` | Skip a step. |
+
+What it does, in order (running it again is safe; compiling and cooking are incremental):
+
+1. Checks the engines, Docker Desktop and that the editor, client and servers are closed.
+2. `python tools/make_data.py`.
+3. Compiles `NWPort` and `NWPortServer` Win64 Development with the source engine (heavy-job queue).
+4. Cooks Windows + WindowsServer with the installed editor and packages with the source engine's RunUAT into
+   `deploy\build\Windows` and `deploy\build\WindowsServer`.
+5. `deploy\.env`: creates `NW_DB_PASSWORD` and `NW_SERVER_SECRET` when missing (never printed) and writes
+   `NW_MAP_SERVERS`. Builds the `nw-core:local` image and starts `deploy/compose.windows.yaml` (project `nw-demo`,
+   port 8090).
+6. Flags the `-Admin` accounts and prints the invites.
+7. Writes `deploy\build\Servidores.bat`, `deploy\build\Jogar.bat`, `deploy\build\Windows\Jogar.bat` and
+   `deploy\build\NWExiles-demo-client.zip`.
+
+Play:
+
+| Command | What it does |
+|---|---|
+| `deploy\build\Servidores.bat` | Three server windows: Windsward 7777, Everfall 7778, Arena 7779. `Servidores.bat arena` starts only one. Logs in `deploy\build\logs`. |
+| `deploy\build\Jogar.bat` | Client with `-nwbackend`; no `-nwconnect` (nw-core returns the server address). |
+| `docker compose -p nw-demo -f deploy\compose.windows.yaml exec core nw-core admin <account>` | F10 for one more account. |
+| `docker compose -p nw-demo -f deploy\compose.windows.yaml exec core nw-core invite` | One more invite. |
+| `docker compose -p nw-demo -f deploy\compose.windows.yaml down` | Stops nw-core; the database stays in the `nw-demo_db` volume. |
+
+- Firewall: allow `NWPortServer.exe` on the first start (private network). Friends from outside the network need UDP
+  7777-7779 and TCP 8090 forwarded to this PC, or the WARP setup of [network-test.md](network-test.md).
+- The zip carries game content extracted from your install: only for testers who own the game.
+- Client and servers come from the same build. After changing C++ or `Data/`, run the script again and send the new zip.
+- Tests: [../tests/build.md](../tests/build.md).
 
 ## Building the tools on Windows
 
