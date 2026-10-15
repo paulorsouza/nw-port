@@ -13,7 +13,7 @@ area asks a specific question through the `nw-re` agent (see "Reverse engineerin
 | 1b. Greatsword | [game/weapons/README.md](game/weapons/README.md) | [tests/weapons.md](tests/weapons.md) | `L_Arena` |
 | 2. Gathering | [game/gathering.md](game/gathering.md) | [tests/gathering.md](tests/gathering.md) | `L_SouthWindsward` |
 | 3. Mounts | [game/mounts.md](game/mounts.md) | [tests/mounts.md](tests/mounts.md) | `L_SouthWindsward` |
-| 4. Systems and Everfall | [game/city.md](game/city.md), [game/items.md](game/items.md), [game/crafting.md](game/crafting.md), [game/economy.md](game/economy.md), [game/world/everfall.md](game/world/everfall.md) | [tests/systems.md](tests/systems.md) | `L_QuedaEterna` |
+| 4. Systems and Everfall | [game/city.md](game/city.md), [game/items.md](game/items.md), [game/crafting.md](game/crafting.md), [game/economy.md](game/economy.md), [game/world/everfall.md](game/world/everfall.md) | [tests/systems.md](tests/systems.md) | `L_QuedaEterna`, `L_SouthWindsward` |
 | 5. Lighting | [game/lighting.md](game/lighting.md) | [tests/world.md](tests/world.md) | `L_QuedaEterna`, `L_SouthWindsward` |
 | UI (game screens) | [game/ui/README.md](game/ui/README.md) | [tests/systems.md](tests/systems.md) | `L_QuedaEterna` |
 

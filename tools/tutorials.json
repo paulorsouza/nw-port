@@ -150,6 +150,7 @@
   "nivel_max": 60
  },
  "bonecos": {
-  "queda_eterna": []
+  "queda_eterna": [],
+  "guardaventos": []
  }
 }

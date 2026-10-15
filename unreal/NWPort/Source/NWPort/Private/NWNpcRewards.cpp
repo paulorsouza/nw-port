@@ -69,7 +69,7 @@ FString FNWNpcRewards::Chosen(const UWorld* World, const FString& City, const FS
 	TArray<FString> Pool;
 	for (TActorIterator<ANWNpc> It(const_cast<UWorld*>(World)); It; ++It)
 	{
-		if (It->Type == Type && !It->DisplayName.IsEmpty())
+		if (It->Type == Type && It->City == City && !It->DisplayName.IsEmpty())
 		{
 			Pool.AddUnique(It->Variant);
 		}

@@ -41,3 +41,12 @@ systems_ui_sounds() {
     py systems_ui_sounds "$ROOT/tools/ue/import_ui_sounds.py"
 }
 step sistemas-05 "station interface sounds" systems_ui_sounds
+
+systems_windsward_npcs() {
+    # Windsward town (L_SouthWindsward): NPCs, and the field also spawns the town's stations, Storage, Trading Post and
+    # city boards (Data/Crafting/refining.json, city guardaventos). Before: build steps sistemas-04 and sistemas-05.
+    py systems_npc_anims_ww "$ROOT/tools/ue/import_nw.py" "$ROOT/extract/ue/NpcGuardaventos/manifest.json"
+    py systems_npcs_ww "$ROOT/tools/ue/import_npcs.py" "$ROOT/extract/ue/npcs_guardaventos" NpcGuardaventos \
+        L_SouthWindsward guardaventos_npcs.json
+}
+step sistemas-06 "Windsward NPCs and city field (L_SouthWindsward)" systems_windsward_npcs

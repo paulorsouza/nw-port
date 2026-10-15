@@ -85,6 +85,11 @@ namespace NWCity
 				{
 					const TSharedPtr<FJsonObject> O = V->AsObject();
 					Out.CityToRegion.Add(O->GetStringField(TEXT("cidade")), O->GetStringField(TEXT("id")));
+					FString Territory;
+					if (O->TryGetStringField(TEXT("territorio"), Territory))
+					{
+						Out.CityTerritory.Add(O->GetStringField(TEXT("cidade")), Territory);
+					}
 				}
 				auto Ups = [](const TArray<TSharedPtr<FJsonValue>>& In, const TCHAR* ToField, TArray<FUp>& Into)
 				{

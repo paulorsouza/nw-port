@@ -5,8 +5,18 @@
       "id": "1",
       "nome": "Queda Eterna",
       "cidade": "queda_eterna",
+      "territorio": "everfall",
       "mapas": [
         "L_QuedaEterna"
+      ]
+    },
+    {
+      "id": "2",
+      "nome": "Guardaventos",
+      "cidade": "guardaventos",
+      "territorio": "windsward",
+      "mapas": [
+        "L_SouthWindsward"
       ]
     }
   ],

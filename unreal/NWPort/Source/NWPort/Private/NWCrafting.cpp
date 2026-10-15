@@ -61,6 +61,7 @@ FNWCrafting::FNWCrafting()
 		const TArray<TSharedPtr<FJsonValue>>& P = S->GetArrayField(TEXT("pos"));
 		St.Pos = FVector(P[0]->AsNumber(), P[1]->AsNumber(), P[2]->AsNumber());
 		St.Yaw = float(S->GetNumberField(TEXT("yaw")));
+		S->TryGetStringField(TEXT("city"), St.City);
 		for (const auto& N : S->GetObjectField(TEXT("name"))->Values)
 		{
 			St.Name.Add(*N.Key, N.Value->AsString());

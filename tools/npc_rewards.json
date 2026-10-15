@@ -538,6 +538,25 @@
     "99A_Captain": "madeira",
     "9804_Feldan": "madeira",
     "0440a_AtticusDelphi_02": "madeira",
-    "0428_Jones": "madeira"
+    "0428_Jones": "madeira",
+    "06_MarcelDupont_02": "guarda",
+    "06_LionelDeLaRue_02": "guarda",
+    "06_LeovixSilva_03": "guarda",
+    "06_ZhangHaoyu": "mineiro",
+    "06_ElricChapman": "mineiro",
+    "06_AhuraFarid": "mineiro",
+    "06_Outfitter": "artesao",
+    "06_LiZihan": "artesao",
+    "06_TalesaSerrano": "artesao",
+    "npc_06a_verildis": "taverna",
+    "0612_StillwaterRose_01WW": "taverna",
+    "npc_1225_giacomo_ww": "taverna",
+    "0425_HaplessHoweTownWW": "alquimia",
+    "06_SaatvikAgrawal_01": "alquimia",
+    "NPC_03976_Aelstrom_02": "alquimia",
+    "06_NessaHarrower_03": "alquimia",
+    "06_FrancisTurner_02": "madeira",
+    "06_FudeHinode": "madeira",
+    "npc_06_sweeper": "madeira"
   }
 }

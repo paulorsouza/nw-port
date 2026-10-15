@@ -126,7 +126,8 @@ namespace NWCity
 	struct FUp { int32 To = 0; TArray<TPair<FName, int64>> Materials; int64 Coins = 0; };
 	struct FRules
 	{
-		TMap<FString, FString> CityToRegion;           // "queda_eterna" -> "1"
+		TMap<FString, FString> CityToRegion;           // "queda_eterna" -> "1", "guardaventos" -> "2"
+		TMap<FString, FString> CityTerritory;          // city -> territory name key ("everfall", "windsward")
 		int32 TierInitial = 2;
 		TArray<FUp> TierUps;                           // To = new tier
 		TMap<int32, TPair<int32, float>> TierEffect;   // tier -> (GS, minimum quality)

@@ -57,7 +57,8 @@ class NWPORT_API FNWCrafting
 public:
 	static FNWCrafting& Get();
 
-	struct FStation { FString Type; FName Skill; int32 Tier = 0; FVector Pos = FVector::ZeroVector; float Yaw = 0.f; TMap<FString, FString> Name; };
+	/** City station; City = city id (queda_eterna, guardaventos): ANWNpcField spawns only its city's stations. */
+	struct FStation { FString Type; FName Skill; int32 Tier = 0; FVector Pos = FVector::ZeroVector; float Yaw = 0.f; TMap<FString, FString> Name; FString City; };
 	const TArray<FStation>& Stations() const { return StationList; }
 	const FNWRecipe* Find(FName Id) const;
 	/** Station recipes (type and tier), in game order. */

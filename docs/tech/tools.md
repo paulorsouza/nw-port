@@ -86,9 +86,9 @@ converts a cube from the game through `@list` and fails if nothing is written. `
 | `make_items.py` | item catalog (weapons, tools, potions, loot resources) and the game's loot tables |
 | `make_port_items.py` | port item rules → `unreal/NWPort/Data/Items/regras_itens.json` ([../game/items.md](../game/items.md), [../game/crafting.md](../game/crafting.md)) |
 | `make_crafting.py` | Everfall refining stations and the game's refining recipes → `unreal/NWPort/Data/Crafting/refining.json` |
-| `make_npcs.py` | Everfall capital NPCs: position in `L_QuedaEterna`, appearance, idle animation and name |
-| `convert_npcs.py` | converts the appearances of the Everfall NPCs (`.cdf` from `Data/World/queda_eterna_npcs.json`) to FBX |
-| `export_npcs.py` | Blender part of `convert_npcs.py`: each NPC glb → `extract/ue/npcs/<SK_name>/<SK_name>.fbx` + `materials.json` |
+| `make_npcs.py [city]` | city NPCs (Everfall, Windsward): position in the city map, appearance, idle animation and name; list and animation set per city |
+| `convert_npcs.py [city]` | converts the appearances of a city's NPCs (`.cdf` from `Data/World/<city>_npcs.json`) to FBX |
+| `export_npcs.py` | Blender part of `convert_npcs.py`: each NPC glb → `extract/ue/npcs[_<city>]/<SK_name>/<SK_name>.fbx` + `materials.json` |
 | `make_gatherables.py` | Windsward gatherables: capitals + `region.distribution` → `Data/World/guardaventos_gatherables.json` |
 | `make_spawns.py` | Windsward creatures (G3): spawners of the region's `_ai` layers → `Data/World/guardaventos_spawns.json` |
 | `make_terrain.py` | terrain mesh (cut around the town or the whole `--region`) from the heightmap |

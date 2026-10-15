@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""Converts the Everfall NPC appearances (.cdf from Data/World/queda_eterna_npcs.json) to FBX.
+"""Converts a city's NPC appearances (.cdf from Data/World/<city>_npcs.json, tools/make_npcs.py) to FBX.
 
-    tools/linux/heavy.sh python3 tools/convert_npcs.py        (needs `source tools/linux/env.sh`: nwbt and blender)
+    tools/linux/heavy.sh python3 tools/convert_npcs.py [city]   (default queda_eterna; needs `source tools/linux/env.sh`)
 
 One nwbt call for all .cdf (the pak index loads once) and one Blender run to export.
-Output in extract/ue/npcs/<SK_name>/: <SK_name>.fbx, textures/, materials.json. Import: tools/ue/import_npcs.py.
-The animations come from the set tools/sets/npc_queda_eterna.json (build_set.py), on the same npc_skel skeleton.
+Output in extract/ue/npcs/<SK_name>/ (Everfall) or extract/ue/npcs_<city>/<SK_name>/ (other cities): <SK_name>.fbx,
+textures/, materials.json. Import: tools/ue/import_npcs.py with that folder. The nwbt glb cache is shared
+(extract/ue/npcs/glb), and an appearance already exported for another city is copied instead of exported again.
+The animations come from the set tools/sets/npc_<city>.json (build_set.py), on the same npc_skel skeleton.
 """
+import glob
 import json
 import os
+import shutil
+import sys
 import nwplatform
 import nwprocess
 import outputs
@@ -16,8 +21,10 @@ import outputs
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 nwplatform.configure()
 GAME = nwplatform.game_directory()
-NPCS = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "queda_eterna_npcs.json")
-OUT = os.path.join(ROOT, "extract", "ue", "npcs")
+CITY = sys.argv[1] if len(sys.argv) > 1 else "queda_eterna"
+NPCS = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", f"{CITY}_npcs.json")
+BASE = os.path.join(ROOT, "extract", "ue", "npcs")
+OUT = BASE if CITY == "queda_eterna" else BASE + "_" + CITY
 CDFS = os.path.join(ROOT, "extract", "npcs")  # extracted .cdf (attachment Flags); see docs/game/city.md
 
 
@@ -26,7 +33,14 @@ def main():
     by_mesh = {}
     for n in npcs:
         by_mesh.setdefault(n["mesh"], n["cdf"])
-    glb_dir = os.path.join(OUT, "glb")
+    glb_dir = os.path.join(BASE, "glb")
+    # Appearance already exported for another city: same .cdf, same FBX and textures.
+    for m in by_mesh:
+        if os.path.exists(os.path.join(OUT, m, m + ".fbx")):
+            continue
+        for done in glob.glob(os.path.join(BASE + "*", m, m + ".fbx")):
+            shutil.copytree(os.path.dirname(done), os.path.join(OUT, m), dirs_exist_ok=True)
+            break
     todo = [c for c in by_mesh.values() if not os.path.exists(os.path.join(glb_dir, c + ".glb"))]
     if todo:
         # List in a file: many .cdf exceed the Windows command-line limit.

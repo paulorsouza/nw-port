@@ -1,7 +1,9 @@
 """Imports the NPC appearances (tools/convert_npcs.py) and puts the NPC field on the city map.
 
-    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_npcs.py <extract/ue/npcs> <Set> <Map>"
+    UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_npcs.py <extract/ue/npcs> <Set> <Map> [<data file>]"
     e.g. ... import_npcs.py /…/extract/ue/npcs NpcQuedaEterna L_QuedaEterna
+         ... import_npcs.py /…/extract/ue/npcs_guardaventos NpcGuardaventos L_SouthWindsward guardaventos_npcs.json
+    The data file (Data/World, default queda_eterna_npcs.json) and the asset root /Game/NW/<Set> go into the field.
     Materials only, in the open editor (outside Play):
     python3 tools/ue/remote.py -c "import sys; sys.argv=['', '<npcs>', 'NpcQuedaEterna', 'L_QuedaEterna', '--materials-only']; exec(open('tools/ue/import_npcs.py').read())"
 
@@ -18,6 +20,7 @@ import sys
 import unreal
 
 SRC, SET, MAP_NAME = sys.argv[1:4]
+DATA_FILE = next((a for a in sys.argv[4:] if not a.startswith("--")), "queda_eterna_npcs.json")
 ROOT = f"/Game/NW/{SET}"
 MAP = f"/Game/NW/Maps/{MAP_NAME}"
 tools = unreal.AssetToolsHelpers.get_asset_tools()
@@ -165,6 +168,8 @@ if not MATERIALS_ONLY:
     eas.destroy_actors([a for a in eas.get_all_level_actors() if a.get_class().get_name() == "NWNpcField"])
     field = eas.spawn_actor_from_class(unreal.load_class(None, "/Script/NWPort.NWNpcField"), unreal.Vector(0, 0, 0))
     field.set_actor_label("NPCs")
+    field.set_editor_property("data_file", DATA_FILE)
+    field.set_editor_property("asset_root", ROOT)
     if not les.save_current_level():
         raise RuntimeError("could not save the map")
     log(f"NPC field on map {MAP}")

@@ -2,14 +2,15 @@
 
 The capital of Everfall in its own map, `L_QuedaEterna`, with the terrain cut around it. City systems that run here:
 [../city.md](../city.md). Stations and crafting: [../crafting.md](../crafting.md). City ownership:
-[../economy.md](../economy.md). Tests: [../../tests/systems.md](../../tests/systems.md). Windsward stays as it is
-([windsward.md](windsward.md)).
+[../economy.md](../economy.md). Tests: [../../tests/systems.md](../../tests/systems.md). The same systems also run
+in the Windsward town ([windsward.md](windsward.md#city-systems)); the list of cities is in
+[../city.md](../city.md#cities).
 
 ## Scope
 
-- Only the capital of Everfall (slice `settlement_northwindsward_complete`, capital `ef_persistence` in `r_+04_+02`)
-  and the terrain cut around it, in its own map. Other cities and the rest of the Everfall territory only when the
-  maintainer asks.
+- The capital of Everfall (slice `settlement_northwindsward_complete`, capital `ef_persistence` in `r_+04_+02`)
+  and the terrain cut around it, in its own map, city id `queda_eterna`, governance region 1. The rest of the
+  Everfall territory only when the maintainer asks.
 - Systems for this map, in order: convert the city and build the playable map; city NPCs (slice position, appearance,
   idle animation, name); refining and crafting stations (interaction, recipes from the tables, time, XP, minimum
   level); city storage; shops and merchants; Trading Post (buy and sell orders in nw-core); housing (plots, purchase,

@@ -182,9 +182,15 @@ void ANWNpcField::BeginPlay()
 		}
 	}
 
-	// City refining stations (Data/Crafting/refining.json; the mesh is the converted city one).
+	// City refining stations (Data/Crafting/refining.json; the mesh is the converted city one). Only this map's city:
+	// each station position is in its own city's map frame.
+	auto OfThisCity = [this](const FNWCrafting::FStation& Data) { return Data.City.IsEmpty() || Data.City == City; };
 	for (const FNWCrafting::FStation& Data : FNWCrafting::Get().Stations())
 	{
+		if (!OfThisCity(Data))
+		{
+			continue;
+		}
 		FVector Foot = Data.Pos;
 		FHitResult Hit;
 		FCollisionQueryParams Q(SCENE_QUERY_STAT(NWStationFloor), true);
@@ -209,7 +215,10 @@ void ANWNpcField::BeginPlay()
 	}
 	for (const FNWCrafting::FStation& Data : FNWCrafting::Get().Stations())
 	{
-		Points.Add(Data.Pos);
+		if (OfThisCity(Data))
+		{
+			Points.Add(Data.Pos);
+		}
 	}
 	if (HasAuthority() && !City.IsEmpty() && Points.Num() > 0)
 	{

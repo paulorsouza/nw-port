@@ -1,11 +1,25 @@
 # City systems
 
 Systems of a city in the port: NPCs and their gifts, storage, shops, Trading Post, housing, character level and XP,
-bag and ground drops. They run in Everfall ([world/everfall.md](world/everfall.md), map `L_QuedaEterna`). Crafting
-stations: [crafting.md](crafting.md). Items: [items.md](items.md). City ownership and prices: [economy.md](economy.md).
+bag and ground drops. They run in every city of the table below. Crafting stations: [crafting.md](crafting.md). Items: [items.md](items.md). City ownership and prices: [economy.md](economy.md).
 Tests: [tests/systems.md](../tests/systems.md).
 
 Game tables live in `extract/data/sharedassets/springboardentitites/datatables/` (written `DT/` below).
+
+## Cities
+
+| City id | City | Map | Settlement slice | Governance region | NPCs |
+|---|---|---|---|---|---|
+| `queda_eterna` | Everfall ([world/everfall.md](world/everfall.md)) | `L_QuedaEterna` | `settlement_northwindsward_complete` (capital `ef_persistence`, `r_+04_+02`) | 1 | 30 within 300 m |
+| `guardaventos` | Windsward ([world/windsward.md](world/windsward.md)) | `L_SouthWindsward` | `settlement_southwindsward_complete` (capital `06swindsward_persistence`, `r_+04_+01`) | 2 | 27 within 250 m |
+
+- Each map has one `ANWNpcField` with its city's data file (`Data/World/<city>_npcs.json`) and asset root
+  (`/Game/NW/Npc<Set>`). The field reads `city` from the file, spawns the NPCs and only that city's stations
+  (`city` field of `Data/Crafting/refining.json`), and marks the city area.
+- Both maps use the town frame (town-local, UE = (−x, y, z) × 100), so a station keeps its slice position.
+- A new city: a row in `CITIES` of `tools/make_npcs.py` and `tools/make_crafting.py`, a region in
+  `tools/governanca.json` (`cidade`, `territorio`), the NPC trade skills in `tools/npc_rewards.json`, a shop in
+  `tools/shops.json`, `bonecos` in `tools/tutorials.json`, build and import steps in `tools/steps/systems.*`.
 
 ## How systems are built
 
@@ -74,6 +88,8 @@ Game tables live in `extract/data/sharedassets/springboardentitites/datatables/`
   `malek_standing_ambient.timeline`. Variants `_walkaway` (257) and `_clientpathing_walkaway` (6).
 - Name, title, dialogue: `DT/questdata/npcdata_npc_NNNNN` (NPCId, GenericName, Title, ConversationStateId1..10).
 - `DT/javelindata_npcs` is empty.
+- Windsward: variants `06_*` (quest NPCs, several copies of each), `0425_HaplessHoweTownWW`, 9 `WW_Ambient_*`, and
+  the mission slices `Characters/Mission/NPC_06*` (Verildis Jannsen, Dorothea Chloros).
 - Everfall: variants `04xx` (Magistrate, HuntsmanLee, Constable, ArtificerPetrowski, Commander, Alchemist,
   Adjudicator, BarkeepPolly, Innkeep, Fisher, TownGuard and others, 41 in total) and 11 `EF_Ambient_*`.
 - Position: entities of the city slice. Quest NPC slices in `slices/characters/mission/npc_04*`.
@@ -102,18 +118,27 @@ From the UI scripts `lyshineui/markers/markerdata.luac` (type `Conversation`) an
 
 ### Port
 
-- List: `tools/make_npcs.py` → `Data/World/queda_eterna_npcs.json` (30 NPCs within 300 m of the capital) and the
-  animation set `tools/sets/npc_queda_eterna.json` (16 loops, skeleton `npc_skel`).
-- Sources of the list: capitals `ef_lore`, `ef_persistence`, `04nwindsward_lore`, `ambient_4,1`, `ambient_4,2`. The
-  variant comes from `variantName` (ambient) or from `m_slicevariant` in the spawners `coatgen/<capital>/MasterNpc_*`
-  (stage `sistemas-02` of `build_all`). Timelines come from stage `sistemas-03`.
+- List: `python3 tools/make_npcs.py [city]` → `Data/World/<city>_npcs.json` and the animation set
+  `tools/sets/npc_<city>.json` (skeleton `npc_skel`). Everfall: 30 NPCs within 300 m, 16 loops. Windsward: 27 NPCs
+  within 250 m, 18 loops.
+- Sources of the list: capitals of `r_+04_+01` and `r_+04_+02` within the radius (Everfall: `ef_lore`,
+  `ef_persistence`, `04nwindsward_lore`, `ambient_4,1`, `ambient_4,2`; Windsward: `06swindsward_lore`,
+  `06swindsward_persistence`, `ambient_4,1`). The variant comes from `variantName` (ambient) or from
+  `m_slicevariant` in the spawners `coatgen/<capital>/MasterNpc_*` (build stage `sistemas-02` for Everfall,
+  `sistemas-04` for Windsward). Timelines come from stage `sistemas-03`.
+- One NPC per name: the game has several copies of a quest NPC (`06_LeovixSilva_03`, `_03a`, `_03B`, `_04`), each
+  hidden by a quest step. The lowest VariantID stays.
+- An idle animation outside `player/male` (Aelstrom: `g_male_loopidle`) becomes `settle_stand_idle`.
 - With no quests, the initial state applies: `MasterNpc_SwapShown_*` is left out.
 - Also left out: the `DEPRECATED` variant and Grace O'Malley (own skeleton, quest NPC).
 - The IdleTimeline plays an alias (`animationalias`) that is the name of the `.caf` in `player/male/`. The
   `*_look_poses_15x` (look, additive) are not used yet.
-- Appearances: `tools/convert_npcs.py` (nwbt + `tools/export_npcs.py` in Blender) → `extract/ue/npcs/SK_*`.
-- Import: stage `sistemas-03` of `ue_import_all` (`import_nw.py` of the set + `tools/ue/import_npcs.py`), which saves
-  an `ANWNpcField` in the map.
+- Appearances: `tools/convert_npcs.py [city]` (nwbt + `tools/export_npcs.py` in Blender) → `extract/ue/npcs/SK_*`
+  (Everfall) or `extract/ue/npcs_<city>/SK_*`. The nwbt glb cache is shared; an appearance already exported for
+  another city is copied.
+- Import: `ue_import_all` stage `sistemas-03` (Everfall) and `sistemas-06` (Windsward): `import_nw.py` of the set +
+  `tools/ue/import_npcs.py <npcs> <Set> <Map> [<data file>]`, which saves an `ANWNpcField` in the map with its data
+  file and asset root.
 - C++: `ANWNpc` (capsule, mesh, idle loop, name) and `ANWNpcField` (reads the JSON and creates the NPCs on each machine,
   not replicated, snapping each one to the ground with a trace).
 - Talking (E): the NPC turns to face the character. Before talking, each NPC keeps its pose and facing.
@@ -122,7 +147,7 @@ From the UI scripts `lyshineui/markers/markerdata.luac` (type `Conversation`) an
 
 Game quests and lore are not converted. NPCs offer gifts instead:
 
-- **Groups by trade:** at most 6 trades per city (guard, ore and metals, tailor and hunter, tavern, alchemy and herbs,
+- **Groups by trade:** at most 6 trades per city (the draw only counts the NPCs of the same city) (guard, ore and metals, tailor and hunter, tavern, alchemy and herbs,
   wood and port), with 3 to 4 NPCs each (`tools/npc_rewards.json`). Each week one NPC per group, drawn the same for
   everyone (CRC of city + trade + week), gives gifts in that city: up to 6 NPCs per week. The others in the group have
   nothing.
@@ -137,7 +162,7 @@ Game quests and lore are not converted. NPCs offer gifts instead:
 Implementation:
 
 - Data: `tools/npc_rewards.json` → `Data/World/npc_rewards.json` and the `tipo` field in
-  `Data/World/queda_eterna_npcs.json` (`tools/make_npcs.py`).
+  `Data/World/<city>_npcs.json` (`tools/make_npcs.py`).
 - Rules: `FNWNpcRewards` (`NWNpcRewards.h`): period, NPC draw, items and NPC state.
 - Server: `UNWInteractorComponent::ServerNpcInteract` checks distance (4 m) and state, grants through
   `Inventory->Grant` and writes to nw-core (`UNWBackend::ClaimNpcReward`, bag and coins in the same transaction).
@@ -158,7 +183,7 @@ Implementation:
 
 ### Port
 
-- The 2 Everfall storage sheds, read from the slice (`settlement_storage_geo_master`, name `ui_global_storage`), are
+- The storage sheds of each city (Everfall 2, Windsward 3), read from the slice (`settlement_storage_geo_master`, name `ui_global_storage`), are
   stations of type `storage` (`make_crafting.py`). The card is "[E] Open".
 - One storage per character (`shared` in nw-core, migration 0010), the same in any storage shed of any city. Items
   that were in `settlement:*` and `house:*` were merged into it.
@@ -166,7 +191,7 @@ Implementation:
   and city level become sources when they exist (`UNWInteractorComponent::StorageCapacityNow`). The server sends the
   capacity to nw-core on character save and on every storage write.
 - Known city: entering the city area (center of the NPCs and stations of `ANWNpcField`, radius up to the farthest one
-  + 40 m) or opening its storage shed. Message "City discovered: storage +1000 kg"; saved in `progression.cities`.
+  + 40 m) or opening its storage shed. Each city of the table above counts once (Everfall and Windsward: 2000 kg). Message "City discovered: storage +1000 kg"; saved in `progression.cities`.
 - 5 tabs (`armazem_abas`): each item keeps its tab; storing goes to the open tab; the market delivers to tab 1.
   Dropping an item on a tab stores it there (from the bag) or moves the stack to it (from storage,
   `ServerStorageSetTab`). Double-click on the open tab renames it (up to 24 letters, `ServerStorageRenameTab`). One
@@ -198,11 +223,11 @@ Lean shop, essentials only, no generic items:
   with two decimals (50 coins of a new character = 0.50).
 - Potions: only T5 exists in the port (catalog, Lost loot and starting kit; a new character starts with 5 T5 health
   potions). T1–T4 disappear from characters that had them on login (an item outside the catalog does not load).
-- Everfall merchant: `EF_Ambient_Merchant_00`, card "Shop · [E] Buy" (`ui_shop_default_name`, `ui_buy`), shop icon
+- Merchants: `EF_Ambient_Merchant_00` (Everfall) and `WW_Ambient_Merchant_00` (Windsward), same list. Card "Shop · [E] Buy" (`ui_shop_default_name`, `ui_buy`), shop icon
   over the head.
 - List and prices in `tools/shops.json` → `Data/World/shops.json` (`make_crafting.py`): T5 health potion 2.00; the 5
   T5 refining reagents at 0.20 with a weekly limit of 100 per character (port number, adjustable in the file).
-- The limit renews with the NPC gifts (Tuesday 08:00 UTC). Purchases of the week in `progression.shop`
+- The limit is per item, shared by the two merchants. It renews with the NPC gifts (Tuesday 08:00 UTC). Purchases of the week in `progression.shop`
   (`{period, bought}`); no backend change.
 - Server: `UNWInteractorComponent::ServerShopBuy` checks the NPC within 4 m, limit, coins and weight; charges only
   what entered the bag; saves at once (`ANWGameMode::SavePlayer`).
@@ -370,5 +395,7 @@ Pending:
 - Trading Post: average price of identical items (sales history, median) is out of the first version.
 - NPC look poses (`*_look_poses_15x`).
 - Multi-option interaction card (`hud/unifiedinteractcard/interactscreen`).
-- A place for the training dummies in Everfall.
+- A place for the training dummies in Everfall and Windsward.
+- Windsward NPC trade groups (`tools/npc_rewards.json`) were chosen by role from the quest texts (innkeep, mason,
+  outfitter, herbalist, captain); the game has no such groups. Housing stays out of Windsward.
 - Tutorials for mount, crafting stations and factions.

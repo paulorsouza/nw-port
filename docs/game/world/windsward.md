@@ -114,7 +114,31 @@ Still open:
 
 ### G4: living town
 
-Town NPCs with idle animation, interaction with E (the game's card), town chest, merchant, teleporters.
+Town NPCs with idle animation, interaction with E (the game's card), town chest, merchant, teleporters. The NPCs,
+storage, merchant and stations come with the city systems below; teleporters are still open.
+
+## City systems
+
+The Windsward town runs the same city systems as Everfall ([../city.md](../city.md)), city id `guardaventos`,
+governance region 2 (own governor, tax, buffs and auction). Housing stays out.
+
+| Place | In the port |
+|---|---|
+| NPCs | 27 within 250 m of the capital `06swindsward_persistence` (19 named, 8 ambient), with gifts per trade skill |
+| Refining stations | Loom, Smelter, Woodshop, Tannery, Stonecutting Table, all T5 |
+| Crafting stations | Forge, Workshop, Arcane Repository, Outfitting station (the Kitchen is not used) |
+| Storage sheds | 3 (`settlement_storage_geo_master`) |
+| Merchant | `WW_Ambient_Merchant_00` |
+| Trading Post, Town Project Board, Territory Planning Board | `tradingpost`, `cityboard`, `governance` |
+| Training dummies | none |
+
+- Data: `python3 tools/make_npcs.py guardaventos` (`Data/World/guardaventos_npcs.json`, set
+  `tools/sets/npc_guardaventos.json`) and `tools/make_crafting.py` (stations with `city` = `guardaventos`).
+- Build: `tools/linux/build_all.sh sistemas-04` (slices, NPC `.cdf`) and `sistemas-05` (list, animations,
+  appearances in `extract/ue/npcs_guardaventos`).
+- Import: `tools/linux/ue_import_all.sh sistemas-06` (set `/Game/NW/NpcGuardaventos` and the `ANWNpcField` of
+  `L_SouthWindsward`). The field spawns the NPCs and the town's stations.
+- Entering the town marks it as a known city (+1000 kg storage).
 
 ### G5: loot chests and vegetation
 
