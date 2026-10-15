@@ -81,8 +81,8 @@ conferências, e `build_set.py` e `convert_npcs.py` recusam nwbt de outro patch.
 | `pesado.py <comando>` (Linux também `linux/pesado.sh`) | fila de trabalho pesado (um por vez na máquina, mesmo lock nos dois; `docs/esteiras.md`) |
 | `jogo_versao.py` / `linux/jogo_versao.sh [--exe]` | confere se a instalação é a build do time (`tools/jogo.versao`) |
 | `setspec.py` | junta as partes de um conjunto (`tools/sets/player/<esteira>.json` no do jogador) para `build_set.py` e `make_datatables.py` |
-| `make_rules.py` | fatos da engenharia reversa (`re-local/valores/<área>.json`) → `Data/regras.json`, lido pelo `FNWRules` no C++ |
-| `re_check.py` | o que da engenharia reversa já entrou no port: valores aplicados e faltando, `Data/regras.json` em dia, colunas da damagetable que o cliente do jogo lê e o port não exporta |
+| `make_rules.py` | opcional: cache local da RE (`re-local/valores/`) → `Data/regras.json`, que sobrescreve os padrões do `FNWRules` |
+| `re_check.py` | opcional, com cache local da RE (`re-local/`): o que dela já entrou no port: valores aplicados e faltando, `Data/regras.json` em dia, colunas da damagetable que o cliente do jogo lê e o port não exporta |
 | `weapon_report.py <arma>` | relatório do que o jogo define sobre o combate de uma arma (fragmentos, janelas, dano, stamina, recargas, habilidades, status) → `extract/research/` |
 | `make_sound_map.py` | liga sons às animações (passos, golpes, vozes) |
 | `build_strings.py` | tabela de textos pt-BR/en-US do C++ (`Data/UI/nw_strings.json`), de `tools/strings/<esteira>.json` (textos nossos + chaves do jogo) |

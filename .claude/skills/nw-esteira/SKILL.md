@@ -6,7 +6,7 @@ description: Regras de trabalho de qualquer esteira do port (armas, coleta, mont
 # Trabalhar numa esteira
 
 Referência completa: `docs/esteiras.md` (regras comuns, donos dos arquivos, escopo de cada esteira). Leia antes.
-O que a RE já leu do cliente, para todas as esteiras: `re-local/resumo-plano-a.md`. Telas: `docs/hud/README.md`.
+Fato do executável que os dados não dão: skill `nw-re` (pergunte de novo; as respostas não ficam no repositório). Telas: `docs/hud/README.md`.
 
 ## Plataforma
 
@@ -45,5 +45,4 @@ da plataforma: `nw-linux` (`tools/linux/`) ou `nw-windows` (`tools/windows/`).
 1. Doc de estado da esteira e "Sem fonte" atualizados.
 2. Item em `docs/testes/<esteira>.md`.
 3. Linha da esteira em `docs/ESTADO.md`.
-4. `python3 tools/re_check.py` se usou algo da RE.
-5. Editor aberto no mapa da esteira e pedido de print ao dono.
+4. Editor aberto no mapa da esteira e pedido de print ao dono.

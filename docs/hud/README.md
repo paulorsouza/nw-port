@@ -3,7 +3,7 @@
 Como portar uma tela do LyShine (canvas + Lua do jogo) e testar sem abrir o jogo. Prints do jogo original para
 comparar e se inspirar: `inspiracao/` (índice em `inspiracao/README.md`). Exemplo completo: a tela de refino
 (`docs/hud/refino.md`, `tools/ui_screens/refining.json`, `FNWRefiningMenu`). Pesquisa de todas as telas:
-`docs/hud-original.md`, `docs/hud-levantamento.md`; RE das telas: `re-local/hud-*.md`.
+`docs/hud-original.md`, `docs/hud-levantamento.md`; RE das telas: skill `nw-re`.
 
 ## Ciclo de trabalho
 
@@ -78,7 +78,7 @@ Refino:
 Inventário, equipamento e armazém: spec em `docs/hud/inventario.md` (arrastar e soltar, seções, armazém).
 
 Ordem das telas depois do refino: armazém (`catcontainer.lua`), atributos, ofícios, inventário (atalhos de
-`re-local/hud-inventario.md`) e maestria (com a esteira 1).
+RE) e maestria (com a esteira 1).
 
 `bExactText` está ligado só no refino. Ligar nas outras telas é uma linha no `Load` de cada uma, mas muda o tamanho
 do texto delas (sai ~1,56× menor que hoje, como no jogo): fazer tela a tela com a captura.

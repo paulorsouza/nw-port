@@ -1,6 +1,6 @@
 # Nada que venha da instalação do jogo entra no repositório: cada um extrai da própria cópia (docs/SETUP.md).
 extract/
-# Respostas da engenharia reversa: cada um gera as suas com o agente nw-re (re-local/README.md).
+# Cache local das respostas da engenharia reversa (agente nw-re); o port não depende dele (re-local/README.md).
 re-local/*
 !re-local/README.md
 previews/

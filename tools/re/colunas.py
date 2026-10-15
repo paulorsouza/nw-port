@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import xref  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# datasheet → início do parser de linha (simbolos.md).
+# datasheet → início do parser de linha (build de tools/jogo.versao).
 PARSERS = {"javelindata_damagetable": 0x...}
 NOT_COLUMNS = {"Default", "none"}
 

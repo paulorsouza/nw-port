@@ -55,7 +55,7 @@ O que foi feito e por que não serviu, para não repetir:
   `commands/models/collect_capitals.go` grava tipo, alcance certo e todos os parâmetros acima nos extras do nó
   `nwlight_N`.
 
-## Perguntas para a RE (abrir em `re-local/perguntas/iluminacao-NNN.md`)
+## Perguntas para a RE (skill `nw-re`)
 
 1. Unidade e fórmula da luz local: como `DiffuseMultiplier` e a cor viram radiância no shader do jogo (escala HDR,
    relação com o sol de 100.000 lux e com a exposição).

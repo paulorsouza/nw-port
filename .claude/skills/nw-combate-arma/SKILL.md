@@ -7,7 +7,7 @@ description: Esteira 1 — porta ou refina o combate de uma arma do New World (l
 
 Esteira 1 (`docs/esteiras.md`: ordem das armas, tabela de polimento, regras com as outras sessões; skill
 `nw-esteira`). Roteiro completo: `docs/combate-armas.md`. Regras gerais do jogo: `docs/combate-regras-jogo.md`.
-Leia os três antes, e `re-local/resumo-plano-a.md` (o que a RE já leu do cliente: combos pelos procclips
+Leia os três antes, e a seção "O que a RE já resolveu para o combate" de `docs/esteiras.md` (combos pelos procclips
 `CAGE-Transition*`, janelas `CAGE-Named`, saída das ações, reação, stamina, giro, homing, e as divergências do port).
 Sub-esteiras 1a (manopla de gelo) e 1b (espada grande): arquivos próprios por arma, seção "Sub-esteiras de arma" de
 `docs/esteiras.md`.
@@ -16,14 +16,13 @@ Princípio: número, janela e animação saem dos dados do jogo, com a fonte (ar
 `docs/armas/<arma>.md`. Nada de chute. Sem fonte nos dados: pergunte pela skill `nw-re`; sem resposta, seção "Sem fonte" do doc da arma.
 
 Dúvida vira pergunta: regra com prova H, item "em aberto" da RE ou comportamento que os dados não explicam →
-`re-local/perguntas/armas-NNN.md` (sub-esteira: `<arma>-NNN`) e agente `nw-re` em segundo plano. O item fica
-"aguardando <id>" no doc da arma e a sessão segue com outro. No máximo dois agentes `nw-re` ao mesmo tempo.
+agente `nw-re` em segundo plano (skill `nw-re`). O item fica
+"aguardando RE" no doc da arma e a sessão segue com outro. No máximo dois agentes `nw-re` ao mesmo tempo.
 Dano, crítico, grit e mitigação são de servidor: não perguntar.
 
 ## Passos
 
-0. RE: leia inteiros `re-local/combate-cage.md`, `combate-cliente.md` e `cage-runtime.md`, a matriz
-   "RE × port" de `docs/combate-armas.md` e rode `python3 tools/re_check.py`. O levantamento da arma (passo 2) usa
+0. RE: leia a matriz "RE × port" de `docs/combate-armas.md`; o que faltar, pergunte ao `nw-re`. O levantamento da arma (passo 2) usa
    essas regras: procclips de combo, janelas `CAGE-Named` e `Conditional`, saída e `.grid`, homing, giro,
    movimento por animação, stamina, reação e empurrão de cada golpe.
 1. Relatório: `python3 tools/weapon_report.py <arma>` (arma fora da lista: `--tag --adb --base --damage --cost --ability`).
@@ -56,5 +55,4 @@ Dano, crítico, grit e mitigação são de servidor: não perguntar.
 
 - Todo número novo tem fonte (doc da arma ou comentário).
 - `docs/combate-armas.md` (estado das armas, tabela de mecânicas) e `docs/testes/armas.md` (itens de teste) atualizados.
-- `python3 tools/re_check.py` sem pendência da arma.
 - Diferenças que ficaram: seção "Diferenças conhecidas" do doc da arma.

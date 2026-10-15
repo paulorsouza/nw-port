@@ -1,7 +1,7 @@
 # IA das criaturas: árvores do jogo
 
 As criaturas usam a árvore de comportamento do próprio jogo (Server.pak), interpretada no port. A semântica dos nós
-vem da engenharia reversa em `re-local/ia-mobs.md`; o que o jogo roda só no servidor e foi cortado do cliente
+vem da engenharia reversa (skill `nw-re`); o que o jogo roda só no servidor e foi cortado do cliente
 (sensor de alvo, movimento) é feito no port com os números do slice da criatura.
 
 ## Peças
@@ -14,7 +14,7 @@ vem da engenharia reversa em `re-local/ia-mobs.md`; o que o jogo roda só no ser
 | Sem árvore | `UNWBrainComponent` (estilos do port), como antes |
 
 Fontes: árvore em `extract/serverpak/json/sharedassets/ai/behaviortrees/` (extração em
-`re-local/ferramentas.md`); slice em `extract/serverpak/client/slices/characters/<x>.dynamicslice.json`.
+`docs/ghidra.md`); slice em `extract/serverpak/client/slices/characters/<x>.dynamicslice.json`.
 
 ## O que vem do jogo
 

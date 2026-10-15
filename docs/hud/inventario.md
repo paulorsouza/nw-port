@@ -3,7 +3,7 @@
 Fontes: scripts de interface do jogo (`extract/lua/lyshineui/`, decompilados) e canvases (`extract/ui/lyshineui/inventory/newinventory`,
 `equipment/equipmentv3`, `container/catcontainer`, achatados com `tools/ui_canvas.py`). Prova: **C** = código Lua, **R** = canvas,
 **H** = hipótese. Coordenadas em 1080p; o `ui_canvas.py` desenha os contêineres de tela destas telas 490 px acima, já
-somados aqui. Prints do original: `inspiracao/02`–`10`. Regras de transferência e teclas: `re-local/hud-inventario.md`.
+somados aqui. Prints do original: `inspiracao/02`–`10`.
 
 Quase tudo destas telas é montado pelo Lua (peças, seções e espaços são slices instanciados); a prévia do canvas sozinha
 não mostra a tela.

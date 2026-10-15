@@ -1,15 +1,13 @@
 # re-local
 
-Respostas da engenharia reversa do `NewWorld.exe`, geradas na máquina de cada um pelo agente `nw-re`
-(`.claude/skills/nw-re/SKILL.md`, `docs/ghidra.md`). Fora do git: só este arquivo é versionado.
+Cache das respostas de engenharia reversa desta máquina, gravado pelo agente `nw-re` (`docs/ghidra.md`). Fora do
+git: só este arquivo é versionado. Pode apagar; o agente refaz a pergunta quando precisar.
 
 ```
 re-local/
-  perguntas/<esteira>-NNN.md   pergunta e resposta
-  valores/<área>.json          fatos numéricos → tools/make_rules.py → unreal/NWPort/Data/regras.json
-  simbolos.md                  endereços e funções já revertidos
-  colunas.json                 colunas da damagetable lidas pelo exe (tools/re/colunas.py)
-  <tema>.md                    análises por tema
+  perguntas/<id>.md      pergunta e resposta
+  valores/<área>.json    números → tools/make_rules.py → unreal/NWPort/Data/regras.json (opcional)
+  simbolos.md            endereços e funções já revertidos
 ```
 
-Sem esta pasta o port roda com os valores padrão do código (`FNWRules::Num(id, padrão)`).
+O port não depende desta pasta: os valores aplicados estão no código (`FNWRules::Num(id, valor)`).

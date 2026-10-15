@@ -64,8 +64,7 @@ SFX_RULES = [
     ("wpn_1h_rapier", r".", "combat/rapier"),
     ("wpn_2h_bow", r".", "combat/bow"),
     ("wpn_1h_axe", r".", "combat/hatchet"),
-    # Interface das estações (esteira 4): roll de fabricar, raridade, perks, gema, nível de ofício
-    # (re-local/craftroll-equipamento.md §9).
+    # Interface das estações (esteira 4): roll de fabricar, raridade, perks, gema, nível de ofício.
     ("ui", r"^play_ui_(crafting_|tradeskill_levelup)", "ui/crafting"),
     ("playvoice_male", r"voice=vo_(exert|hurt|death|exhausted|landhard|landsoft|holding)", "combat/voice_male"),
     ("playvoice_female", r"voice=vo_(exert|hurt|death|exhausted|landhard|landsoft|holding)", "combat/voice_female"),

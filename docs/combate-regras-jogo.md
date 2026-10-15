@@ -108,20 +108,20 @@ Distribuição de `ImpactDecayRate` nas 3534 linhas com `ImpactDistanceY ≠ 0` 
 - Golpe que não gera reação: ação `Pushable` com `UsePushNoDecay=true`, dura 0.4 s (dado,
   `CAGE/playeractions_reaction.actionlist`).
 
-### Curva (código, `re-local/combate-cliente.md` §1)
+### Curva (código do cliente)
 
 - Deslocamento até o tempo t da reação: `s(t) = D·(1 − r^(30·t))`, t limitado à duração da reação. Se a reação acaba
   antes, anda `D·(1 − r^(30·T))`, não `D` inteiro.
 - `r ≈ 0`, `r ≈ 1` ou reação sem duração: tudo no primeiro quadro.
 - `ImpactDecayRate ≤ 0`: vai até uma posição que o servidor grava no golpe (sem fonte para a posição).
 - Eixos: Y na direção do golpe, X à direita dela, Z para cima; `PushBackScale` só reduz o que aponta para a frente.
-- No port: `combate.empurrao_curva` em `UNWCombatComponent::Push`. Faltam Z e `PushBackScale` (`tools/re_check.py`).
+- No port: `combate.empurrao_curva` em `UNWCombatComponent::Push`. Faltam Z e `PushBackScale`.
 
 ## 3. HitStun
 
 ### Unidade
 
-**Quadros a 30 fps** (1 = 1/30 s). Confirmado no código do `CHitStunContext` (`re-local/combate-cliente.md` §2):
+**Quadros a 30 fps** (1 = 1/30 s). Confirmado no código do `CHitStunContext`:
 a reação dura o início do procclip `HitStun` + `HitStun/30`, e o resto do fragmento toca na velocidade
 `(duração − início)/(HitStun/30)`, limitada a (0.001, 3]. O port lê o início do procclip do `.adb` (coluna
 `HitStunStart` das ações de reação).
@@ -388,7 +388,7 @@ Constantes do `UNWCombatComponent` hoje chutadas (`Public/NWCombatComponent.h`):
 ## Sem fonte
 
 Dano, crítico, backstab, grit e mitigação são calculados no servidor e não estão no cliente
-(`re-local/combate-cliente.md`); ficam as regras inferidas acima.
+; ficam as regras inferidas acima.
 
 - Posição do empurrão com `ImpactDecayRate ≤ 0`.
 - Fórmula de gear score (só a faixa está no cliente: `itens.gs_faixa`) e de mitigação por armadura do jogador.

@@ -186,5 +186,5 @@
   "/IngredientRow6/Quantity": "FONT_STYLE_CRAFTING_INGREDIENT_AMOUNT",
   "/IngredientRow7/Quantity": "FONT_STYLE_CRAFTING_INGREDIENT_AMOUNT"
  },
- "_comment_roll": "Roll de equipamento (re-local/craftroll-equipamento.md): QualityInfo, Stats/Weapons e Stats/PerkContainer ficam no layout; o C++ liga por tipo (refino desliga)."
+ "_comment_roll": "Roll de equipamento: QualityInfo, Stats/Weapons e Stats/PerkContainer ficam no layout; o C++ liga por tipo (refino desliga)."
 }

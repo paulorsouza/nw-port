@@ -43,7 +43,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenBlocking = 10.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float StaminaRegenDelay = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Números") float BlockArcDegrees = 180.f;
-	// Duração da reação, hit stop e empurrão: fatos da engenharia reversa (FNWRules, re-local/valores/).
+	// Duração da reação, hit stop e empurrão: fatos da engenharia reversa (FNWRules).
 
 	// ---- arma em uso e corpo (javelindata_itemdefinitions_weapons, slices do jogo; §4–§6) ----
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NW|Arma") float CritChance = 0.03f;

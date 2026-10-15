@@ -3,8 +3,8 @@
 #include "CoreMinimal.h"
 
 /**
- * Fatos da engenharia reversa do jogo (re-local/valores/<área>.json → tools/make_rules.py → Data/regras.json).
- * O id é o mesmo dos arquivos de valores; tools/re_check.py confere quais o port já usa.
+ * Valores vindos da engenharia reversa do jogo. O padrão de Num é o próprio valor; Data/regras.json (opcional,
+ * gerado por tools/make_rules.py do cache local re-local/) só sobrescreve.
  */
 struct NWPORT_API FNWRules
 {
