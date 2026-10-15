@@ -1,5 +1,5 @@
 {
-  "_comment": "Parâmetros do simulador da economia (tools/sim_economia.py, docs/plano-governanca.md). Moedas em moedas (não centavos). Valores 'proposta' são chutes a calibrar; os fixos vêm do dono ou dos dados.",
+  "_comment": "Parâmetros do simulador da economia (tools/sim_economia.py, docs/game/economy.md). Moedas em moedas (não centavos). Valores 'proposta' são chutes a calibrar; os fixos vêm do dono ou dos dados.",
   "semanas": 12,
   "cidades": 4,
   "jogadores_por_regiao": 50,

@@ -1,4 +1,4 @@
-"""Efeito de partículas do jogo → sistema Niagara (docs/particulas-estudo.md).
+"""Efeito de partículas do jogo → sistema Niagara (docs/tech/particles.md).
 
     UnrealEditor-Cmd NWPort.uproject -run=pythonscript -script="tools/ue/import_fx.py extract/fx/<Bib>.<Efeito>.json"
 

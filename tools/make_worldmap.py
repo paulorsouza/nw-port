@@ -12,7 +12,7 @@ Grava:
   extract/ui/worldmap_textures.txt        texturas para tools/ue/import_ui.py (tiles e peças da tela magicmap)
 POIs: slices/pois/territories/r_+04_+01_pois.dynamicslice (extract/pois, nwbt --x-objects json) dá a posição de cada
 território (TerritoryDataProviderComponent + transform); pointofinterestdefinitions dá nome e ícone do mapa.
-Depois: nwbt unpack dos tiles em PNG (docs/ASSETS.md) e tools/linux/ue_import_all.sh 09.
+Depois: nwbt unpack dos tiles em PNG (docs/tech/asset-pipeline.md) e tools/linux/ue_import_all.sh 09.
 """
 import glob
 import json

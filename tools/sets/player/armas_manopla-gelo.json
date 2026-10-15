@@ -1,5 +1,5 @@
 {
- "_comment": "Sub-esteira 1a (manopla de gelo, docs/armas/manopla-gelo.md): montagens AM_Ig_*, luva com pele (SK_icegauntlet) e cristal da palma (SM_icegauntlet_core). Fragmentos com tags MagicGauntlet+Ice de player_magicgauntlet_ice.adb. ice_gnt_pose_add (pose aditiva) fica de fora: o compositor substitui curvas.",
+ "_comment": "Sub-esteira 1a (manopla de gelo, docs/game/weapons/ice-gauntlet.md): montagens AM_Ig_*, luva com pele (SK_icegauntlet) e cristal da palma (SM_icegauntlet_core). Fragmentos com tags MagicGauntlet+Ice de player_magicgauntlet_ice.adb. ice_gnt_pose_add (pose aditiva) fica de fora: o compositor substitui curvas.",
  "weapons": {
   "icegauntlet_core": {
    "file": "objects/weapons/magic/gauntletcore/1h/icegauntlett5/wep_mag_gauntcore_1h_icegauntlett5.cdf",

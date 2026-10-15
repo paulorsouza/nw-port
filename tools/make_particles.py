@@ -5,7 +5,7 @@
 
 Saída: extract/fx/<Biblioteca>.<Efeito>.json com os emissores ativos do efeito (o raiz e os filhos, em ordem), cada
 um com o renderizador (sprite, malha ou decalque), os números e as curvas pela idade da partícula, e a lista de
-texturas, malhas e materiais que o efeito usa (docs/particulas-estudo.md).
+texturas, malhas e materiais que o efeito usa (docs/tech/particles.md).
 
 Formato dos valores do CryEngine (ParticleParams): "base,Random=r,ParticleAge=(t=..,v=..;t=..,v=..)". Chave sem t é
 t=0, sem v é v=0. Vetores "x=..,y=..,z=..", cores "(x=..,y=..,z=..)". Curvas EmitterStrength e as inclinações (d, s,
@@ -173,7 +173,7 @@ def build(lib_path, effect, src):
 
 
 def nwbt(*args, sub=1):
-    """nwbt pela fila de trabalho pesado (docs/esteiras.md), com o jogo de NW_GAME."""
+    """nwbt pela fila de trabalho pesado (docs/workflow.md), com o jogo de NW_GAME."""
     import subprocess
     game = os.environ.get("NW_GAME", "/mnt/jogos/Steam/steamapps/common/New World")
     subprocess.run([os.path.join(ROOT, "tools", "pesado.sh"), os.path.join(ROOT, "bin", "nwbt"), *args[:sub], "-g", game, *args[sub:]],

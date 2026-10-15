@@ -1,6 +1,6 @@
 """Lê um conjunto (tools/sets/<x>.json) juntando as partes listadas em "parts" (caminhos relativos a tools/sets/).
 
-O conjunto do jogador é dividido por esteira (docs/esteiras.md): tools/sets/sword_shield.json (personagem, pulo,
+O conjunto do jogador é dividido por esteira (docs/workflow.md): tools/sets/sword_shield.json (personagem, pulo,
 queda, morte) + tools/sets/player/{armas,coleta,montaria}.json. Junta assim: dicionário funde chave a chave, lista
 soma sem repetir, valor simples tem que ser igual. A mesma chave em duas partes com valores diferentes é erro
 (duas esteiras definindo a mesma montagem).

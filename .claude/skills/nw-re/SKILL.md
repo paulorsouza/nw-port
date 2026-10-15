@@ -1,33 +1,36 @@
 ---
 name: nw-re
-description: Pede uma engenharia reversa específica do NewWorld.exe (regra, fórmula ou valor que os dados extraídos não dizem) ao agente nw-re em segundo plano e aplica a resposta no port. Usar quando um número ou comportamento do jogo não tiver fonte nos datatables, .adb, slices ou actionlists, ou quando o dono pedir "pergunta pra RE".
+description: Asks the nw-re agent, in the background, for one specific reverse-engineering answer from NewWorld.exe (a rule, formula or value the extracted data does not give) and applies the answer in the port. Use when a number or behavior of the game has no source in the datatables, .adb, slices or actionlists.
 ---
 
-# Pedir e aplicar engenharia reversa
+# Ask and apply reverse engineering
 
-O repositório guarda o método, não as respostas. Ninguém depende de RE já feita: se precisar de um fato do
-executável, pergunte de novo. O agente usa o cache local (`re-local/`, fora do git) quando ele existe.
+The repository keeps the method, not the answers. Nothing depends on past answers: ask again when you need a fact
+from the executable. The agent keeps a local cache in `re-local/` (not tracked) and uses it when present. Setup of
+Ghidra and the tools: `docs/tech/reverse-engineering.md`.
 
-Dano, crítico, grit e mitigação são de servidor: não estão no cliente.
+Damage, crit, grit and mitigation are server-side: they are not in the client, do not ask.
 
-## Perguntar
+## Ask
 
-Rode o agente em segundo plano e siga com outra coisa. Uma pergunta por agente; não rode a RE você mesmo.
+Run the agent in the background and continue with something else. One question per agent; at most two at a time
+(Ghidra is shared). Do not do the reverse engineering yourself.
 
 ```
 Agent(subagent_type="nw-re", run_in_background=true, prompt="""
-<esteira>-<assunto curto>
-- Pergunta: o que o código do jogo faz, em uma ou duas frases.
-- Para quê: onde o port vai usar (arquivo, função) e o que precisa (valor, fórmula, unidade, sinal).
-- Pistas: strings, nomes de classe, colunas, cvars que você já viu.
+<area>-<short subject>
+- Question: what the game's code does, in one or two sentences.
+- What for: where the port will use it (file, function) and what it needs (value, formula, unit, sign).
+- Hints: strings, class names, columns, cvars already seen.
 """)
 ```
 
-## Aplicar a resposta
+## Apply the answer
 
-1. Número: constante no código com o valor da resposta, ou `FNWRules::Num(TEXT("<área>.<nome>"), valor)` quando
-   precisar ajustar sem recompilar. O padrão do `Num` é o próprio valor: o port tem que funcionar sem `re-local/`.
-2. Regra ou fórmula: implemente no ponto onde ela vale. Prova H (hipótese): use só se não houver alternativa e diga
-   no teste.
-3. Nada de endereço do executável no código, nos docs ou nas specs.
-4. Item de teste em `docs/testes/<esteira>.md` e doc da esteira atualizado (tire o item de "Sem fonte").
+1. Number: a constant in code with the answer's value, or `FNWRules::Num(TEXT("<area>.<name>"), value)` when it
+   must be tunable without recompiling. The default of `Num` is the value itself: the port must work without
+   `re-local/`.
+2. Rule or formula: implement it where it applies. Evidence H (hypothesis): use only without an alternative and say
+   so in the test item.
+3. No executable addresses in code, docs or specs.
+4. Test item in `docs/tests/<area>.md`; the area spec updated (remove the item from its open questions).

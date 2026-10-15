@@ -102,7 +102,7 @@ def go_executable(explicit):
     local = Path.home() / ".local/go/bin" / ("go.exe" if nwplatform.WINDOWS else "go")
     if local.is_file():
         return str(local)
-    raise SystemExit("Go nao encontrado: instale (docs/FERRAMENTAS.md) ou use --go / NW_GO")
+    raise SystemExit("Go nao encontrado: instale (docs/tech/tools.md) ou use --go / NW_GO")
 
 
 def git(*args, cwd=None, capture=False):

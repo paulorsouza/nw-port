@@ -1,5 +1,5 @@
 {
- "_comment": "Tela de refino (craftingscreenv4 no modo refino). Estados e caminhos: docs/hud/refino.md. Gerar: python3 tools/ui_build_screen.py tools/ui_screens/refining.json FrameMultiBg: o Lua aplica FRAME_STYLE_DEFAULT_2023 (framebgdefault2023.dds) no OnInit (slices/framemultibg.lua). Estilos de texto: SetTextStyle do Lua (crafting/*.lua) com tools/ui_styles.py; botões: slices/button.lua.",
+ "_comment": "Tela de refino (craftingscreenv4 no modo refino). Estados e caminhos: docs/game/ui/refining.md. Gerar: python3 tools/ui_build_screen.py tools/ui_screens/refining.json FrameMultiBg: o Lua aplica FRAME_STYLE_DEFAULT_2023 (framebgdefault2023.dds) no OnInit (slices/framemultibg.lua). Estilos de texto: SetTextStyle do Lua (crafting/*.lua) com tools/ui_styles.py; botões: slices/button.lua.",
  "canvas": "lyshineui/crafting/craftingscreenv4",
  "name": "refining",
  "keep": [

@@ -163,7 +163,7 @@ HATCHET_ABILITY_IDS = {a: f"Ability_Hatchet_{a}" for a in
                        ("Berserk", "FeralRush", "RagingTorrent", "RendingThrow", "SocialDistancing", "InfectedThrow")}
 # Berserk: +20% de dano por 5 s (descrição do jogo).
 HATCHET_EFFECTS = {"Berserk": {"BuffSeconds": 5.0, "BuffDamageBonus": 0.2}}
-# Arco (montagens AM_Bw_*; docs/armas/arco.md). Clique sem mira = Light1 (tiro rápido); com mira (botão direito):
+# Arco (montagens AM_Bw_*; docs/game/weapons/bow.md). Clique sem mira = Light1 (tiro rápido); com mira (botão direito):
 # HeavyCharge puxa, soltar antes de 0,5 s = AimShot, depois = ChargedShot; recarga automática (NextAction).
 BOW_ACTIONS = {
     "Light1": ("AM_Bw_HipFire", "BowAttack_Hipshot", "Attack_2H_Bow_Primary", ""),
@@ -214,7 +214,7 @@ BOW_EFFECTS = {
     # Chuva de Flechas: área de 4 m no ponto mirado (até 50 m), acerto em 0,7 s.
     "RainOfArrows": {"GroundRadius": 400, "GroundRange": 5000, "GroundDelay": 0.7},
 }
-# Rapieira (montagens AM_Rp_*; docs/armas/rapieira.md). Bloqueio e guardar reaproveitam os da machadinha.
+# Rapieira (montagens AM_Rp_*; docs/game/weapons/rapier.md). Bloqueio e guardar reaproveitam os da machadinha.
 RAPIER_ACTIONS = {
     "Light1": ("AM_Rp_LightCombo_1", "1H_Rapier_PrimaryAttack", "Attack_1H_Rapier_Primary", "Light2"),
     "Light2": ("AM_Rp_LightCombo_2", "1H_Rapier_PrimaryTwoThirdsAttack", "Attack_1H_Rapier_Primary", "Light3"),
@@ -363,7 +363,7 @@ def main():
 
     tables = SETS[manifest["name"]]
     # Tabela de dano única para todos os conjuntos: linhas das armas do jogador e das criaturas. Colunas e regras:
-    # docs/combate-regras-jogo.md (empurrão X/Y e decaimento, colunas _AI, crítico, cabeça, stagger, tremidas).
+    # docs/game/combat.md (empurrão X/Y e decaimento, colunas _AI, crítico, cabeça, stagger, tremidas).
     used = sorted(d for d in damage if d.startswith(("1H_Sword", "OH_Shield", "Hatchet_", "1H_Rapier", "Bow", "IceMagic_", *(p for _, p in CREATURE_DAMAGE)))
                   or damage[d].get("WeaponCategory") in ("Bow", "Bow_Heavy", "Rapier"))
     cols, source = DAMAGE_COLS, DAMAGE_SOURCE

@@ -1,5 +1,5 @@
 ---
-name: setup
+name: nw-setup
 description: Sets up nw-port on a machine (Linux or Windows) from a fresh clone to the editor open with the game world. Detects whether the Unreal project is already imported, whether asset zips exist, or whether New World is installed, then installs what is missing, extracts, imports and opens the editor; explains to the person what they must do themselves (accounts, downloads, sudo). Use when someone says setup, install, build the project, first run, or the project has no assets.
 ---
 
@@ -75,7 +75,7 @@ build unless they say the whole team is moving to it; in that case `NW_IGNORA_VE
 ## 3. After the setup
 
 - Tell them the editor command and the first things to try (F10 opens the dev menu).
-- Suggest a backup of the imported project with `tools/assets_export.py` (`.claude/skills/nw-assets`): it is for
+- Suggest a backup of the imported project with `tools/assets_export.py` (skill `nw-asset-sync`): it is for
   their other machines or for after formatting the disk, so they do not repeat hours of extraction and import. The
   zips hold game content: keep them for themselves.
 

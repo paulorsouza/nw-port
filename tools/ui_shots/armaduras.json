@@ -1,5 +1,5 @@
 {
- "_comment": "Armaduras e joias (docs/armaduras.md): estação de equipamentos com receita de armadura, roll de armadura e de joia. tools/linux/ui_shot.sh tools/ui_shots/armaduras.json",
+ "_comment": "Armaduras e joias (docs/game/items.md): estação de equipamentos com receita de armadura, roll de armadura e de joia. tools/linux/ui_shot.sh tools/ui_shots/armaduras.json",
  "screen": "refining",
  "station": {"type": "outfitting", "tier": 5, "name": "Estação de Alfaiataria Escala 5"},
  "coins": 500000,

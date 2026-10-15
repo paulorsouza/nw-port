@@ -6,7 +6,7 @@ uso: assets_import.py [--dir <pasta>] [--check] [--yes] [--force]
 A pasta (padrão ~/nw-port-assets, ou NW_ASSETS) recebe à mão o que está no OneDrive: primeiro só o manifest.json;
 o import diz quais zips baixar (só os das pastas que estão diferentes daqui). Zip pode ficar em bundles/ ou solto.
 Arquivo local substituído ou que não está na publicação vai para unreal/NWPort/Saved/assets_backup/<data>/ (ficam os
-3 últimos). Arquivos versionados no git não são tocados. Roteiro: docs/sincronizar-assets.md.
+3 últimos). Arquivos versionados no git não são tocados. Roteiro: docs/tech/asset-sync.md.
 """
 import argparse
 import json

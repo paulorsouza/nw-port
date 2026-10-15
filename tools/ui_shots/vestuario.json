@@ -1,5 +1,5 @@
 {
- "_comment": "Armadura e joias equipadas (docs/armaduras.md): painel do personagem e tooltip. tools/linux/ui_shot.sh tools/ui_shots/vestuario.json",
+ "_comment": "Armadura e joias equipadas (docs/game/items.md): painel do personagem e tooltip. tools/linux/ui_shot.sh tools/ui_shots/vestuario.json",
  "screen": "inventory",
  "coins": 500000,
  "storage_title": "Despensa",

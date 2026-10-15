@@ -13,7 +13,7 @@ Etapas (cada uma pula o que já existe em extract/_raw/):
   5. Grava INDEX.md, sfx_index.csv e ambient/index.csv. Remove .ogg que não
      estão mais no plano (nomes de execuções anteriores).
 
-Requer nwbt, vgmstream-cli, oggenc e vendor/wwiser (tools/linux/get_tools.sh, skill setup).
+Requer nwbt, vgmstream-cli, oggenc e vendor/wwiser (tools/linux/get_tools.sh, skill nw-setup).
 """
 import argparse
 import csv

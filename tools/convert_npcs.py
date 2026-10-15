@@ -18,7 +18,7 @@ nwplatform.configure()
 GAME = nwplatform.game_directory()
 NPCS = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "queda_eterna_npcs.json")
 OUT = os.path.join(ROOT, "extract", "ue", "npcs")
-CDFS = os.path.join(ROOT, "extract", "npcs")  # .cdf extraídos (Flags dos encaixes); ver docs/sistemas.md
+CDFS = os.path.join(ROOT, "extract", "npcs")  # .cdf extraídos (Flags dos encaixes); ver docs/game/city.md
 
 
 def main():

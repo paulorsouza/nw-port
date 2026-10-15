@@ -4,7 +4,7 @@ Native Windows, no WSL in the pipeline. The Python pipeline in `tools/` is the s
 scripts are in `tools/windows/`. Use `python` instead of `python3`, PowerShell from the repository root.
 
 Status: tools build and pass their tests on Windows; a full extraction and import with the real game has not been
-accepted yet (`docs/windows-convert.md`). Report any failure with its log.
+accepted yet (`docs/tech/windows.md`). Report any failure with its log.
 
 Machine: 32 GB RAM (64 recommended), GPU with 8 GB VRAM, about 150 GB free on the repository's disk. Keep the
 repository at a short path (`C:\nw-port`): some generated paths are long.

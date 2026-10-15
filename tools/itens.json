@@ -1,5 +1,5 @@
 {
- "_comment": "Regras de item e de ofício do port (docs/itens.md, docs/oficio.md). Números marcados como provisórios em docs/itens.md 'Pendente' são de balanceamento e podem mudar. tools/make_itens.py gera unreal/NWPort/Data/Items/regras_itens.json.",
+ "_comment": "Regras de item e de ofício do port (docs/game/items.md, docs/game/crafting.md). Números marcados como provisórios em docs/game/items.md 'Pendente' são de balanceamento e podem mudar. tools/make_itens.py gera unreal/NWPort/Data/Items/regras_itens.json.",
  "nivel_fabricar": 50,
  "assinatura_qualidade": 80,
  "qualidade_min_oficio_max": 20,
@@ -41,7 +41,7 @@
  "_armazem": "dono 2026-10-14: armazém compartilhado (um por personagem, 5 abas); capacidade = armazem_por_cidade kg por cidade conhecida (sem base), mais os baús das casas e o nível da cidade quando existirem",
  "armazem_por_cidade": 1000,
  "armazem_abas": 5,
- "_gemas": "docs/itens.md 'Slot': as 4 lapidações do jogo (<Gema>CutT1..T4, Tier de item 2..5) dão o % do tier; uma gema, um efeito; híbrida divide o total. Vidro rúnico = Runeglass_Gem_<Gema>_<Cápsula>: efeito da gema Pura mais a amplificação da cápsula (provisório: vidro_amplificacao). Retirar custa 1 gema bruta do mesmo tipo e tier (<Gema>T<n>; provisório).",
+ "_gemas": "docs/game/items.md 'Slot': as 4 lapidações do jogo (<Gema>CutT1..T4, Tier de item 2..5) dão o % do tier; uma gema, um efeito; híbrida divide o total. Vidro rúnico = Runeglass_Gem_<Gema>_<Cápsula>: efeito da gema Pura mais a amplificação da cápsula (provisório: vidro_amplificacao). Retirar custa 1 gema bruta do mesmo tipo e tier (<Gema>T<n>; provisório).",
  "gema_pct_por_tier": {
   "2": 2,
   "3": 3,
@@ -110,7 +110,7 @@
   "Arcane": "AmpMagica"
  },
  "vidro_amplificacao": 3.0,
- "_resistencia": "provisório (docs/itens.md 'Armaduras e joias'): resistência física = mágica do peito pela classe de peso (fatores do jogo 0,875 / 0,481 / 0,265 x 400), posicionada pela qualidade; outras peças pela fração do slot do jogo (ArmorRatingScaleFactor 0,20 e 0,15 sobre 0,35)",
+ "_resistencia": "provisório (docs/game/items.md 'Armaduras e joias'): resistência física = mágica do peito pela classe de peso (fatores do jogo 0,875 / 0,481 / 0,265 x 400), posicionada pela qualidade; outras peças pela fração do slot do jogo (ArmorRatingScaleFactor 0,20 e 0,15 sobre 0,35)",
  "resistencia_peito": {
   "Heavy": [
    350,

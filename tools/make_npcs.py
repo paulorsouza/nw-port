@@ -13,7 +13,7 @@ Fontes:
 - `javelindata_variations_npcs` (+ `_walkaway`): `.cdf`, IdleTimeline e Name de cada variante;
 - textos em extract/loc/localization/<idioma>.
 
-Sem as missões do jogo (decisão do dono, docs/sistemas.md): ficam os NPCs do estado inicial, sem conquista nenhuma.
+Sem as missões do jogo (decisão do dono, docs/game/city.md): ficam os NPCs do estado inicial, sem conquista nenhuma.
 `MasterNpc_SwapHidden_*` aparece (some depois de uma conquista) e `MasterNpc_SwapShown_*` não (só aparece depois).
 
 Saída: unreal/NWPort/Data/World/queda_eterna_npcs.json
@@ -33,10 +33,10 @@ REGIONS = os.path.join(ROOT, "extract", "terrain", "sharedassets", "coatlicue", 
 SLICEJSON = os.path.join(ROOT, "extract", "slicejson")
 LOC = os.path.join(ROOT, "extract", "loc", "localization")
 TIMELINES = os.path.join(ROOT, "extract", "timelines")   # etapa sistemas-03 do build_all
-CDFS = os.path.join(ROOT, "extract", "npcs")             # .cdf dos NPCs (tools/linux/pesado.sh nwbt unpack, ver docs/sistemas.md)
+CDFS = os.path.join(ROOT, "extract", "npcs")             # .cdf dos NPCs (tools/linux/pesado.sh nwbt unpack, ver docs/game/city.md)
 OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "queda_eterna_npcs.json")
 SET = os.path.join(ROOT, "tools", "sets", "npc_queda_eterna.json")
-REWARDS = os.path.join(ROOT, "tools", "npc_rewards.json")              # brindes por ofício (docs/sistemas.md)
+REWARDS = os.path.join(ROOT, "tools", "npc_rewards.json")              # brindes por ofício (docs/game/city.md)
 REWARDS_OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "World", "npc_rewards.json")
 CITY_ID = "queda_eterna"
 # Esqueletos que o port anima: o comum dos NPCs e o do jogador masculino (mesmos ossos). Outros (Grace O'Malley tem

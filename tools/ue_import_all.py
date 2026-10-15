@@ -151,7 +151,7 @@ class Importer:
         self.py("sistemas_nanite", self.tool("nanite_on"), "/Game/NW/Cities/QuedaEterna")
 
     def systems_terrain(self):
-        # Texturas de floresta de Guardaventos ate o material por bioma existir (docs/pendencias.md).
+        # Texturas de floresta de Guardaventos ate o material por bioma existir (docs/backlog.md).
         textures = ROOT / "extract/terrain/textures/terrain/forest"
         self.py("sistemas_terrain", self.tool("import_terrain"), ROOT / "extract/cities/northwindsward_terrain.glb",
                 "QuedaEterna", textures / "jav_fst_feildgrass_a_diff.png", textures / "jav_fst_forestsoil_a_diff.png")

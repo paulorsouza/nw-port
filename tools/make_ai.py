@@ -3,7 +3,7 @@
 
     python3 tools/make_ai.py
 
-Fontes (docs/ia-criaturas.md, docs/ghidra.md):
+Fontes (docs/game/creatures-ai.md, docs/tech/reverse-engineering.md):
 - árvore: extract/serverpak/json/sharedassets/ai/behaviortrees/**/<x>_base.behaviortree.json (nwbt --x-objects json);
   TreeReference já traz a subárvore embutida;
 - slice da criatura: extract/serverpak/client/slices/characters/<x>.dynamicslice.json — BehaviorTreeComponent (árvore,

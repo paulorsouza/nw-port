@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regras de item do port -> unreal/NWPort/Data/Items/regras_itens.json (docs/itens.md, docs/oficio.md).
+"""Regras de item do port -> unreal/NWPort/Data/Items/regras_itens.json (docs/game/items.md, docs/game/crafting.md).
 
     python3 tools/make_itens.py
 
@@ -71,7 +71,7 @@ def text(loc, key):
 
 
 def gem_items(rules):
-    """Item de gema e de vidro rúnico -> classe, efeitos (%) e gema bruta do custo de retirar (docs/itens.md "Slot")."""
+    """Item de gema e de vidro rúnico -> classe, efeitos (%) e gema bruta do custo de retirar (docs/game/items.md "Slot")."""
     game = {}
     for f in glob.glob(os.path.join(DT, "javelindata_itemdefinitions_master_*.datasheet.json")):
         for r in json.load(open(f))["rows"]:

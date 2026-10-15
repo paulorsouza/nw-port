@@ -1,5 +1,5 @@
 {
-  "_comment": "Regras da governança das cidades (docs/plano-governanca.md), lidas pelo nw-core (include_str) e pelo servidor de jogo. Moedas em centavos. Números 'proposta' do simulador (tools/sim_economia.py, tools/economia.json); faixas de preço em tools/precos_cidade.json.",
+  "_comment": "Regras da governança das cidades (docs/game/economy.md), lidas pelo nw-core (include_str) e pelo servidor de jogo. Moedas em centavos. Números 'proposta' do simulador (tools/sim_economia.py, tools/economia.json); faixas de preço em tools/precos_cidade.json.",
   "regioes": [
     {
       "id": "1",

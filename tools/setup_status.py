@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""What this machine has and which setup path applies (.claude/skills/setup). Reads only; changes nothing.
+"""What this machine has and which setup path applies (.claude/skills/nw-setup). Reads only; changes nothing.
 
     python3 tools/setup_status.py          # summary
     python3 tools/setup_status.py --json   # same, for scripts

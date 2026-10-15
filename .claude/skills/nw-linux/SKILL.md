@@ -1,39 +1,38 @@
 ---
 name: nw-linux
-description: Comandos do port no Linux (máquina do dono) — fila de trabalho pesado, extração, import e compilação, backend local, captura de telas, conferência e build do nwbt/ooz (tools/linux/). Usar quando uma skill de esteira mandar "pela skill da plataforma" e a sessão estiver no Linux.
+description: Linux platform commands for nw-port — machine paths (local.env), the heavy-job queue, PATH for manual tool calls, building nwbt/ooz and fetching tools into bin/, the pre-merge check, and Linux pitfalls. Use when working on Linux and a command, path or tool is needed.
 ---
 
-# Linux: comandos de plataforma
+# Linux
 
-Scripts de sistema em `tools/linux/` (os `tools/<x>.sh` antigos são atalhos temporários para eles). O Python do
-pipeline é um só, em `tools/`, e roda igual no Windows. Rode da raiz do repositório.
+System scripts in `tools/linux/`; the Python pipeline in `tools/` is shared with Windows. Run from the repository
+root. First-time setup: skill `nw-setup`.
 
-| Ação | Comando |
+| Task | Command |
 |---|---|
-| Fila de trabalho pesado | `python3 tools/pesado.py <comando>` ou `tools/linux/pesado.sh <comando>` (mesmo lock) |
-| PATH com `bin/`, Go e Blender (para chamar nwbt/blender à mão) | `source tools/linux/env.sh` |
-| Extração inteira ou etapa NN | `tools/linux/build_all.sh [NN]` (skill `nw-build-all`; entra na fila sozinho) |
-| Compilar C++ e importar na Unreal, etapa NN (editor fechado) | `tools/linux/ue_import_all.sh [NN]` (skill `nw-ue-import`) |
-| Só compilar o alvo do jogo, com o editor aberto | `tools/linux/check.sh --cpp` |
-| Data/ (tabelas, textos, telas) | `tools/linux/make_data.sh` (= `python3 tools/make_data.py`) |
-| nw-core local para o Play do editor | `tools/linux/backend_dev.sh` (`docs/teste-backend.md`) |
-| Captura de tela sem o jogo | `tools/linux/ui_shot.sh tools/ui_shots/<tela>.json` |
-| Conferência antes de mesclar | `tools/linux/check.sh [--cpp]` |
-| Cidade, coletáveis, ambiente sonoro | `tools/linux/convert_city.sh`, `convert_gatherables.sh`, `render_ambient.sh` (skills próprias) |
-| Servidor, rede, jogo local (só a pedido) | `tools/linux/package_server.sh`, `rede.sh`, `net_test.sh`, `play_local.sh` |
+| What this machine has | `python3 tools/setup_status.py` |
+| Machine paths (`NW_GAME`, `NW_UE`, `NW_BLENDER`, `NW_ASSETS`, `NW_REDE_HOST`) | `local.env` (model in `local.env.example`) |
+| Export them to a shell | `source tools/linux/local_env.sh` |
+| `bin/`, Go and Blender on the PATH for manual calls | `source tools/linux/env.sh` |
+| Heavy-job queue (one at a time) | `python3 tools/pesado.py <command>` or `tools/linux/pesado.sh <command>` |
+| Fetch or rebuild everything in `bin/` | `tools/linux/get_tools.sh [--force]` |
+| Rebuild nwbt and dbgwater only | `tools/linux/build_nwbt.sh --test` |
+| Rebuild libooz.so only | `tools/linux/build_ooz.sh` |
+| Pre-merge check | `tools/linux/check.sh [--cpp]` |
 
-## nwbt e ooz
+Extraction and data: skill `nw-extract`. Unreal: skill `nw-unreal`. Running the game: skill `nw-run`.
 
-- `bin/nwbt` e `bin/dbgwater` saem do fork + `patches/nwbt.patch`: `tools/linux/build_nwbt.sh --test` (fila,
-  `tools/build_nwbt.py`, o mesmo do Windows). Mudar o nwbt: `patches/README.md`.
-- `tools/linux/check.sh` acusa `bin/nwbt` de outro patch e testa a conversão por `@lista`; `python3
-  tools/build_nwbt.py --conferir` só confere a versão. `build_set.py` e `convert_npcs.py` recusam nwbt desatualizado.
-- `bin/libooz.so`: `tools/linux/build_ooz.sh` (powzix/ooz + `patches/ooz.patch`, as mesmas fontes da `ooz.dll`).
-- Tudo de `bin/` de uma vez (fora do git): `tools/linux/get_tools.sh`.
-- texconv: `bin/texconv` → `tools/linux/texconv` (wine com `bin/texconv.exe`).
+## Tools in bin/
 
-## Cuidados
+Not tracked. `nwbt` and `dbgwater` come from `paulorsouza/nw-buddy` (branch `nw-port`) plus `patches/nwbt.patch`
+(`tools/build_nwbt.py`, same on Windows); `libooz.so` from `powzix/ooz` plus `patches/ooz.patch`
+(`tools/build_ooz.py`); `texconv.exe` (through wine, `bin/texconv` → `tools/linux/texconv`) and `vgmstream-cli`
+from their releases. `oggenc` from the `vorbis-tools` package. After pulling a new `patches/nwbt.patch`, rebuild:
+`check.sh`, `build_set.py` and `convert_npcs.py` refuse an nwbt built from another patch. Changing nwbt:
+`patches/README.md`.
 
-- Um trabalho pesado por vez (o `systemd-oomd` fecha programas); nunca cache do nwbt em `/tmp` (é RAM).
-- `pgrep -f`/`pkill -f` casam com a própria linha do shell.
-- Engine em `NW_UE` (padrão `/mnt/jogos/UnrealEngine/5.8`), jogo em `NW_GAME` (padrão `/mnt/jogos/Steam/...`).
+## Pitfalls
+
+- One heavy job at a time: Ubuntu's `systemd-oomd` kills programs under memory pressure even with RAM shown as free.
+- Never put the nwbt cache in `/tmp` (it is RAM).
+- `pgrep -f` / `pkill -f` match the shell's own command line.

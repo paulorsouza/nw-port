@@ -1,7 +1,7 @@
-# Esteira 4 (Sistemas e Queda Eterna): extração e conversão. Lido no fim do tools/build_all.sh.
+# Esteira 4 (Sistemas e Queda Eterna): extração e conversão. Lido no fim do tools/linux/build_all.sh.
 
 sistemas_cidade() {
-    tools/convert_city.sh settlement_northwindsward_complete
+    tools/linux/convert_city.sh settlement_northwindsward_complete
 }
 sistemas_slices() {
     # Entidades da cidade (NPCs, estações, armazém, posto de trocas) e lotes de casa, para posicionar no mapa.

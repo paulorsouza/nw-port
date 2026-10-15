@@ -31,7 +31,7 @@ SLOT_TEXTURES = ([f"{IL}{k}{shape}{r}.dds" for k in ("itembg", "itemraritybg") f
                  + [f"lyshineui/images/inventory/{n}.dds" for n in ("contentbg", "headerbg", "iconweight", "icon_inventory")]
                  # Armazém dentro do inventário (catcontainer.lua STORAGE_ICON_PATH).
                  + ["lyshineui/images/catcontainer/icon_storage_shed.dds", "lyshineui/images/catcontainer/icon_dropped_items.dds"]
-                 # Tela no estilo do jogo (docs/hud/inventario.md): peças redondas, equipamento, ordenação, arrasto.
+                 # Tela no estilo do jogo (docs/game/ui/inventory.md): peças redondas, equipamento, ordenação, arrasto.
                  + [f"{IL}{k}circle{r}.dds" for k in ("itembg", "itemraritybg") for r in range(5)]
                  + [f"{IL}itemhighlightcircle.dds"]
                  + [f"{EQ}{n}.dds" for n in ("iconhead", "iconchest", "iconhand", "iconlegs", "iconfeet", "iconrune", "iconamulet",

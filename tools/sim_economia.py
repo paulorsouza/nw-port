@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simulador da economia das cidades (docs/plano-governanca.md), semana a semana.
+"""Simulador da economia das cidades (docs/game/economy.md), semana a semana.
 
     python3 tools/sim_economia.py [--param tools/economia.json] [--jogadores N] [--semanas N] [--set a.b=valor ...]
 

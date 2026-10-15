@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Teste em rede do clã neste PC (docs/rede-teste.md): Postgres + nw-core + servidor de jogo em Docker (projeto
+# Teste em rede do clã neste PC (docs/tech/network-test.md): Postgres + nw-core + servidor de jogo em Docker (projeto
 # nw-rede) e o nw-core publicado pelo Cloudflare Tunnel em https://$NW_REDE_HOST (local.env).
 #
 #     tools/linux/rede.sh build     # servidor (engine do fonte) + cozinha Guardaventos + imagens; editor fechado
@@ -14,7 +14,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SRC_ENGINE=/mnt/jogos/UnrealEngine/src-5.8.3
+SRC_ENGINE="${NW_UE_SOURCE:-}"
 OUT="$ROOT/unreal/NWPort/Saved/Rede"
 TUNNEL=nw-rede
 HOST="${NW_REDE_HOST:?defina NW_REDE_HOST (ex. core.seudominio.com) em local.env}"
@@ -39,6 +39,7 @@ compose() { docker compose -p nw-rede --env-file "$ROOT/deploy/.env" -f "$ROOT/d
 
 case "${1:-status}" in
     build)
+        [ -n "$SRC_ENGINE" ] || { echo "defina NW_UE_SOURCE (engine 5.8.3 compilada do código-fonte) em local.env" >&2; exit 2; }
         "$ROOT/tools/linux/pesado.sh" bash -c "cd '$SRC_ENGINE' && nice Engine/Build/BatchFiles/Linux/Build.sh NWPortServer Linux Development \
             -Project='$ROOT/unreal/NWPort/NWPort.uproject' -WaitMutex -MaxParallelActions=8" | tee "$OUT/server_build.log"
         grep -q "Result: Succeeded" "$OUT/server_build.log" || { echo "servidor não compilou (ver $OUT/server_build.log)"; exit 1; }

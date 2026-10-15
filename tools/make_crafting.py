@@ -12,7 +12,7 @@ Fontes:
 - XP de ofício por receita: javelindata_gameevents (GameEventID -> CategoricalProgressionReward) e XP de personagem
   (UniversalExpAmount).
 
-Tempo de refino: o jogo não tem (docs/sistemas.md, "Sem fonte"); o port refina na hora.
+Tempo de refino: o jogo não tem (docs/game/city.md, "Sem fonte"); o port refina na hora.
 """
 import glob
 import json
@@ -31,13 +31,13 @@ OUT = os.path.join(ROOT, "unreal", "NWPort", "Data", "Crafting", "refining.json"
 STATIONS = {"smelting": ("smelting", "Smelting"), "carpentry": ("carpentry", "Woodworking"),
             "tanning": ("tanning", "Leatherworking"), "weaving": ("weaving", "Weaving"),
             "masonry": ("masonry", "Stonecutting"),
-            # Mesas de fabricar (docs/oficio.md): ferraria, engenharia e alquimia. Cozinha e alfaiataria entram quando
+            # Mesas de fabricar (docs/game/crafting.md): ferraria, engenharia e alquimia. Cozinha e alfaiataria entram quando
             # houver comida com efeito e armadura.
             "blacksmithing": ("blacksmith", "Weaponsmithing"), "engineering": ("engineering", "Engineering"),
             "alchemy": ("alchemy", "Arcana"),
-            # Joalheria (gemas lapidadas; docs/itens.md "Slot"). A armoraria entra na mesma estação com as armaduras.
+            # Joalheria (gemas lapidadas; docs/game/items.md "Slot"). A armoraria entra na mesma estação com as armaduras.
             "outfitting": ("outfitting", "Jewelcrafting")}
-# Receitas de fabricar do port (docs/oficio.md): armas, escudos e ferramentas T2–T5, poção de vida T5 e reagentes de
+# Receitas de fabricar do port (docs/game/crafting.md): armas, escudos e ferramentas T2–T5, poção de vida T5 e reagentes de
 # alquimia T2.
 CRAFT_SOURCES = ("javelindata_crafting_weapon", "javelindata_crafting_engineer", "javelindata_crafting_arcana",
                  "javelindata_crafting_jeweler", "javelindata_crafting_armorer")
@@ -45,15 +45,15 @@ CRAFT_SOURCES = ("javelindata_crafting_weapon", "javelindata_crafting_engineer",
 EXTRA_SKILLS = {"Armoring"}
 CRAFT_GEAR = re.compile(r"^Procedural_(Longsword|ShieldRound|ShieldKite|ShieldTower|Hatchet|LoggingAxe|MiningPick|"
                         r"SkinningKnife|Sickle|"
-                        # Armaduras (placas, couro, tecido; sem a linha "vestido") e joias (docs/armaduras.md).
+                        # Armaduras (placas, couro, tecido; sem a linha "vestido") e joias (docs/game/items.md).
                         r"(Plate|Leather|Cloth)(Head|Chest|Hands|Legs|Feet)|Amulet|Ring|Earring)T[2-5]$")
-# Joias no port (docs/itens.md "Armaduras e joias"): sem componentes; o lingote precioso de cada componente (corrente,
+# Joias no port (docs/game/items.md "Armaduras e joias"): sem componentes; o lingote precioso de cada componente (corrente,
 # aro, gancho, engaste) entra direto, somado ao metal precioso da receita.
 TRINKET_COMPONENT = re.compile(r"^Trinket(Chain|Band|Hook|Setting)(T\d+)?$")
 CRAFT_INSTANT = re.compile(r"^(Procedural_PotionHealthT5|Alchemy[A-Za-z]+T2|"
                            r"(Onyx|Opal|Diamond|Sapphire|Jasper|Emerald|Malachite)CutT[1-4]|"
                            r"Runeglass_Case_Empty_(Melee|Arcane))$")
-# Vidro rúnico (docs/itens.md "Slot"): o jogo usa a estação de runas (RuneglassStation1), que Queda Eterna não tem. No
+# Vidro rúnico (docs/game/items.md "Slot"): o jogo usa a estação de runas (RuneglassStation1), que Queda Eterna não tem. No
 # port a cápsula sai da forja (Weaponsmithing) e o vidro (cápsula + gema Pura) da cantaria (Stonecutting), tier 5.
 RUNEGLASS = re.compile(r"^Runeglass_(Case_Empty_(Melee|Arcane)|Gem_(Onyx|Opal|Diamond|Sapphire|Jasper|Emerald|Malachite)_(Melee|Arcane))$")
 RUNEGLASS_STATION = {"Weaponsmithing": "blacksmith5", "Stonecutting": "masonry5"}
@@ -95,12 +95,12 @@ def stations():
                     if isinstance(sa, dict):
                         hint = sa.get("hint", "")
                 if tm and "settlement_trading_post" in hint.lower():
-                    # Posto de trocas (mercado, docs/sistemas.md §5): estação do tipo "tradingpost".
+                    # Posto de trocas (mercado, docs/game/city.md §5): estação do tipo "tradingpost".
                     yaw = math.degrees(math.atan2(tm[1], tm[0]))
                     out.append({"type": "tradingpost", "skill": "", "tier": 0,
                                 "pos": [round(-tm[9] * 100, 1), round(tm[10] * 100, 1), round(tm[11] * 100, 1)],
                                 "yaw": round(180 - yaw, 1), "slice": os.path.basename(hint)})
-                # Quadros da cidade (governança, docs/plano-governanca.md): projeto de vila = balcão da cidade
+                # Quadros da cidade (governança, docs/game/economy.md): projeto de vila = balcão da cidade
                 # (vender matéria-prima, comprar a lista); planejamento do território = painel do governador.
                 for board, kind in (("town_project_board", "cityboard"), ("territory_planning_board", "governance")):
                     if tm and board in hint.lower():
@@ -188,7 +188,7 @@ def main():
                 continue
             cat = r.get(f"Type{i}") == "Category_Only"
             if gear and cat:
-                # Fabricar no port (docs/oficio.md): só material refinado, um por espaço, do tier do item (o jogo deixa
+                # Fabricar no port (docs/game/crafting.md): só material refinado, um por espaço, do tier do item (o jogo deixa
                 # escolher entre vários da categoria, inclusive raros).
                 tier = int(r.get("BaseTier") or 2)
                 precious = f"IngotPreciousT{tier - 1}" if tier < 5 else "IngotT5"   # prata, ouro, platina, oricalco
@@ -225,7 +225,7 @@ def main():
             "bonus": float(r.get("BonusItemChance") or 0),
             "inc": [float(x) for x in str(r.get("BonusItemChanceIncrease") or "").split(",") if x.strip()],
             "dec": [float(x) for x in str(r.get("BonusItemChanceDecrease") or "").split(",") if x.strip()],
-            # Arma, escudo, ferramenta (item com GS, qualidade e perks; docs/oficio.md): tier do item e GS base.
+            # Arma, escudo, ferramenta (item com GS, qualidade e perks; docs/game/crafting.md): tier do item e GS base.
             "gear": bool(crafted and CRAFT_GEAR.match(r["RecipeID"])),
             "item_tier": int(r.get("BaseTier") or 0),
             "gs_base": int(r.get("BaseGearScore") or 0),

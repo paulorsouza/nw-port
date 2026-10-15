@@ -55,7 +55,7 @@ def rows(name):
 
 # Aparência das armaduras (javelindata_itemappearancedefinitions): o ícone da armadura vem dela, não do item.
 APPEARANCE = {}
-# Espaço de equipamento do port pela classe do jogo (docs/armaduras.md).
+# Espaço de equipamento do port pela classe do jogo (docs/game/items.md).
 ARMOR_SLOTS = (("EquippableHead", "Head"), ("EquippableChest", "Chest"), ("EquippableHands", "Hands"),
                ("EquippableLegs", "Legs"), ("EquippableFeet", "Feet"), ("EquippableAmulet", "Amulet"),
                ("EquippableRing", "Ring"), ("EquippableToken", "Earring"))

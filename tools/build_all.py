@@ -225,7 +225,7 @@ class Extraction:
             self.py("convert_gatherables")
         def characters():
             # Javali e lobo entram na etapa ue_12. Sem as DataTables (acoes, dano) e o sounds.json, o import_nw.py
-            # segue sem avisar e o personagem fica sem ataques nem sons (docs/ASSETS.md, ordem na primeira vez).
+            # segue sem avisar e o personagem fica sem ataques nem sons (docs/tech/asset-pipeline.md, ordem na primeira vez).
             for name in ("sword_shield", "lost_sword", "boar", "wolf"):
                 self.py("build_set", f"tools/sets/{name}.json")
                 self.py("make_datatables", f"extract/ue/{name}/manifest.json", heavy=False)

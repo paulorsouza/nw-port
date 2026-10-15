@@ -1,4 +1,4 @@
-"""Partes comuns de tools/assets_export.py e tools/assets_import.py (docs/sincronizar-assets.md).
+"""Partes comuns de tools/assets_export.py e tools/assets_import.py (docs/tech/asset-sync.md).
 
 Os caminhos dos arquivos são relativos a unreal/NWPort (Content/..., Data/...), com barra normal.
 """
@@ -91,7 +91,7 @@ _lock = None
 
 
 def preflight():
-    """Editor fechado; no Linux entra na fila do tools/pesado.sh e fica com ela até o fim."""
+    """Editor fechado; no Linux entra na fila do tools/linux/pesado.sh e fica com ela até o fim."""
     global _lock
     if editor_open():
         die("O editor está aberto: feche antes.", 3)
@@ -102,7 +102,7 @@ def preflight():
     try:
         fcntl.flock(_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        die("Tem trabalho pesado rodando (tools/pesado.sh): espere terminar.", 3)
+        die("Tem trabalho pesado rodando (tools/linux/pesado.sh): espere terminar.", 3)
 
 
 def read_json(path, default):

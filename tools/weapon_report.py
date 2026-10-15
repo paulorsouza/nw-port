@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Relatório de tudo o que o jogo define sobre o combate de uma arma do jogador: ponto de partida para portar
-uma arma nova (docs/combate-armas.md).
+uma arma nova (docs/tech/weapon-porting.md).
 
     python3 tools/weapon_report.py bow                    # arma conhecida (WEAPONS abaixo)
     python3 tools/weapon_report.py spear --tag Spear --adb player/player_spear.adb --base 2H_Melee \\

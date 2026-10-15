@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Roda um trabalho pesado na fila: um por vez na máquina, mesmo com várias sessões trabalhando juntas
-# (docs/esteiras.md). Pesado = nwbt, Blender, build_set.py, UnrealEditor-Cmd, compilação, Ghidra em lote.
+# (docs/workflow.md). Pesado = nwbt, Blender, build_set.py, UnrealEditor-Cmd, compilação, Ghidra em lote.
 #
 #     tools/linux/pesado.sh <comando> [args...]
 #

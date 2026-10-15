@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Conferência antes de mesclar um branch (docs/esteiras.md, "Várias pessoas"). Leve, sem Unreal; com --cpp também
+# Conferência antes de mesclar um branch (docs/workflow.md, "Várias pessoas"). Leve, sem Unreal; com --cpp também
 # compila o C++ (alvo do jogo, funciona com o editor aberto; entra na fila de trabalho pesado).
 #
 #     tools/linux/check.sh [--cpp]

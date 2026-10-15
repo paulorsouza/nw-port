@@ -123,7 +123,7 @@ def executable(name):
         return str(bundled)
     found = shutil.which(filename)
     if not found and name == "blender" and not WINDOWS:
-        # Onde o docs/FERRAMENTAS.md instala no Linux (o tools/linux/env.sh poe no PATH): dispensa o "source".
+        # Onde o docs/tech/tools.md instala no Linux (o tools/linux/env.sh poe no PATH): dispensa o "source".
         found = next((str(p) for p in sorted(Path.home().glob(".local/opt/blender-*/blender"), reverse=True)), None)
     return found or filename
 

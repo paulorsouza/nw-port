@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fatos da engenharia reversa (re-local/valores/<área>.json) → unreal/NWPort/Data/regras.json, lido pelo
 FNWRules. Só os que têm valor numérico; as regras (valor null) entram no código com o id citado em comentário.
-Sem re-local/, mantém o regras.json que veio nos zips de assets (docs/sincronizar-assets.md) ou, sem ele, grava
+Sem re-local/, mantém o regras.json que veio nos zips de assets (docs/tech/asset-sync.md) ou, sem ele, grava
 um vazio e o C++ usa os padrões.
 Conferir o que falta aplicar: python3 tools/re_check.py.
 

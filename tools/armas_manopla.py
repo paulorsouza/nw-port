@@ -1,4 +1,4 @@
-"""Ações da manopla de gelo para o make_datatables.py (sub-esteira 1a, docs/armas/manopla-gelo.md).
+"""Ações da manopla de gelo para o make_datatables.py (sub-esteira 1a, docs/game/weapons/ice-gauntlet.md).
 
 Montagens AM_Ig_* (tools/sets/player/armas_manopla-gelo.json). O terceiro campo da ação é o CostID: dá a stamina
 (javelindata_staminacosts_player) e a mana (javelindata_manacosts_player).

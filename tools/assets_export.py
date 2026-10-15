@@ -7,7 +7,7 @@ A pasta (padrão ~/nw-port-assets, ou NW_ASSETS) espelha a do OneDrive: manifest
 Vai: unreal/NWPort/Content (menos o que está no git), unreal/NWPort/Data e a lista dos ue_*.ok de extract/.etapas.
 Um zip por pasta de até 1 GiB. Só é zipado o que mudou desde o manifest.json da pasta; os zips que não mudaram
 continuam valendo no OneDrive e não precisam estar aqui. No fim, diz o que subir e o que apagar no OneDrive.
-Antes de exportar, baixe do OneDrive o manifest.json mais novo para a pasta. Roteiro: docs/sincronizar-assets.md.
+Antes de exportar, baixe do OneDrive o manifest.json mais novo para a pasta. Roteiro: docs/tech/asset-sync.md.
 """
 import argparse
 import os

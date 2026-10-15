@@ -1,5 +1,5 @@
 {
-  "_comment": "Brindes dos NPCs (docs/sistemas.md). Até 6 ofícios: por semana um NPC de cada ofício, sorteado igual para todos, entrega na cidade. inicial: uma vez por personagem por ofício, [ItemID, mín, máx]. semanal: uma vez por semana por cidade e ofício; sorteia 1 item de cada lista (material + argueiro). Renova terça 05:00 BRT (08:00 UTC). moedas_semanal: [mín, máx] em centavos, junto do brinde semanal (governança, docs/plano-governanca.md: moeda nova).",
+  "_comment": "Brindes dos NPCs (docs/game/city.md). Até 6 ofícios: por semana um NPC de cada ofício, sorteado igual para todos, entrega na cidade. inicial: uma vez por personagem por ofício, [ItemID, mín, máx]. semanal: uma vez por semana por cidade e ofício; sorteia 1 item de cada lista (material + argueiro). Renova terça 05:00 BRT (08:00 UTC). moedas_semanal: [mín, máx] em centavos, junto do brinde semanal (governança, docs/game/economy.md: moeda nova).",
   "renovacao_utc": {
     "dia": "terca",
     "hora": 8

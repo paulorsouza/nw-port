@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Extrai e converte tudo o que o projeto usa, da instalação do New World de quem roda (docs/SETUP.md).
+# Extrai e converte tudo o que o projeto usa, da instalação do New World de quem roda (docs/setup.md).
 # Não usa Unreal: no fim, rode tools/linux/ue_import_all.sh com o editor fechado.
 #
 #     tools/linux/build_all.sh            # todas as etapas que faltam
@@ -8,7 +8,7 @@
 # Cada etapa grava extract/.etapas/<NN>.ok ao terminar; rodar de novo pula o que já foi feito. Tempo total na
 # primeira vez: 2 a 4 horas (máquina de 8 núcleos, SSD). Precisa de ~60 GB livres no disco do projeto.
 #
-# Cuidados (aprendidos na prática, ver docs/ESTADO.md):
+# Cuidados (aprendidos na prática, ver docs/status.md):
 # - Um trabalho pesado por vez. Não abra o New World original nem a Unreal enquanto isto roda: o systemd-oomd
 #   do Ubuntu fecha programas por pressão de memória, mesmo com RAM "livre" no htop.
 # - O nwbt carrega ~6 GB de índice dos paks a cada chamada; as conversões de malha vão em lotes pequenos.
@@ -16,7 +16,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# Fila de trabalho pesado (várias sessões na mesma máquina; docs/esteiras.md).
+# Fila de trabalho pesado (várias sessões na mesma máquina; docs/workflow.md).
 [ -n "${NW_PESADO:-}" ] || exec "$ROOT/tools/linux/pesado.sh" "$ROOT/tools/linux/$(basename "$0")" "$@"
 cd "$ROOT"
 # shellcheck disable=SC1091
@@ -171,7 +171,7 @@ step 10 "cenário da região" s10
 step 11 "personagens e animações" s11
 step 12 "dados do projeto e texturas das telas" s12
 step 13 "peças da arena de testes" s13
-# Etapas das esteiras (docs/esteiras.md): tools/etapas/<esteira>.build.sh chama `step <esteira>-NN "descrição" comando`.
+# Etapas das esteiras (docs/workflow.md): tools/etapas/<esteira>.build.sh chama `step <esteira>-NN "descrição" comando`.
 for f in "$ROOT"/tools/etapas/*.build.sh; do
     # shellcheck disable=SC1090
     [ -e "$f" ] && source "$f"

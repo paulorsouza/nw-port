@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# nw-core local de teste, para o Play do editor e os testes com backend (docs/teste-backend.md).
+# nw-core local de teste, para o Play do editor e os testes com backend (docs/tech/backend-testing.md).
 #
 #     tools/linux/backend_dev.sh            # sobe (se não estiver no ar) e garante a conta e o personagem do editor
 #     tools/linux/backend_dev.sh status     # no ar ou não

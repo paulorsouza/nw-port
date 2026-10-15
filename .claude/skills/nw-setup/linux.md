@@ -28,7 +28,7 @@ mkdir -p ~/UnrealEngine/5.8 && unzip -q <downloaded zip> -d ~/UnrealEngine/5.8
 ```
 
 If the zip has a top folder, `NW_UE` points to the folder that contains `Engine/`. Engine elsewhere: set `NW_UE` in
-`local.env`. Only the dedicated server needs the engine built from source (`docs/plano-servidor.md`); playing and
+`local.env`. Only the dedicated server needs the engine built from source (`docs/tech/server.md`); playing and
 developing use the binary.
 
 Stop here on the `import-zips` path and go to "Import zips".
@@ -89,7 +89,7 @@ memory: close other programs and run the same command again.
 several minutes. Ask the person for a screenshot after Play: character in the city, ground and props with textures.
 Grey materials: `tools/linux/ue_import_all.sh 08`.
 
-Playing with the server and accounts (only when the person asks): `tools/linux/play_local.sh`, `docs/plano-servidor.md`.
+Playing with the server and accounts (only when the person asks): `tools/linux/play_local.sh`, `docs/tech/server.md`.
 
 ## Import zips
 

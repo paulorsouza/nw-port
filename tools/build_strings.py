@@ -2,7 +2,7 @@
 
     python3 tools/build_strings.py
 
-Junta os arquivos de tools/strings/ (um por esteira, docs/esteiras.md): "textos" (nossos, pt-br e en-us) e
+Junta os arquivos de tools/strings/ (um por esteira, docs/workflow.md): "textos" (nossos, pt-br e en-us) e
 "chaves_do_jogo" (textos do jogo que o C++ usa direto, lidos de extract/loc/localization/<idioma>). A mesma chave de
 texto em dois arquivos é erro. Gera unreal/NWPort/Data/UI/nw_strings.json: {chave: {"pt-br": ..., "en-us": ...}}.
 """
