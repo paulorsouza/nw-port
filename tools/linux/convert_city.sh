@@ -17,6 +17,7 @@
 #
 # Códigos de saída: 0 ok (terreno pode ter sido pulado, ver log), 2 uso, 3 memória/disco, 4 falha na conversão.
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"

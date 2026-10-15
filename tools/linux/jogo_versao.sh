@@ -5,6 +5,7 @@
 #
 # Sai com erro se a build for outra. NW_IGNORA_VERSAO=1 só avisa (ex.: conferir antes de atualizar o time todo).
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GAME="${NW_GAME:-/mnt/jogos/Steam/steamapps/common/New World}"
 want_build=$(awk '$1 == "buildid" {print $2}' "$ROOT/tools/jogo.versao")

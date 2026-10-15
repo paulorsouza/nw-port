@@ -177,7 +177,7 @@ Blender tambem saia 0 com o script falhando. A conversao dizia "ok" com glb velh
 
 ## Validacao
 
-O roteiro para o desenvolvedor esta em [setup-windows-test.md](../setup-windows-test.md).
+O roteiro de setup esta na skill `setup` (`.claude/skills/setup/windows.md`).
 `tools/windows/check_migration.py` confere caches e referencias do checkout copiado do WSL;
 `--apply` corrige caminhos e bancos de audio com backup e invalida somente marcadores afetados.
 A conferencia e estrutural e nao substitui o aceite com dados reais e Unreal. O orquestrador

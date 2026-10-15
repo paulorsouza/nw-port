@@ -4,6 +4,7 @@
 #
 #     tools/linux/check.sh [--cpp]
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 FAIL=0

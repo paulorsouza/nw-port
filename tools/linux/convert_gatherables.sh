@@ -13,6 +13,7 @@
 # de 10 GB (2026-10-11: as 160 de uma vez, 7 workers, levaram o systemd-oomd a matar a sessão). Sem MemoryMax: o
 # teto faz o próprio job gerar pressão de memória, e o oomd mata outro app. Um trabalho pesado por vez: não rodar junto com build da Unreal.
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"

@@ -13,6 +13,7 @@
 #   do Ubuntu fecha programas por pressão de memória, mesmo com RAM "livre" no htop.
 # - O nwbt carrega ~6 GB de índice dos paks a cada chamada; as conversões de malha vão em lotes pequenos.
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Fila de trabalho pesado (várias sessões na mesma máquina; docs/esteiras.md).

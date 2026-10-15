@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # tools/linux/gallery.sh <saida.png> <nome>...  — galeria de armaduras masculinas (nomes sem o prefixo male_)
 set -e
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 here="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$here"; source tools/linux/env.sh
-GAME="${GAME:-/mnt/jogos/Steam/steamapps/common/New World}"
+GAME="${GAME:-$NW_GAME}"
 PATHS="${PATHS:-/tmp/claude-1000/paths.txt}"
 out="$1"; shift
 files=(); 

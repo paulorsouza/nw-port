@@ -7,7 +7,7 @@ description: Comandos do port no Windows nativo (porte para Windows, docs/window
 
 Sem WSL: o Python do pipeline (`tools/*.py`) é o mesmo do Linux; o que é só do Windows fica em `tools/windows/`.
 Use o Python de python.org (o da Microsoft Store é recusado) e `python` no lugar de `python3`. Plano e estado:
-`docs/windows-convert.md`; roteiro de teste: `setup-windows-test.md`.
+`docs/windows-convert.md`; setup do zero: skill `setup`.
 
 | Ação | Comando |
 |---|---|

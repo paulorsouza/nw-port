@@ -8,6 +8,7 @@
 # ~25 min, o cenário da região ~3 min por arquivo). Os commandlets devolvem código de erro por avisos de material do
 # glTF: por isso cada etapa confere a própria linha de resultado no log em vez do código de saída.
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Fila de trabalho pesado (várias sessões na mesma máquina; docs/esteiras.md).

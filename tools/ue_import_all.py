@@ -26,10 +26,7 @@ DONE = ROOT / "extract/.etapas"
 
 
 def engine_dir():
-    configured = os.environ.get("NW_UE")
-    if configured:
-        return Path(configured)
-    return Path("C:/UnrealEngine" if nwplatform.WINDOWS else "/mnt/jogos/UnrealEngine/5.8")
+    return Path(nwplatform.ue_directory() or ("C:/UnrealEngine" if nwplatform.WINDOWS else "/mnt/jogos/UnrealEngine/5.8"))
 
 
 class Importer:

@@ -12,13 +12,14 @@
 # renderiza (e tira print); os outros rodam sem render (-nullrhi): dois clientes com Nanite/Lumen não cabem
 # nos 8 GB de VRAM.
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 caller_accounts="${NW_TEST_ACCOUNTS:-}"
 set -a; source "$root/backend/dev.env"; set +a
 [ -n "$caller_accounts" ] && NW_TEST_ACCOUNTS="$caller_accounts"   # quem chamou escolhe as contas
 clients="${1:-2}"
 map="${2:-L_SouthWindsward}"
-ue=/mnt/jogos/UnrealEngine/5.8/Engine/Binaries/Linux/UnrealEditor
+ue="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}/Engine/Binaries/Linux/UnrealEditor"
 uproject="$root/unreal/NWPort/NWPort.uproject"
 out="$root/unreal/NWPort/Saved/NetTest"
 mkdir -p "$out"

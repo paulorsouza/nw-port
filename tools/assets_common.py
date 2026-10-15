@@ -14,6 +14,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import nwplatform  # noqa: E402  (lê local.env antes do NW_ASSETS abaixo)
+
 ROOT = Path(__file__).resolve().parent.parent
 UPROJ = ROOT / "unreal" / "NWPort"
 SAVED = UPROJ / "Saved"
@@ -62,18 +65,11 @@ def git(*args, check=True):
 
 
 def ue_version():
-    if os.environ.get("NW_UE"):
-        cands = [Path(os.environ["NW_UE"])]
-    elif WINDOWS:
-        cands = sorted(Path(r"C:\Program Files\Epic Games").glob("UE_5.*"), reverse=True)
-    else:
-        cands = [Path("/mnt/jogos/UnrealEngine/5.8")]
-    for d in cands:
-        f = d / "Engine" / "Build" / "Build.version"
-        if f.exists():
-            v = json.loads(f.read_text(encoding="utf-8"))
-            return f"{v['MajorVersion']}.{v['MinorVersion']}.{v['PatchVersion']}"
-    die("Unreal não encontrada: aponte NW_UE para a pasta da engine (a que tem Engine/Build/Build.version).")
+    engine = nwplatform.ue_directory()
+    version = engine and nwplatform.ue_version(engine)
+    if not version:
+        die("Unreal não encontrada: aponte NW_UE (local.env) para a pasta da engine (a que tem Engine/Build/Build.version).")
+    return version
 
 
 def game_build():

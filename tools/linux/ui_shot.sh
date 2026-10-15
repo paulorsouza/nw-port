@@ -6,6 +6,7 @@
 #
 # Precisa do módulo compilado (tools/linux/ue_import_all.sh 01). Roda na fila de trabalho pesado.
 set -uo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 [ -n "${NW_PESADO:-}" ] || exec "$ROOT/tools/linux/pesado.sh" "$ROOT/tools/linux/$(basename "$0")" "$@"
 UE_DIR="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}"

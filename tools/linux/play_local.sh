@@ -4,10 +4,11 @@
 #   tools/linux/play_local.sh [mapa=L_SouthWindsward]
 # Logs em unreal/NWPort/Saved/Play/. Precisa do editor fechado (usa o mesmo binário).
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/local_env.sh"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 set -a; source "$root/backend/dev.env"; set +a
 map="${1:-L_SouthWindsward}"
-ue=/mnt/jogos/UnrealEngine/5.8/Engine/Binaries/Linux/UnrealEditor
+ue="${NW_UE:-/mnt/jogos/UnrealEngine/5.8}/Engine/Binaries/Linux/UnrealEditor"
 uproject="$root/unreal/NWPort/NWPort.uproject"
 out="$root/unreal/NWPort/Saved/Play"
 mkdir -p "$out"

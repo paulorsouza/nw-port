@@ -28,7 +28,7 @@ tools/linux/ue_import_all.sh     # monta o projeto Unreal (editor fechado, ~1 h 
 
 ## Estrutura
 
-Teste nativo e migração do WSL: [setup-windows-test.md](setup-windows-test.md).
+Montar do zero com o Claude Code: skill `setup` (`.claude/skills/setup/`).
 
 | Pasta | Conteúdo |
 |---|---|

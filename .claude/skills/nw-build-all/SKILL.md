@@ -9,7 +9,7 @@ Antes:
 1. Confirme com o usuário que o New World original e a Unreal estão fechados (o `systemd-oomd` fecha programas por
    pressão de memória com vários trabalhos pesados juntos). Não rode junto com outro trabalho pesado.
 2. `NW_GAME` aponta para a pasta do jogo (padrão `/mnt/jogos/Steam/steamapps/common/New World`).
-3. Etapa 00 confere as ferramentas; se faltar algo, siga `docs/SETUP.md` (passo 2) e `docs/FERRAMENTAS.md`.
+3. Etapa 00 confere as ferramentas; se faltar algo, siga a skill `setup`.
 
 Rodar (em segundo plano, leva horas):
 
