@@ -45,7 +45,7 @@ public:
 	void ShotDrag(int32 Source, int32 Slot);
 	/** Offline capture: list sorting (0 inventory, 1 storage): 1 arrival, 2 weight, 3 gear score, 4 tier. */
 	void ShotSort(int32 List, int32 Sort) { Lists[FMath::Clamp(List, 0, 1)].Sort = Sort; }
-	/** Offline capture: opens the split (1) or destroy (2) popup for the bag item (0) or storage item (2). */
+	/** Offline capture: opens the split (1) or destroy (2) popup; Source as in ESource: 0 bag, 1 equipment, 2 storage. */
 	void ShotPopup(int32 Kind, int32 Source, int32 Slot, int32 Qty = 0);
 	/** Offline capture: list search text (0 inventory, 1 storage). */
 	void ShotSearch(int32 List, const FString& Text) { Lists[FMath::Clamp(List, 0, 1)].Search = Text; }

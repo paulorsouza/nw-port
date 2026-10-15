@@ -118,7 +118,7 @@ pub(crate) async fn capacity(tx: &mut sqlx::PgConnection, character_id: Uuid) ->
         .bind(character_id)
         .fetch_optional(&mut *tx)
         .await?
-        .ok_or_else(|| ApiError::not_found("Personagem"))?;
+        .ok_or_else(|| ApiError::not_found("Personagem não encontrado."))?;
     Ok(cap as f64)
 }
 
@@ -162,7 +162,7 @@ async fn bump(tx: &mut sqlx::PgConnection, character_id: Uuid, location: &str) -
 }
 
 /// Delivers an item to Storage (market), even over capacity: adds to the matching stack (same `props`, any tab)
-/// or takes the next slot on tab 1.
+/// or takes the next slot on the first tab (`tab` 0; tabs are 0-based, the screen shows them as 1–5).
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn deliver(
     tx: &mut sqlx::PgConnection,
@@ -248,7 +248,7 @@ pub async fn get(
         .bind(id)
         .fetch_optional(&state.db)
         .await?
-        .ok_or_else(|| ApiError::not_found("Personagem"))?;
+        .ok_or_else(|| ApiError::not_found("Personagem não encontrado."))?;
     let (version, names) = head.unwrap_or((0, Value::Array(vec![])));
     Ok(Json(StorageView { version, items, tab_names: tab_names(&names), capacity: cap }))
 }

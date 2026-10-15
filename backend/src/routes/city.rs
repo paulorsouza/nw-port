@@ -259,7 +259,7 @@ fn price_of(prices: &Value, item: &str, range: &PriceRange) -> i64 {
 /// Creates the region's city (rules) if it does not exist yet; returns the locked row.
 async fn lock_city(tx: &mut sqlx::PgConnection, region: &str) -> ApiResult<CityRow> {
     let Some(rule) = RULES.regioes.iter().find(|r| r.id == region) else {
-        return Err(ApiError::not_found("Região"));
+        return Err(ApiError::not_found("Região não encontrada."));
     };
     sqlx::query(
         "insert into cities (region, name, treasury, tax, week) values ($1, $2, $3, $4, $5) on conflict (region) do nothing",

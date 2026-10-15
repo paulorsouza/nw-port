@@ -5,7 +5,8 @@
 Extraction: Server.pak (depot 1063731) linked at extract/serverpak/game/assets; nwbt unpack -g extract/serverpak/game
 --x-objects json --crc-file .nwbt/rtti/nwt-crc.json --uuid-file .nwbt/rtti/nwt-types.json "sharedassets/ai/**".
 TreeReference carries the embedded subtree (serializedtree): each *_base.behaviortree is the creature's whole AI.
-Conditions: opN = game operator not decoded yet (from usage: 1 ==, 3 <, 4 >, 5 <=?, 6 >=); LOG1 = OR?.
+Conditions: opN = game operator as the port reads it (tools/make_ai.py, NWBehaviorTreeComponent Compare): 1 ==, 2 !=,
+3 <, 4 >, 5 <=, 6 >=; LOG1 = OR.
 """
 import json,sys
 SKIP={'__type','baseclass1','child','children','id','name','baseutility','interruptable','serializedtree'}

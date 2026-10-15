@@ -37,7 +37,7 @@ pub async fn issue(State(state): State<AppState>, _server: GameServer, Path(id):
     .bind(id)
     .fetch_optional(&mut *tx)
     .await?;
-    let (seq,) = seq.ok_or_else(|| ApiError::not_found("Personagem"))?;
+    let (seq,) = seq.ok_or_else(|| ApiError::not_found("Personagem não encontrado."))?;
     let serial = format!("{}-{}", id.simple(), seq);
     sqlx::query("insert into item_serials (serial, crafter_id, character_id, location) values ($1, $2, $2, 'bag')")
         .bind(&serial)

@@ -7,10 +7,10 @@
    Python in tools/ and tools/ue/). A numeric value goes in through FNWRules (Data/regras.json); a rule (null value)
    goes in by citing the id in a comment where it is applied. Unused = still to be applied.
 2. Data/regras.json out of date relative to the values (run tools/make_rules.py).
-4. Questions (re-local/perguntas/<area>-NNN.md) answered and not applied yet.
 3. Columns (re-local/colunas.json, taken from the executable by tools/re/colunas.py): damagetable columns the
    game client reads and the port does not export (make_datatables.DAMAGE_COLS), and those the port exports and the
    client does not read (server-side: the port, being both server and client, uses them anyway).
+4. Questions (re-local/perguntas/<area>-NNN.md) answered and not applied yet.
 """
 import json
 import os

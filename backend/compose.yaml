@@ -1,4 +1,4 @@
-# Postgres de desenvolvimento do nw-core.
+# Development Postgres for nw-core.
 services:
   db:
     image: postgres:17-alpine

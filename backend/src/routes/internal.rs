@@ -60,7 +60,7 @@ pub async fn redeem_ticket(State(state): State<AppState>, _server: GameServer, J
     .bind(character_id)
     .fetch_optional(&mut *tx)
     .await?;
-    let mut character: Character = row.ok_or_else(|| ApiError::not_found("Personagem"))?.into();
+    let mut character: Character = row.ok_or_else(|| ApiError::not_found("Personagem não encontrado."))?.into();
     let items: Vec<ItemInstance> = sqlx::query_as(
         "select item_id, quantity, container, slot, gear_score, rarity, props from items where character_id = $1 order by container, slot",
     )
@@ -133,7 +133,7 @@ pub async fn save_state(
     .execute(&mut *tx)
     .await?;
     if done.rows_affected() == 0 {
-        return Err(ApiError::not_found("Personagem"));
+        return Err(ApiError::not_found("Personagem não encontrado."));
     }
     if let Some(patches) = &s.inventory_patch {
         journal::patch_bag(&mut tx, &ctx, patches).await?;

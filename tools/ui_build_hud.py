@@ -33,7 +33,7 @@ EXTRA = ["lyshineui/images/icons/abilities/sword_ability02.dds", "lyshineui/imag
 def main():
     canvases = []
     textures = set(EXTRA)
-    # Ability and weapon icons of every weapon from tools/make_abilities.py (runs earlier, in make_data.sh).
+    # Ability and weapon icons of every weapon from tools/make_abilities.py (runs earlier, in tools/make_data.py).
     abil = os.path.join(ROOT, "unreal", "NWPort", "Data", "UI", "abilities.pt-br.json")
     if os.path.exists(abil):
         data = json.load(open(abil))

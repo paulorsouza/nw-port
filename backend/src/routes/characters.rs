@@ -311,7 +311,7 @@ pub async fn remove(State(state): State<AppState>, session: Session, Path(id): P
         .execute(&state.db)
         .await?;
     if done.rows_affected() == 0 {
-        return Err(ApiError::not_found("Personagem"));
+        return Err(ApiError::not_found("Personagem não encontrado."));
     }
     Ok(StatusCode::NO_CONTENT)
 }
@@ -325,7 +325,7 @@ pub async fn join(State(state): State<AppState>, session: Session, Path(id): Pat
             .fetch_optional(&state.db)
             .await?;
     if owned.is_none() {
-        return Err(ApiError::not_found("Personagem"));
+        return Err(ApiError::not_found("Personagem não encontrado."));
     }
     let ticket = auth::new_token();
     let expires_at = OffsetDateTime::now_utc() + Duration::seconds(TICKET_SECONDS);

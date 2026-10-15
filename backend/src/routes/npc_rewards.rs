@@ -98,7 +98,7 @@ pub async fn claim(
         if is_unique_violation(&e) {
             ApiError::conflict("already_claimed", "Já pegou neste período.")
         } else if matches!(&e, sqlx::Error::Database(db) if db.code().as_deref() == Some("23503")) {
-            ApiError::not_found("Personagem")
+            ApiError::not_found("Personagem não encontrado.")
         } else {
             e.into()
         }

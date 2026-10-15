@@ -1079,7 +1079,7 @@ async fn teto_de_moedas_e_preco_maximo(db: PgPool) {
     assert_eq!(status, StatusCode::NO_CONTENT, "{b}");
     assert_eq!(coins_of(&db, &id).await, 2_000_000_000);
     let (_, log) = api.call("GET", &format!("/internal/item-log?character_id={id}"), None, true, None).await;
-    let cap = log.as_array().unwrap().iter().find(|l| l["location"] == "coins_cap" || l["place"] == "coins_cap").cloned().unwrap_or(Value::Null);
+    let cap = log.as_array().unwrap().iter().find(|l| l["place"] == "coins_cap").cloned().unwrap_or(Value::Null);
     assert_eq!(cap["quantity"], -500, "{log}");
     // Cut made by the game server: record only.
     let (status, _) = api.call("POST", &format!("/internal/characters/{id}/coins-cap"), None, true, Some(json!({ "amount": 700, "reason": "loot:teste" }))).await;

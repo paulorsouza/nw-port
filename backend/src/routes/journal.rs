@@ -58,7 +58,7 @@ pub(crate) async fn claim(tx: &mut sqlx::PgConnection, character_id: Uuid, w: &W
         .bind(character_id)
         .fetch_optional(&mut *tx)
         .await?;
-    let (current, last) = row.ok_or_else(|| ApiError::not_found("Personagem"))?;
+    let (current, last) = row.ok_or_else(|| ApiError::not_found("Personagem não encontrado."))?;
     if session != current || seq < last {
         return Err(ApiError::conflict("stale_write", format!("Gravação velha (sessão {session}/{current}, número {seq}/{last}).")));
     }
@@ -292,7 +292,6 @@ pub struct LogRow {
     pub props: Value,
 }
 
-/// `GET /internal/item-log`: filters by character, item, serial number and date; newest first.
 /// Coins the game server did not grant because of the cap (`coins_cap`): record only.
 #[derive(Deserialize)]
 pub struct CoinsCap {
@@ -317,6 +316,7 @@ pub async fn coins_cap(
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
 
+/// `GET /internal/item-log`: filters by character, item, serial number and date; newest first.
 pub async fn list(State(state): State<AppState>, _server: GameServer, Query(q): Query<LogQuery>) -> ApiResult<Json<Vec<LogRow>>> {
     let limit = q.limit.unwrap_or(200).clamp(1, 5000);
     let rows: Vec<LogRow> = sqlx::query_as(

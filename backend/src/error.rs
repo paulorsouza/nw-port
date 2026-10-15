@@ -26,8 +26,9 @@ impl ApiError {
     pub fn forbidden() -> Self {
         Self::new(StatusCode::FORBIDDEN, "forbidden", "Sem permissão.")
     }
-    pub fn not_found(what: &str) -> Self {
-        Self::new(StatusCode::NOT_FOUND, "not_found", format!("{what} não encontrado."))
+    /// `message` is the full sentence: Portuguese nouns change the agreement ("encontrado"/"encontrada").
+    pub fn not_found(message: &str) -> Self {
+        Self::new(StatusCode::NOT_FOUND, "not_found", message)
     }
     pub fn conflict(code: &'static str, message: impl Into<String>) -> Self {
         Self::new(StatusCode::CONFLICT, code, message)

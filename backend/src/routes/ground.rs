@@ -190,7 +190,7 @@ pub async fn take(
         return Err(ApiError::conflict("ground_gone", "O saco não existe mais."));
     };
     if owner != t.character_id {
-        return Err(ApiError::not_found("Saco"));
+        return Err(ApiError::not_found("Saco não encontrado."));
     }
     if expires_at <= OffsetDateTime::now_utc() {
         expire(&mut tx, Some(owner)).await?;

@@ -206,7 +206,6 @@ BOW_EFFECTS = {
                   "FireDamageIDs": "Bow_RapidAttack_Standard;Bow_RapidAttack_Standard;Bow_RapidAttack_KnockBack"},
     "EvadeShot": {**ARROW, "FireTimes": "0.733"},
     "PenetratingShot": {**ARROW, "FireTimes": "0.033", "bPierce": True},
-    # Poison Shot: poison of 20% weapon damage per second for 7 s on the target (the 3 m cloud does not exist yet).
     # Poison Shot: where it lands, a 3 m cloud for 6 s; whoever enters is poisoned (20% weapon damage per second, 7 s).
     "PoisonShot": {**ARROW, "FireTimes": "0.033", "CloudRadius": 300, "CloudSeconds": 6,
                    "StatusID": "Bow_Poison", "StatusSeconds": 7, "StatusTick": 1, "StatusDamage": 0.2},

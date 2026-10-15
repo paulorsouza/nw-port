@@ -276,7 +276,7 @@ async fn lock_order(tx: &mut sqlx::PgConnection, id: Uuid) -> ApiResult<Order> {
         .bind(id)
         .fetch_optional(&mut *tx)
         .await?;
-    o.ok_or_else(|| ApiError::not_found("Ordem"))
+    o.ok_or_else(|| ApiError::not_found("Ordem não encontrada."))
 }
 
 pub async fn fill(

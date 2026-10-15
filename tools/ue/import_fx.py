@@ -408,7 +408,9 @@ def main():
         json.dump(spec, open(out + ".recipe.json", "w"), indent=1)
         report = unreal.NWNiagaraTools.build_effect(json.dumps(spec), f"{P_FX}/{name}")
         open(out + ".build.txt", "w").write(report)
-        unreal.log(f"FX: {name}: {report.count('não')} warnings")
+        # NWNiagaraTools::BuildEffect reports problems in Portuguese: "não encontrado/achado", "salvo: NÃO", "FALHOU".
+        warnings = sum(1 for line in report.splitlines() if "não" in line.lower() or "falhou" in line.lower())
+        unreal.log(f"FX: {name}: {warnings} warnings")
 
 
 main()
