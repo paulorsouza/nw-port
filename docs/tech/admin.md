@@ -17,7 +17,7 @@ after editing it, reload the browser. Development builds only (not in Shipping).
 |---|---|---|
 | Dedicated server | `-nwadmin` (port 8780 + game port − 7777) or `-nwadmin=<port>` | Windsward http://127.0.0.1:8780, Everfall :8781, Arena :8782 |
 | Play in the editor | console `nw.admin` (or `nw.admin <port>`) | http://127.0.0.1:8780 |
-| `tools/linux/play_local.sh`, Windows demo `Servidores.bat` | already passes `-nwadmin` | as above |
+| `tools/linux/play_local.sh`, `tools/linux/demo_local.sh`, Windows demo `Servidores.bat` | already passes `-nwadmin` | as above |
 
 - It listens on 127.0.0.1 only. A request with an `Origin` or `Host` that is not `127.0.0.1` or `localhost` is
   refused (403). Another site in the browser cannot drive the server.

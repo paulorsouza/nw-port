@@ -63,6 +63,7 @@ converts a cube from the game through `@list` and fails if nothing is written. `
 | `tools/linux/convert_gatherables.sh [list] [output]` (`tools/convert_gatherables.py`) | converts gatherable meshes in batches (or another `.cgf` list, e.g. `tools/arena/meshes.txt`) | yes |
 | `tools/linux/render_ambient.sh <territory>` (`tools/render_ambient.py`) | renders a territory's ambient sound | no |
 | `tools/linux/play_local.sh [map]` | backend + dedicated server + client at the login screen (for one person to play) | yes |
+| `tools/linux/demo_local.sh [--servers]` | demo on this PC with the packaged Linux server: nw-core with the map list, one server per map (admin page on 8780–8782), client at the login screen | yes |
 | `tools/linux/package_server.sh [--skip-cook]` | packages the Linux dedicated server into `deploy/build/LinuxServer` | yes |
 | `deploy/build_images.sh` | Docker images of the backend and the server | medium |
 | `tools/linux/net_test.sh [n] [map]` | network test with automatic clients and a screenshot. Manual use by developers; do not automate with AI | yes |

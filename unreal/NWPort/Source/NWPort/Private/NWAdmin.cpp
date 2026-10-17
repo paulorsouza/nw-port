@@ -942,16 +942,18 @@ bool NWAdmin::Start(UWorld* World, int32 Port)
 	}
 	Router->RegisterRequestPreprocessor(FHttpRequestHandler::CreateLambda([](const FHttpServerRequest& Req, const FHttpResultCallback& Done)
 	{
-		if (Trusted(Req))
+		if (!Trusted(Req))
+		{
+			Done(Json(TEXT("{\"error\":\"local only\"}"), EHttpServerResponseCodes::Forbidden));
+			return true;
+		}
+		// The page lives at "/", which the router does not accept as a route; it is served here.
+		const FString Path = Req.RelativePath.GetPath();
+		if (Req.Verb != EHttpServerRequestVerbs::VERB_GET || (Path != TEXT("/") && Path != TEXT("/index.html")))
 		{
 			return false;   // next handler
 		}
-		Done(Json(TEXT("{\"error\":\"local only\"}"), EHttpServerResponseCodes::Forbidden));
-		return true;
-	}));
-	// The page is read on every request: editing Data/Admin/index.html needs only a reload.
-	Router->BindRoute(FHttpPath(TEXT("/")), EHttpServerRequestVerbs::VERB_GET, FHttpRequestHandler::CreateLambda([](const FHttpServerRequest&, const FHttpResultCallback& Done)
-	{
+		// Read on every request: editing Data/Admin/index.html needs only a reload.
 		FString Page;
 		if (!FFileHelper::LoadFileToString(Page, *(FPaths::ProjectDir() / TEXT("Data/Admin/index.html"))))
 		{
