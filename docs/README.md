@@ -42,6 +42,7 @@ What the port implements and the rules it follows. One file per topic; current s
 | [tech/tools.md](tech/tools.md) | third-party tools and every script |
 | [tech/reverse-engineering.md](tech/reverse-engineering.md) | Ghidra and the `nw-re` agent (method only) |
 | [tech/backend-testing.md](tech/backend-testing.md) | testing with nw-core from the editor |
+| [tech/admin.md](tech/admin.md) | admin page: players, bots, coins, summons and creature AI from the browser |
 | [tech/network-test.md](tech/network-test.md) | network test with remote players |
 | [tech/asset-sync.md](tech/asset-sync.md) | backing up the imported project to your other machines |
 | [tech/windows.md](tech/windows.md) | native Windows: state, tools, migrating a checkout |

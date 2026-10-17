@@ -631,11 +631,15 @@ namespace
 
 void ANWPlayerController::ServerDevNamed_Implementation(FName Id)
 {
-	const FString Name = Id.ToString();
-	if (!DevGate(this, Name))
+	if (DevGate(this, Id.ToString()))
 	{
-		return;
+		RunDevNamed(Id);
 	}
+}
+
+void ANWPlayerController::RunDevNamed(FName Id)
+{
+	const FString Name = Id.ToString();
 	const NWOps::FReason Reason(TEXT("dev:") + Name);   // whatever F10 gives becomes an operation with this reason
 	if (const FNWDevEntry* E = FNWDevRegistry::Find(Id); E && E->Server)
 	{
@@ -646,11 +650,15 @@ void ANWPlayerController::ServerDevNamed_Implementation(FName Id)
 
 void ANWPlayerController::ServerDev_Implementation(ENWDevCommand Command)
 {
-	const FString DevName = StaticEnum<ENWDevCommand>()->GetNameStringByValue(int64(Command));
-	if (!DevGate(this, DevName))
+	if (DevGate(this, StaticEnum<ENWDevCommand>()->GetNameStringByValue(int64(Command))))
 	{
-		return;
+		RunDev(Command);
 	}
+}
+
+void ANWPlayerController::RunDev(ENWDevCommand Command)
+{
+	const FString DevName = StaticEnum<ENWDevCommand>()->GetNameStringByValue(int64(Command));
 	ON_SCOPE_EXIT { DevSave(this, DevName); };
 	const NWOps::FReason Reason(TEXT("dev:") + DevName);
 	ANWCharacter* Me = Cast<ANWCharacter>(GetPawn());
@@ -1145,6 +1153,10 @@ void ANWPlayerController::PlayerTick(float DeltaTime)
 		}
 	}
 	ANWCharacter* Me = Cast<ANWCharacter>(GetPawn());
+	if (Me && IsLocalController() && AdminDrive.Mode != FNWDrive::EMode::None)
+	{
+		NWAdmin::TickDrive(Me, AdminDrive, DeltaTime);
+	}
 	if (BotMode == 0 || !Me || !IsLocalController() || GetNetMode() != NM_Client)
 	{
 		return;
@@ -1183,6 +1195,26 @@ void ANWPlayerController::PlayerTick(float DeltaTime)
 		}
 	}
 	Me->AddMovementInput(BotDir, 1.f);
+}
+
+void ANWPlayerController::ClientAdminDrive_Implementation(uint8 Mode, FVector Goal, AActor* Target)
+{
+	AdminDrive = FNWDrive();
+	AdminDrive.Mode = static_cast<FNWDrive::EMode>(Mode);
+	AdminDrive.Goal = Goal;
+	AdminDrive.Target = Target;
+	if (const APawn* P = GetPawn())
+	{
+		AdminDrive.Home = P->GetActorLocation();
+	}
+}
+
+void ANWPlayerController::ClientAdminAct_Implementation(FName Action)
+{
+	if (ANWCharacter* Me = Cast<ANWCharacter>(GetPawn()))
+	{
+		NWAdmin::Act(Me, Action);
+	}
 }
 
 // ---------------------------------------------------------------- chat

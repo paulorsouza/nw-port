@@ -66,6 +66,23 @@ public:
 	/** Aggro coming from outside (group, damage). */
 	void Aggro(ANWCharacter* Who);
 
+	// Admin tool (NWAdmin, docs/tech/admin.md): inspect and steer the tree while it runs. Server only.
+	/** Set, target, running path (node type and name), blackboard, tags, cooldowns and the admin overrides. */
+	TSharedRef<FJsonObject> AdminDescribe() const;
+	/** Frozen: the tree does not plan or run and the creature stands still (combat still reacts to hits). */
+	void AdminFreeze(bool bOn);
+	/** Passive: does not look for targets nor take aggro from the group or from damage. */
+	void AdminPassive(bool bOn);
+	/** Forces the target (ignores the 12 m sight); nullptr drops it and the creature goes back to its routine. */
+	void AdminSetTarget(ANWCharacter* Who);
+	/** Blackboard value kept over what the sensor writes; NaN removes the override. */
+	void AdminOverride(FName Key, double Value);
+	/** Drops the current plan and plans again now. */
+	void AdminReplan();
+	/** Multiplier of the ambient and combat vision distances. */
+	void AdminVision(float Scale) { VisionScale = FMath::Max(0.f, Scale); }
+	bool IsAdminFrozen() const { return bAdminFrozen; }
+
 protected:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
@@ -143,4 +160,10 @@ private:
 	bool bResetting = false;
 	// Mannequin tags the tree tests (Alerted, ChainAttack...): set by tasks and by SetMannequinTag.
 	TSet<FName> Tags;
+	// Admin overrides (NWAdmin).
+	bool bAdminFrozen = false;
+	bool bAdminPassive = false;
+	float VisionScale = 1.f;
+	TMap<FName, double> AdminBB;
+	void DescribePlan(const FPlan& Plan, TArray<TSharedPtr<FJsonValue>>& Out) const;
 };

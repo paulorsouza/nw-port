@@ -309,7 +309,7 @@ $servers += @(
     'exit /b 0',
     ':run',
     'if not "%ONLY%"=="" if /i not "%ONLY%"=="%1" exit /b 0',
-    'start "NW %4 :%3" "%HERE%WindowsServer\NWPortServer.exe" /Game/NW/Maps/%2 -log -port=%3 -nwbackend=http://127.0.0.1:8090 -abslog="%HERE%logs\%1.log"',
+    'start "NW %4 :%3" "%HERE%WindowsServer\NWPortServer.exe" /Game/NW/Maps/%2 -log -port=%3 -nwadmin -nwbackend=http://127.0.0.1:8090 -abslog="%HERE%logs\%1.log"',
     'exit /b 0',
     ':nosecret',
     'echo NW_SERVER_SECRET not found in deploy\.env. Run tools\windows\build_demo.ps1.',

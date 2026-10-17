@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "NWBackend.h"
+#include "NWAdmin.h"
 #include "NWPlayerController.generated.h"
 
 class SWidget;
@@ -101,6 +102,14 @@ public:
 	UFUNCTION(Server, Reliable) void ServerDev(ENWDevCommand Command);
 	/** F10 button registered by an area (NW_REGISTER_DEV, NWDevRegistry.h). */
 	UFUNCTION(Server, Reliable) void ServerDevNamed(FName Id);
+	/** Server: the F10 command without the admin-account check (admin tool, NWAdmin). Saves like F10. */
+	void RunDev(ENWDevCommand Command);
+	void RunDevNamed(FName Id);
+	/** Admin tool: the client drives its own character (NWAdmin::TickDrive) or does one action, through the same
+	 *  prediction as the keys. AdminDriveShown is the server's copy of the order, for the page. */
+	UFUNCTION(Client, Reliable) void ClientAdminDrive(uint8 Mode, FVector Goal, AActor* Target);
+	UFUNCTION(Client, Reliable) void ClientAdminAct(FName Action);
+	FString AdminDriveShown;
 
 	// Chat: the server validates, limits and distributes; a leading "/" is a command.
 	UFUNCTION(Server, Reliable) void ServerSendChat(const FString& Text);
@@ -177,6 +186,7 @@ private:
 	int32 TestGather = 0;      // -nwtestgather=N: presses E N times on the focused gatherable (waits for each gathering to finish)
 	float TestGatherIn = 6.f;
 	FVector BotDir = FVector::ZeroVector;
+	FNWDrive AdminDrive;   // client: order from the admin tool
 
 	TSharedPtr<SWidget> OpenMenu;
 	TSharedPtr<SWidget> OpenMenuHost;

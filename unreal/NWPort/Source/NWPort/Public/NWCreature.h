@@ -29,6 +29,7 @@ class NWPORT_API FNWCreatureCatalog
 public:
 	static FNWCreatureCatalog& Get();
 	const FNWCreatureDef* Find(FName Id) const { return Defs.Find(Id); }
+	const TMap<FName, FNWCreatureDef>& All() const { return Defs; }
 	/** Reads the "creatures" from the spawns file (once per file). */
 	void Load(const FString& File);
 

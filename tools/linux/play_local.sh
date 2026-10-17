@@ -22,7 +22,7 @@ NW_BIND=127.0.0.1:8090 "$root/backend/target/debug/nw-core" serve >"$out/nw-core
 pids+=($!)
 until curl -sf "$NW_BACKEND/health" >/dev/null; do sleep 0.3; done
 
-"$ue" "$uproject" "/Game/NW/Maps/$map" -server -log -port=7777 -nwbackend="$NW_BACKEND" -unattended -nosplash \
+"$ue" "$uproject" "/Game/NW/Maps/$map" -server -log -port=7777 -nwadmin -nwbackend="$NW_BACKEND" -unattended -nosplash \
   -abslog="$out/server.log" >/dev/null 2>&1 &
 pids+=($!)
 for _ in $(seq 300); do
@@ -30,6 +30,6 @@ for _ in $(seq 300); do
   kill -0 "${pids[-1]}" 2>/dev/null || { echo "server died:"; tail -20 "$out/server.log"; exit 1; }
   sleep 1
 done
-echo "server up; opening the client"
+echo "server up; admin page on http://127.0.0.1:8780/; opening the client"
 "$ue" "$uproject" -game -windowed -ResX=1600 -ResY=900 -nwbackend="$NW_BACKEND" -nwconnect=127.0.0.1:7777 \
   -abslog="$out/client.log" >/dev/null 2>&1

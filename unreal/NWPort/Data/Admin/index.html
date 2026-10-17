@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NW Exiles Admin</title>
+<style>
+:root {
+  --bg: #0f1114; --panel: #171a1f; --panel2: #1e222a; --line: #2a2f39; --text: #e6e2d8; --dim: #8d8a82;
+  --gold: #d8b46a; --red: #d0605a; --green: #6bbf7a; --blue: #6aa4d8; --violet: #b18ad8; --orange: #e09a4f;
+  --radius: 8px; font-size: 13px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; }
+button, select, input { font: inherit; color: var(--text); background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--gold); }
+button.on { background: #3a3220; border-color: var(--gold); color: var(--gold); }
+button.danger:hover { border-color: var(--red); color: var(--red); }
+input[type=number] { width: 68px; }
+input[type=range] { padding: 0; accent-color: var(--gold); }
+header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+header h1 { font-size: 15px; margin: 0 8px 0 0; color: var(--gold); letter-spacing: .04em; font-weight: 600; }
+.servers { display: flex; gap: 4px; }
+.servers button { padding: 4px 10px; }
+.servers button.off { opacity: .4; }
+.stat { color: var(--dim); }
+.stat b { color: var(--text); font-weight: 600; }
+.grow { flex: 1; }
+main { display: grid; grid-template-columns: 290px 1fr 380px; height: calc(100% - 49px); }
+aside, section { overflow: auto; }
+#list { border-right: 1px solid var(--line); padding: 8px; }
+#inspect { border-left: 1px solid var(--line); padding: 10px 12px; }
+.filters { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.filters button { padding: 2px 8px; font-size: 12px; }
+.row { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.row:hover { background: var(--panel2); }
+.row.sel { background: #2b2618; outline: 1px solid var(--gold); }
+.row.tgt { outline: 1px dashed var(--red); }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub { color: var(--dim); font-size: 11px; }
+.hp { height: 3px; background: #33373f; border-radius: 2px; margin-top: 3px; }
+.hp i { display: block; height: 100%; background: var(--green); border-radius: 2px; }
+.group { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 10px 4px 4px; }
+#mapwrap { position: relative; }
+canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+.maphint { position: absolute; left: 10px; bottom: 8px; color: var(--dim); font-size: 11px; pointer-events: none; }
+.mapbar { position: absolute; right: 10px; top: 10px; display: flex; gap: 4px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; }
+.card h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.btns { display: flex; flex-wrap: wrap; gap: 5px; }
+.btns button { font-size: 12px; padding: 4px 8px; }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 3px 8px; font-size: 12px; }
+.kv span:nth-child(odd) { color: var(--dim); }
+.title { font-size: 17px; font-weight: 600; }
+.chip { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; background: var(--panel2); border: 1px solid var(--line); color: var(--dim); }
+.line { display: flex; gap: 6px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.plan { font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.5; max-height: 220px; overflow: auto; }
+.plan div { white-space: nowrap; }
+.plan .t { color: var(--violet); }
+table.bb { width: 100%; border-collapse: collapse; font-family: ui-monospace, monospace; font-size: 11px; }
+table.bb td { padding: 2px 4px; border-bottom: 1px solid var(--line); }
+table.bb td:first-child { color: var(--dim); }
+table.bb tr.ov td { color: var(--orange); }
+table.bb input { width: 70px; padding: 1px 4px; font-size: 11px; }
+.bbwrap { max-height: 260px; overflow: auto; }
+#toast { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--line); padding: 7px 14px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+#toast.show { opacity: 1; }
+#toast.err { border-color: var(--red); color: var(--red); }
+.empty { color: var(--dim); padding: 30px 10px; text-align: center; }
+details summary { cursor: pointer; color: var(--dim); font-size: 12px; margin: 4px 0; }
+@media (max-width: 1100px) { main { grid-template-columns: 1fr; height: auto; } #mapwrap { height: 420px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>NW Exiles Admin</h1>
+  <div class="servers" id="servers"></div>
+  <span class="stat" id="mapname"></span>
+  <span class="stat">players <b id="nplayers">0</b></span>
+  <span class="stat">bots <b id="nbots">0</b></span>
+  <span class="stat">creatures <b id="ncreatures">0</b></span>
+  <span class="grow"></span>
+  <span class="stat">time</span>
+  <input type="range" id="dilation" min="0.1" max="2" step="0.1" value="1" title="Time dilation">
+  <span class="stat" id="dilationv">1.0×</span>
+  <button class="danger" id="removeall" title="Bots and everything summoned">Remove summoned</button>
+</header>
+<main>
+  <aside id="list">
+    <div class="filters" id="filters"></div>
+    <div id="rows"></div>
+  </aside>
+  <section id="mapwrap">
+    <canvas id="map"></canvas>
+    <div class="mapbar">
+      <button id="zoomin">+</button><button id="zoomout">−</button><button id="follow" class="on">Follow</button>
+    </div>
+    <div class="maphint">click: selected walks there · shift+click: teleport · right click: pick target</div>
+  </section>
+  <aside id="inspect"></aside>
+</main>
+<div id="toast"></div>
+<script>
+'use strict';
+const PORTS = [{port: 8780, name: 'Windsward'}, {port: 8781, name: 'Everfall'}, {port: 8782, name: 'Arena'}];
+const COLORS = {player: '--gold', bot: '--blue', sim: '--dim', creature: '--red', npc: '--violet'};
+const GROUPS = [['player', 'Players'], ['bot', 'Bots'], ['creature', 'Creatures'], ['npc', 'NPCs'], ['sim', 'Load test']];
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'class') e.className = v;
+    else if (v !== undefined && v !== null && v !== false) e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.append(k.nodeType ? k : String(k));
+  return e;
+};
+
+let base = location.port ? `${location.protocol}//${location.hostname}:${location.port}` : location.origin;
+let state = null, catalog = null, sel = 0, tgt = 0, ai = null;
+let hidden = new Set(['sim']);
+let view = {x: 0, y: 0, scale: 0.05, follow: true};
+let pointerDown = false;
+window.addEventListener('mousedown', () => pointerDown = true, true);
+window.addEventListener('mouseup', () => setTimeout(() => { pointerDown = false; }, 0), true);
+const prefs = (() => { try { return JSON.parse(localStorage.getItem('nwadmin') || '{}'); } catch { return {}; } })();
+const savePrefs = () => { try { localStorage.setItem('nwadmin', JSON.stringify(prefs)); } catch {} };
+
+function toast(msg, err) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show' + (err ? ' err' : '');
+  clearTimeout(toast.h);
+  toast.h = setTimeout(() => t.className = '', 1800);
+}
+
+async function api(path) {
+  const r = await fetch(base + path, {cache: 'no-store'});
+  return r.json();
+}
+
+async function cmd(op, args = {}) {
+  try {
+    // text/plain: no CORS preflight when the page talks to another server's port.
+    const r = await fetch(base + '/api/cmd', {method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify({op, ...args})});
+    const j = await r.json();
+    if (j.error) toast(`${op}: ${j.error}`, true); else toast(op);
+    refresh();
+    return j;
+  } catch (e) { toast(`${op}: ${e}`, true); }
+}
+
+const actor = id => state && state.actors.find(a => a.id === id);
+const nameOf = a => a ? (a.name || a.kind) : '—';
+const dist = (a, b) => a && b ? Math.hypot(a.pos[0] - b.pos[0], a.pos[1] - b.pos[1]) / 100 : 0;
+
+// ---------------------------------------------------------------- servers
+
+async function probeServers() {
+  const box = $('servers');
+  box.replaceChildren();
+  for (const s of PORTS) {
+    const url = `${location.protocol}//${location.hostname}:${s.port}`;
+    const b = el('button', {class: url === base ? 'on' : 'off', onclick: () => { base = url; sel = tgt = 0; ai = null; probeServers(); refresh(true); }}, s.name);
+    box.append(b);
+    fetch(url + '/api/state', {cache: 'no-store'}).then(r => r.ok && b.classList.remove('off')).catch(() => {});
+  }
+}
+
+// ---------------------------------------------------------------- refresh
+
+async function refresh(withCatalog) {
+  try {
+    if (withCatalog || !catalog) catalog = await api('/api/catalog');
+    state = await api('/api/state');
+  } catch (e) { state = null; }
+  render();
+}
+
+function render() {
+  if (!state) {
+    $('rows').replaceChildren(el('div', {class: 'empty'}, 'No server on ' + base));
+    $('inspect').replaceChildren();
+    drawMap();
+    return;
+  }
+  $('mapname').textContent = state.map;
+  const count = k => state.actors.filter(a => a.kind === k).length;
+  $('nplayers').textContent = count('player');
+  $('nbots').textContent = count('bot');
+  $('ncreatures').textContent = count('creature');
+  if (document.activeElement !== $('dilation')) {
+    $('dilation').value = state.time_dilation;
+    $('dilationv').textContent = state.time_dilation.toFixed(1) + '×';
+  }
+  if (sel && !actor(sel)) sel = 0;
+  if (tgt && !actor(tgt)) tgt = 0;
+  if (!sel) { const p = state.actors.find(a => a.kind === 'player'); if (p) sel = p.id; }
+  drawMap();
+  // Rebuilding a button between mousedown and mouseup loses the click: wait for the release.
+  if (pointerDown) return;
+  renderList();
+  renderInspect();
+}
+
+function renderList() {
+  const f = $('filters');
+  f.replaceChildren(...GROUPS.map(([k, label]) => el('button', {class: hidden.has(k) ? '' : 'on', onclick: () => { hidden.has(k) ? hidden.delete(k) : hidden.add(k); render(); }}, label)));
+  const me = actor(sel);
+  const rows = [];
+  for (const [k, label] of GROUPS) {
+    if (hidden.has(k)) continue;
+    const list = state.actors.filter(a => a.kind === k);
+    if (!list.length) continue;
+    if (me && k !== 'player') list.sort((a, b) => dist(a, me) - dist(b, me));
+    rows.push(el('div', {class: 'group'}, `${label} · ${list.length}`));
+    for (const a of list.slice(0, 150)) {
+      const pct = a.max_hp ? Math.max(0, Math.min(100, a.hp / a.max_hp * 100)) : 0;
+      const sub = a.kind === 'player' ? `${a.account || ''} · lv ${a.level ?? '?'}`
+        : a.kind === 'creature' ? `lv ${a.level ?? '?'} · ${me ? dist(a, me).toFixed(0) + ' m' : ''}${a.target ? ' · ⚔ ' + nameOf(actor(a.target)) : ''}`
+        : `${a.drive || a.ai || ''} ${me && a !== me ? '· ' + dist(a, me).toFixed(0) + ' m' : ''}`;
+      rows.push(el('div', {
+        class: 'row' + (a.id === sel ? ' sel' : '') + (a.id === tgt ? ' tgt' : ''),
+        onclick: () => { sel = a.id; ai = null; render(); },
+        oncontextmenu: e => { e.preventDefault(); tgt = a.id === tgt ? 0 : a.id; render(); },
+        title: 'click: select · right click: target',
+      },
+        el('span', {class: 'dot', style: `background: var(${COLORS[a.kind]})`}),
+        el('div', {}, el('div', {class: 'name'}, nameOf(a), a.state === 'Dead' ? ' ✝' : ''), el('div', {class: 'sub'}, sub), el('div', {class: 'hp'}, el('i', {style: `width:${pct}%`}))),
+        a.paused || a.frozen ? el('span', {class: 'chip'}, '❚❚') : ''));
+    }
+  }
+  $('rows').replaceChildren(...(rows.length ? rows : [el('div', {class: 'empty'}, 'Nobody here')]));
+}
+
+// ---------------------------------------------------------------- inspector
+
+function numIn(value, step, onset, attrs = {}) {
+  return el('input', {type: 'number', value, step, ...attrs, onchange: e => onset(parseFloat(e.target.value))});
+}
+
+function driveCard(a) {
+  const t = actor(tgt);
+  const need = t ? '' : ' (pick a target: right click)';
+  return el('div', {class: 'card'},
+    el('h3', {}, 'Drive', el('span', {class: 'chip'}, a.drive || 'idle')),
+    el('div', {class: 'btns'},
+      el('button', {onclick: () => cmd('drive', {id: a.id, mode: 'follow', target: tgt}), disabled: !t, title: 'Follow the target' + need}, 'Follow'),
+      el('button', {onclick: () => cmd('drive', {id: a.id, mode: 'fight', target: tgt}), disabled: !t, title: 'Fight the target' + need}, 'Fight'),
+      el('button', {onclick: () => cmd('drive', {id: a.id, mode: 'move', target: tgt}), disabled: !t}, 'Go to target'),
+      el('button', {onclick: () => cmd('drive', {id: a.id, mode: 'wander'})}, 'Wander'),
+      el('button', {onclick: () => cmd('drive', {id: a.id, mode: 'stop'})}, 'Stop')),
+    el('div', {class: 'btns', style: 'margin-top:6px'},
+      ...[['light', 'Light'], ['heavy', 'Heavy'], ['ability1', 'Q'], ['ability2', 'R'], ['ability3', 'F'], ['dodge', 'Dodge'], ['jump', 'Jump'], ['block', 'Block'], ['unblock', 'Unblock'], ['swap', 'Swap weapon']]
+        .map(([k, l]) => el('button', {onclick: () => cmd('act', {id: a.id, action: k})}, l))),
+    el('div', {class: 'line'},
+      el('button', {onclick: () => cmd('teleport', {id: a.id, target: tgt}), disabled: !t}, 'Teleport to target'),
+      t && t.kind !== 'player' ? el('button', {onclick: () => cmd('teleport', {id: tgt, target: a.id})}, 'Bring target here') : ''));
+}
+
+function vitalsCard(a) {
+  return el('div', {class: 'card'},
+    el('h3', {}, 'Vitals'),
+    el('div', {class: 'btns'},
+      el('button', {onclick: () => cmd('heal', {id: a.id})}, 'Heal'),
+      el('button', {class: a.god ? 'on' : '', onclick: () => cmd('god', {id: a.id, on: !a.god})}, 'God mode'),
+      a.kind !== 'player' ? el('button', {class: a.paused ? 'on' : '', onclick: () => cmd('pause', {id: a.id, on: !a.paused})}, 'Pause') : '',
+      el('button', {class: 'danger', onclick: () => cmd('kill', {id: a.id})}, 'Kill'),
+      a.kind !== 'player' ? el('button', {class: 'danger', onclick: () => cmd('remove', {id: a.id})}, 'Remove') : ''),
+    el('div', {class: 'line'},
+      'HP', numIn(a.max_hp, 100, v => cmd('stats', {id: a.id, max_hp: v})),
+      'Dmg', numIn(a.damage, 10, v => cmd('stats', {id: a.id, damage: v})),
+      'Speed', numIn(a.speed, 0.5, v => cmd('stats', {id: a.id, speed: v}), {min: 0.1, max: 6})));
+}
+
+function playerCards(a) {
+  const named = catalog ? catalog.dev_named : [];
+  const dev = catalog ? catalog.dev : [];
+  let coinIn, levelIn;
+  return [
+    el('div', {class: 'card'},
+      el('h3', {}, 'Coins & limits'),
+      el('div', {class: 'kv'},
+        el('span', {}, 'Coins'), el('span', {}, ((a.coins || 0) / 100).toLocaleString(undefined, {minimumFractionDigits: 2})),
+        el('span', {}, 'Coin cap'), el('span', {}, state.coins_max ? (state.coins_max / 100).toLocaleString() : 'none'),
+        el('span', {}, 'Bag max'), el('span', {}, Math.round(a.max_weight || 0).toLocaleString())),
+      el('div', {class: 'line'},
+        ...[100, 1000, 10000, 100000].map(v => el('button', {onclick: () => cmd('coins', {id: a.id, amount: v * 100})}, '+' + v.toLocaleString())),
+        coinIn = el('input', {type: 'number', value: 500, step: 100}),
+        el('button', {onclick: () => cmd('coins', {id: a.id, amount: Math.round(parseFloat(coinIn.value) * 100)})}, 'Give'),
+        el('button', {onclick: () => cmd('coins', {id: a.id, amount: -Math.round(parseFloat(coinIn.value) * 100)})}, 'Take')),
+      el('div', {class: 'line'},
+        el('button', {class: a.dev_bag ? 'on' : '', onclick: () => cmd('bag', {id: a.id, on: !a.dev_bag})}, 'Unlimited bag'),
+        'Level', levelIn = el('input', {type: 'number', value: Math.min(60, (a.level || 1) + 1), min: 1, max: 200}),
+        el('button', {onclick: () => cmd('level', {id: a.id, level: parseInt(levelIn.value)})}, 'Set'))),
+    el('div', {class: 'card'},
+      el('h3', {}, 'F10 commands'),
+      el('div', {class: 'btns'}, ...named.map(n => el('button', {onclick: () => cmd('dev', {id: a.id, command: n})}, n.replace(/^[a-z]+\./, '').replace(/_/g, ' '))))),
+    el('details', {class: 'card', open: prefs.devOpen},
+      el('summary', {onclick: () => { prefs.devOpen = !prefs.devOpen; savePrefs(); }}, 'More F10 commands'),
+      el('div', {class: 'btns'}, ...dev.map(n => el('button', {onclick: () => cmd('dev', {id: a.id, command: n})}, n.replace(/([a-z])([A-Z])/g, '$1 $2'))))),
+  ];
+}
+
+function botCards(a) {
+  const weapons = catalog ? catalog.weapons : [];
+  return [el('div', {class: 'card'},
+    el('h3', {}, 'Weapon'),
+    el('div', {class: 'btns'}, ...weapons.map(w => el('button', {class: a.weapon === w ? 'on' : '', onclick: () => cmd('weapon', {id: a.id, weapon: w})}, w))))];
+}
+
+function aiCard(a) {
+  const t = actor(tgt);
+  const card = el('div', {class: 'card'});
+  if (a.ai === 'brain') {
+    card.append(el('h3', {}, 'AI · brain', el('span', {class: 'chip'}, a.style)),
+      el('div', {class: 'btns'}, ...(catalog ? catalog.styles : []).map(s => el('button', {class: a.style === s ? 'on' : '', onclick: () => cmd('brain', {id: a.id, style: s})}, s))),
+      el('div', {class: 'line'},
+        'Block', numIn(a.block_chance, 0.05, v => cmd('brain', {id: a.id, block_chance: v}), {min: 0, max: 1}),
+        'Dodge', numIn(a.dodge_chance, 0.05, v => cmd('brain', {id: a.id, dodge_chance: v}), {min: 0, max: 1})),
+      el('div', {class: 'line'},
+        'Reaction s', numIn(a.reaction, 0.05, v => cmd('brain', {id: a.id, reaction: v}), {min: 0, max: 3}),
+        'Hold cm', numIn(a.hold_distance, 50, v => cmd('brain', {id: a.id, hold_distance: v})),
+        'Aggro m', numIn(Math.round(a.aggro_range / 100), 5, v => cmd('stats', {id: a.id, aggro_range: v}))),
+      el('div', {class: 'line'},
+        el('button', {onclick: () => cmd('ai_target', {id: a.id, target: tgt}), disabled: !t}, 'Attack target'),
+        el('button', {onclick: () => cmd('ai_target', {id: a.id, target: 0})}, 'Calm down')));
+    return card;
+  }
+  if (a.ai !== 'tree') {
+    card.append(el('h3', {}, 'AI'), el('div', {class: 'sub'}, 'No AI on this character.'),
+      el('div', {class: 'line'}, 'Aggro m', numIn(Math.round(a.aggro_range / 100), 5, v => cmd('stats', {id: a.id, aggro_range: v}))));
+    return card;
+  }
+  const d = ai && ai.id === a.id ? ai.ai : null;
+  card.append(el('h3', {}, 'AI · behavior tree', el('span', {class: 'chip'}, d ? d.set : '…')),
+    el('div', {class: 'btns'},
+      el('button', {class: a.frozen ? 'on' : '', onclick: () => cmd('ai_freeze', {id: a.id, on: !a.frozen})}, 'Freeze'),
+      el('button', {class: d && d.passive ? 'on' : '', onclick: () => cmd('ai_passive', {id: a.id, on: !(d && d.passive)})}, 'Passive'),
+      el('button', {onclick: () => cmd('ai_target', {id: a.id, target: tgt}), disabled: !t}, 'Attack target'),
+      el('button', {onclick: () => cmd('ai_target', {id: a.id, target: 0})}, 'Drop target'),
+      el('button', {onclick: () => cmd('ai_replan', {id: a.id})}, 'Replan')),
+    el('div', {class: 'line'}, 'Vision ×',
+      el('input', {type: 'range', min: 0, max: 4, step: 0.25, value: d ? d.vision : 1, onchange: e => cmd('ai_vision', {id: a.id, value: parseFloat(e.target.value)})}),
+      el('span', {class: 'sub'}, d ? d.vision.toFixed(2) : '')));
+  if (!d) return card;
+  card.append(el('div', {class: 'kv', style: 'margin-top:8px'},
+    el('span', {}, 'Target'), el('span', {}, d.target ? nameOf(actor(d.target)) : '—'),
+    el('span', {}, 'Tags'), el('span', {}, d.tags.join(', ') || '—'),
+    el('span', {}, 'Cooldowns'), el('span', {}, Object.entries(d.cooldowns).map(([k, v]) => `${k} ${v.toFixed(1)}s`).join(', ') || '—')));
+  card.append(el('details', {open: prefs.planOpen !== false},
+    el('summary', {onclick: () => { prefs.planOpen = prefs.planOpen === false; savePrefs(); }}, `Running path (${d.plan.length})`),
+    el('div', {class: 'plan'}, ...d.plan.map(n => el('div', {style: `padding-left:${n.depth * 10}px`}, el('span', {class: 't'}, n.type), ' ', n.name)))));
+  const rows = Object.keys(d.blackboard).sort().map(k => {
+    const v = d.blackboard[k];
+    const ov = k in d.overrides;
+    const input = typeof v === 'number' ? el('input', {type: 'number', step: 'any', value: ov ? d.overrides[k] : +v.toFixed(3),
+      onchange: e => cmd('ai_bb', {id: a.id, key: k, value: parseFloat(e.target.value)})}) : v;
+    return el('tr', {class: ov ? 'ov' : ''}, el('td', {}, k), el('td', {}, input),
+      el('td', {}, ov ? el('button', {style: 'padding:0 5px', title: 'Release', onclick: () => cmd('ai_bb', {id: a.id, key: k})}, '×') : ''));
+  });
+  card.append(el('details', {open: prefs.bbOpen},
+    el('summary', {onclick: () => { prefs.bbOpen = !prefs.bbOpen; savePrefs(); }}, `Blackboard (${rows.length}) — edited values stay fixed`),
+    el('div', {class: 'bbwrap'}, el('table', {class: 'bb'}, ...rows))));
+  return card;
+}
+
+function spawnCard(a) {
+  const creatures = catalog ? catalog.creatures : [];
+  const pick = el('select', {}, ...creatures.map(c => el('option', {value: c.id, selected: prefs.creature === c.id}, `${c.id} (lv ${c.level})${c.tree ? ' ★' : ''}`)));
+  pick.onchange = () => { prefs.creature = pick.value; savePrefs(); };
+  const n = el('input', {type: 'number', value: prefs.count || 1, min: 1, max: 30, onchange: e => { prefs.count = +e.target.value; savePrefs(); }});
+  const dist = el('input', {type: 'number', value: prefs.dist || 12, min: 2, max: 60, onchange: e => { prefs.dist = +e.target.value; savePrefs(); }});
+  const aggro = el('input', {type: 'checkbox', checked: prefs.aggro, onchange: e => { prefs.aggro = e.target.checked; savePrefs(); }});
+  const bots = el('input', {type: 'number', value: prefs.bots || 1, min: 1, max: 50, onchange: e => { prefs.bots = +e.target.value; savePrefs(); }});
+  const mode = el('select', {onchange: e => { prefs.botMode = e.target.value; savePrefs(); }},
+    ...['idle', 'follow', 'fight', 'wander'].map(m => el('option', {value: m, selected: prefs.botMode === m}, m)));
+  return el('div', {class: 'card'},
+    el('h3', {}, `Summon near ${nameOf(a)}`),
+    el('div', {class: 'line'}, pick),
+    el('div', {class: 'line'}, '×', n, 'at', dist, 'm', el('label', {}, aggro, ' aggro on ', tgt ? nameOf(actor(tgt)) : nameOf(a)),
+      el('button', {onclick: () => cmd('creature_spawn', {id: a.id, creature: pick.value, count: +n.value, distance: +dist.value, aggro: aggro.checked, target: tgt})}, 'Summon')),
+    el('div', {class: 'line', style: 'margin-top:10px'}, 'Bots ×', bots, mode, el('span', {class: 'sub'}, `→ ${tgt ? nameOf(actor(tgt)) : nameOf(a)}`),
+      el('button', {onclick: () => cmd('bot_spawn', {id: a.id, count: +bots.value, mode: mode.value, target: tgt})}, 'Create')),
+    el('div', {class: 'sub', style: 'margin-top:6px'}, '★ uses the game\'s behavior tree'));
+}
+
+function renderInspect() {
+  const a = actor(sel);
+  const box = $('inspect');
+  if (!a) { box.replaceChildren(el('div', {class: 'empty'}, 'Select someone')); return; }
+  // Rebuilding while the user types in an input would lose the focus: skip while editing.
+  if (box.contains(document.activeElement) && ['INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
+  const t = actor(tgt);
+  const head = el('div', {class: 'card'},
+    el('div', {class: 'title'}, nameOf(a)),
+    el('div', {class: 'line'}, el('span', {class: 'chip', style: `color: var(${COLORS[a.kind]})`}, a.kind),
+      a.weapon ? el('span', {class: 'chip'}, a.weapon) : '', el('span', {class: 'chip'}, a.state), a.action && a.action !== 'None' ? el('span', {class: 'chip'}, a.action) : ''),
+    el('div', {class: 'kv', style: 'margin-top:8px'},
+      el('span', {}, 'Health'), el('span', {}, `${Math.round(a.hp)} / ${Math.round(a.max_hp)}`),
+      el('span', {}, 'Position'), el('span', {}, a.pos.map(v => Math.round(v / 100)).join(', ') + ' m'),
+      el('span', {}, 'Target'), el('span', {}, t ? `${nameOf(t)} · ${dist(a, t).toFixed(0)} m` : '— (right click someone)'),
+      a.kind === 'player' ? [el('span', {}, 'Account'), el('span', {}, `${a.account || '—'}${a.admin ? ' · admin' : ''}${a.remote ? '' : ' · local'}`)] : ''));
+  const cards = [head];
+  if (a.kind === 'player' || a.kind === 'bot') cards.push(driveCard(a));
+  if (a.kind === 'player') cards.push(...playerCards(a));
+  if (a.kind === 'bot') cards.push(...botCards(a));
+  if (a.kind === 'creature' || a.kind === 'npc') cards.push(aiCard(a));
+  cards.push(vitalsCard(a), spawnCard(a));
+  box.replaceChildren(...cards);
+}
+
+// ---------------------------------------------------------------- map
+
+const canvas = $('map');
+const ctx = canvas.getContext('2d');
+
+// Unreal: X north (up on the map), Y east (right).
+function toScreen(x, y) {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  return [w / 2 + (y - view.y) * view.scale, h / 2 - (x - view.x) * view.scale];
+}
+function toWorld(sx, sy) {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  return [view.x - (sy - h / 2) / view.scale, view.y + (sx - w / 2) / view.scale];
+}
+
+function drawMap() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = css('--bg');
+  ctx.fillRect(0, 0, w, h);
+  if (!state) return;
+  const me = actor(sel);
+  if (view.follow && me) { view.x = me.pos[0]; view.y = me.pos[1]; }
+  // Grid every 10 m (or 100 m when far).
+  const stepM = view.scale > 0.03 ? 10 : 100;
+  const step = stepM * 100;
+  ctx.strokeStyle = css('--line');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const [xTop, yLeft] = toWorld(0, 0), [xBottom, yRight] = toWorld(w, h);
+  for (let y = Math.floor(yLeft / step) * step; y < yRight; y += step) { const [sx] = toScreen(0, y); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); }
+  for (let x = Math.floor(xBottom / step) * step; x < xTop; x += step) { const [, sy] = toScreen(x, 0); ctx.moveTo(0, sy); ctx.lineTo(w, sy); }
+  ctx.stroke();
+  ctx.fillStyle = css('--dim');
+  ctx.font = '11px system-ui';
+  ctx.fillText(`grid ${stepM} m`, w - 70, h - 10);
+  // Who is attacking whom.
+  for (const a of state.actors) {
+    const target = a.target || a.drive_target;
+    const t = target && actor(target);
+    if (!t || hidden.has(a.kind)) continue;
+    const [ax, ay] = toScreen(a.pos[0], a.pos[1]), [tx, ty] = toScreen(t.pos[0], t.pos[1]);
+    ctx.strokeStyle = a.kind === 'creature' ? css('--red') : css('--blue');
+    ctx.globalAlpha = 0.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(tx, ty); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+  for (const a of state.actors) {
+    if (hidden.has(a.kind)) continue;
+    const [sx, sy] = toScreen(a.pos[0], a.pos[1]);
+    if (sx < -20 || sy < -20 || sx > w + 20 || sy > h + 20) continue;
+    const r = a.kind === 'player' ? 6 : a.kind === 'bot' ? 5 : 4;
+    ctx.globalAlpha = a.state === 'Dead' ? 0.35 : 1;
+    ctx.fillStyle = css(COLORS[a.kind]);
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+    // Facing.
+    const yaw = a.yaw * Math.PI / 180;
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + Math.sin(yaw) * (r + 6), sy - Math.cos(yaw) * (r + 6)); ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (a.id === sel || a.id === tgt) {
+      ctx.strokeStyle = a.id === sel ? css('--gold') : css('--red');
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(sx, sy, r + 5, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+    if (a.kind === 'player' || a.kind === 'bot' || a.id === sel || a.id === tgt) {
+      ctx.fillStyle = css('--text');
+      ctx.fillText(nameOf(a), sx + r + 4, sy - r - 2);
+    }
+  }
+}
+
+function pickAt(sx, sy) {
+  let best = null, bd = 14;
+  for (const a of state ? state.actors : []) {
+    if (hidden.has(a.kind)) continue;
+    const [x, y] = toScreen(a.pos[0], a.pos[1]);
+    const d = Math.hypot(x - sx, y - sy);
+    if (d < bd) { bd = d; best = a; }
+  }
+  return best;
+}
+
+canvas.addEventListener('click', e => {
+  const r = canvas.getBoundingClientRect();
+  const sx = e.clientX - r.left, sy = e.clientY - r.top;
+  const hit = pickAt(sx, sy);
+  if (hit && !e.shiftKey) { sel = hit.id; ai = null; render(); return; }
+  const me = actor(sel);
+  if (!me) return;
+  const [x, y] = toWorld(sx, sy);
+  if (e.shiftKey) cmd('teleport', {id: me.id, to: [x, y]});
+  else if (me.kind === 'player' || me.kind === 'bot') cmd('drive', {id: me.id, mode: 'move', to: [x, y]});
+});
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  const hit = pickAt(e.clientX - r.left, e.clientY - r.top);
+  tgt = hit && hit.id !== tgt ? hit.id : 0;
+  render();
+});
+canvas.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY < 0 ? 1.25 : 0.8); }, {passive: false});
+let drag = null;
+canvas.addEventListener('mousedown', e => { if (e.button === 1) { drag = {x: e.clientX, y: e.clientY}; view.follow = false; $('follow').className = ''; } });
+window.addEventListener('mouseup', () => drag = null);
+window.addEventListener('mousemove', e => {
+  if (!drag) return;
+  view.y -= (e.clientX - drag.x) / view.scale; view.x += (e.clientY - drag.y) / view.scale;
+  drag = {x: e.clientX, y: e.clientY};
+  drawMap();
+});
+function zoom(f) { view.scale = Math.max(0.002, Math.min(0.5, view.scale * f)); prefs.scale = view.scale; savePrefs(); drawMap(); }
+$('zoomin').onclick = () => zoom(1.4);
+$('zoomout').onclick = () => zoom(1 / 1.4);
+$('follow').onclick = () => { view.follow = !view.follow; $('follow').className = view.follow ? 'on' : ''; drawMap(); };
+if (prefs.scale) view.scale = prefs.scale;
+
+// ---------------------------------------------------------------- header
+
+$('dilation').oninput = e => $('dilationv').textContent = (+e.target.value).toFixed(1) + '×';
+$('dilation').onchange = e => cmd('slowmo', {value: +e.target.value});
+$('removeall').onclick = () => cmd('remove_all');
+window.addEventListener('resize', drawMap);
+
+// ---------------------------------------------------------------- loop
+
+async function tickAi() {
+  const a = actor(sel);
+  if (a && a.ai === 'tree') {
+    try {
+      const r = await fetch(base + '/api/cmd', {method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify({op: 'ai', id: a.id})});
+      const j = await r.json();
+      if (j.ai) ai = {id: a.id, ai: j.ai};
+    } catch {}
+  }
+}
+
+probeServers();
+refresh(true);
+setInterval(async () => { await tickAi(); refresh(); }, 600);
+</script>
+</body>
+</html>

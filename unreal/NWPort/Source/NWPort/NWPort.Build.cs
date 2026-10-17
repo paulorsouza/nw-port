@@ -12,6 +12,8 @@ public class NWPort : ModuleRules
 		PrivateDependencyModuleNames.Add("SlateRHIRenderer");
 		// FWidgetRenderer (offline capture of the Slate screens).
 		PrivateDependencyModuleNames.Add("UMG");
+		// Admin page and API on 127.0.0.1 (NWAdmin, docs/tech/admin.md).
+		PrivateDependencyModuleNames.Add("HTTPServer");
 		// Data outside Content (catalog, screens, texts, fonts): goes into the package (server and client).
 		RuntimeDependencies.Add("$(ProjectDir)/Data/...", StagedFileType.UFS);
 		// Game effects in Niagara (docs/tech/particles.md); building the systems happens only in the editor.

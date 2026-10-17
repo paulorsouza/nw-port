@@ -927,7 +927,7 @@ void UNWBehaviorTreeComponent::OnHit(float Damage, ENWHitResult Result, AActor* 
 
 void UNWBehaviorTreeComponent::Aggro(ANWCharacter* Who)
 {
-	if (!Who || bResetting || Target.Get() == Who)
+	if (!Who || bResetting || bAdminPassive || Target.Get() == Who)
 	{
 		return;
 	}
@@ -965,7 +965,7 @@ ANWCharacter* UNWBehaviorTreeComponent::LookForTarget() const
 	// Passive profile (boar): only fights if hit or if the group fights.
 	FString Targeting;
 	Asset->Profile->TryGetStringField(TEXT("targeting"), Targeting);
-	if (Targeting == TEXT("passive"))
+	if (Targeting == TEXT("passive") || bAdminPassive)
 	{
 		return nullptr;
 	}
@@ -975,7 +975,7 @@ ANWCharacter* UNWBehaviorTreeComponent::LookForTarget() const
 		return nullptr;
 	}
 	const float HalfAngle = float((*V)[0]->AsNumber()) * 0.5f;
-	const float Dist = float((*V)[1]->AsNumber()) * 100.f;
+	const float Dist = float((*V)[1]->AsNumber()) * 100.f * VisionScale;
 	const AActor* Self = GetOwner();
 	ANWCharacter* Best = nullptr;
 	float BestD = Dist;
@@ -1060,7 +1060,8 @@ void UNWBehaviorTreeComponent::UpdateSensor(float Dt)
 	SetNum(TEXT("Time_Since_Target_Reachable"), 0.0);
 	// Combat vision: loses the target after 15 s outside it (game's LastKnownPosition).
 	const TArray<TSharedPtr<FJsonValue>>* V = nullptr;
-	const float CombatDist = Asset->Profile->TryGetArrayField(TEXT("combat_vision"), V) && V->Num() > 1 ? float((*V)[1]->AsNumber()) * 100.f : 3000.f;
+	const float CombatDist = (Asset->Profile->TryGetArrayField(TEXT("combat_vision"), V) && V->Num() > 1 ? float((*V)[1]->AsNumber()) * 100.f : 3000.f)
+		* FMath::Max(VisionScale, 0.01f);
 	const bool bVisible = To.Size() <= CombatDist;
 	SetNum(TEXT("Target_Visible"), bVisible ? 1.0 : 0.0);
 	if (!bVisible)
@@ -1084,7 +1085,15 @@ void UNWBehaviorTreeComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	{
 		return;
 	}
+	if (bAdminFrozen)
+	{
+		return;
+	}
 	UpdateSensor(DeltaTime);
+	for (const TPair<FName, double>& O : AdminBB)
+	{
+		SetNum(O.Key, O.Value);
+	}
 	const double Now = GetWorld()->GetTimeSeconds();
 	// Reacting to a hit (stunned): the plan waits; the reaction belongs to combat.
 	if (Me->Combat->State == ENWCombatState::Stunned)
@@ -1134,4 +1143,153 @@ void UNWBehaviorTreeComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		Current.Reset();
 		CurrentSig.Reset();
 	}
+}
+
+// ---------------------------------------------------------------- admin tool (NWAdmin)
+
+void UNWBehaviorTreeComponent::DescribePlan(const FPlan& Plan, TArray<TSharedPtr<FJsonValue>>& Out) const
+{
+	if (!Asset || !Asset->Nodes.IsValidIndex(Plan.Node))
+	{
+		return;
+	}
+	const FNWBTNode& N = Asset->Nodes[Plan.Node];
+	TSharedRef<FJsonObject> O = MakeShared<FJsonObject>();
+	O->SetNumberField(TEXT("node"), Plan.Node);
+	O->SetStringField(TEXT("type"), N.Type.ToString());
+	O->SetStringField(TEXT("name"), N.Name);
+	O->SetBoolField(TEXT("started"), Plan.bStarted);
+	O->SetNumberField(TEXT("depth"), 0);
+	Out.Add(MakeShared<FJsonValueObject>(O));
+	// Running path: the child under the cursor (sequence) or the only one (selector, decorator).
+	if (Plan.Kids.IsValidIndex(Plan.Cursor))
+	{
+		const int32 First = Out.Num();
+		DescribePlan(*Plan.Kids[Plan.Cursor], Out);
+		for (int32 i = First; i < Out.Num(); ++i)
+		{
+			const TSharedPtr<FJsonObject>& K = Out[i]->AsObject();
+			K->SetNumberField(TEXT("depth"), K->GetNumberField(TEXT("depth")) + 1);
+		}
+	}
+}
+
+TSharedRef<FJsonObject> UNWBehaviorTreeComponent::AdminDescribe() const
+{
+	TSharedRef<FJsonObject> O = MakeShared<FJsonObject>();
+	O->SetStringField(TEXT("set"), SetName.ToString());
+	O->SetBoolField(TEXT("active"), IsActive() && Asset != nullptr);
+	O->SetBoolField(TEXT("frozen"), bAdminFrozen);
+	O->SetBoolField(TEXT("passive"), bAdminPassive);
+	O->SetBoolField(TEXT("resetting"), bResetting);
+	O->SetNumberField(TEXT("vision"), VisionScale);
+	O->SetNumberField(TEXT("target"), Target.IsValid() ? Target->GetUniqueID() : 0);
+	TArray<TSharedPtr<FJsonValue>> PathOut;
+	if (Current)
+	{
+		DescribePlan(*Current, PathOut);
+	}
+	O->SetArrayField(TEXT("plan"), PathOut);
+	TSharedRef<FJsonObject> Board = MakeShared<FJsonObject>();
+	for (const TPair<FName, FNWBBValue>& B : BB)
+	{
+		if (B.Value.bVec)
+		{
+			Board->SetStringField(B.Key.ToString(), FString::Printf(TEXT("%.0f, %.0f, %.0f"), B.Value.Vec.X, B.Value.Vec.Y, B.Value.Vec.Z));
+		}
+		else if (!B.Value.Str.IsEmpty())
+		{
+			Board->SetStringField(B.Key.ToString(), B.Value.Str);
+		}
+		else
+		{
+			Board->SetNumberField(B.Key.ToString(), B.Value.Num);
+		}
+	}
+	O->SetObjectField(TEXT("blackboard"), Board);
+	TSharedRef<FJsonObject> Over = MakeShared<FJsonObject>();
+	for (const TPair<FName, double>& B : AdminBB)
+	{
+		Over->SetNumberField(B.Key.ToString(), B.Value);
+	}
+	O->SetObjectField(TEXT("overrides"), Over);
+	TArray<TSharedPtr<FJsonValue>> TagsOut;
+	for (const FName& T : Tags)
+	{
+		TagsOut.Add(MakeShared<FJsonValueString>(T.ToString()));
+	}
+	O->SetArrayField(TEXT("tags"), TagsOut);
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	TSharedRef<FJsonObject> Cds = MakeShared<FJsonObject>();
+	for (const TPair<FName, double>& C : Cooldowns)
+	{
+		if (C.Value > Now)
+		{
+			Cds->SetNumberField(C.Key.ToString(), C.Value - Now);
+		}
+	}
+	O->SetObjectField(TEXT("cooldowns"), Cds);
+	return O;
+}
+
+void UNWBehaviorTreeComponent::AdminFreeze(bool bOn)
+{
+	bAdminFrozen = bOn;
+	if (bOn && Current)
+	{
+		Abort(*Current);
+		Current.Reset();
+		CurrentSig.Reset();
+	}
+	if (ANWCharacter* Me = Cast<ANWCharacter>(GetOwner()); bOn && Me)
+	{
+		Me->GetCharacterMovement()->StopMovementImmediately();
+	}
+}
+
+void UNWBehaviorTreeComponent::AdminPassive(bool bOn)
+{
+	bAdminPassive = bOn;
+	if (bOn)
+	{
+		Target.Reset();
+		AdminReplan();
+	}
+}
+
+void UNWBehaviorTreeComponent::AdminSetTarget(ANWCharacter* Who)
+{
+	if (!Who)
+	{
+		Target.Reset();
+		AdminReplan();
+		return;
+	}
+	bResetting = false;
+	bAdminPassive = false;
+	Target.Reset();   // Aggro ignores the current target
+	Aggro(Who);
+	AdminReplan();
+}
+
+void UNWBehaviorTreeComponent::AdminOverride(FName Key, double Value)
+{
+	if (FMath::IsNaN(Value))
+	{
+		AdminBB.Remove(Key);
+		return;
+	}
+	AdminBB.Add(Key, Value);
+	SetNum(Key, Value);
+}
+
+void UNWBehaviorTreeComponent::AdminReplan()
+{
+	if (Current)
+	{
+		Abort(*Current);
+	}
+	Current.Reset();
+	CurrentSig.Reset();
+	LastEval = -100.0;
 }
